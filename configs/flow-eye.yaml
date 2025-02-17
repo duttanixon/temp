@@ -1,0 +1,23 @@
+platform: 
+    type: HAILO8
+    display: false
+    network: yolov8m
+    postprocess_dir: /path/to/postprocess
+    source_type: file
+    detection_model_path: /opt/models/detection/yolov8m.hef
+    postprocess_so_path: /home/Raspi5_2/hailo-rpi5-examples/venv_hailo_rpi5_examples/lib/python3.11/site-packages/resources/libyolo_hailortpp_postprocess.so
+    postprocess_function_name: filter_letterbox
+    labels_json: ""
+    disable_sync: false
+    disable_callback: false
+
+
+solution:
+    name: flow-eye
+    batch_size: 1
+    video_width: 1280
+    video_height: 720
+    video_format: "RGB"
+    nms_score_threshold: 0.3
+    nms_iou_threshold: 0.45
+    input: resources/data/input.mp4

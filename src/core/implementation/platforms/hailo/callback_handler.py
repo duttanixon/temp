@@ -1,62 +1,32 @@
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GLib
-import multiprocessing
-import numpy as np
+
 import cv2
-import queue
 import hailo
-from typing import Optional
 from .hailo_rpi_common import get_caps_from_pad, get_numpy_from_buffer
 
 class CallbackHandler:
     """Enhanced callback handler"""
     def __init__(self):
-        self.frame_count = 0
-        self.use_frame = False
-        self.frame_queue = multiprocessing.Queue(maxsize=3)
-        self.running = True
-    
-    def increment(self) -> None:
-        self.frame_count += 1
-    
-    def get_count(self) -> int:
-        return self.frame_count
-    
-    def set_frame(self, frame: np.ndarray) -> None:
-        """Add frame to queue with overflow protection"""
-        try:
-            self.frame_queue.put(frame, block=False)
-        except queue.Full:
-            try:
-                self.frame_queue.get_nowait() # Remove oldest frame
-                self.frame_queue.put(frame, block=False)
-            except (queue.Empty, queue.Full):
-                pass 
-    
-    def get_frame(self) -> Optional[np.ndarray]:
-        """Get frame from queue with timeout"""
-        try:
-            return self.frame_queue.get(timeout=0.1)
-        except queue.Empty:
-            return None
+        pass
         
-    def app_callback(self, pad, info):
+    def app_callback(self, pad, info, user_data):
         # Get the buffer from the probe info
         buffer = info.get_buffer()
         if buffer is None:
             return Gst.PadProbeReturn.OK
         
         # using the user_data tp count the number of frames
-        self.increment()
-        string_to_print = f"Frame count: {self.get_count()}"
+        user_data.increment()
+        string_to_print = f"Frame count: {user_data.get_count()}"
 
         # Get the caps from the pad
         format, width, height = get_caps_from_pad(pad)
 
         # If the user_data.use_frame is set to True, we can get the video frame from the buffer
         frame = None
-        if self.use_frame and format is not None and width is not None and height is not None:
+        if user_data.use_frame and format is not None and width is not None and height is not None:
             # Get video frame
             frame = get_numpy_from_buffer(buffer, format, width, height)
         
@@ -79,7 +49,7 @@ class CallbackHandler:
                 string_to_print += (f"Detection: ID: {track_id} Label: {label} Confidence: {confidence:.2f}\n")
                 detection_count += 1
 
-        if self.use_frame:
+        if user_data.use_frame:
             print(f"Number of detections: {detection_count}")
             print(f"Frame shape: {frame.shape}")
             # Note: using imshow will not work here, as the callback function is not running in the main thread
@@ -90,7 +60,7 @@ class CallbackHandler:
             # cv2.putText(frame, f"{self.new_function()} {user_data.new_variable}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             # Convert the frame to BGR
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            self.set_frame(frame)
+            user_data.set_frame(frame)
 
         print(string_to_print)
         return Gst.PadProbeReturn.OK

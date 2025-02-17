@@ -39,7 +39,7 @@ def disable_qos(pipeline):
 
 
 class GStreamerApp:
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, user_data):
         # set the process title
         setproctitle.setproctitle("Hailo Python App")
 
@@ -54,7 +54,7 @@ class GStreamerApp:
         self.error_occurred = False
         self.pipeline_latency = 300  # milliseconds
         self.sync = "false" if (self.config["platform"]["disable_sync"] or self.source_type != "file") else "true"
-
+        self.user_data = user_data
 
     def on_fps_measurement(self, sink, fps, droprate, avgfps):
         print(f"FPS: {fps:.2f}, Droprate: {droprate:.2f}, Avg FPS: {avgfps:.2f}")
@@ -123,7 +123,7 @@ class GStreamerApp:
                 print("Warning: identity_callback element not found, add <identity name=identity_callback> in your pipeline where you want the callback to be called.")
             else:
                 identity_pad = identity.get_static_pad("src")
-                identity_pad.add_probe(Gst.PadProbeType.BUFFER, self.app_callback)
+                identity_pad.add_probe(Gst.PadProbeType.BUFFER, self.app_callback, self.user_data)
 
         hailo_display = self.pipeline.get_by_name("hailo_display")
         if hailo_display is None:
@@ -147,7 +147,7 @@ class GStreamerApp:
 
         # Clean up
         try:
-            self.running = False
+            self.user_data.running = False
             self.pipeline.set_state(Gst.State.NULL)
             for t in self.threads:
                 t.join()

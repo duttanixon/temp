@@ -37,7 +37,7 @@ class HailoVideoAnalyticsApp(GStreamerApp, CallbackHandler):
         self.video_height = self.solution.video_height
         self.video_format = self.solution.video_format
         self.video_source =  self.solution.input
-        super().__init__(config)
+        super().__init__(config, solution)
         CallbackHandler.__init__(self)
         self.create_pipeline()
 

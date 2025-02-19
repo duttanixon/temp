@@ -1,26 +1,32 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 import numpy as np
 import queue
 import multiprocessing
 
-
 class FlowEyeSolution:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], input_source: 'InputSource', output_handler: 'OutputHandler'):
         self.frame_count = 0
-        self.use_frame = False
-        self.frame_queue = multiprocessing.Queue(maxsize=3)
+
+        # Create input/output handler
+        self.input_source = input_source
+        self.output_handler = output_handler
+
+        # Initialize input source
+        self.input_source.initialize()
         self.running = True
+        self.use_frame = config.get("use_frame", False)
 
-
+        # Store configuration
         self.nms_score_threshold = config["nms_score_threshold"]
         self.nms_iou_threshold = config["nms_iou_threshold"]
         self.batch_size = config["batch_size"]
-        self.video_width = config["video_width"]
-        self.video_height = config["video_height"]
-        self.video_format = config["video_format"]
-        self.input = config["input"]
 
-    
+    def on_frame_processed(self, frame_data: Dict[str, Any]) -> None:
+        """Handle processed frame data from platform"""
+        self.frame_count += 1
+        print(f"Frame count: {self.frame_count}")
+        self.output_handler.handle_result(frame_data)
+
     def increment(self) -> None:
         self.frame_count += 1
     
@@ -45,9 +51,10 @@ class FlowEyeSolution:
         except queue.Empty:
             return None
 
-
-
-
-
         
         
+
+
+
+
+

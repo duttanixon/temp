@@ -17,7 +17,7 @@ class SignalHandler:
         # Graceful shutdown sequence
         self.pipeline_manager.set_state(self.context.gst.State.PAUSED)
         self.context.glib.usleep(100000)
-        self.pipeline_manager.set_state(self.context.gstst.State.READY)
+        self.pipeline_manager.set_state(self.context.gst.State.READY)
         self.context.glib.usleep(100000)
         self.pipeline_manager.set_state(self.context.gst.State.NULL)
         self.context.glib.idle_add(self.loop.quit)

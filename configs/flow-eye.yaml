@@ -15,13 +15,14 @@ platform:
 solution:
     name: flow-eye
     batch_size: 1
-    video_width: 1280
-    video_height: 720
-    video_format: "RGB"
     nms_score_threshold: 0.3
     nms_iou_threshold: 0.45
     input: 
-        type: file
-        file_path: resources/data/input.mp4
+        video_width: 1280
+        video_height: 720
+        video_format: "RGB"
+        type: rpi
+        # type: file
+        # file_path: resources/data/input.mp4
     output:
         type: default

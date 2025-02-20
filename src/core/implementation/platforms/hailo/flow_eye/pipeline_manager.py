@@ -9,6 +9,7 @@ from .pipeline_manager_helper import(
     FILE_SINK_PIPELINE,
     OVERLAY_PIPELINE
 )
+from .rpi_camera_handler import RPICameraHandler
 import traceback
 import sys 
 from typing import Dict, Optional, Any
@@ -18,9 +19,31 @@ class PipelineManager:
     def __init__(self, config: Dict[str, Any], solution: Any, gst_context: 'GstContext'):
         self.context = gst_context
         self.pipeline = None
+        self.rpi_handler = None
         self._setup_configuration(config, solution)
         pipeline_string = self.get_pipeline_string()
         self.create_pipeline(pipeline_string)
+        self._initialize_input_source()
+
+
+    def _initialize_input_source(self):
+        """Initialize input source specific handlers"""
+        if hasattr(self, 'video_source_type') and self.video_source_type == 'rpi':
+            input_props = self.solution.input_source.get_properties()
+            self.rpi_handler = RPICameraHandler(
+                self.pipeline,
+                self.video_width,
+                self.video_height,
+                self.video_format,
+                input_props.get('picamera_config')
+            )
+            self.rpi_handler.start()
+
+    def cleanup(self):
+        """Cleanup resources"""
+        if self.rpi_handler:
+            self.rpi_handler.stop()
+
 
     def create_pipeline(self, pipeline_string: str) -> None:
         """Creates and initializes the GStreamer pipeline"""
@@ -56,6 +79,7 @@ class PipelineManager:
         self.labels_json = config["platform"]["labels_json"]
         
         # Solution-specific configuration
+        self.solution = solution
         self.nms_score_threshold = solution.nms_score_threshold
         self.nms_iou_threshold = solution.nms_iou_threshold
         self.batch_size = solution.batch_size
@@ -65,6 +89,7 @@ class PipelineManager:
         self.video_height = input_props["height"]
         self.video_format = input_props["format"]
         self.video_source = input_props["path"]
+        self.video_source_type = input_props["type"]
 
         # Prepare threshold string
         self.thresholds_str = (

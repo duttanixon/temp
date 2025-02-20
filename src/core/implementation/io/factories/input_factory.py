@@ -1,5 +1,5 @@
 from typing import Dict, Any
-# from core.interfaces.io.input_source import InputSource
+from core.implementation.io.rpi_input import RPIInputSource
 from core.implementation.io.file_input import FileInputSource
 
 class InputSourceFactory:
@@ -24,7 +24,7 @@ class InputSourceFactory:
         # Registry of available input type
         input_types = {
             "file": FileInputSource,
-            # "rpi": RPIInputSource, 
+            "rpi": RPIInputSource,
             # "rtsp": RTSPInputSource
         }
 

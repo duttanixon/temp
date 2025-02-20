@@ -11,10 +11,12 @@ from .pipeline_manager import PipelineManager
 from .bus_message_handler import BusMessageHandler
 from .qos_manager import QosManager
 from .signal_handler import SignalHandler
+from core.interfaces.platforms.platform_controller import IPlatformController
+from core.interfaces.solutions.solution import ISolution
 
 
-class HailoPipelineController:
-    def __init__(self, config:Dict[str, Any], solution: Any):
+class HailoPipelineController(IPlatformController):
+    def __init__(self, config:Dict[str, Any], solution: ISolution):
         self.config = config
         self.solution = solution
         self.gst_context = GstContext.initialize()

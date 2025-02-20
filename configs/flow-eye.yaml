@@ -21,8 +21,8 @@ solution:
         video_width: 1280
         video_height: 720
         video_format: "RGB"
-        type: rpi
-        # type: file
-        # file_path: resources/data/input.mp4
+        # type: rpi
+        type: file
+        file_path: resources/data/input.mp4
     output:
         type: default

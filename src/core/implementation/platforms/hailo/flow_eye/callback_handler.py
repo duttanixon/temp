@@ -4,6 +4,7 @@ import hailo
 from typing import Tuple, Optional, List
 from dataclasses import dataclass
 from .hailo_rpi_common import get_caps_from_pad, get_numpy_from_buffer
+from core.interfaces.solutions.solution import ISolution
 
 @dataclass
 class Detection:
@@ -52,7 +53,7 @@ class VideoProcessor:
 
 class CallbackHandler:
     """Main callback handler that orchestrates the processing pipeline"""
-    def __init__(self, gst_context, solution):
+    def __init__(self, gst_context, solution: ISolution):
         self.solution = solution
         self.video_processor = VideoProcessor()
         self.gst_context = gst_context

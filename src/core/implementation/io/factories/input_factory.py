@@ -1,11 +1,12 @@
 from typing import Dict, Any
 from core.implementation.io.rpi_input import RPIInputSource
 from core.implementation.io.file_input import FileInputSource
+from core.interfaces.io.input_source import IInputSource
 
 class InputSourceFactory:
     """Factory for creating input souce"""
     @staticmethod
-    def create(input_config: Dict[str, Any]) -> 'InputSource':
+    def create(input_config: Dict[str, Any]) -> IInputSource:
         """
         Creates an input source based on configuration
 

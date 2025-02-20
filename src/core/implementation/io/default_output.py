@@ -1,6 +1,9 @@
 from typing import Any, Dict, Optional, List
 import numpy as np
 import multiprocessing
+from core.interfaces.io.output_handler import IOutputHandler
+
+
 class DefaultOutputHandler:
     def __init__(self, config: Dict[str, Any]):
         self.use_frame = config.get("use_frame", False)

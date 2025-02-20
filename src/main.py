@@ -4,6 +4,10 @@ from core.implementation.solutions.flow_eye.solution import FlowEyeSolution
 from core.implementation.platforms.hailo.flow_eye.controller import HailoPipelineController
 from core.implementation.io.factories.input_factory import InputSourceFactory
 from core.implementation.io.factories.output_factory import OutputHandlerFactory
+from core.interfaces.solutions.solution import ISolution
+from core.interfaces.platforms.platform_controller import IPlatformController
+from core.interfaces.io.input_source import IInputSource
+from core.interfaces.io.output_handler import IOutputHandler
 import traceback
 
 def main():
@@ -12,17 +16,17 @@ def main():
         config = config_manager.load_config()
 
         # Create I/O handlers using factories
-        input_source = InputSourceFactory.create(config["solution"]["input"])
-        output_handler = OutputHandlerFactory.create(config["solution"]["output"])
+        input_source: IInputSource = InputSourceFactory.create(config["solution"]["input"])
+        output_handler: IOutputHandler = OutputHandlerFactory.create(config["solution"]["output"])
 
-        solution = FlowEyeSolution(
+        solution: ISolution = FlowEyeSolution(
             config["solution"],
             input_source=input_source,
             output_handler=output_handler
         )
 
         # Create platform-specific controller
-        platform_controller = HailoPipelineController(config, solution)
+        platform_controller: IPlatformController = HailoPipelineController(config, solution)
 
         # Create platform-agnostic application
         app = VideoAnalyticsApp(config, solution, platform_controller)

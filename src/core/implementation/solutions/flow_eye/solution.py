@@ -2,9 +2,13 @@ from typing import Any, Dict, Optional, List
 import numpy as np
 import queue
 import multiprocessing
+from core.interfaces.solutions.solution import ISolution
+from core.interfaces.io.input_source import IInputSource
+from core.interfaces.io.output_handler import IOutputHandler
 
-class FlowEyeSolution:
-    def __init__(self, config: Dict[str, Any], input_source: 'InputSource', output_handler: 'OutputHandler'):
+
+class FlowEyeSolution(ISolution):
+    def __init__(self, config: Dict[str, Any], input_source: IInputSource, output_handler: IOutputHandler):
         self.frame_count = 0
 
         # Create input/output handler

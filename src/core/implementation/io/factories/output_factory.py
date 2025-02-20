@@ -1,12 +1,13 @@
 from typing import Dict, Any
 from core.implementation.io.default_output import DefaultOutputHandler
+from core.interfaces.io.output_handler import IOutputHandler
 # from core.interface.io.output_handler import OutputHandler
 
 class OutputHandlerFactory:
     """Factory for creating output handlers"""
 
     @staticmethod
-    def create(output_config: Dict[str, Any]) -> 'OutputHandler':
+    def create(output_config: Dict[str, Any]) -> IOutputHandler:
         """
         Creates an output source based on configuration
 

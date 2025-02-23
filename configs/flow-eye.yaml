@@ -11,6 +11,7 @@ platform:
     labels_json: ""
     disable_sync: false
     disable_callback: false
+    debug_pipeline: true
 
 
 solution:

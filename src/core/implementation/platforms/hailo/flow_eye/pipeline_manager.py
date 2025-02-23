@@ -12,6 +12,7 @@ from .pipeline_manager_helper import(
 from .rpi_camera_handler import RPICameraHandler
 import traceback
 import sys 
+import os
 from typing import Dict, Optional, Any
 
 class PipelineManager:
@@ -21,7 +22,7 @@ class PipelineManager:
         self.pipeline = None
         self.rpi_handler = None
         self._setup_configuration(config, solution)
-        pipeline_string = self.get_pipeline_string()
+        pipeline_string = self._get_demo_pipeline_string()
         self.create_pipeline(pipeline_string)
         self._initialize_input_source()
 
@@ -74,6 +75,7 @@ class PipelineManager:
         # Platform configuration
         self.arch = config["platform"]["type"]
         self.detection_model_path = config["platform"]["detection_model_path"]
+        self.person_attributes_model_path = config["platform"]["attribute_model_path"]
         self.post_process_so = config["platform"]["postprocess_so_path"]
         self.post_function_name = config["platform"]["postprocess_function_name"]
         self.labels_json = config["platform"]["labels_json"]
@@ -98,7 +100,7 @@ class PipelineManager:
             f"output-format-type=HAILO_FORMAT_TYPE_FLOAT32"
         )
 
-    def get_pipeline_string(self) -> str:
+    def _get_demo_pipeline_string(self) -> str:
         """Creates the Hailo-specific pipeline string"""
         # Create pipeline components
         source_pipeline = SOURCE_PIPELINE(self.video_source, self.video_width, self.video_height)
@@ -110,7 +112,9 @@ class PipelineManager:
             config_json=self.labels_json,
             additional_params=self.thresholds_str)
         detection_pipeline_wrapper = INFERENCE_PIPELINE_WRAPPER(detection_pipeline)
-        tracker_pipeline = TRACKER_PIPELINE(class_id=1)
+        # tracker_pipeline = TRACKER_PIPELINE(class_id=1)
+        tracker_pipeline = self._get_byte_track_pipeline_string()
+
         user_callback_pipeline = USER_CALLBACK_PIPELINE()
         filesink = FILE_SINK_PIPELINE()
         pipeline_string = (
@@ -124,3 +128,58 @@ class PipelineManager:
         )
         print(pipeline_string)
         return pipeline_string
+
+    def _get_byte_track_pipeline_string(self) -> str:
+        return (
+            f'{QUEUE("queue_tracking_callback")} ! '
+            "identity name=tracking_callback "
+        )
+    
+    def _get_person_attribute_pipeline_string(self) -> str:
+        return (
+            f'{QUEUE("queue_videoconvert")} ! '
+            "videoconvert n-threads=3 ! "
+            f"hailonet hef-path={self.person_attributes_model_path} batch-size={self.batch_size} scheduling-algorithm=1 scheduler-threshold=8 "
+            "scheduler-timeout-ms=50 vdevice-group-id=1 ! "
+            f'{QUEUE("queue_hailopython")} ! '
+            f"hailopython module={os.path.join(os.path.dirname(os.path.abspath(__file__)),'attr.py')} "                        
+        )
+
+    def _get_flow_eye_pipeline_string(self)-> str:
+        source_pipeline = SOURCE_PIPELINE(self.video_source, self.video_width, self.video_height)
+        detection_pipeline = INFERENCE_PIPELINE(
+            hef_path=self.detection_model_path,
+            post_process_so=self.post_process_so,
+            post_function_name=self.post_function_name,
+            batch_size=self.batch_size,
+            config_json=self.labels_json,
+            additional_params=self.thresholds_str)
+        tracking_pipeline = self._get_byte_track_pipeline_string()
+        person_attribute_pipeline = self._get_person_attribute_pipeline_string()
+
+        pipeline_string = (
+            "hailomuxer name=hmux "
+            f'{source_pipeline} ! '
+            f'{detection_pipeline} ! '
+            "tee name=splitter ! "
+            f'{tracking_pipeline } ! '
+            "hmux.sink_0 "
+            "splitter. ! "
+            f"hailopython module={os.path.join(os.path.dirname(os.path.abspath(__file__)),'class_hailo.py')} ! "
+            f"hailocropper so-path={os.path.join(tappas_post_process_dir, 'cropping_algorithms/libwhole_buffer.so')} function-name=create_crops_only_person internal-offset=true name=cropper "
+            "hailoaggregator name=agg "
+            "cropper. ! queue leaky=no max-size-buffers=20 max-size-bytes=0 max-size-time=0 ! agg. "
+            "cropper. ! "
+            f'{person_attribute_pipeline } ! '
+            "agg. "
+            "agg. ! queue leaky=no max-size-buffers=20 max-size-bytes=0 max-size-time=0 ! "
+            "hmux.sink_1 "
+            "hmux. ! "
+            f'{QUEUE("queue_user_callback")} ! '
+            "identity name=identity_callback ! "
+            f'{QUEUE("queue_timing_callback2")} ! '
+            "identity name=timing_callback2 ! "
+            f'{OVERLAY_PIPELINE()} ! '
+            f'{filesink}'
+        )
+

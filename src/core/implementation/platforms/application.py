@@ -10,11 +10,10 @@ class VideoAnalyticsApp:
         self.platform = platform
         self.config = config
         self.solution = solution
-        self.initialize()
 
 
     def initialize(self) -> None:
-        self.platform.initialize(self.config, self.solution)
+        self.platform.initialize()
         self.platform.setup_pipeline()
 
     def run(self) -> None:

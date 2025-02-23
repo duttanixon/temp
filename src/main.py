@@ -30,6 +30,7 @@ def main():
 
         # Create platform-agnostic application
         app = VideoAnalyticsApp(config, solution, platform_controller)
+        app.initialize()
         app.run()
         
     except Exception as e:

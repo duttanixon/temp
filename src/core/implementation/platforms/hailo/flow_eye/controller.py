@@ -25,12 +25,11 @@ class HailoPipelineController(IPlatformController):
         self.callback_handler = CallbackHandler(self.gst_context, solution)
 
     
-    def initialize(self, config: Dict[str, Any], user_data: Any) -> None:
+    def initialize(self) -> None:
         setproctitle.setproctitle("Hailo Video Analytics")
-        self.user_data = user_data
 
         # Initialize components
-        self.pipeline_manager = PipelineManager(config, self.solution, self.gst_context)
+        self.pipeline_manager = PipelineManager(self.config, self.solution, self.gst_context)
         self.bus_handler = BusMessageHandler(self.pipeline_manager, self.loop, self.gst_context)
         self.qos_manager = QosManager(self.gst_context)
         self.signal_handler = SignalHandler(self.pipeline_manager, self.loop, self.gst_context)
@@ -53,12 +52,11 @@ class HailoPipelineController(IPlatformController):
                     identity_pad = identity.get_static_pad("src")
                     identity_pad.add_probe(
                         self.gst_context.gst.PadProbeType.BUFFER,
-                        self.app_callback,
-                        self.user_data
+                        self.app_callback
                     )
 
-    def app_callback(self, pad, info, user_data):
-        return self.callback_handler.app_callback(pad, info, user_data)
+    def app_callback(self, pad, info):
+        return self.callback_handler.app_callback(pad, info)
 
 
     def setup_pipeline(self) -> None:
@@ -87,7 +85,7 @@ class HailoPipelineController(IPlatformController):
     def cleanup(self) -> None:
         """Handles cleanup on exit"""
         try:
-            self.user_data.running = False
+            self.solution.running = False
             self.pipeline_manager.set_state(self.gst_context.gst.State.NULL)
         except Exception as e:
             print(f"Error during cleanup: {e}", file=sys.stderr)

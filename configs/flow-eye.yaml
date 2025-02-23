@@ -5,6 +5,7 @@ platform:
     postprocess_dir: /path/to/postprocess
     source_type: file
     detection_model_path: /opt/models/detection/yolov8m.hef
+    attribute_model_path: /opt/models/detection/person_attr_resnet_v1_18.hef
     postprocess_so_path: /home/Raspi5_2/hailo-rpi5-examples/venv_hailo_rpi5_examples/lib/python3.11/site-packages/resources/libyolo_hailortpp_postprocess.so
     postprocess_function_name: filter_letterbox
     labels_json: ""
@@ -17,11 +18,19 @@ solution:
     batch_size: 1
     nms_score_threshold: 0.3
     nms_iou_threshold: 0.45
+    tracking:
+        track_fps: 30
+        track_thresh: 0.4
+        track_buffer: 30
+        match_thresh: 0.75
+        min_box_area: 300
+
     input: 
         video_width: 1280
         video_height: 720
         video_format: "RGB"
         # type: rpi
+        # file_path: rpi
         type: file
         file_path: resources/data/input.mp4
     output:

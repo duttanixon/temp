@@ -9,7 +9,7 @@ class DefaultOutputHandler:
         self.use_frame = config.get("use_frame", False)
         self.frame_queue = multiprocessing.Queue(maxsize=3)
     
-    def handle_result(self, result: Dict[str, Any]) -> None:
+    def handle_result(self, result: Dict[str, Any], detections_result: Dict[str, Any]) -> None:
         detections = result.get("detections", [])
         frame = result.get("frame")
 

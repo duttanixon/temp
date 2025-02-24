@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import hailo
+from scipy.optimize import linear_sum_assignment
 from typing import Tuple, Optional, List
 from dataclasses import dataclass
 from .hailo_rpi_common import get_caps_from_pad, get_numpy_from_buffer
@@ -94,14 +95,14 @@ class CallbackHandler:
         """Callback function for tracking"""
         buffer = info.get_buffer()
         if buffer is None:
-            return Gst.PadProbeReturn.OK
+            return self.gst_context.gst.PadProbeReturn.OK
         frame = self.video_processor.process_buffer(buffer, pad)
 
         roi = hailo.get_roi_from_buffer(buffer)
         self.solution.increment_counters("tracking")
         if frame is not None: 
             self._track_processor(frame, roi, self.solution.get_frame_count("tracking"))
-        return Gst.PadProbeReturn.OK
+        return self.gst_context.gst.PadProbeReturn.OK
 
     def _compute_iou_matrix(self, bboxes, t_bboxes):
         """
@@ -150,13 +151,14 @@ class CallbackHandler:
             bboxes (ndarray): Detected bounding boxes (N x 4).
             detection_list (list): The corresponding detection objects.
             t_ids (ndarray): Track IDs predicted by tracker (M x 1).
-            t_bboxes (ndarray): Bounding boxes predicted by tracker (M x 4).
+            t_bboxes list: Bounding boxes predicted by tracker (M x 4).
             t_scores (ndarray): Confidence scores from tracker (M x 1).
             t_class_ids (ndarray): Class IDs from tracker (M x 1).
             frame_count (int): Current frame index.
             iou_thresh (float): IoU threshold for accepting a match.
         """
         # Compute IoU matrix and get matches using the Hungarian algorithm
+        t_bboxes = np.asarray(t_bboxes)
         iou_matrix = self._compute_iou_matrix(bboxes, t_bboxes)
         row_ind, col_ind = linear_sum_assignment(iou_matrix)
         
@@ -186,6 +188,7 @@ class CallbackHandler:
             #                                             len(self.Counter.track_id_dict))
             
             # Store detection result using pre-computed transformed bbox
+
             frame_results[t_id] = {
                 "id": t_id,
                 # "new_id": new_id,
@@ -234,7 +237,7 @@ class CallbackHandler:
             class_ids[i] = det.get_class_id()
 
         # Track objects
-        t_ids, t_bboxes, t_scores, t_class_ids = self.tracker(frame, bboxes, confidences, class_ids)
+        t_ids, t_bboxes, t_scores, t_class_ids = self.solution.tracker(frame, bboxes, confidences, class_ids)
         # Assign detections to tracks
         self._match_detections_to_tracks(
             bboxes,

@@ -69,9 +69,22 @@ class HailoPipelineController(IPlatformController):
                         self.gst_context.gst.PadProbeType.BUFFER,
                         self.app_callback
                     )
+                tracker = pipeline.get_by_name("tracking_callback")
+                if tracker is None:
+                    print("Warning: tracking_callback element not found")
+                else:
+                    tracker_pad = tracker.get_static_pad("src")
+                    tracker_pad.add_probe(
+                        self.gst_context.gst.PadProbeType.BUFFER,
+                        self.tracker_callback
+                    )
 
     def app_callback(self, pad, info):
         return self.callback_handler.app_callback(pad, info)
+    
+    def tracker_callback(self, pad, info):
+        return self.callback_handler.tracking_callback(pad, info)
+
 
     def dump_pipeline(self, state_name="current") -> Optional[Any]:
         """

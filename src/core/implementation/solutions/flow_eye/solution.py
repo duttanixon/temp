@@ -46,7 +46,7 @@ class FlowEyeSolution(ISolution):
         """Handle processed frame data from platform"""
         self.frame_count += 1
         print(f"Frame count: {self.frame_count}")
-        self.output_handler.handle_result(frame_data)
+        self.output_handler.handle_result(frame_data, self.detections_result)
 
     def increment_counters(self, counter_type) -> None:
         try:

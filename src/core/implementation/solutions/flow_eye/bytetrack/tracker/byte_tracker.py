@@ -1,7 +1,7 @@
 import numpy as np
 
 from .kalman_filter import KalmanFilter
-from .matching import *
+from ..tracker import matching
 from .basetrack import BaseTrack, TrackState
 
 

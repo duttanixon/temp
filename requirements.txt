@@ -4,3 +4,6 @@ cython-bbox==0.1.5
 numpy==1.24.4
 scipy==1.13.1
 lap
+SQLAlchemy
+awscrt
+awsiotsdk

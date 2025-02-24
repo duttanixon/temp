@@ -2,10 +2,14 @@ from typing import Any, Dict, Optional, List
 import numpy as np
 import queue
 import multiprocessing
+from .bytetrack.mc_bytetrack import MultiClassByteTrack
+
 from core.interfaces.solutions.solution import ISolution
 from core.interfaces.io.input_source import IInputSource
 from core.interfaces.io.output_handler import IOutputHandler
-from .bytetrack.mc_bytetrack import MultiClassByteTrack
+
+from core.implementation.cloud.factories.cloud_factory import CloudConnectorFactory
+from core.implementation.cloud.factories.formatter_factory import MetricsFormatterFactory
 
 
 class FlowEyeSolution(ISolution):
@@ -41,12 +45,34 @@ class FlowEyeSolution(ISolution):
             match_thresh=config["tracking"]["match_thresh"],
             min_box_area=config["tracking"]["min_box_area"],
             )
+        
+        # initialize cloud communication
+        if "cloud" in config:
+            self.cloud_connector = CloudConnectorFactory.create(config["cloud"])
+            self.cloud_connector.initialize(config["cloud"])
+
+            # Create metrics formatter
+            formatter_config = {
+                "solution_type": "flow_eye",
+                "report_interval": config["cloud"].get("report_interval", 60)
+            }
+            self.metrics_formatter = MetricsFormatterFactory.create(formatter_config)
+        else:
+            self.cloud_connector = None
+            self.metrics_formatter = None
 
     def on_frame_processed(self, frame_data: Dict[str, Any]) -> None:
         """Handle processed frame data from platform"""
         self.frame_count += 1
         print(f"Frame count: {self.frame_count}")
         self.output_handler.handle_result(frame_data, self.detections_result)
+
+
+        # Handle cloud communication if enabled
+        if self.cloud_connector and self.metrics_formatter:
+            metrics = self.metrics_formatter.format_metrics(frame_data)
+            if metrics:
+                self.cloud_connector.send_metrics(metrics)
 
     def increment_counters(self, counter_type) -> None:
         try:
@@ -82,7 +108,14 @@ class FlowEyeSolution(ISolution):
         except queue.Empty:
             return None
 
+    def cleanup(self) -> None:
+        """Cleanup resources"""
+        if self.cloud_connector:
+            self.cloud_connector.cleanup()
         
+        # Cleanup other resources...
+        self.running = False
+
         
 
 

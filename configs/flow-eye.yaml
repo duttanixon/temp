@@ -36,3 +36,14 @@ solution:
         file_path: resources/data/input.mp4
     output:
         type: default
+
+    # # Cloud configuration
+    # cloud:
+    #     provider: aws_iot
+    #     aws_iot_endpoint: "your-endpoint.iot.region.amazonaws.com"
+    #     cert_path: "/path/to/certificate.pem"
+    #     private_key_path: "/path/to/private.key"
+    #     root_ca_path: "/path/to/root-ca.pem"
+    #     device_id: "unique-device-id"
+    #     solution_type: "flow_eye"
+    #     report_interval: 60 

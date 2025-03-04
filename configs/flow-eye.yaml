@@ -2,10 +2,10 @@ platform:
     type: HAILO8
     display: false
     network: yolov8m
-    postprocess_dir: /path/to/postprocess
+    postprocess_dir: /usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/
     source_type: file
     detection_model_path: /opt/models/detection/yolov8m.hef
-    attribute_model_path: /opt/models/detection/person_attr_resnet_v1_18.hef
+    attribute_model_path: /opt/models/classification/person_attr_resnet_v1_18.hef
     postprocess_so_path: /home/Raspi5_2/hailo-rpi5-examples/venv_hailo_rpi5_examples/lib/python3.11/site-packages/resources/libyolo_hailortpp_postprocess.so
     postprocess_function_name: filter_letterbox
     labels_json: ""
@@ -27,8 +27,8 @@ solution:
         min_box_area: 300
 
     input: 
-        video_width: 1280
-        video_height: 720
+        video_width: 640
+        video_height: 640
         video_format: "RGB"
         # type: rpi
         # file_path: rpi

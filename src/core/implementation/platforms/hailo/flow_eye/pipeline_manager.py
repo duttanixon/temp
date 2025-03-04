@@ -7,7 +7,8 @@ from .pipeline_manager_helper import(
     USER_CALLBACK_PIPELINE,
     # DISPLAY_PIPELINE,
     FILE_SINK_PIPELINE,
-    OVERLAY_PIPELINE
+    OVERLAY_PIPELINE,
+    DETECTION_PIPELINE
 )
 from .rpi_camera_handler import RPICameraHandler
 import traceback
@@ -22,7 +23,9 @@ class PipelineManager:
         self.pipeline = None
         self.rpi_handler = None
         self._setup_configuration(config, solution)
-        pipeline_string = self._get_demo_pipeline_string()
+        # pipeline_string = self._get_demo_pipeline_string()
+        pipeline_string = self._get_flow_eye_pipeline_string()
+        print(f"Pipeline string: {pipeline_string}") 
         self.create_pipeline(pipeline_string)
         self._initialize_input_source()
 
@@ -79,6 +82,7 @@ class PipelineManager:
         self.post_process_so = config["platform"]["postprocess_so_path"]
         self.post_function_name = config["platform"]["postprocess_function_name"]
         self.labels_json = config["platform"]["labels_json"]
+        self.postprocess_dir = config["platform"]["postprocess_dir"]
         
         # Solution-specific configuration
         self.solution = solution
@@ -118,6 +122,7 @@ class PipelineManager:
         user_callback_pipeline = USER_CALLBACK_PIPELINE()
         filesink = FILE_SINK_PIPELINE()
         pipeline_string = (
+
             f'{source_pipeline} ! '
             f'{detection_pipeline_wrapper} ! '
             f'{tracker_pipeline} ! '
@@ -136,19 +141,51 @@ class PipelineManager:
         )
     
     def _get_person_attribute_pipeline_string(self) -> str:
+        class_hailo_py_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'class_hailo.py')
+        print(f"class_hailo_py_path: {class_hailo_py_path}")
+        if not os.path.exists(class_hailo_py_path):
+            print(f"Error: class_hailo.py not found at {class_hailo_py_path}")
+            sys.exit(1)
+        attr_py_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attr.py')
+        print(f"attr_py_path: {attr_py_path}")
+        if not os.path.exists(attr_py_path):
+            print(f"Error: attr.py not found at {attr_py_path}")
+            sys.exit(1) 
         return (
-            f'{QUEUE("queue_videoconvert")} ! '
+            f'{QUEUE("queue_hailonet2")} ! '
             "videoconvert n-threads=3 ! "
             f"hailonet hef-path={self.person_attributes_model_path} batch-size={self.batch_size} scheduling-algorithm=1 scheduler-threshold=8 "
             "scheduler-timeout-ms=50 vdevice-group-id=1 ! "
-            f'{QUEUE("queue_hailopython")} ! '
-            f"hailopython module={os.path.join(os.path.dirname(os.path.abspath(__file__)),'attr.py')} "                        
+            f"hailopython module={os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attr_hailo.py')} ! "
+            f'{QUEUE("queue_hailofilter2")} ! '
+            "identity name=attribute_callback"
+            
         )
+        
 
     def _get_flow_eye_pipeline_string(self)-> str:
+        class_hailo_py_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'class_hailo.py')
+        print(f"class_hailo_py_path: {class_hailo_py_path}")
+        if not os.path.exists(class_hailo_py_path):
+            print(f"Error: class_hailo.py not found at {class_hailo_py_path}")
+            sys.exit(1)
+            
+        cropper_so_path = os.path.join(self.postprocess_dir, 'cropping_algorithms/libmspn.so')
+        if not os.path.exists(cropper_so_path):
+            print(f"Error: libwhole_buffer.so not found at {cropper_so_path}")
+            sys.exit(1)
+
+        attr_py_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attr.py')
+        print(f"attr_py_path: {attr_py_path}")
+        if not os.path.exists(attr_py_path):
+            print(f"Error: attr.py not found at {attr_py_path}")
+            sys.exit(1)    
+
         source_pipeline = SOURCE_PIPELINE(self.video_source, self.video_width, self.video_height)
-        detection_pipeline = INFERENCE_PIPELINE(
+        detection_pipeline = DETECTION_PIPELINE(
             hef_path=self.detection_model_path,
+            video_width=self.video_width,
+            video_height=self.video_height,
             post_process_so=self.post_process_so,
             post_function_name=self.post_function_name,
             batch_size=self.batch_size,
@@ -156,30 +193,33 @@ class PipelineManager:
             additional_params=self.thresholds_str)
         tracking_pipeline = self._get_byte_track_pipeline_string()
         person_attribute_pipeline = self._get_person_attribute_pipeline_string()
+        filesink = FILE_SINK_PIPELINE()
 
         pipeline_string = (
             "hailomuxer name=hmux "
-            f'{source_pipeline} ! '
-            f'{detection_pipeline} ! '
+            f"{source_pipeline} ! "
+            f"{QUEUE('bypass_queue', max_size_buffers=20)} ! "
+            f"{detection_pipeline} ! "
             "tee name=splitter ! "
-            f'{tracking_pipeline } ! '
+            f"{tracking_pipeline} ! "
             "hmux.sink_0 "
             "splitter. ! "
-            f"hailopython module={os.path.join(os.path.dirname(os.path.abspath(__file__)),'class_hailo.py')} ! "
-            f"hailocropper so-path={os.path.join(tappas_post_process_dir, 'cropping_algorithms/libwhole_buffer.so')} function-name=create_crops_only_person internal-offset=true name=cropper "
+            f"hailopython module={class_hailo_py_path} ! "
+            f"hailocropper so-path={cropper_so_path} function-name=create_crops_only_person internal-offset=true name=cropper "
             "hailoaggregator name=agg "
             "cropper. ! queue leaky=no max-size-buffers=20 max-size-bytes=0 max-size-time=0 ! agg. "
             "cropper. ! "
-            f'{person_attribute_pipeline } ! '
+            f"{person_attribute_pipeline} ! "
             "agg. "
             "agg. ! queue leaky=no max-size-buffers=20 max-size-bytes=0 max-size-time=0 ! "
             "hmux.sink_1 "
             "hmux. ! "
-            f'{QUEUE("queue_user_callback")} ! '
+            f"{QUEUE('queue_user_callback')} ! "
             "identity name=identity_callback ! "
-            f'{QUEUE("queue_timing_callback2")} ! '
+            f"{QUEUE('queue_timing_callback2')} ! "
             "identity name=timing_callback2 ! "
-            f'{OVERLAY_PIPELINE()} ! '
-            f'{filesink}'
+            f"{filesink}"
         )
+    
+        return pipeline_string
 

@@ -34,14 +34,15 @@ class VideoProcessor:
         roi = hailo.get_roi_from_buffer(buffer)
         detections = roi.get_objects_typed(hailo.HAILO_DETECTION)
         results = []
-
+        attributes = roi.get_objects_typed(hailo.HAILO_CLASSIFICATION)
+        print(attributes)
         for detection in detections:
-            if detection.get_label() == "person":
+            if detection.get_label() == "person" or detection.get_label() == "people":
                 track_id = 0
                 track = detection.get_objects_typed(hailo.HAILO_UNIQUE_ID)
                 if len(track) == 1:
                     track_id = track[0].get_id()
-                
+                    
                 results.append(Detection(
                     label=detection.get_label(),
                     track_id=track_id,
@@ -58,6 +59,7 @@ class CallbackHandler:
         self.solution = solution
         self.video_processor = VideoProcessor()
         self.gst_context = gst_context
+        self._frame_count = 0
 
     def app_callback(self, pad: 'Gst.Pad', info: 'Gst.PadProbeInfo') -> 'Gst.PadProbeReturn':
         """Main callback function for processing frames"""
@@ -73,7 +75,6 @@ class CallbackHandler:
 
         # Process detections
         detections = self.video_processor.process_detection(buffer)
-
         # Send processed data to solution
         frame_data = {
             "frame": frame,
@@ -97,12 +98,58 @@ class CallbackHandler:
         if buffer is None:
             return self.gst_context.gst.PadProbeReturn.OK
         frame = self.video_processor.process_buffer(buffer, pad)
-
         roi = hailo.get_roi_from_buffer(buffer)
         self.solution.increment_counters("tracking")
         if frame is not None: 
             self._track_processor(frame, roi, self.solution.get_frame_count("tracking"))
         return self.gst_context.gst.PadProbeReturn.OK
+
+    def attribute_callback(self, pad: 'Gst.Pad', info: 'Gst.PadProbeInfo') -> 'Gst.PadProbeReturn':
+        """Callback function for attribute detection"""
+        self._frame_count += 1
+        frame_num = self._frame_count
+        buffer = info.get_buffer()
+        roi = hailo.get_roi_from_buffer(buffer)
+        for obj in roi.get_objects():
+            if str(obj.get_type().name) == "HAILO_CLASSIFICATION":
+                roi.remove_object(obj)
+
+        results = roi.get_tensor("person_attr_resnet_v1_18/fc1")
+        attributes = np.squeeze(np.array(results, copy=False)).astype(np.float32) / 255.0
+
+        gender = self._classify_gender(attributes[16])
+        age, age_confidence = self._classify_age(attributes)
+        id_obj = roi.get_objects_typed(hailo.HAILO_UNIQUE_ID)
+        if len(id_obj) == 1:
+            id = id_obj[0].get_id()
+        else:
+            return self.gst_context.gst.PadProbeReturn.OK
+
+        gender_classification = hailo.HailoClassification("gender", 0, gender, float(attributes[16]))
+        age_classification = hailo.HailoClassification("age", 0, age, float(age_confidence))
+
+        roi.add_object(gender_classification)
+        roi.add_object(age_classification)
+        print(f"Classification: ID: {id} gender={gender}, age={age} (confidence: {age_confidence:.2f})")
+
+        return self.gst_context.gst.PadProbeReturn.OK
+    
+    # Helper function to classify gender
+    def _classify_gender(self, attribute_value):
+        """Classify gender based on attribute value."""
+        if attribute_value > 0.56:
+            return "male"
+        elif attribute_value < 0.56:
+            return "female"
+        return "unknown"
+
+    # Helper function to classify age group
+    def _classify_age(self, attributes):
+        """Classify age group based on attribute values."""
+        age_groups = ["young", "middle", "middle", "senior"]
+        max_index = np.argmax(attributes[:4])
+        max_confidence = attributes[max_index]
+        return (age_groups[max_index], max_confidence) if max_confidence > 0.55 else ("unknown", 0.0)
 
     def _compute_iou_matrix(self, bboxes, t_bboxes):
         """
@@ -137,8 +184,6 @@ class CallbackHandler:
         # Compute IoU and return the inverted IoU matrix
         iou_matrix = 1 - inter_area / np.maximum(union_area, 1e-6)
         return iou_matrix
-
-
 
     def _match_detections_to_tracks(self, bboxes, detection_list, t_ids, t_bboxes,
                                 t_scores, t_class_ids, frame_count, iou_thresh=0.8):

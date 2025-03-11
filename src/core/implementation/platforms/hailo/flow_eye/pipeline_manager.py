@@ -7,6 +7,7 @@ from .pipeline_manager_helper import(
     USER_CALLBACK_PIPELINE,
     # DISPLAY_PIPELINE,
     FILE_SINK_PIPELINE,
+    NULL_SINK_PIPELINE,
     OVERLAY_PIPELINE,
     DETECTION_PIPELINE
 )
@@ -120,6 +121,7 @@ class PipelineManager:
 
         user_callback_pipeline = USER_CALLBACK_PIPELINE()
         filesink = FILE_SINK_PIPELINE()
+        null_sink = NULL_SINK_PIPELINE()
         pipeline_string = (
 
             f'{source_pipeline} ! '
@@ -127,6 +129,7 @@ class PipelineManager:
             f'{tracker_pipeline} ! '
             f'{user_callback_pipeline} ! '
             # f'{display_pipeline}'
+            # f'{null_sink}'
             f'{OVERLAY_PIPELINE()} ! '
             f'{filesink}'
         )

@@ -14,6 +14,7 @@ class Detection:
     track_id: int
     confidence: float
     bbox: Tuple[float, float, float, float]
+    classifications: List[Tuple[str, float]]
 
 
 class VideoProcessor:
@@ -34,20 +35,24 @@ class VideoProcessor:
         roi = hailo.get_roi_from_buffer(buffer)
         detections = roi.get_objects_typed(hailo.HAILO_DETECTION)
         results = []
-        attributes = roi.get_objects_typed(hailo.HAILO_CLASSIFICATION)
-        print(attributes)
         for detection in detections:
+            classifications = detection.get_objects_typed(hailo.HAILO_CLASSIFICATION)
+            classification_info = []
+            for classification in classifications:
+                class_label = classification.get_label()
+                class_confidence = classification.get_confidence()
+                classification_info.append((class_label, class_confidence))
             if detection.get_label() == "person" or detection.get_label() == "people":
                 track_id = 0
                 track = detection.get_objects_typed(hailo.HAILO_UNIQUE_ID)
                 if len(track) == 1:
                     track_id = track[0].get_id()
-                    
                 results.append(Detection(
                     label=detection.get_label(),
                     track_id=track_id,
                     confidence=detection.get_confidence(),
-                    bbox=detection.get_bbox()
+                    bbox=detection.get_bbox(),
+                    classifications=classification_info
                 ))
 
         return results
@@ -72,7 +77,7 @@ class CallbackHandler:
         frame = None
         if self.solution.use_frame:
             frame = self.video_processor.process_buffer(buffer, pad)
-
+        self.solution.increment_counters("output")
         # Process detections
         detections = self.video_processor.process_detection(buffer)
         # Send processed data to solution
@@ -83,7 +88,8 @@ class CallbackHandler:
                     "label": d.label,
                     "track_id": d.track_id,
                     "confidence": d.confidence,
-                    "bbox": d.bbox
+                    "bbox": d.bbox,
+                    "classifications": d.classifications
                 }
                 for d in detections
             ]
@@ -106,8 +112,6 @@ class CallbackHandler:
 
     def attribute_callback(self, pad: 'Gst.Pad', info: 'Gst.PadProbeInfo') -> 'Gst.PadProbeReturn':
         """Callback function for attribute detection"""
-        self._frame_count += 1
-        frame_num = self._frame_count
         buffer = info.get_buffer()
         roi = hailo.get_roi_from_buffer(buffer)
         for obj in roi.get_objects():
@@ -116,21 +120,15 @@ class CallbackHandler:
 
         results = roi.get_tensor("person_attr_resnet_v1_18/fc1")
         attributes = np.squeeze(np.array(results, copy=False)).astype(np.float32) / 255.0
-
         gender = self._classify_gender(attributes[16])
         age, age_confidence = self._classify_age(attributes)
-        id_obj = roi.get_objects_typed(hailo.HAILO_UNIQUE_ID)
-        if len(id_obj) == 1:
-            id = id_obj[0].get_id()
-        else:
-            return self.gst_context.gst.PadProbeReturn.OK
-
-        gender_classification = hailo.HailoClassification("gender", 0, gender, float(attributes[16]))
-        age_classification = hailo.HailoClassification("age", 0, age, float(age_confidence))
+        gender_confidence = round(attributes[16], 2)
+        age_confidence = round(age_confidence, 2)
+        gender_classification = hailo.HailoClassification("gender", 0, gender, gender_confidence)
+        age_classification = hailo.HailoClassification("age", 0, age, age_confidence)
 
         roi.add_object(gender_classification)
         roi.add_object(age_classification)
-        print(f"Classification: ID: {id} gender={gender}, age={age} (confidence: {age_confidence:.2f})")
 
         return self.gst_context.gst.PadProbeReturn.OK
     

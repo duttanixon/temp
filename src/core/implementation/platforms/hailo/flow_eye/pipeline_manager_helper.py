@@ -276,11 +276,11 @@ def OVERLAY_PIPELINE(name='hailo_overlay'):
 
     return overlay_pipeline
 
-def FILE_SINK_PIPELINE(output_file='output.mkv', name='file_sink', bitrate=5000):
+def FILE_SINK_PIPELINE(output_file='resources/data/output.mp4', name='file_sink', bitrate=5000):
     """
-    Creates a GStreamer pipeline string for saving the video to a file in .mkv format.
+    Creates a GStreamer pipeline string for saving the video to a file in .mp4 format.
     It it recommended run ffmpeg to fix the file header after recording.
-    example: ffmpeg -i output.mkv -c copy fixed_output.mkv
+    example: ffmpeg -i output.mp4 -c copy fixed_output.mp4
     Note: If your source is a file, looping will not work with this pipeline.
     Args:
         output_file (str): The path to the output file.
@@ -295,13 +295,17 @@ def FILE_SINK_PIPELINE(output_file='output.mkv', name='file_sink', bitrate=5000)
         f'{QUEUE(name=f"{name}_videoconvert_q")} ! '
         f'videoconvert name={name}_videoconvert n-threads=2 qos=false ! '
         f'{QUEUE(name=f"{name}_encoder_q")} ! '
-        f'x264enc tune=zerolatency bitrate={bitrate} ! '
-        f'matroskamux ! '
+        f'openh264enc ! h264parse ! mp4mux ! '
         f'filesink location={output_file} '
     )
 
     return file_sink_pipeline
 
+def NULL_SINK_PIPELINE(name='null_sink'):
+    """
+    Creates a GStreamer pipeline string for the null sink element.
+    """
+    return f'fakesink sync=false '
 
 def USER_CALLBACK_PIPELINE(name='identity_callback'):
     """

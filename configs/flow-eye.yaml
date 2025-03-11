@@ -36,6 +36,7 @@ solution:
         file_path: resources/data/input.mp4
     output:
         type: default
+        # use_frame: True
 
     # # Cloud configuration
     # cloud:

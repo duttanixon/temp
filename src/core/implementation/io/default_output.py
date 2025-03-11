@@ -4,12 +4,12 @@ import multiprocessing
 from core.interfaces.io.output_handler import IOutputHandler
 
 
-class DefaultOutputHandler:
+class DefaultOutputHandler(IOutputHandler):
     def __init__(self, config: Dict[str, Any]):
         self.use_frame = config.get("use_frame", False)
         self.frame_queue = multiprocessing.Queue(maxsize=3)
     
-    def handle_result(self, result: Dict[str, Any], detections_result: Dict[str, Any]) -> None:
+    def handle_result(self, result: Dict[str, Any]) -> None:
         detections = result.get("detections", [])
         frame = result.get("frame")
 
@@ -29,7 +29,9 @@ class DefaultOutputHandler:
             output.append(
                 f"Detection: ID: {detection['track_id']} "
                 f"Label: {detection['label']} "
-                f"Confidence: {detection['confidence']:.2f}"
+                f"Confidence: {detection['confidence']:.2f} "
+                # f"Bbox: {detection['bbox']} "
+                f"{detection['classifications']} "
             )
         return "\n".join(output)
 

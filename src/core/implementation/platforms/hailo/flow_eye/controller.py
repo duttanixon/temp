@@ -18,16 +18,14 @@ from core.interfaces.solutions.solution import ISolution
 
 class HailoPipelineController(IPlatformController):
     def __init__(self, config:Dict[str, Any], solution: ISolution):
-        self.config = config
-        self.solution = solution
-
-        
         self.debug_enabled = config.get("platform", {}).get("debug_pipeline", False)
         if self.debug_enabled:
             self.debug_output_dir = os.path.join(os.path.dirname(__file__), "pipeline_dumps")
             os.makedirs(self.debug_output_dir, exist_ok=True)
             os.environ['GST_DEBUG_DUMP_DOT_DIR']=self.debug_output_dir
 
+        self.config = config
+        self.solution = solution
         self.gst_context = GstContext.initialize()
         self.loop = self.gst_context.glib.MainLoop()
         self.pipeline_latency = 300
@@ -39,9 +37,10 @@ class HailoPipelineController(IPlatformController):
     def initialize(self) -> None:
         setproctitle.setproctitle("Hailo Video Analytics")
 
-        # Initialize components
+        # load configuration, construct GstPipeline Object 
         self.pipeline_manager = PipelineManager(self.config, self.solution, self.gst_context)
-        self.bus_handler = BusMessageHandler(self.pipeline_manager, self.loop, self.gst_context)
+        # instantiate bus handler
+        self.bus_handler = BusMessageHandler(self.pipeline_manager, self.loop, self.gst_context, self.debug_enabled)
         # Create output directory
         if self.debug_enabled:
             self.bus_handler.set_debug_callback(self.dump_pipeline)

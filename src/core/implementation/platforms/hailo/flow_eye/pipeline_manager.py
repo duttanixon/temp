@@ -26,7 +26,6 @@ class PipelineManager:
         self._setup_configuration(config, solution)
         # pipeline_string = self._get_demo_pipeline_string()
         pipeline_string = self._get_flow_eye_pipeline_string()
-        print(f"Pipeline string: {pipeline_string}") 
         self.create_pipeline(pipeline_string)
         self._initialize_input_source()
 

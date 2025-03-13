@@ -295,7 +295,8 @@ def FILE_SINK_PIPELINE(output_file='resources/data/output.mp4', name='file_sink'
         f'{QUEUE(name=f"{name}_videoconvert_q")} ! '
         f'videoconvert name={name}_videoconvert n-threads=2 qos=false ! '
         f'{QUEUE(name=f"{name}_encoder_q")} ! '
-        f'openh264enc ! h264parse ! mp4mux ! '
+        f'x264enc tune=zerolatency bitrate={bitrate} ! '
+        f'matroskamux ! '
         f'filesink location={output_file} '
     )
 
@@ -351,3 +352,56 @@ def TRACKER_PIPELINE(class_id, kalman_dist_thr=0.8, iou_thr=0.9, init_iou_thr=0.
         f'{QUEUE(name=f"{name}_q")} '
     )
     return tracker_pipeline
+
+
+def HAILOOSD_PIPELINE(name='hailoosd'):
+    """
+    Creates a GStreamer pipeline segment using HailoOSD for on-screen display.
+    HailoOSD is designed specifically for Hailo platforms to display information
+    like FPS counters, bounding boxes, and other annotations.
+    
+    Args:
+        name (str, optional): The prefix name for the pipeline elements. Defaults to 'hailoosd'.
+        
+    Returns:
+        str: A string representing the GStreamer pipeline for HailoOSD.
+    """
+    # Construct the HailoOSD pipeline string
+    hailoosd_pipeline = (
+        f'{QUEUE(name=f"{name}_q")} ! '
+        f'hailoosd name={name}_osd qos=false '
+        f'show-fps=true '  # Enable FPS counter
+        f'font-size=14 '   # Set font size
+        f'text-color=0,1,0,1 '  # Green text (RGBA format: 0-1 range)
+        f'font-family=Sans '  # Font family
+        f'text-pos=top-right '  # Position of the text
+        f'font-style=bold ! '  # Font style
+    )
+    
+    return hailoosd_pipeline
+
+
+def DISPLAY_PIPELINE(video_sink='autovideosink', sync='true', show_fps='false', name='hailo_display'):
+    """
+    Creates a GStreamer pipeline string for displaying the video.
+    It includes the hailooverlay plugin to draw bounding boxes and labels on the video.
+
+    Args:
+        video_sink (str, optional): The video sink element to use. Defaults to 'autovideosink'.
+        sync (str, optional): The sync property for the video sink. Defaults to 'true'.
+        show_fps (str, optional): Whether to show the FPS on the video sink. Should be 'true' or 'false'. Defaults to 'false'.
+        name (str, optional): The prefix name for the pipeline elements. Defaults to 'hailo_display'.
+
+    Returns:
+        str: A string representing the GStreamer pipeline for displaying the video.
+    """
+    # Construct the display pipeline string
+    display_pipeline = (
+        # f'{OVERLAY_PIPELINE(name=f"{name}_overlay")} ! '
+        # f'{QUEUE(name=f"{name}_videoconvert_q")} ! '
+        f'videoconvert name={name}_videoconvert n-threads=2 qos=false ! '
+        f'{QUEUE(name=f"{name}_q")} ! '
+        f'fpsdisplaysink name={name} video-sink={video_sink} sync={sync} text-overlay={show_fps} signal-fps-measurements=true '
+    )
+
+    return display_pipeline

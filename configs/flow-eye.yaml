@@ -12,6 +12,8 @@ platform:
     disable_sync: false
     disable_callback: false
     debug_pipeline: true
+    measure_fps: true
+    sink_type: fake # fake or dispplay or file
 
 
 solution:
@@ -27,13 +29,13 @@ solution:
         min_box_area: 300
 
     input: 
-        video_width: 640
-        video_height: 640
+        video_width: 1280
+        video_height: 720
         video_format: "RGB"
-        # type: rpi
-        # file_path: rpi
-        type: file
-        file_path: resources/data/input.mp4
+        type: rpi
+        file_path: rpi
+        # type: file
+        # file_path: resources/data/input.mp4
     output:
         type: default
         # use_frame: True

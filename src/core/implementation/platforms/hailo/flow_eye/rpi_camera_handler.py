@@ -22,7 +22,7 @@ class RPICameraHandler:
     
     def start(self):
         """Start the RPi camera thread"""
-        self.thread = threading.Thread(target=self._caemra_thread)
+        self.thread = threading.Thread(target=self._camera_thread)
         self.thread.daemon = True
         self.thread.start()
     
@@ -32,7 +32,7 @@ class RPICameraHandler:
         if self.thread:
             self.thread.join()
     
-    def _caemra_thread(self):
+    def _camera_thread(self):
         """Main camera thread function"""
         appsrc = self.pipeline.get_by_name("app_source")
         if not appsrc:

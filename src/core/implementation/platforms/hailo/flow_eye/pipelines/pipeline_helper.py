@@ -82,7 +82,7 @@ def SOURCE_PIPELINE(video_source, video_width=640, video_height=640, video_forma
         source_element = (
             f'appsrc name=app_source is-live=true leaky-type=downstream max-buffers=3 ! '
             'videoflip name=videoflip video-direction=horiz ! '
-            f'video/x-raw, format={video_format}, width={video_width}, height={video_height} ! '
+            # f'video/x-raw, format={video_format}, width={video_width}, height={video_height} ! '
         )
     elif source_type == 'libcamera':
         source_element = (
@@ -125,7 +125,7 @@ def INFERENCE_PIPELINE(
     scheduler_priority=None,
     vdevice_group_id=1,
     multi_process_service=None
-):
+    ):
     """
     Creates a GStreamer pipeline string for inference and post-processing using a user-provided shared object file.
     This pipeline includes videoscale and videoconvert elements to convert the video frame to the required format.
@@ -157,6 +157,10 @@ def INFERENCE_PIPELINE(
     multi_process_service_str = f' multi-process-service={str(multi_process_service).lower()} ' if multi_process_service is not None else ''
     scheduler_timeout_ms_str = f' scheduler-timeout-ms={scheduler_timeout_ms} ' if scheduler_timeout_ms is not None else ''
     scheduler_priority_str = f' scheduler-priority={scheduler_priority} ' if scheduler_priority is not None else ''
+    # Get the directory for post-processing shared objects
+    tappas_post_process_dir = os.environ.get('TAPPAS_POST_PROC_DIR', '')
+    whole_buffer_crop_so = os.path.join(tappas_post_process_dir, 'cropping_algorithms/libwhole_buffer.so')
+
 
     hailonet_str = (
         f'hailonet name={name}_hailonet '
@@ -169,8 +173,14 @@ def INFERENCE_PIPELINE(
         f'{additional_params} '
         f'force-writable=true '
     )
+    bypass_max_size_buffers=20
 
     inference_pipeline = (
+        f'{QUEUE(name=f"{name}_input_q")} ! '
+        f'hailocropper name={name}_crop so-path={whole_buffer_crop_so} function-name=create_crops use-letterbox=true resize-method=inter-area internal-offset=true '
+        f'hailoaggregator name={name}_agg '
+        f'{name}_crop. ! {QUEUE(max_size_buffers=bypass_max_size_buffers, name=f"{name}_bypass_q")} ! {name}_agg.sink_0 '
+        f'{name}_crop. ! '
         f'{QUEUE(name=f"{name}_scale_q")} ! '
         f'videoscale name={name}_videoscale n-threads=2 qos=false ! '
         f'{QUEUE(name=f"{name}_convert_q")} ! '
@@ -186,46 +196,26 @@ def INFERENCE_PIPELINE(
             f'hailofilter name={name}_hailofilter so-path={post_process_so} {config_str} {function_name_str} qos=false ! '
         )
 
-    inference_pipeline += f'{QUEUE(name=f"{name}_output_q")} '
+    inference_pipeline += (
+        f'{name}_agg.sink_1 '
+        f'{name}_agg. ! {QUEUE(name=f"{name}_output_q")}'
 
+    )
     return inference_pipeline
 
+def ATTRIBUTE_CLASSIFICATION_PIPELINE(postproc_module,hef_path, batch_size, name='classifier'):
+    tappas_post_process_dir = os.environ.get('TAPPAS_POST_PROC_DIR', '')
+    cropper_so_path = os.path.join(tappas_post_process_dir, 'cropping_algorithms/libmspn.so')
 
-def DETECTION_PIPELINE(
-    hef_path,
-    video_width,
-    video_height,
-    post_process_so=None,
-    batch_size=1,
-    config_json=None,
-    post_function_name=None,
-    additional_params='',
-    name='inference',
-    # Extra hailonet parameters
-    scheduler_timeout_ms=None,
-    scheduler_priority=None,
-    vdevice_group_id=1,
-    multi_process_service=None
-):
-    config_str = f' config-path={config_json} ' if config_json else ''
-    function_name_str = f' function-name={post_function_name} ' if post_function_name else ''
-    vdevice_group_id_str = f' vdevice-group-id={vdevice_group_id} '
-    multi_process_service_str = f' multi-process-service={str(multi_process_service).lower()} ' if multi_process_service is not None else ''
-    scheduler_timeout_ms_str = f' scheduler-timeout-ms={scheduler_timeout_ms} ' if scheduler_timeout_ms is not None else ''
-    scheduler_priority_str = f' scheduler-priority={scheduler_priority} ' if scheduler_priority is not None else ''
-    return (
-        f"{QUEUE(name=f'{name}_scale_q')} ! "
-        f"videoscale name={name}_videoscale n-threads=2 qos=false ! "
-        f"{QUEUE(name=f'{name}_convert_q')} ! "
-        f"videoconvert name={name}_videoconvert n-threads=3 ! "
-        f"video/x-raw, pixel-aspect-ratio=1/1 ! "
-        # f"video/x-raw, format=RGB, width={video_width}, height={video_height}, pixel-aspect-ratio=1/1 ! "
-        f"hailonet hef-path={hef_path} batch-size={batch_size} scheduling-algorithm=1 scheduler-threshold=8 {additional_params} force-writable=true scheduler-timeout-ms=50 vdevice-group-id=1 ! " 
-        f"{QUEUE(name=f'{name}_hailofilter_q')} ! "
-        f"hailofilter name={name}_hailofilter so-path={post_process_so} {config_str} {function_name_str} qos=false "
+    attribute_pipeline = (
+        f'{QUEUE(name=f"{name}_detection_frames")} ! '
+        f'hailocropper name={name}_cropper so-path={cropper_so_path} function-name=create_crops_only_person '
+        f'hailoaggregator name={name}_agg '
+        f'{name}_cropper. ! {QUEUE(name=f"{name}_full_frames")} ! {name}_agg. '
+        f'{name}_cropper. ! hailonet hef-path={hef_path} batch-size={batch_size} scheduling-algorithm=1 scheduler-threshold=8 scheduler-timeout-ms=50 vdevice-group-id=1 ! hailopython module={postproc_module} ! {name}_agg. '
+        f'{name}_agg. ! {QUEUE(name=f"{name}_output_q")} '
     )
-
-
+    return attribute_pipeline
 
 def INFERENCE_PIPELINE_WRAPPER(inner_pipeline, bypass_max_size_buffers=20, name='inference_wrapper'):
     """
@@ -405,3 +395,44 @@ def DISPLAY_PIPELINE(video_sink='autovideosink', sync='true', show_fps='false', 
     )
 
     return display_pipeline
+
+
+def BYTETRACK_PIPELINE() -> str:
+    return (
+        f'{QUEUE("queue_tracking_callback")} ! '
+        "identity name=tracking_callback "
+    )
+
+def DETECTION_PIPELINE(
+    hef_path,
+    video_width,
+    video_height,
+    post_process_so=None,
+    batch_size=1,
+    config_json=None,
+    post_function_name=None,
+    additional_params='',
+    name='inference',
+    # Extra hailonet parameters
+    scheduler_timeout_ms=None,
+    scheduler_priority=None,
+    vdevice_group_id=1,
+    multi_process_service=None
+):
+    config_str = f' config-path={config_json} ' if config_json else ''
+    function_name_str = f' function-name={post_function_name} ' if post_function_name else ''
+    vdevice_group_id_str = f' vdevice-group-id={vdevice_group_id} '
+    multi_process_service_str = f' multi-process-service={str(multi_process_service).lower()} ' if multi_process_service is not None else ''
+    scheduler_timeout_ms_str = f' scheduler-timeout-ms={scheduler_timeout_ms} ' if scheduler_timeout_ms is not None else ''
+    scheduler_priority_str = f' scheduler-priority={scheduler_priority} ' if scheduler_priority is not None else ''
+    return (
+        f"{QUEUE(name=f'{name}_scale_q')} ! "
+        f"videoscale name={name}_videoscale n-threads=2 qos=false ! "
+        f"{QUEUE(name=f'{name}_convert_q')} ! "
+        f"videoconvert name={name}_videoconvert n-threads=3 ! "
+        f"video/x-raw, pixel-aspect-ratio=1/1 ! "
+        # f"video/x-raw, format=RGB, width={video_width}, height={video_height}, pixel-aspect-ratio=1/1 ! "
+        f"hailonet hef-path={hef_path} batch-size={batch_size} scheduling-algorithm=1 scheduler-threshold=8 {additional_params} force-writable=true scheduler-timeout-ms=50 vdevice-group-id=1 ! " 
+        f"{QUEUE(name=f'{name}_hailofilter_q')} ! "
+        f"hailofilter name={name}_hailofilter so-path={post_process_so} {config_str} {function_name_str} qos=false "
+    )

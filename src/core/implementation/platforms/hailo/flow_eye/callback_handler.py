@@ -1,4 +1,8 @@
 import cv2
+import os
+import random
+import string
+import datetime
 import numpy as np
 import hailo
 from scipy.optimize import linear_sum_assignment
@@ -38,15 +42,12 @@ class VideoProcessor:
         for detection in detections:
             classifications = detection.get_objects_typed(hailo.HAILO_CLASSIFICATION)
             classification_info = []
+            track_id=detection.get_objects_typed(hailo.HAILO_UNIQUE_ID)
             for classification in classifications:
                 class_label = classification.get_label()
                 class_confidence = classification.get_confidence()
                 classification_info.append((class_label, class_confidence))
-            if detection.get_label() == "person" or detection.get_label() == "people":
-                track_id = 0
-                track = detection.get_objects_typed(hailo.HAILO_UNIQUE_ID)
-                if len(track) == 1:
-                    track_id = track[0].get_id()
+            if track_id:
                 results.append(Detection(
                     label=detection.get_label(),
                     track_id=track_id,
@@ -54,7 +55,6 @@ class VideoProcessor:
                     bbox=detection.get_bbox(),
                     classifications=classification_info
                 ))
-
         return results
 
 
@@ -69,31 +69,20 @@ class CallbackHandler:
     def app_callback(self, pad: 'Gst.Pad', info: 'Gst.PadProbeInfo') -> 'Gst.PadProbeReturn':
         """Main callback function for processing frames"""
         # Get buffer
+        frame_data = {} 
         buffer = info.get_buffer()
         if buffer is None:
             return self.gst_context.gst.PadProbeReturn.OK
 
         # Process frame if needed
         frame = None
-        if self.solution.use_frame:
-            frame = self.video_processor.process_buffer(buffer, pad)
         self.solution.increment_counters("output")
         # Process detections
         detections = self.video_processor.process_detection(buffer)
-        # Send processed data to solution
-        frame_data = {
-            "frame": frame,
-            "detections": [
-                {
-                    "label": d.label,
-                    "track_id": d.track_id,
-                    "confidence": d.confidence,
-                    "bbox": d.bbox,
-                    "classifications": d.classifications
-                }
-                for d in detections
-            ]
-        }
+        if self.solution.use_frame:
+            frame = self.video_processor.process_buffer(buffer, pad)
+            frame_data["frame"] = frame
+        frame_data["object_meta"] = detections
         self.solution.on_frame_processed(frame_data)
 
         return self.gst_context.gst.PadProbeReturn.OK
@@ -108,28 +97,6 @@ class CallbackHandler:
         self.solution.increment_counters("tracking")
         if frame is not None: 
             self._track_processor(frame, roi, self.solution.get_frame_count("tracking"))
-        return self.gst_context.gst.PadProbeReturn.OK
-
-    def attribute_callback(self, pad: 'Gst.Pad', info: 'Gst.PadProbeInfo') -> 'Gst.PadProbeReturn':
-        """Callback function for attribute detection"""
-        buffer = info.get_buffer()
-        roi = hailo.get_roi_from_buffer(buffer)
-        for obj in roi.get_objects():
-            if str(obj.get_type().name) == "HAILO_CLASSIFICATION":
-                roi.remove_object(obj)
-
-        results = roi.get_tensor("person_attr_resnet_v1_18/fc1")
-        attributes = np.squeeze(np.array(results, copy=False)).astype(np.float32) / 255.0
-        gender = self._classify_gender(attributes[16])
-        age, age_confidence = self._classify_age(attributes)
-        gender_confidence = round(attributes[16], 2)
-        age_confidence = round(age_confidence, 2)
-        gender_classification = hailo.HailoClassification("gender", 0, gender, gender_confidence)
-        age_classification = hailo.HailoClassification("age", 0, age, age_confidence)
-
-        roi.add_object(gender_classification)
-        roi.add_object(age_classification)
-
         return self.gst_context.gst.PadProbeReturn.OK
     
     # Helper function to classify gender
@@ -183,8 +150,7 @@ class CallbackHandler:
         iou_matrix = 1 - inter_area / np.maximum(union_area, 1e-6)
         return iou_matrix
 
-    def _match_detections_to_tracks(self, bboxes, detection_list, t_ids, t_bboxes,
-                                t_scores, t_class_ids, frame_count, iou_thresh=0.8):
+    def _match_detections_to_tracks(self, bboxes, detection_list, t_ids, t_bboxes, iou_thresh=0.8):
         """Match detections to tracking IDs and update results.
         
         This optimized implementation maintains the same logic as the original while
@@ -196,10 +162,12 @@ class CallbackHandler:
             t_ids (ndarray): Track IDs predicted by tracker (M x 1).
             t_bboxes list: Bounding boxes predicted by tracker (M x 4).
             t_scores (ndarray): Confidence scores from tracker (M x 1).
-            t_class_ids (ndarray): Class IDs from tracker (M x 1).
-            frame_count (int): Current frame index.
             iou_thresh (float): IoU threshold for accepting a match.
         """
+        # Check if there are any tracking bboxes
+        if len(t_bboxes) == 0:
+            return  # Exit if no tracking bboxes
+    
         # Compute IoU matrix and get matches using the Hungarian algorithm
         t_bboxes = np.asarray(t_bboxes)
         iou_matrix = self._compute_iou_matrix(bboxes, t_bboxes)
@@ -210,13 +178,6 @@ class CallbackHandler:
         row_ind = row_ind[valid_matches]
         col_ind = col_ind[valid_matches]
         
-        # Pre-compute transformed bounding boxes for all tracks
-        # This is more efficient than transforming boxes one at a time
-        # why 140 is subtracted from y_min and y_max?
-        transformed_bboxes = t_bboxes.copy()
-        transformed_bboxes[:, 1] -= 140  # Adjust y_min
-        transformed_bboxes[:, 3] -= 140  # Adjust y_max
-        
         # Process matches and update detections
         frame_results = {}
         for d, t in zip(row_ind, col_ind):
@@ -225,25 +186,6 @@ class CallbackHandler:
             
             # Add unique ID to detection
             detection.add_object(hailo.HailoUniqueID(t_id))
-            
-            # # Maintain the original ID assignment order
-            # new_id = self.Counter.track_id_dict.setdefault(t_ids[t], 
-            #                                             len(self.Counter.track_id_dict))
-            
-            # Store detection result using pre-computed transformed bbox
-
-            frame_results[t_id] = {
-                "id": t_id,
-                # "new_id": new_id,
-                "bbox": transformed_bboxes[t],
-                "confidence": round(float(t_scores[t]), 2),
-                "class_id": int(t_class_ids[t]),
-                "attr": [],
-            }
-        
-        # Update detection results if we have any matches
-        if frame_results:
-            self.solution.detections_result[frame_count] = frame_results
 
 
     def _track_processor(self, frame, roi, frame_count):
@@ -286,8 +228,5 @@ class CallbackHandler:
             bboxes,
             filtered_detections,  # directly pass the filtered detections
             t_ids,
-            t_bboxes,
-            t_scores,
-            t_class_ids,
-            frame_count
+            t_bboxes
         )

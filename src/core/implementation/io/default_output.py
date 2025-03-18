@@ -15,7 +15,7 @@ class DefaultOutputHandler(IOutputHandler):
 
         # Format and log output
         output = self._format_and_log(detections)
-        self._process_output(output)
+        # self._process_output(output)
 
         # Handle frame if needed
         if frame is not None and self.use_frame:

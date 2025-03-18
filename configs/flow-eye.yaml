@@ -18,7 +18,8 @@ platform:
 
 solution:
     name: flow-eye
-    batch_size: 1
+    batch_size: 16
+    use_frame: True
     nms_score_threshold: 0.3
     nms_iou_threshold: 0.45
     tracking:
@@ -32,13 +33,13 @@ solution:
         video_width: 1280
         video_height: 720
         video_format: "RGB"
-        type: rpi
-        file_path: rpi
-        # type: file
-        # file_path: resources/data/input.mp4
+        # type: rpi
+        # file_path: rpi
+        type: file
+        file_path: resources/data/input.mp4
     output:
         type: default
-        # use_frame: True
+        
 
     # # Cloud configuration
     # cloud:

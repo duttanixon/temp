@@ -59,7 +59,7 @@ class HailoPipelineController(IPlatformController):
         if not self.config["platform"]["disable_callback"]:
             pipeline = self.pipeline_manager.get_pipeline()
             if pipeline:
-                identity = pipeline.get_by_name("identity_callback")
+                identity = pipeline.get_by_name("output_callback")
                 if identity is None:
                     print("Warning: identity_callback element not found")
                 else:
@@ -77,26 +77,12 @@ class HailoPipelineController(IPlatformController):
                         self.gst_context.gst.PadProbeType.BUFFER,
                         self.tracker_callback
                     )
-
-                attribute = pipeline.get_by_name("attribute_callback")
-            if attribute is None:
-                print("Warning: attribute_callback element not found")
-            else:
-                attribute_pad = attribute.get_static_pad("src")
-                attribute_pad.add_probe(
-                    self.gst_context.gst.PadProbeType.BUFFER,
-                    self.attribute_callback
-                )
         
     def app_callback(self, pad, info):
         return self.callback_handler.app_callback(pad, info)
     
     def tracker_callback(self, pad, info):
         return self.callback_handler.tracking_callback(pad, info)
-
-    def attribute_callback(self, pad, info):
-        return self.callback_handler.attribute_callback(pad, info)
-
 
     def dump_pipeline(self, state_name="current") -> Optional[Any]:
         """

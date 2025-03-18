@@ -31,7 +31,7 @@ class FlowEyeSolution(ISolution):
         self.input_source.initialize()
         self.running = True
         self.use_frame = config.get("use_frame", False)
-        self.start_time = None
+
 
         # Store configuration
         self.nms_score_threshold = config["nms_score_threshold"]
@@ -64,13 +64,7 @@ class FlowEyeSolution(ISolution):
 
     def on_frame_processed(self, frame_data: Dict[str, Any]) -> None:
         """Handle processed frame data from platform"""
-        if self.counters["output"] == 1:
-            self.start_time = time.time()
-        fps = self.counters["output"] / (time.time() - self.start_time)
-        print(f"Frame count: {self.counters['output']}, FPS: {fps:.2f}")
         self.output_handler.handle_result(frame_data)
-
-
         # Handle cloud communication if enabled
         if self.cloud_connector and self.metrics_formatter:
             metrics = self.metrics_formatter.format_metrics(frame_data)

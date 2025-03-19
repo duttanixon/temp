@@ -1,16 +1,3 @@
-# from .pipeline_manager_helper import(
-#     QUEUE,
-#     SOURCE_PIPELINE,
-#     INFERENCE_PIPELINE,
-#     INFERENCE_PIPELINE_WRAPPER,
-#     TRACKER_PIPELINE,
-#     USER_CALLBACK_PIPELINE,
-#     # DISPLAY_PIPELINE,
-#     FILE_SINK_PIPELINE,
-#     NULL_SINK_PIPELINE,
-#     OVERLAY_PIPELINE,
-#     DETECTION_PIPELINE
-# )
 from .pipelines.flow_eye_pipeline import build_flow_eye_pipeline_string
 from .rpi_camera_handler import RPICameraHandler
 import traceback

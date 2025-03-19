@@ -14,14 +14,18 @@
 from .pipelines.flow_eye_pipeline import build_flow_eye_pipeline_string
 from .rpi_camera_handler import RPICameraHandler
 import traceback
-import sys 
+import sys
 import os
 import time
 from typing import Dict, Optional, Any
 
+
 class PipelineManager:
     """Responsible for pipeline creation and management"""
-    def __init__(self, config: Dict[str, Any], solution: Any, gst_context: 'GstContext'):
+
+    def __init__(
+        self, config: Dict[str, Any], solution: Any, gst_context: "GstContext"
+    ):
         self.context = gst_context
         self.pipeline = None
         self.rpi_handler = None
@@ -31,33 +35,33 @@ class PipelineManager:
         self._initialize_input_source()
         self._initialize_fps_check()
 
-
     def _initialize_input_source(self):
         """Initialize input source specific handlers"""
-        if hasattr(self, 'video_source_type') and self.video_source_type == 'rpi':
+        if hasattr(self, "video_source_type") and self.video_source_type == "rpi":
             input_props = self.solution.input_source.get_properties()
             self.rpi_handler = RPICameraHandler(
                 self.pipeline,
                 self.video_width,
                 self.video_height,
                 self.video_format,
-                input_props.get('picamera_config')
+                input_props.get("picamera_config"),
             )
             self.rpi_handler.start()
-    
+
     def _initialize_fps_check(self):
-        if hasattr(self, 'measure_fps') and self.measure_fps:
+        if hasattr(self, "measure_fps") and self.measure_fps:
             self.frame_count = 0
             self.fps = 0.0
             self.last_fps_update = time.time()
             self.fps_overlay = self.pipeline.get_by_name("fps_overlay")
             self.fps_measure = self.pipeline.get_by_name("fps_measure")
             self.fps_measure.connect("handoff", self._on_fps_measurement)
-            self.context.glib.timeout_add(1000, self._update_fps_display) # Update once per second
-    
+            self.context.glib.timeout_add(
+                1000, self._update_fps_display
+            )  # Update once per second
+
     def _on_fps_measurement(self, element, buffer):
         self.frame_count += 1
-
 
     def _update_fps_display(self):
         if not self.pipeline or not self.fps_overlay:
@@ -77,7 +81,6 @@ class PipelineManager:
         if self.rpi_handler:
             self.rpi_handler.stop()
 
-
     def create_pipeline(self, pipeline_string: str) -> None:
         """Creates and initializes the GStreamer pipeline"""
         try:
@@ -87,7 +90,7 @@ class PipelineManager:
             print(traceback.format_exc())
             sys.exit(1)
 
-    def set_state(self, state: 'Gst.State') -> None:
+    def set_state(self, state: "Gst.State") -> None:
         """Sets the pipeline state"""
         if self.pipeline:
             self.pipeline.set_state(state)
@@ -97,10 +100,9 @@ class PipelineManager:
         if self.pipeline:
             self.pipeline.set_latency(latency_ms * self.context.gst.MSECOND)
 
-    def get_pipeline(self) -> Optional['Gst.Pipeline']:
+    def get_pipeline(self) -> Optional["Gst.Pipeline"]:
         """Returns the GStreamer pipeline"""
         return self.pipeline
-
 
     def _setup_configuration(self, config: Dict[str, Any], solution) -> None:
         """Sets up Hailo-specific configuration"""
@@ -114,7 +116,7 @@ class PipelineManager:
         self.postprocess_dir = config["platform"]["postprocess_dir"]
         self.measure_fps = config["platform"]["measure_fps"]
         self.sink_type = config["platform"]["sink_type"]
-        
+
         # Solution-specific configuration
         self.solution = solution
         self.nms_score_threshold = solution.nms_score_threshold
@@ -134,7 +136,6 @@ class PipelineManager:
             f"nms-iou-threshold={solution.nms_iou_threshold} "
             f"output-format-type=HAILO_FORMAT_TYPE_FLOAT32"
         )
-        
 
-    def _get_flow_eye_pipeline_string(self)-> str:
+    def _get_flow_eye_pipeline_string(self) -> str:
         return build_flow_eye_pipeline_string(self)

@@ -8,6 +8,7 @@ from .tracker.byte_tracker import BYTETracker
 
 import time
 
+
 class dict_dot_notation(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -42,23 +43,25 @@ class MultiClassByteTrack(object):
         scores,
         class_ids,
     ):
-        vehicle_class_ids = [2, 5, 7]# Example: car, truck, bus
+        vehicle_class_ids = [2, 5, 7]  # Example: car, truck, bus
         original_class_ids = np.array(class_ids)
         # Convert all vehicle class ids to a single class id
         # class_ids = np.where(np.isin(class_ids, vehicle_class_ids), 2, class_ids)
         # unique_class_ids = np.unique(class_ids)
         for class_id in original_class_ids:
             class_id = int(class_id)
-            if class_id > 8 :
+            if class_id > 8:
                 continue
             if class_id not in self.tracker_dict:
                 self.tracker_dict[class_id] = BYTETracker(
-                    args=dict_dot_notation({
-                        'track_thresh': self.track_thresh,
-                        'track_buffer': self.track_buffer,
-                        'match_thresh': self.match_thresh,
-                        'mot20': self.mot20,
-                    }),
+                    args=dict_dot_notation(
+                        {
+                            "track_thresh": self.track_thresh,
+                            "track_buffer": self.track_buffer,
+                            "match_thresh": self.match_thresh,
+                            "mot20": self.mot20,
+                        }
+                    ),
                     frame_rate=self.fps,
                 )
 
@@ -82,7 +85,13 @@ class MultiClassByteTrack(object):
             # detections = [[*b, s, l] for b, s, l in zip(
             #     target_bboxes, target_scores, target_class_ids)]
             # detections = np.array(detections)
-            detections = np.hstack((target_bboxes1, target_scores1[:, np.newaxis], target_class_ids[:, np.newaxis]))
+            detections = np.hstack(
+                (
+                    target_bboxes1,
+                    target_scores1[:, np.newaxis],
+                    target_class_ids[:, np.newaxis],
+                )
+            )
 
             # トラッカー更新
             result = self._tracker_update(
@@ -93,43 +102,46 @@ class MultiClassByteTrack(object):
 
             # 結果格納
             for bbox, score, t_id in zip(result[0], result[1], result[2]):
-                t_ids.append(f'{class_id}_{t_id}')
+                t_ids.append(f"{class_id}_{t_id}")
                 t_bboxes.append(bbox)
                 t_scores.append(score)
                 # t_class_ids.append(class_id)
-                original_class_id = original_class_ids[target_index[np.where(result[0] == bbox)[0][0]]]
+                original_class_id = original_class_ids[
+                    target_index[np.where(result[0] == bbox)[0][0]]
+                ]
                 t_class_ids.append(original_class_id)
 
         return t_ids, t_bboxes, t_scores, t_class_ids
 
     def _tracker_update(self, tracker, image, detections):
         image_info = {
-            'id': 0,
-            'image': image,
-            'width': image.shape[1],
-            'height': image.shape[0]
+            "id": 0,
+            "image": image,
+            "width": image.shape[1],
+            "height": image.shape[0],
         }
 
         online_targets = []
         if detections.size > 0:
             online_targets = tracker.update(
                 detections[:, :-1],
-                [image_info['height'], image_info['width']],
-                [image_info['height'], image_info['width']],
+                [image_info["height"], image_info["width"]],
+                [image_info["height"], image_info["width"]],
             )
 
         online_tlwhs, online_ids, online_scores = [], [], []
         for online_target in online_targets:
             tlwh = online_target.tlwh
             if tlwh[2] * tlwh[3] > self.min_box_area:
-                online_tlwhs.append(np.array([tlwh[0], tlwh[1], tlwh[0] + tlwh[2], tlwh[1] + tlwh[3]]))
+                online_tlwhs.append(
+                    np.array([tlwh[0], tlwh[1], tlwh[0] + tlwh[2], tlwh[1] + tlwh[3]])
+                )
                 online_ids.append(online_target.track_id)
                 online_scores.append(online_target.score)
             # else:
             #     print(f'area is too small: {tlwh[2] * tlwh[3]}')
 
         return online_tlwhs, online_scores, online_ids
-
 
     # def _tracker_update(self, tracker, image, detections):
     #     image_info = {'id': 0}

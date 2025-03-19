@@ -3,8 +3,10 @@ from core.implementation.io.rpi_input import RPIInputSource
 from core.implementation.io.file_input import FileInputSource
 from core.interfaces.io.input_source import IInputSource
 
+
 class InputSourceFactory:
     """Factory for creating input souce"""
+
     @staticmethod
     def create(input_config: Dict[str, Any]) -> IInputSource:
         """
@@ -12,10 +14,10 @@ class InputSourceFactory:
 
         Args:
             input_config: Dictionary containing input configuration
-        
+
         Returns:
             InputSource: Configured input source instance
-        
+
         Raises:
             ValueError: If input type is not supported
         """
@@ -32,5 +34,5 @@ class InputSourceFactory:
         input_class = input_types.get(input_type)
         if not input_class:
             raise ValueError(f"Unsupported input type: {input_type}")
-        
+
         return input_class(input_config)

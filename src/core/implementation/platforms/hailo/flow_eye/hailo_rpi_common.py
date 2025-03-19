@@ -1,6 +1,7 @@
 import numpy as np
 import gi
-gi.require_version('Gst', '1.0')
+
+gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib, GObject
 
 
@@ -11,9 +12,9 @@ def get_caps_from_pad(pad: Gst.Pad):
         structure = caps.get_structure(0)
         if structure:
             # Extracting some common properties
-            format = structure.get_value('format')
-            width = structure.get_value('width')
-            height = structure.get_value('height')
+            format = structure.get_value("format")
+            width = structure.get_value("width")
+            height = structure.get_value("height")
             return format, width, height
     else:
         return None, None, None
@@ -23,29 +24,43 @@ def get_caps_from_pad(pad: Gst.Pad):
 # Functions used to get numpy arrays from Gstreamer buffers
 # ---------------------------------------------------------
 
+
 def handle_rgb(map_info, width, height):
-    # the copy() method is used to create a copy of the numpy array.  
+    # the copy() method is used to create a copy of the numpy array.
     # This is necessary because the original numpy array is created from the buffer data.
     # And it does not own the data it represents.
     # Instead, it'sn just a view of the buffer data.
-    return np.ndarray(shape=(height, width, 3), dtype=np.uint8, buffer=map_info.data).copy()
+    return np.ndarray(
+        shape=(height, width, 3), dtype=np.uint8, buffer=map_info.data
+    ).copy()
+
 
 def handle_nv12(map_info, width, height):
     y_plane_size = width * height
     uv_plane_size = width * height // 2
-    y_plane = np.ndarray(shape=(height, width), dtype=np.uint8, buffer=map_info.data[:y_plane_size]).copy()
-    uv_plane = np.ndarray(shape=(height//2, width//2, 2), dtype=np.uint8, buffer=map_info.data[y_plane_size:]).copy()
+    y_plane = np.ndarray(
+        shape=(height, width), dtype=np.uint8, buffer=map_info.data[:y_plane_size]
+    ).copy()
+    uv_plane = np.ndarray(
+        shape=(height // 2, width // 2, 2),
+        dtype=np.uint8,
+        buffer=map_info.data[y_plane_size:],
+    ).copy()
     return y_plane, uv_plane
 
+
 def handle_yuyv(map_info, width, height):
-    return np.ndarray(shape=(height, width, 2), dtype=np.uint8, buffer=map_info.data).copy()
+    return np.ndarray(
+        shape=(height, width, 2), dtype=np.uint8, buffer=map_info.data
+    ).copy()
 
 
 FORMAT_HANDLERS = {
-    'RGB': handle_rgb,
-    'NV12': handle_nv12,
-    'YUYV': handle_yuyv,
+    "RGB": handle_rgb,
+    "NV12": handle_nv12,
+    "YUYV": handle_yuyv,
 }
+
 
 def get_numpy_from_buffer(buffer, format, width, height):
     """
@@ -64,7 +79,7 @@ def get_numpy_from_buffer(buffer, format, width, height):
     success, map_info = buffer.map(Gst.MapFlags.READ)
     if not success:
         raise ValueError("Could not map buffer to read")
-    
+
     try:
         # Handle differnet format based on provided format parameter
         handler = FORMAT_HANDLERS.get(format)

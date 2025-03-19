@@ -3,7 +3,13 @@ import signal
 
 class SignalHandler:
     """Responsible for handling system signals"""
-    def __init__(self, pipeline_manager: 'PipelineManager', loop: 'GLib.MainLoop', gst_context: 'GstContext'):
+
+    def __init__(
+        self,
+        pipeline_manager: "PipelineManager",
+        loop: "GLib.MainLoop",
+        gst_context: "GstContext",
+    ):
         self.pipeline_manager = pipeline_manager
         self.loop = loop
         self.context = gst_context
@@ -13,7 +19,7 @@ class SignalHandler:
         """Handles shutdown signal"""
         print("Shutting down... Hit Ctrl-C again to force quit.")
         signal.signal(signal.SIGINT, signal.SIG_DFL)
-        
+
         # Graceful shutdown sequence
         self.pipeline_manager.set_state(self.context.gst.State.PAUSED)
         self.context.glib.usleep(100000)

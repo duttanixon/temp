@@ -7,3 +7,4 @@ lap
 SQLAlchemy
 awscrt
 awsiotsdk
+ruff

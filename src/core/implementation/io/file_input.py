@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional, List
 # from core.interfaces.io.input_source import IInputSource
 
+
 class FileInputSource:
     def __init__(self, config: Dict[str, Any]):
         self.file_path = None
@@ -11,12 +12,12 @@ class FileInputSource:
         self.width = self.config.get("video_width", 640)
         self.height = self.config.get("video_height", 480)
         self.format = self.config.get("video_format", "RGB")
-    
+
     def get_properties(self) -> dict:
         return {
             "type": "file",
             "path": self.file_path,
             "width": self.width,
             "height": self.height,
-            "format": self.format            
+            "format": self.format,
         }

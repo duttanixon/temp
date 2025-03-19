@@ -1,7 +1,9 @@
 from core.implementation.common.config_manager import ConfigManager
 from core.implementation.platforms.application import VideoAnalyticsApp
 from core.implementation.solutions.flow_eye.solution import FlowEyeSolution
-from core.implementation.platforms.hailo.flow_eye.controller import HailoPipelineController
+from core.implementation.platforms.hailo.flow_eye.controller import (
+    HailoPipelineController,
+)
 from core.implementation.io.factories.input_factory import InputSourceFactory
 from core.implementation.io.factories.output_factory import OutputHandlerFactory
 from core.interfaces.solutions.solution import ISolution
@@ -10,33 +12,37 @@ from core.interfaces.io.input_source import IInputSource
 from core.interfaces.io.output_handler import IOutputHandler
 import traceback
 
+
 def main():
     try:
         config_manager = ConfigManager("configs/flow-eye.yaml")
         config = config_manager.load_config()
 
         # Create I/O handlers using factories
-        input_source: IInputSource = InputSourceFactory.create(config["solution"]["input"])
-        output_handler: IOutputHandler = OutputHandlerFactory.create(config["solution"]["output"])
+        input_source: IInputSource = InputSourceFactory.create(
+            config["solution"]["input"]
+        )
+        output_handler: IOutputHandler = OutputHandlerFactory.create(
+            config["solution"]["output"]
+        )
 
         solution: ISolution = FlowEyeSolution(
-            config["solution"],
-            input_source=input_source,
-            output_handler=output_handler
+            config["solution"], input_source=input_source, output_handler=output_handler
         )
 
         # Create platform-specific controller
-        platform_controller: IPlatformController = HailoPipelineController(config, solution)
+        platform_controller: IPlatformController = HailoPipelineController(
+            config, solution
+        )
 
         # Create platform-agnostic application
         app = VideoAnalyticsApp(config, solution, platform_controller)
         app.initialize()
         app.run()
-        
+
     except Exception as e:
         print(traceback.format_exc())
         print(f"Error: {e}")
-
 
 
 if __name__ == "__main__":

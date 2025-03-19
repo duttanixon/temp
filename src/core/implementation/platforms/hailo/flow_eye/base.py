@@ -1,7 +1,9 @@
 import gi
-gi.require_version('Gst', '1.0')
+
+gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib, GObject
 from dataclasses import dataclass
+
 
 @dataclass
 class GstContext:
@@ -10,7 +12,7 @@ class GstContext:
     gobject: GObject
 
     @classmethod
-    def initialize(cls) -> 'GstContext':
+    def initialize(cls) -> "GstContext":
         """Initialize GStreamer and create context"""
         Gst.init(None)
         return cls(Gst, GLib, GObject)

@@ -2,7 +2,6 @@ from .pipelines.flow_eye_pipeline import build_flow_eye_pipeline_string
 from .rpi_camera_handler import RPICameraHandler
 import traceback
 import sys
-import os
 import time
 from typing import Dict, Optional, Any
 
@@ -11,8 +10,11 @@ class PipelineManager:
     """Responsible for pipeline creation and management"""
 
     def __init__(
-        self, config: Dict[str, Any], solution: Any, gst_context: "GstContext"
-    ):
+        self,
+        config: Dict[str, Any],
+        solution: Any,
+        gst_context: "GstContext",  # noqa: F821
+    ) -> None:
         self.context = gst_context
         self.pipeline = None
         self.rpi_handler = None
@@ -31,6 +33,7 @@ class PipelineManager:
                 self.video_width,
                 self.video_height,
                 self.video_format,
+                self.context,
                 input_props.get("picamera_config"),
             )
             self.rpi_handler.start()
@@ -77,7 +80,7 @@ class PipelineManager:
             print(traceback.format_exc())
             sys.exit(1)
 
-    def set_state(self, state: "Gst.State") -> None:
+    def set_state(self, state: "Gst.State") -> None:  # noqa: F821
         """Sets the pipeline state"""
         if self.pipeline:
             self.pipeline.set_state(state)
@@ -87,7 +90,7 @@ class PipelineManager:
         if self.pipeline:
             self.pipeline.set_latency(latency_ms * self.context.gst.MSECOND)
 
-    def get_pipeline(self) -> Optional["Gst.Pipeline"]:
+    def get_pipeline(self) -> Optional["Gst.Pipeline"]:  # noqa: F821
         """Returns the GStreamer pipeline"""
         return self.pipeline
 

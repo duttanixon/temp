@@ -2,7 +2,9 @@ import sys
 import os
 import time
 import datetime
-from typing import Dict, Optional, Any
+from typing import Any
+from .pipeline_manager import PipelineManager
+from .base import GstContext
 
 
 class BusMessageHandler:
@@ -10,9 +12,9 @@ class BusMessageHandler:
 
     def __init__(
         self,
-        pipeline_manager: "PipelineManager",
-        loop: "GLib.MainLoop",
-        gst_context: "GstContext",
+        pipeline_manager: PipelineManager,
+        loop: "GLib.MainLoop",  # noqa: F821
+        gst_context: GstContext,
         isDebug: bool = False,
     ):
         self.pipeline_manager = pipeline_manager
@@ -109,7 +111,7 @@ class BusMessageHandler:
                                 if hasattr(element.props, prop_name):
                                     prop_value = getattr(element.props, prop_name)
                                     properties[prop_name] = str(prop_value)
-                            except:
+                            except Exception:
                                 pass
 
                         # log element properties
@@ -327,7 +329,7 @@ class BusMessageHandler:
                 )
                 self.log_to_file(f"{'#' * 40}")
                 self.log_file.close()
-            except:
+            except Exception:
                 pass
 
     def handle_eos(self) -> None:
@@ -398,7 +400,7 @@ class BusMessageHandler:
                         )
                     else:
                         self.log_to_file("  Unable to retrieve element state")
-                except:
+                except Exception:
                     self.log_to_file("  Could not retrieve element state")
             else:
                 # Print to stderr in non-debug mode
@@ -695,7 +697,7 @@ class BusMessageHandler:
                 if success:
                     duration_sec = duration / self.context.gst.SECOND
                     self.log_to_file(f"  New duration: {duration_sec:.3f} seconds")
-            except:
+            except Exception:
                 pass
 
         # Handle stream start messages (type 268435456)
@@ -706,7 +708,7 @@ class BusMessageHandler:
                 has_group_id, group_id = message.parse_group_id()
                 if has_group_id:
                     self.log_to_file(f"  Group ID: {group_id}")
-            except:
+            except Exception:
                 pass
 
         # Handle async done messages (type 2097152)
@@ -742,7 +744,7 @@ class BusMessageHandler:
                     if hasattr(clock.props, "timeout"):
                         timeout = clock.get_property("timeout")
                         self.log_to_file(f"  Timeout: {timeout}")
-                except:
+                except Exception:
                     pass
 
         # For all other message types, only log details if debug is enabled
@@ -798,7 +800,7 @@ class BusMessageHandler:
                             self.log_to_file(
                                 f"  {attr.replace('get_', '').replace('parse_', '')}: {value}"
                             )
-                        except:
+                        except Exception:
                             pass
 
             except Exception as e:

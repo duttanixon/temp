@@ -1,4 +1,5 @@
 import signal
+from .pipeline_manager import PipelineManager
 
 
 class SignalHandler:
@@ -6,9 +7,9 @@ class SignalHandler:
 
     def __init__(
         self,
-        pipeline_manager: "PipelineManager",
-        loop: "GLib.MainLoop",
-        gst_context: "GstContext",
+        pipeline_manager: PipelineManager,
+        loop: "GLib.MainLoop",  # noqa: F821
+        gst_context: "GstContext",  # noqa: F821
     ):
         self.pipeline_manager = pipeline_manager
         self.loop = loop

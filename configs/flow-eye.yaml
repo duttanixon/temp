@@ -33,12 +33,16 @@ solution:
         video_width: 1280
         video_height: 720
         video_format: "RGB"
-        # type: rpi
-        # file_path: rpi
-        type: file
-        file_path: resources/data/input.mp4
+        type: rpi
+        file_path: rpi
+        # type: file
+        # file_path: resources/data/input.mp4
     output:
         type: default
+        streaming: true
+        streaming_fps: 0.5
+        streaming_host: "0.0.0.0"
+        streaming_port: 7000
         
 
     # # Cloud configuration

@@ -92,7 +92,7 @@ def SOURCE_PIPELINE(
             )
     elif source_type == "rpi":
         source_element = (
-            f"appsrc name=app_source is-live=true leaky-type=downstream max-buffers=3 ! "
+            "appsrc name=app_source is-live=true leaky-type=downstream max-buffers=3 ! "
             "videoflip name=videoflip video-direction=horiz ! "
             # f'video/x-raw, format={video_format}, width={video_width}, height={video_height} ! '
         )
@@ -334,7 +334,7 @@ def NULL_SINK_PIPELINE(name="null_sink"):
     """
     Creates a GStreamer pipeline string for the null sink element.
     """
-    return f"fakesink sync=false "
+    return "fakesink sync=false "
 
 
 def USER_CALLBACK_PIPELINE(name="identity_callback"):
@@ -449,52 +449,3 @@ def DISPLAY_PIPELINE(
 
 def BYTETRACK_PIPELINE() -> str:
     return f"{QUEUE('queue_tracking_callback')} ! identity name=tracking_callback "
-
-
-def DETECTION_PIPELINE(
-    hef_path,
-    video_width,
-    video_height,
-    post_process_so=None,
-    batch_size=1,
-    config_json=None,
-    post_function_name=None,
-    additional_params="",
-    name="inference",
-    # Extra hailonet parameters
-    scheduler_timeout_ms=None,
-    scheduler_priority=None,
-    vdevice_group_id=1,
-    multi_process_service=None,
-):
-    config_str = f" config-path={config_json} " if config_json else ""
-    function_name_str = (
-        f" function-name={post_function_name} " if post_function_name else ""
-    )
-    vdevice_group_id_str = f" vdevice-group-id={vdevice_group_id} "
-    multi_process_service_str = (
-        f" multi-process-service={str(multi_process_service).lower()} "
-        if multi_process_service is not None
-        else ""
-    )
-    scheduler_timeout_ms_str = (
-        f" scheduler-timeout-ms={scheduler_timeout_ms} "
-        if scheduler_timeout_ms is not None
-        else ""
-    )
-    scheduler_priority_str = (
-        f" scheduler-priority={scheduler_priority} "
-        if scheduler_priority is not None
-        else ""
-    )
-    return (
-        f"{QUEUE(name=f'{name}_scale_q')} ! "
-        f"videoscale name={name}_videoscale n-threads=2 qos=false ! "
-        f"{QUEUE(name=f'{name}_convert_q')} ! "
-        f"videoconvert name={name}_videoconvert n-threads=3 ! "
-        f"video/x-raw, pixel-aspect-ratio=1/1 ! "
-        # f"video/x-raw, format=RGB, width={video_width}, height={video_height}, pixel-aspect-ratio=1/1 ! "
-        f"hailonet hef-path={hef_path} batch-size={batch_size} scheduling-algorithm=1 scheduler-threshold=8 {additional_params} force-writable=true scheduler-timeout-ms=50 vdevice-group-id=1 ! "
-        f"{QUEUE(name=f'{name}_hailofilter_q')} ! "
-        f"hailofilter name={name}_hailofilter so-path={post_process_so} {config_str} {function_name_str} qos=false "
-    )

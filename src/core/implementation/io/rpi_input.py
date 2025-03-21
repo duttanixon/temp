@@ -1,6 +1,4 @@
-from typing import Any, Dict, Optional
-from picamera2 import Picamera2
-import threading
+from typing import Any, Dict
 # from core.interfaces.io.input_source import IInputSource
 
 

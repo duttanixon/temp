@@ -1,6 +1,6 @@
 import yaml
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from core.interfaces.common.config_manager import IConfigProvider
 
 

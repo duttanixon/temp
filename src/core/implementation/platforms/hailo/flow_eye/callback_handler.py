@@ -1,14 +1,8 @@
-import cv2
-import os
-import random
-import string
-import datetime
 import numpy as np
 import hailo
 from scipy.optimize import linear_sum_assignment
 from typing import Tuple, Optional, List
 from dataclasses import dataclass
-from .hailo_rpi_common import get_caps_from_pad, get_numpy_from_buffer
 from core.interfaces.solutions.solution import ISolution
 
 
@@ -26,18 +20,103 @@ class Detection:
 class VideoProcessor:
     """Handles all the video processing operations"""
 
-    @staticmethod
-    def process_buffer(buffer: "Gst.Buffer", pad: "Gst.Pad") -> Optional[np.ndarray]:
+    def __init__(self, gst_context):
+        self.gst_context = gst_context
+
+    def _handle_rgb(self, map_info, width, height):
+        # the copy() method is used to create a copy of the numpy array.
+        # This is necessary because the original numpy array is created from the buffer data.
+        # And it does not own the data it represents.
+        # Instead, it'sn just a view of the buffer data.
+        return np.ndarray(
+            shape=(height, width, 3), dtype=np.uint8, buffer=map_info.data
+        ).copy()
+
+    def _handle_nv12(self, map_info, width, height):
+        y_plane_size = width * height
+        uv_plane_size = width * height // 2
+        y_plane = np.ndarray(
+            shape=(height, width), dtype=np.uint8, buffer=map_info.data[:y_plane_size]
+        ).copy()
+        uv_plane = np.ndarray(
+            shape=(height // 2, width // 2, 2),
+            dtype=np.uint8,
+            buffer=map_info.data[uv_plane_size:],
+        ).copy()
+        # originally it was y_plane_size in the map_info.data
+        # since uv_plane_size was defined but not assigned, assumed that
+        # uv_plane_size will in map_info.data[y_plane_size:]
+        return y_plane, uv_plane
+
+    def _handle_yuyv(self, map_info, width, height):
+        return np.ndarray(
+            shape=(height, width, 2), dtype=np.uint8, buffer=map_info.data
+        ).copy()
+
+    def _get_numpy_from_buffer(self, buffer, format, width, height):
+        """
+        Converts a GstBuffer to a numpy array based on provided format, width, and height.
+
+        Args:
+            buffer (GstBuffer): The GStreamer Buffer to convert.
+            format (str): The video format ('RGB', 'NV12', 'YUYV', etc.).
+            width (int): The width of the video frame.
+            height (int): The height of the video frame.
+
+        Returns:
+            np.ndarray: A numpy array representing the buffer's data, or a tuple of arrays for certain formats.
+        """
+        FORMAT_HANDLERS = {
+            "RGB": self._handle_rgb,
+            "NV12": self._handle_nv12,
+            "YUYV": self._handle_yuyv,
+        }
+
+        # Map the buffer to access data
+        success, map_info = buffer.map(self.gst_context.gst.MapFlags.READ)
+        if not success:
+            raise ValueError("Could not map buffer to read")
+
+        try:
+            # Handle differnet format based on provided format parameter
+            handler = FORMAT_HANDLERS.get(format)
+            if handler is None:
+                raise ValueError(f"Unsupported format: {format}")
+            return handler(map_info, width, height)
+        finally:
+            buffer.unmap(map_info)
+
+    def _get_caps_from_pad(self, pad: "Gst.Pad"):  # noqa: F821
+        caps = pad.get_current_caps()
+        if caps:
+            # We can now extract information from the caps
+            structure = caps.get_structure(0)
+            if structure:
+                # Extracting some common properties
+                format = structure.get_value("format")
+                width = structure.get_value("width")
+                height = structure.get_value("height")
+                return format, width, height
+        else:
+            return None, None, None
+
+    def process_buffer(
+        self,
+        buffer: "Gst.Buffer",  # noqa: F821
+        pad: "Gst.Pad",  # noqa: F821
+    ) -> Optional[np.ndarray]:
         """Processes buffer and returns frame if availble"""
-        format, width, height = get_caps_from_pad(pad)
+        format, width, height = self._get_caps_from_pad(pad)
         if None in (format, width, height):
             return None
 
-        return get_numpy_from_buffer(buffer, format, width, height)
+        return self._get_numpy_from_buffer(buffer, format, width, height)
 
-    @staticmethod
     def process_detection(
-        buffer: "Gst.Buffer", width: int, height: int
+        self,
+        buffer: "Gst.Buffer",  # noqa: F821
+        width: int,
+        height: int,
     ) -> List[Detection]:
         """Process detections from buffer"""
         roi = hailo.get_roi_from_buffer(buffer)
@@ -76,13 +155,15 @@ class CallbackHandler:
 
     def __init__(self, gst_context, solution: ISolution):
         self.solution = solution
-        self.video_processor = VideoProcessor()
         self.gst_context = gst_context
+        self.video_processor = VideoProcessor(self.gst_context)
         self._frame_count = 0
 
     def app_callback(
-        self, pad: "Gst.Pad", info: "Gst.PadProbeInfo"
-    ) -> "Gst.PadProbeReturn":
+        self,
+        pad: "Gst.Pad",  # noqa: F821
+        info: "Gst.PadProbeInfo",  # noqa: F821
+    ) -> "Gst.PadProbeReturn":  # noqa: F821
         """Main callback function for processing frames"""
         # Get buffer
         frame_data = {}
@@ -106,8 +187,10 @@ class CallbackHandler:
         return self.gst_context.gst.PadProbeReturn.OK
 
     def tracking_callback(
-        self, pad: "Gst.Pad", info: "Gst.PadProbeInfo"
-    ) -> "Gst.PadProbeReturn":
+        self,
+        pad: "Gst.Pad",  # noqa: F821
+        info: "Gst.PadProbeInfo",  # noqa: F821
+    ) -> "Gst.PadProbeReturn":  # noqa: F821
         """Callback function for tracking"""
         buffer = info.get_buffer()
         if buffer is None:
@@ -217,7 +300,6 @@ class CallbackHandler:
         col_ind = col_ind[valid_matches]
 
         # Process matches and update detections
-        frame_results = {}
         for d, t in zip(row_ind, col_ind):
             detection = detection_list[d]
             t_id = int(t_ids[t])

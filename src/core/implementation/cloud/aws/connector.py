@@ -2,7 +2,7 @@ import json
 import time
 import os
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from sqlalchemy import and_
 from awscrt import mqtt
 from awsiot import mqtt_connection_builder
@@ -161,6 +161,7 @@ class AWSIoTConnector(ICloudConnector):
                 session.add(metric)
                 session.commit()
             except Exception as e:
+                print(f"Error {e}")
                 session.rollback()
                 raise
             finally:
@@ -203,6 +204,7 @@ class AWSIoTConnector(ICloudConnector):
                     session.commit()
 
             except Exception as e:
+                print(f"error :{e}")
                 session.rollback()
                 raise
             finally:
@@ -220,7 +222,7 @@ class AWSIoTConnector(ICloudConnector):
             try:
                 disconnect_future = self.connection.disconnect()
                 disconnect_future.result()
-            except:
+            except Exception:
                 pass
 
         self.db_manager.cleanup()

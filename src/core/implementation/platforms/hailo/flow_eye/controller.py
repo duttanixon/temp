@@ -1,6 +1,4 @@
 import setproctitle
-import signal
-import traceback
 import sys
 import os
 from .base import GstContext

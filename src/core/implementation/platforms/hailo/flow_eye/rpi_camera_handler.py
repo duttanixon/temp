@@ -1,13 +1,8 @@
 import threading
-import time
 import cv2
 import numpy as np
 from picamera2 import Picamera2
-from typing import Optional, Dict, Any
-import gi
-
-gi.require_version("Gst", "1.0")
-from gi.repository import Gst
+from typing import Optional, Dict
 
 
 class RPICameraHandler:
@@ -19,6 +14,7 @@ class RPICameraHandler:
         width: int,
         height: int,
         video_format: str,
+        gst_context: "GstContext",  # noqa: F821
         picamera_config: Optional[Dict] = None,
     ):
         self.pipeline = pipeline
@@ -28,6 +24,7 @@ class RPICameraHandler:
         self.picamera_config = picamera_config
         self.running = True
         self.thread = True
+        self.context = gst_context
 
     def start(self):
         """Start the RPi camera thread"""
@@ -49,7 +46,7 @@ class RPICameraHandler:
             return
 
         appsrc.set_property("is-live", True)
-        appsrc.set_property("format", Gst.Format.TIME)
+        appsrc.set_property("format", self.context.gst.Format.TIME)
 
         with Picamera2() as picam2:
             if self.picamera_config is None:
@@ -75,7 +72,7 @@ class RPICameraHandler:
 
             appsrc.set_property(
                 "caps",
-                Gst.Caps.from_string(
+                self.context.gst.Caps.from_string(
                     f"video/x-raw, format={format_str}, width={width}, height={height}, "
                     f"framerate=30/1, pixel-aspect-ratio=1/1"
                 ),
@@ -93,13 +90,15 @@ class RPICameraHandler:
                 frame = cv2.cvtColor(frame_data, cv2.COLOR_BGR2RGB)
                 frame = np.asarray(frame)
 
-                buffer = Gst.Buffer.new_wrapped(frame.tobytes())
-                buffer_duration = Gst.util_uint64_scale_int(1, Gst.SECOND, 30)
+                buffer = self.context.gst.Buffer.new_wrapped(frame.tobytes())
+                buffer_duration = self.context.gst.util_uint64_scale_int(
+                    1, self.context.gst.SECOND, 30
+                )
                 buffer.pts = frame_count * buffer_duration
                 buffer.duration = buffer_duration
 
                 ret = appsrc.emit("push-buffer", buffer)
-                if ret != Gst.FlowReturn.OK:
+                if ret != self.context.gst.FlowReturn.OK:
                     print(f"Failed to push buffer: {ret}")
                     break
 

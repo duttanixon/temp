@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import copy
 
 import numpy as np
 
 from .tracker.byte_tracker import BYTETracker
-
-import time
 
 
 class dict_dot_notation(dict):
@@ -43,7 +40,7 @@ class MultiClassByteTrack(object):
         scores,
         class_ids,
     ):
-        vehicle_class_ids = [2, 5, 7]  # Example: car, truck, bus
+        # vehicle_class_ids = [2, 5, 7]  # Example: car, truck, bus
         original_class_ids = np.array(class_ids)
         # Convert all vehicle class ids to a single class id
         # class_ids = np.where(np.isin(class_ids, vehicle_class_ids), 2, class_ids)
@@ -75,8 +72,8 @@ class MultiClassByteTrack(object):
             if len(target_index) == 0:
                 continue
 
-            target_bboxes = np.array(bboxes)[target_index]
-            target_scores = np.array(scores)[target_index]
+            # target_bboxes = np.array(bboxes)[target_index]
+            # target_scores = np.array(scores)[target_index]
             target_class_ids = np.array(class_ids)[target_index]
             target_bboxes1 = bboxes[target_index]
             target_scores1 = scores[target_index]

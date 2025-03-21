@@ -1,5 +1,4 @@
-from typing import Any, Dict, Optional, List
-import numpy as np
+from typing import Any, Dict
 import time
 import cv2
 import threading
@@ -18,7 +17,6 @@ class DefaultOutputHandler(IOutputHandler):
         """
         Callback function that's called after every frame is processed.
         """
-        current_time = time.time()
         object_meta = result.get("object_meta", [])
         frame = result.get("frame")
 
@@ -86,7 +84,7 @@ class DefaultOutputHandler(IOutputHandler):
                     try:
                         label = f"{detection.track_id} -{detection.label}: {detection.confidence: .2f}"
                         x1, y1, x2, y2 = detection.bbox
-                        gender_age = f"{detection.classifications[0][0]} - {detection.classifications[0][1]}"
+                        # gender_age = f"{detection.classifications[0][0]} - {detection.classifications[0][1]}"
 
                         cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         if label:

@@ -1,10 +1,10 @@
 class QosManager:
     """Responsible for Quality of Service management"""
 
-    def __init__(self, gst_context: "GstContext"):
+    def __init__(self, gst_context: "GstContext"):  # noqa: F821
         self.context = gst_context
 
-    def disable_qos(self, pipeline: "Gst.Pipeline") -> None:
+    def disable_qos(self, pipeline: "Gst.Pipeline") -> None:  # noqa: F821
         """Disables QoS on all pipeline elements"""
         if not isinstance(pipeline, self.context.gst.Pipeline):
             print("The provided object is not a GStreamer Pipeline")

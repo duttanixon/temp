@@ -5,7 +5,7 @@ This module provides functions to visualize and debug GStreamer pipelines.
 
 import os
 import subprocess
-from typing import Optional, Dict, Any
+from typing import Optional
 
 
 class PipelineDebugger:
@@ -34,7 +34,7 @@ class PipelineDebugger:
                 self.context.gst.DebugGraphDetails.ALL,
                 f"{pipeline_name}_{state_name}",
             )
-        except Exception as e:
+        except Exception:
             print("Failed to dump pipeline structure.....")
 
         # Construct the expected filename
@@ -113,7 +113,7 @@ class PipelineDebugger:
                     value = element.get_property(prop.name)
                     if prop.name != "caps" and value is not None:
                         print(f"│   │   ├── {prop.name}: {value}")
-                except:
+                except Exception:
                     # Some properties might not be readable
                     pass
 

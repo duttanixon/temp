@@ -1,9 +1,7 @@
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional
 import numpy as np
 import queue
-import multiprocessing
 from .bytetrack.mc_bytetrack import MultiClassByteTrack
-import time
 
 from core.interfaces.solutions.solution import ISolution
 from core.interfaces.io.input_source import IInputSource
@@ -83,13 +81,13 @@ class FlowEyeSolution(ISolution):
     def increment_counters(self, counter_type) -> None:
         try:
             self.counters[counter_type] += 1
-        except:
+        except Exception:
             print(f"Counter type {counter_type} not recognized")
 
     def get_frame_count(self, counter_type) -> Optional[int]:
         try:
             return self.counters[counter_type]
-        except:
+        except Exception:
             print(f"Counter type {counter_type} not recognized")
             return None
 

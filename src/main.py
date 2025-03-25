@@ -1,3 +1,7 @@
+"""
+Main entry point for the edge analytics application.
+"""
+
 from core.implementation.common.config_manager import ConfigManager
 from core.implementation.platforms.application import VideoAnalyticsApp
 from core.implementation.solutions.flow_eye.solution import FlowEyeSolution

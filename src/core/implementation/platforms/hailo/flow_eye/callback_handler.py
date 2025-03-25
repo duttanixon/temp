@@ -15,6 +15,8 @@ class Detection:
     confidence: float
     bbox: Tuple[float, float, float, float]
     classifications: List[Tuple[str, float]]
+    class_id: int
+    
 
 
 class VideoProcessor:
@@ -115,8 +117,7 @@ class VideoProcessor:
     def process_detection(
         self,
         buffer: "Gst.Buffer",  # noqa: F821
-        width: int,
-        height: int,
+        solution: "ISolution",
     ) -> List[Detection]:
         """Process detections from buffer"""
         roi = hailo.get_roi_from_buffer(buffer)
@@ -132,20 +133,33 @@ class VideoProcessor:
                 class_confidence = classification.get_confidence()
                 classification_info.append((class_label, class_confidence))
             if len(track_id) == 1:
+                t_id = track_id[0].get_id()
+                bbox = [
+                        int(bbox.xmin() * solution.frame_width),
+                        int(bbox.ymin() * solution.frame_height),
+                        int(bbox.xmax() * solution.frame_width),
+                        int(bbox.ymax() * solution.frame_height)
+                    ]
+                confidence=detection.get_confidence()
                 results.append(
                     Detection(
                         label=detection.get_label(),
-                        track_id=track_id[0].get_id(),
-                        confidence=detection.get_confidence(),
-                        bbox=[
-                            int(bbox.xmin() * width),
-                            int(bbox.ymin() * height),
-                            int(bbox.xmax() * width),
-                            int(bbox.ymax() * height),
-                        ],
+                        track_id=t_id,
+                        confidence=confidence,
+                        bbox=bbox,
                         classifications=classification_info,
+                        class_id=detection.get_class_id(),
                     )
                 )
+
+                # solution.track_dict.setdefault(solution.counters["frame_number"], {})[t_id] = {
+                #     "id": t_id,
+                #     "bbox": bbox,
+                #     "confidence": confidence,
+                #     "class_id": detection.get_class_id(),
+                #     "attr": classification_info
+
+                # }
 
         return results
 
@@ -173,10 +187,10 @@ class CallbackHandler:
 
         # Process frame if needed
         frame = None
-        self.solution.increment_counters("output")
+        self.solution.increment_counters("frame_number")
         # Process detections
         detections = self.video_processor.process_detection(
-            buffer, self.solution.frame_width, self.solution.frame_height
+            buffer, self.solution
         )
         if self.solution.use_frame:
             frame = self.video_processor.process_buffer(buffer, pad)

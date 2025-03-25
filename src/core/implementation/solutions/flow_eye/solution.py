@@ -2,6 +2,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 import queue
 from .bytetrack.mc_bytetrack import MultiClassByteTrack
+from .count.counter import Counter
 
 from core.interfaces.solutions.solution import ISolution
 from core.interfaces.io.input_source import IInputSource
@@ -20,7 +21,7 @@ class FlowEyeSolution(ISolution):
         input_source: IInputSource,
         output_handler: IOutputHandler,
     ):
-        self.counters = {"tracking": 0, "attr": 0, "output": 0}
+        self.counters = {"tracking": 0, "attr": 0, "frame_number": 0}
 
         # Create input/output handler
         self.input_source = input_source
@@ -54,6 +55,17 @@ class FlowEyeSolution(ISolution):
             min_box_area=config["tracking"]["min_box_area"],
         )
 
+
+        # initialize Counting
+        self.xlines_cfg_path = config["xlines_cfg_path"]
+        self.count_output_path = config["count_output_path"]
+        self.class_names_dict = {
+            'gender' : ['male', 'female'],
+            'age': ['young', 'middle', 'senior', 'silver']
+        }
+        self.count = Counter(self.xlines_cfg_path,self.count_output_path,self.class_names_dict)
+
+
         # initialize cloud communication
         if "cloud" in config:
             self.cloud_connector = CloudConnectorFactory.create(config["cloud"])
@@ -68,10 +80,14 @@ class FlowEyeSolution(ISolution):
         else:
             self.cloud_connector = None
             self.metrics_formatter = None
+        
 
     def on_frame_processed(self, frame_data: Dict[str, Any]) -> None:
         """Handle processed frame data from platform"""
+        self.count.count_by_frame(self.counters["frame_number"],frame_data["object_meta"])
+        self.count.finish_tracklets(self.counters["frame_number"])
         self.output_handler.handle_result(frame_data)
+        # print(frame_data["object_meta"])
         # Handle cloud communication if enabled
         if self.cloud_connector and self.metrics_formatter:
             metrics = self.metrics_formatter.format_metrics(frame_data)

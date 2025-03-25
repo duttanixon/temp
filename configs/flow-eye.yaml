@@ -22,6 +22,9 @@ solution:
     use_frame: True
     nms_score_threshold: 0.3
     nms_iou_threshold: 0.45
+    xlines_cfg_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/configs/xlines_cfg.json
+    count_output_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/resources/data/count_result.json
+
     tracking:
         track_fps: 30
         track_thresh: 0.4
@@ -33,10 +36,10 @@ solution:
         video_width: 1280
         video_height: 720
         video_format: "RGB"
-        type: rpi
-        file_path: rpi
-        # type: file
-        # file_path: resources/data/input.mp4
+        # type: rpi
+        # file_path: rpi
+        type: file
+        file_path: resources/data/ch01_00000000143000000.mp4
     output:
         type: default
         streaming: true

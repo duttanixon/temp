@@ -9,10 +9,13 @@ from shapely.geometry.polygon import Polygon
 class Counter(BaseCounter):
     def __init__(self, xlines_cfg_path:str, count_output_path:str, class_names_dict: Dict[str, List[str]], buffer_size:int = 30, frame_thresh:int=5, cos_thresh:int = 0.0, handle:bool=True):
         self.class_names_dict = {k.lower(): v for k, v in class_names_dict.items()}
-        assert ('age' in self.class_names_dict and 'gender' in self.class_names_dict)
+        assert ('age' in self.class_names_dict and 'gender' in self.class_names_dict and 'vehicle' in self.class_names_dict)
         self.age_classes: List[str] = self.class_names_dict['age']
         self.gender_classes: List[str] = self.class_names_dict['gender']
+        self.vehicle_classes: List[str] = self.class_names_dict['vehicle']
+        vehicle_class_names = [f"vehicle::{vehicle_class}" for vehicle_class in self.vehicle_classes]
         self.class_names: List[str] = [f"{gender}::{age}" for age in self.age_classes for gender in self.gender_classes]
+        self.class_names.extend(vehicle_class_names)
         self.name_idx_map: Dict[str, int] =  {name: idx for idx, name in enumerate(self.class_names)}
         self.idx_name_map:Dict[str, int] = {idx: name for name, idx in self.name_idx_map.items()}
         self.frame_thresh: int = frame_thresh
@@ -58,8 +61,9 @@ class Counter(BaseCounter):
         for data in detections_result:
             track_id = data.track_id
             if data.class_id!=1:
-                continue
-            if data.classifications:
+                vehicle_class=data.label
+                label_key = self.name_idx_map.get(f"vehicle::{vehicle_class}", -1)
+            elif data.classifications:
                 gender, age = data.classifications[0][0], data.classifications[1][0]
                 label_key = self.name_idx_map.get(f"{gender}::{age}", -1)
             else:
@@ -133,17 +137,17 @@ class Counter(BaseCounter):
         if traj:
             if traj["frame_th_in"] is not None and traj["frame_th_out"] is not None:
                 from_idx, to_idx = traj["in_idx"], traj["out_idx"]
-                self.count_table[from_idx, to_idx, label_pred] += 1
+                # self.count_table[from_idx, to_idx, label_pred] += 1
                 route = f"{from_idx}->{to_idx}"
 
             elif traj["frame_th_in"] is not None and traj["frame_th_out"] is None:
                 from_idx, to_idx = traj["in_idx"], len(self.xlines)
-                self.count_table[from_idx, to_idx, label_pred] += 1
+                # self.count_table[from_idx, to_idx, label_pred] += 1
                 route = f"{from_idx}->loss"
 
             elif traj["frame_th_in"] is None and traj["frame_th_out"] is not None:
                 from_idx, to_idx = len(self.xlines), traj["out_idx"]
-                self.count_table[from_idx, to_idx, label_pred] += 1
+                # self.count_table[from_idx, to_idx, label_pred] += 1
                 route = f"loss->{to_idx}"
 
         return route
@@ -170,10 +174,10 @@ class Counter(BaseCounter):
                 else:
                     traj = first_in or last_out
                 route = self._update_count_table(track_id, traj, label_pred)
-                gender_age = self.idx_name_map.get(label_pred, "unknown")
+                class_ = self.idx_name_map.get(label_pred, "unknown")
                 self.track_dict[track_id]["route"] = route
                 out_id = self.track_dict.pop(track_id)
                 if route:
                     self.saved_data[str(track_id)] = route
-                    print(route,gender_age)
+                    print(route,class_)
         return self.saved_data

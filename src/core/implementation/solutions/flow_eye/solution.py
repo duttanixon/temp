@@ -1,6 +1,8 @@
 from typing import Any, Dict, Optional
 import numpy as np
-import queue
+import signal
+import threading
+from queue import Queue, Empty, Full
 from .bytetrack.mc_bytetrack import MultiClassByteTrack
 from .count.counter import Counter
 
@@ -22,6 +24,7 @@ class FlowEyeSolution(ISolution):
         output_handler: IOutputHandler,
     ):
         self.counters = {"tracking": 0, "attr": 0, "frame_number": 0}
+        self.counters_lock = threading.Lock()
 
         # Create input/output handler
         self.input_source = input_source
@@ -61,7 +64,8 @@ class FlowEyeSolution(ISolution):
         self.count_output_path = config["count_output_path"]
         self.class_names_dict = {
             'gender' : ['male', 'female'],
-            'age': ['young', 'middle', 'senior', 'silver']
+            'age': ['young', 'middle', 'senior', 'silver'],
+            'vehicle':['bicycles','car','bus','truck','motorcycle'] #bicycle=2, car =3,motorcycle=4, bus=6, truck=8
         }
         self.count = Counter(self.xlines_cfg_path,self.count_output_path,self.class_names_dict)
 
@@ -80,19 +84,59 @@ class FlowEyeSolution(ISolution):
         else:
             self.cloud_connector = None
             self.metrics_formatter = None
-        
+
+        # Initialize the processing queue and thread
+        self.frame_queue = Queue(maxsize=100)
+        self.worker_thread = threading.Thread(target=self._process_frames_worker)
+        self.worker_thread.daemon = True
+        self.worker_thread.start()
+
+        # # Setup signal handler for clean shutdown
+        # signal.signal(signal.SIGINT, self._handle_shutdown)
+        # signal.signal(signal.SIGTERM, self._handle_shutdown)
+
 
     def on_frame_processed(self, frame_data: Dict[str, Any]) -> None:
-        """Handle processed frame data from platform"""
-        self.count.count_by_frame(self.counters["frame_number"],frame_data["object_meta"])
-        self.count.finish_tracklets(self.counters["frame_number"])
-        self.output_handler.handle_result(frame_data)
-        # print(frame_data["object_meta"])
-        # Handle cloud communication if enabled
-        if self.cloud_connector and self.metrics_formatter:
-            metrics = self.metrics_formatter.format_metrics(frame_data)
-            if metrics:
-                self.cloud_connector.send_metrics(metrics)
+        """Queue the frame data and return quickly"""
+        try:                
+            # Use non-blocking put with a timeout
+            self.frame_queue.put(frame_data, block=False)
+        except Full:
+            # Log that we're dropping a frame
+            print("Warning: Processing queue full, dropping frame")
+
+            
+    def _process_frames_worker(self) -> None:
+        """Worker thread that handles the actual frame processing"""
+        while self.running:
+            try:
+                # Get frame data
+                frame_data = self.frame_queue.get(block=True, timeout=0.5)
+                
+                # Get current frame number
+                with self.counters_lock:
+                    frame_number = self.counters["frame_number"]
+
+
+                self.count.count_by_frame(self.counters["frame_number"],frame_data["object_meta"])
+                self.count.finish_tracklets(self.counters["frame_number"])
+                self.output_handler.handle_result(frame_data)
+
+                # Handle cloud communication if enabled
+                if self.cloud_connector and self.metrics_formatter:
+                    metrics = self.metrics_formatter.format_metrics(frame_data)
+                    if metrics:
+                        self.cloud_connector.send_metrics(metrics)
+                
+                # Mark task as done
+                self.frame_queue.task_done()
+            except Empty:
+                # Queue timeout - check if we should continue running
+                continue
+            except Exception as e:
+                # Log the error but keep the worker running
+                print(f"Error in processing thread: {str(e)}")
+                
 
     def increment_counters(self, counter_type) -> None:
         try:

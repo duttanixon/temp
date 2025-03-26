@@ -29,6 +29,7 @@ class MultiClassByteTrack(object):
         self.match_thresh = match_thresh
         self.mot20 = mot20
         self.fps = fps
+        self.class_ids=[1,2,3,4,6,8]
 
         # ByteTracker保持用Dict生成
         self.tracker_dict = {}
@@ -47,7 +48,7 @@ class MultiClassByteTrack(object):
         # unique_class_ids = np.unique(class_ids)
         for class_id in original_class_ids:
             class_id = int(class_id)
-            if class_id > 8:
+            if class_id not in self.class_ids:
                 continue
             if class_id not in self.tracker_dict:
                 self.tracker_dict[class_id] = BYTETracker(

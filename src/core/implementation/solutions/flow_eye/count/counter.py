@@ -3,7 +3,7 @@ import numpy as np
 from shapely.geometry import Point
 from collections import defaultdict
 from .base import BaseCounter
-from typing import List, Dict, Any, DefaultDict, Optional
+from typing import List, Dict, Any, DefaultDict, Optional, Tuple 
 from shapely.geometry.polygon import Polygon
 
 class Counter(BaseCounter):
@@ -28,7 +28,6 @@ class Counter(BaseCounter):
         self.xlines_info, self.xlines = self._load_xlines()
         self._init_counter()
         self.count_output_path:str = count_output_path
-        self.saved_data = {}
 
     def _load_xlines(self):
         print(self.xlines_cfg_path)
@@ -152,7 +151,7 @@ class Counter(BaseCounter):
 
         return route
 
-    def finish_tracklets(self, current_frame_idx: int) -> Dict[str, str]:
+    def finish_tracklets(self, current_frame_idx: int) -> Optional[Tuple[str, str]]:
         for track_id, track_info in list(self.track_dict.items()):
             if current_frame_idx - track_info["last_update_frame"] > self.buffer_size:
                 self.finished_track_id.append(track_id)
@@ -178,6 +177,5 @@ class Counter(BaseCounter):
                 self.track_dict[track_id]["route"] = route
                 out_id = self.track_dict.pop(track_id)
                 if route:
-                    self.saved_data[str(track_id)] = route
-                    print(route,class_)
-        return self.saved_data
+                    return route,class_
+        return None

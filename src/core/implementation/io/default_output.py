@@ -13,12 +13,12 @@ class DefaultOutputHandler(IOutputHandler):
         self.frame_queue = multiprocessing.Queue(maxsize=3)
         self.config = config
 
-    def handle_result(self, result: Dict[str, Any]) -> None:
+    def handle_result(self, frame_data: Dict[str, Any]) -> None:
         """
-        Callback function that's called after every frame is processed.
+        Function that's called after every frame is processed.
         """
-        object_meta = result.get("object_meta", [])
-        frame = result.get("frame")
+        object_meta = frame_data.get("object_meta", [])
+        frame = frame_data.get("frame")
 
         # update the streamer with the latest frame and bouding boxes
         if frame is not None:
@@ -39,6 +39,7 @@ class DefaultOutputHandler(IOutputHandler):
         port = self.config.get("streaming_port", 7000)
         self._start(host=host, port=port)
         print(f"Frame streaming enabled at http://{host}:{port}")
+    
 
     def _start(self, host="0,0,0,0", port=7000):
         """Start the streaming server in a separate thread"""

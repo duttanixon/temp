@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 import numpy as np
 import signal
 import threading
@@ -14,6 +14,8 @@ from core.implementation.cloud.factories.cloud_factory import CloudConnectorFact
 from core.implementation.cloud.factories.formatter_factory import (
     MetricsFormatterFactory,
 )
+from core.implementation.common.sqlite_manager import DatabaseManager
+from .models import HumanResult, TrafficResult
 
 
 class FlowEyeSolution(ISolution):
@@ -69,6 +71,10 @@ class FlowEyeSolution(ISolution):
         }
         self.count = Counter(self.xlines_cfg_path,self.count_output_path,self.class_names_dict)
 
+        # initialize database
+        basedb_dir = config["sqlite_base_dir"]
+        self.db_manager = DatabaseManager(basedb_dir)
+
 
         # initialize cloud communication
         if "cloud" in config:
@@ -119,8 +125,11 @@ class FlowEyeSolution(ISolution):
 
 
                 self.count.count_by_frame(self.counters["frame_number"],frame_data["object_meta"])
-                self.count.finish_tracklets(self.counters["frame_number"])
+                frame_result = self.count.finish_tracklets(self.counters["frame_number"])
                 self.output_handler.handle_result(frame_data)
+
+                if frame_result:
+                    self._write_to_database(frame_result)
 
                 # Handle cloud communication if enabled
                 if self.cloud_connector and self.metrics_formatter:
@@ -137,6 +146,30 @@ class FlowEyeSolution(ISolution):
                 # Log the error but keep the worker running
                 print(f"Error in processing thread: {str(e)}")
                 
+    def _write_to_database(self, frame_result:Optional[Tuple[str,str]]) -> None:
+        route, class_ = frame_result
+        from_polygon, to_polygon = route.split("->")
+        with self.db_manager.session_scope() as session:
+            if "vehicle" in class_:
+                vehicle_type = class_.split("::")[-1]
+                item = TrafficResult(
+                    from_polygon=from_polygon,
+                    to_polygon=to_polygon,
+                    vehicletype= vehicle_type
+                )
+
+            else:
+                gender, age = class_.split("::")
+                item = HumanResult(
+                    from_polygon=from_polygon,
+                    to_polygon=to_polygon,
+                    gender=gender,
+                    age=age
+                )
+            
+            session.add(item)
+
+
 
     def increment_counters(self, counter_type) -> None:
         try:

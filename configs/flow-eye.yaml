@@ -24,6 +24,7 @@ solution:
     nms_iou_threshold: 0.45
     xlines_cfg_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/configs/xlines_cfg.json
     count_output_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/resources/data/count_result.json
+    sqlite_base_dir: /opt/db
 
     tracking:
         track_fps: 30

@@ -23,7 +23,8 @@ from core.implementation.common.exceptions import (
     SyncError,
     CloudError
 )
-from .models import DatabaseManager, EdgeMetric
+from core.implementation.common.sqlite_manager import DatabaseManager
+from .models import EdgeMetric
 
 logger = get_logger()
 

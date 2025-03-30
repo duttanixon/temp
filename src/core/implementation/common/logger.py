@@ -8,13 +8,14 @@ import logging
 import json
 import os
 import time
-import datetime
+import uuid
+from datetime import datetime
 import threading
 import queue
 from typing import Dict, Any, Optional, Union, List
 import traceback
 import socket
-
+from zoneinfo import ZoneInfo
 # Configure the basic logging system
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +60,7 @@ class StructuredLogger:
         # Create logger
         self.logger = logging.getLogger("edge-analytics")
         self.logger.setLevel(logging.INFO)
+        # self.logger.propagate = False
 
         # Create the primary file handler
         main_log_file = os.path.join(log_dir, "edge-analytics.log")
@@ -87,7 +89,6 @@ class StructuredLogger:
         self.buffer_processor.start()
         
         # Track connected state
-        self.is_connected = False
         self.hostname = socket.gethostname()
         self.device_id = self._get_device_id()
         
@@ -105,13 +106,10 @@ class StructuredLogger:
             mac = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) 
                         for elements in range(0, 2*6, 8)][::-1])
             return mac.replace(':', '-')
-        except:
+        except Exception as e:
+            print(f"fallback- Error - {str(e)}")
             # Fallback to hostname
             return self.hostname
-
-    def set_connected(self, connected: bool) -> None:
-        """Set connection status"""
-        self.is_connected = connected
 
     def _process_buffer(self) -> None:
         """Background thread to process the log buffer"""
@@ -147,7 +145,7 @@ class StructuredLogger:
         component: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Format a log message with context and exception information"""
-        timestamp = datetime.datetime.utcnow().isoformat()
+        timestamp = datetime.now(ZoneInfo("Asia/Tokyo")).isoformat()
         log_entry = {
             "timestamp": timestamp,
             "level": level,

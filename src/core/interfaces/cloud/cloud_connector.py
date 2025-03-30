@@ -16,16 +16,16 @@ class ICloudConnector(ABC):
         pass
 
     @abstractmethod
-    def batch_send(self, metrics_batch: List[Dict[str, Any]]) -> bool:
-        """Send batch of metrics to cloud"""
+    def subscribe(self, topic: str) -> bool:
+        """Subscribe to a topic"""
 
     @abstractmethod
-    def store_local(self, metrics: Dict[str, Any]) -> None:
-        """Store metrics locally when offline"""
+    def unsubscribe(self, topic: str) -> bool:
+        """Unsubscribe from a topic"""
 
     @abstractmethod
-    def sync_stored_data(self) -> None:
-        """Sync stored offline data when connection is restored"""
+    def publish(self,  topic: str, payload: str, qos: int) -> bool:
+        """Publish a message to a topic"""
         pass
 
     @abstractmethod

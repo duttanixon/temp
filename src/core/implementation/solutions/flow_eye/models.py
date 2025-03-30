@@ -44,6 +44,8 @@ class TrafficResult(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "from_polygon": self.from_polygon,
+            "to_polygon": self.to_polygon,
             "vehicletype": self.vehicletype,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "is_synced": self.is_synced

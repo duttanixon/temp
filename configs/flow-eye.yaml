@@ -17,7 +17,7 @@ platform:
 
 
 solution:
-    name: flow-eye
+    name: city-eye
     batch_size: 16
     use_frame: True
     nms_score_threshold: 0.3
@@ -25,6 +25,12 @@ solution:
     xlines_cfg_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/configs/xlines_cfg.json
     count_output_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/resources/data/count_result.json
     sqlite_base_dir: /opt/db
+    sync_batch_size: 100
+    sync_interval_seconds: 10
+    enable_compression: true
+    sync_topic: sdk/test/python
+
+
 
     tracking:
         track_fps: 30
@@ -49,13 +55,13 @@ solution:
         streaming_port: 7000
         
 
-    # # Cloud configuration
-    # cloud:
-    #     provider: aws_iot
-    #     aws_iot_endpoint: "your-endpoint.iot.region.amazonaws.com"
-    #     cert_path: "/path/to/certificate.pem"
-    #     private_key_path: "/path/to/private.key"
-    #     root_ca_path: "/path/to/root-ca.pem"
-    #     device_id: "unique-device-id"
-    #     solution_type: "flow_eye"
-    #     report_interval: 60 
+    # Cloud configuration
+    cloud:
+        provider: aws_iot
+        client_id: basicPubSub
+        endpoint: "a23bd20ty64577-ats.iot.ap-northeast-1.amazonaws.com"
+        certs_dir: "/home/Raspi5_2/ws/nixon/cc-edge-analytics/certificates"
+        cert_path: "raspi-test-device-001.cert.pem"
+        private_key_path: "raspi-test-device-001.private.key"
+        root_ca_path: "root-CA.crt"
+        solution_type: "city-eye"

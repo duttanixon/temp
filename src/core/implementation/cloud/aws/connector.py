@@ -4,716 +4,328 @@ AWS IoT Core connector implementation with robust error handling.
 
 import json
 import time
-import os
+import logging
+import threading
+import traceback
+import uuid
+from typing import Dict, Any, Optional, Callable
 from datetime import datetime
-from typing import Dict, Any, List, Optional
-from sqlalchemy import and_
+import os
+
+# Import AWS IoT SDK v2
 from awscrt import mqtt, io, auth
 from awsiot import mqtt_connection_builder
-import threading
-import queue
-import traceback
 
 from core.interfaces.cloud.cloud_connector import ICloudConnector
-from core.implementation.common.logger import get_logger
-from core.implementation.common.error_handler import handle_errors, retry_on_error
-from core.implementation.common.exceptions import (
-    ConnectionError, 
-    AuthenticationError, 
-    SyncError,
-    CloudError
-)
-from core.implementation.common.sqlite_manager import DatabaseManager
-from .models import EdgeMetric
 
-logger = get_logger()
-
-
-class AWSIoTConnector(ICloudConnector):
-    """AWS IoT Core connector implementation with robust error handling."""
-
+class AWSIoTCoreConnector(ICloudConnector):
+    """
+    AWS IoT Core connector for edge devices using AWS CRT and IoT Device SDK v2
+    """
     def __init__(self):
-        """Initialize the AWS IoT connector."""
-        self.connection = None
-        self.message_queue = queue.Queue(maxsize=1000)
-        self.device_id = None
-        self.solution_type = None
-        self.initialized = False
-        self.connected = False
-        self.last_connect_attempt = 0
-        self.connect_retry_count = 0
-        self.max_connect_retries = 10
-        self.connect_backoff_time = 5  # seconds
-
-        # Get base directory from environment or use default
-        base_dir = os.getenv("EDGE_DATA_DIR", "/var/lib/edge_analytics")
-        self.db_manager = DatabaseManager(base_dir)
-
-        # Initialize processing thread
-        self.processing_thread = None
-        self.running = True
+        self.mqtt_connection = None
+        self.is_connected = False
+        self.client_id = None
+        self.endpoint = None
+        self.ca_path = None
+        self.cert_path = None
+        self.key_path = None
+        self.connected_event = threading.Event()
+        self.subscriptions = {}  # Topic -> callback mapping
         
-        # Track connection state and stats
-        self.last_sync_time = None
-        self.sync_stats = {
-            "messages_sent": 0,
-            "messages_stored": 0,
-            "messages_synced": 0,
-            "last_error": None
-        }
-
-    @handle_errors(component="AWSIoTConnector")
-    def initialize(self, config: Dict[str, Any]) -> None:
+    def initialize(self, config: Dict[str, Any]) -> bool:
         """
-        Initialize AWS IoT connection.
+        Initialize the AWS IoT Core connection
         
         Args:
-            config: Dictionary with connection configuration
+            config: Configuration dictionary with AWS IoT Core settings
             
-        Raises:
-            ConfigurationError: If configuration is incomplete
-            ConnectionError: If connection fails
-            AuthenticationError: If authentication fails
-        """
-        logger.info(
-            "Initializing AWS IoT connector", 
-            context={"device_id": config.get("device_id")},
-            component="AWSIoTConnector"
-        )
-        
-        self.device_id = config["device_id"]
-        self.solution_type = config["solution_type"]
-
-        # Validate required configuration
-        required_fields = ["aws_iot_endpoint", "cert_path", "private_key_path", "root_ca_path"]
-        for field in required_fields:
-            if field not in config or not config[field]:
-                error_msg = f"Missing required configuration: {field}"
-                logger.error(
-                    error_msg, 
-                    component="AWSIoTConnector"
-                )
-                self.store_local({"initialization_error": error_msg})
-                return
-
-        try:
-            # Create IoT Core connection
-            self._create_connection(config)
-            
-            # Start background processing thread
-            self.processing_thread = threading.Thread(target=self._process_queue)
-            self.processing_thread.daemon = True
-            self.processing_thread.start()
-
-            self.initialized = True
-            logger.info(
-                "AWS IoT connector initialized successfully", 
-                component="AWSIoTConnector"
-            )
-        except Exception as e:
-            error_msg = f"Failed to initialize AWS IoT connection: {str(e)}"
-            logger.error(
-                error_msg,
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            # Store error locally
-            self.store_local({"initialization_error": error_msg})
-            
-            # Determine exception type for better error handling
-            if "certificate" in str(e).lower() or "key" in str(e).lower():
-                raise AuthenticationError(error_msg, source="aws_iot")
-            else:
-                raise ConnectionError(error_msg, source="aws_iot")
-
-    def _create_connection(self, config: Dict[str, Any]) -> None:
-        """
-        Create AWS IoT Core connection.
-        
-        Args:
-            config: Dictionary with connection configuration
-            
-        Raises:
-            ConnectionError: If connection cannot be created
-            AuthenticationError: If authentication fails
+        Returns:
+            bool: True if initialization is successful
         """
         try:
-            # Check if certificate and key files exist
-            for file_path in [config["cert_path"], config["private_key_path"], config["root_ca_path"]]:
+            # Extract configuration
+            self.endpoint = config.get("endpoint")
+            self.client_id = config.get("client_id", f"CityEye-{str(uuid.uuid4())[:8]}")
+            
+            # Certificate paths - expand relative paths if needed
+            certs_dir = config.get("certs_dir", "./certs")
+            self.ca_path = os.path.join(certs_dir, config.get("root_ca_path"))
+            self.cert_path = os.path.join(certs_dir,config.get("cert_path"))
+            self.key_path = os.path.join(certs_dir,config.get("private_key_path"))
+            
+            # Validate required configuration
+            if not self.endpoint:
+                print("AWS IoT Core endpoint is required")
+                return False
+                
+            # Check if certificate files exist
+            for file_path, file_desc in [
+                (self.ca_path, "CA certificate"),
+                (self.cert_path, "Device certificate"),
+                (self.key_path, "Device private key")
+            ]:
                 if not os.path.exists(file_path):
-                    raise FileNotFoundError(f"File not found: {file_path}")
+                    print(f"{file_desc} not found at {file_path}")
+                    return False
+
+            # Connect to AWS IoT Core
+            return self._connect()
             
-            # Create MQTT connection
-            self.connection = mqtt_connection_builder.mtls_from_path(
-                endpoint=config["aws_iot_endpoint"],
-                cert_filepath=config["cert_path"],
-                pri_key_filepath=config["private_key_path"],
-                ca_filepath=config["root_ca_path"],
-                client_id=self.device_id,
+        except Exception as e:
+            print(f"Failed to initialize AWS IoT Core connector: {str(e)}")
+            return False
+    
+    def _connect(self) -> bool:
+        """
+        Connect to AWS IoT Core
+        
+        Returns:
+            bool: True if connection is successful
+        """
+        try:
+            # Create a MQTT connection
+            self.mqtt_connection = mqtt_connection_builder.mtls_from_path(
+                endpoint=self.endpoint,
+                cert_filepath=self.cert_path,
+                pri_key_filepath=self.key_path,
+                ca_filepath=self.ca_path,
+                client_id=self.client_id,
                 clean_session=False,
                 keep_alive_secs=30,
+                on_connection_interrupted=self._on_connection_interrupted,
+                on_connection_resumed=self._on_connection_resumed
             )
             
-            self.last_connect_attempt = time.time()
-            self.connect_retry_count = 0
+            print(f"Connecting to AWS IoT Core at {self.endpoint} with client ID {self.client_id}...")
             
-            # Connect to AWS IoT Core
-            self._connect()
+            # Connect with timeout
+            connect_future = self.mqtt_connection.connect()
+            # Wait for connection to complete
+            connect_result = connect_future.result(timeout=10)  
             
-        except FileNotFoundError as e:
-            # Specific error for missing certificate or key files
-            error_msg = f"Authentication file not found: {str(e)}"
-            logger.error(
-                error_msg,
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            raise AuthenticationError(error_msg, source="aws_iot")
+            # Wait for connection to complete
+            try:
+                connect_result = connect_future.result(timeout=10)
+                print(f"Connection result: {connect_result}")
+                
+                if connect_result:
+                    self.is_connected = True
+                    self.connected_event.set()
+                    print(f"Connected to AWS IoT Core as {self.client_id}")
+                    
+                    # Re-subscribe to topics if needed
+                    self._resubscribe()
+                    
+                    return True
+                else:
+                    print("Failed to connect: connection future returned False")
+                    return False
+                    
+            except Exception as connect_error:
+                print(f"Connection error details: {type(connect_error).__name__}: {connect_error}")
+                if hasattr(connect_error, "error_code"):
+                    print(f"Error code: {connect_error.error_code}")
+                if hasattr(connect_error, "exception"):
+                    print(f"Inner exception: {connect_error.exception}")
+                return False
+
             
         except Exception as e:
-            # General connection creation error
-            error_msg = f"Failed to create AWS IoT connection: {str(e)}"
-            logger.error(
-                error_msg,
-                exception=e,
-                component="AWSIoTConnector"
+            print(f"Failed to connect to AWS IoT Core: {str(e)}")
+            self.is_connected = False
+            self.connected_event.clear()
+            return False
+    
+    def _resubscribe(self):
+        """Resubscribe to all topics after reconnection"""
+        for topic, callback in self.subscriptions.items():
+            try:
+                self.subscribe(topic, callback)
+            except Exception as e:
+                lprint(f"Failed to resubscribe to {topic}: {str(e)}")
+    
+    def _on_connection_interrupted(self, connection, error, **kwargs):
+        """Callback when connection is interrupted"""
+        print(f"Connection interrupted: {error}")
+        self.is_connected = False
+        self.connected_event.clear()
+    
+    def _on_connection_resumed(self, connection, return_code, session_present, **kwargs):
+        """Callback when connection is resumed"""
+        print(f"Connection resumed with code: {return_code}, session present: {session_present}")
+        self.is_connected = True
+        self.connected_event.set()
+        
+        # Resubscribe if session is not present
+        if not session_present:
+            self._resubscribe()
+    
+    def publish(self, topic: str, payload: str, qos: int = 1) -> bool:
+        """
+        Publish a message to a topic
+        
+        Args:
+            topic: Topic to publish to
+            payload: Message payload (JSON string)
+            qos: Quality of Service (0, 1)
+            
+        Returns:
+            bool: True if message was published successfully
+        """
+        try:
+            # Ensure we're connected
+            if not self.is_connected:
+                print("Not connected to AWS IoT Core, attempting to reconnect")
+                if not self._connect():
+                    print("Failed to reconnect to AWS IoT Core")
+                    return False
+            
+            # Convert QoS to mqtt.QoS
+            mqtt_qos = mqtt.QoS.AT_MOST_ONCE if qos == 0 else mqtt.QoS.AT_LEAST_ONCE
+            # Publish the message
+            publish_future, packet_id = self.mqtt_connection.publish(
+                topic=topic,
+                payload=payload,
+                qos=mqtt_qos
             )
-            if "certificate" in str(e).lower() or "key" in str(e).lower():
-                raise AuthenticationError(error_msg, source="aws_iot")
+            
+            # Wait for the message to be published
+            publish_result = publish_future.result(timeout=20)
+            
+            # Check result
+            if publish_result:
+                return True
             else:
-                raise ConnectionError(error_msg, source="aws_iot")
-
-    @retry_on_error(max_retries=3)
-    def _connect(self) -> None:
-        """
-        Connect to AWS IoT Core with retry logic.
-        
-        Raises:
-            ConnectionError: If connection fails after retries
-        """
-        logger.info("Connecting to AWS IoT Core", component="AWSIoTConnector")
-        
-        try:
-            # Connect with a timeout
-            connect_future = self.connection.connect()
-            connect_future.result(timeout=10)  # 10 second timeout
-            
-            self.connected = True
-            logger.info(
-                f"Connected to AWS IoT Core as {self.device_id}",
-                component="AWSIoTConnector"
-            )
-            
-            # Subscribe to commands topic
-            self._subscribe_to_commands()
+                print(f"Failed to publish message to {topic}: unknown error")
+                return False
             
         except Exception as e:
-            self.connected = False
-            self.connect_retry_count += 1
-            backoff_time = min(300, self.connect_backoff_time * (2 ** self.connect_retry_count))  # Exponential backoff up to 5 minutes
-            
-            logger.error(
-                f"Failed to connect to AWS IoT Core (attempt {self.connect_retry_count})",
-                exception=e,
-                context={"backoff_time": backoff_time},
-                component="AWSIoTConnector"
-            )
-            
-            # If we've exceeded max retries, raise an exception
-            if self.connect_retry_count >= self.max_connect_retries:
-                raise ConnectionError(
-                    f"Failed to connect to AWS IoT Core after {self.max_connect_retries} attempts",
-                    source="aws_iot",
-                    details={"last_error": str(e)}
-                )
-            
-            # Wait before retrying
-            time.sleep(backoff_time)
-            raise ConnectionError(
-                f"Failed to connect to AWS IoT Core: {str(e)}",
-                source="aws_iot",
-                recoverable=True
-            )
-
-    def _subscribe_to_commands(self) -> None:
+            print(f"Failed to publish message to {topic}: {str(e)}")
+            print(traceback.format_exc())
+            self.is_connected = False
+            self.connected_event.clear()
+            return False
+    
+    def subscribe(self, topic: str, callback: Callable, qos: int = 1) -> bool:
         """
-        Subscribe to device command topic.
+        Subscribe to a topic
         
-        Raises:
-            ConnectionError: If subscription fails
+        Args:
+            topic: Topic to subscribe to
+            callback: Callback function to handle messages
+            qos: Quality of Service (0, 1)
+            
+        Returns:
+            bool: True if subscription was successful
         """
         try:
-            # Define callback for incoming messages
+            # Ensure we're connected
+            if not self.is_connected:
+                print("Not connected to AWS IoT Core, attempting to reconnect")
+                if not self._connect():
+                    print("Failed to reconnect to AWS IoT Core")
+                    return False
+            
+            # Convert QoS to mqtt.QoS
+            mqtt_qos = mqtt.QoS.AT_MOST_ONCE if qos == 0 else mqtt.QoS.AT_LEAST_ONCE
+            
+            # Create a message callback
             def on_message_received(topic, payload, **kwargs):
                 try:
-                    message = json.loads(payload.decode())
-                    logger.info(
-                        f"Command received from AWS IoT Core",
-                        context={"topic": topic, "command": message.get("command")},
-                        component="AWSIoTConnector"
-                    )
-                    # Process command (to be implemented based on specific commands)
-                    self._process_command(message)
+                    payload_str = payload.decode('utf-8')
+                    callback(topic, payload_str)
                 except Exception as e:
-                    logger.error(
-                        "Error processing command",
-                        exception=e,
-                        context={"topic": topic, "payload": payload.decode()},
-                        component="AWSIoTConnector"
-                    )
+                    print(f"Error processing message from {topic}: {str(e)}")
             
-            # Subscribe to commands topic
-            command_topic = f"devices/{self.device_id}/commands"
-            subscribe_future, _ = self.connection.subscribe(
-                topic=command_topic,
-                qos=mqtt.QoS.AT_LEAST_ONCE,
+            # Subscribe to the topic
+            subscribe_future, packet_id = self.mqtt_connection.subscribe(
+                topic=topic,
+                qos=mqtt_qos,
                 callback=on_message_received
             )
             
             # Wait for subscription to complete
-            subscribe_future.result(timeout=5)
-            logger.info(
-                f"Subscribed to commands topic: {command_topic}",
-                component="AWSIoTConnector"
-            )
+            subscribe_result = subscribe_future.result(timeout=5)
+            
+            # Store the subscription
+            self.subscriptions[topic] = callback
+            
+            print(f"Subscribed to {topic} with QoS {subscribe_result['qos']}")
+            return True
             
         except Exception as e:
-            logger.error(
-                "Failed to subscribe to commands topic",
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            # Non-fatal error, continue without subscription
+            print(f"Failed to subscribe to {topic}: {str(e)}")
+            return False
     
-    def _process_command(self, command_message: Dict[str, Any]) -> None:
+    def unsubscribe(self, topic: str) -> bool:
         """
-        Process a command received from AWS IoT Core.
+        Unsubscribe from a topic
         
         Args:
-            command_message: Dictionary containing the command message
+            topic: Topic to unsubscribe from
+            
+        Returns:
+            bool: True if unsubscription was successful
         """
-        command = command_message.get("command")
-        if not command:
-            logger.warning(
-                "Received command message without command field",
-                context={"message": command_message},
-                component="AWSIoTConnector"
-            )
-            return
+        try:
+            # Ensure we're connected
+            if not self.is_connected:
+                # We're not connected, so we're effectively not subscribed
+                if topic in self.subscriptions:
+                    del self.subscriptions[topic]
+                return True
             
-        # Handle different command types
-        if command == "sync_data":
-            logger.info("Received sync_data command", component="AWSIoTConnector")
-            self.sync_stored_data()
+            # Unsubscribe from the topic
+            unsubscribe_future, packet_id = self.mqtt_connection.unsubscribe(topic)
+            unsubscribe_future.result(timeout=5)
             
-        elif command == "restart":
-            logger.info("Received restart command", component="AWSIoTConnector")
-            # Implementation depends on application design
-            # Could send a signal to main application to restart
+            # Remove the subscription
+            if topic in self.subscriptions:
+                del self.subscriptions[topic]
             
-        elif command == "update_config":
-            logger.info(
-                "Received update_config command",
-                context={"config": command_message.get("config")},
-                component="AWSIoTConnector"
-            )
-            # Implementation depends on application design
-            # Could update configuration and apply changes
+            print(f"Unsubscribed from {topic}")
+            return True
             
-        else:
-            logger.warning(
-                f"Unknown command received: {command}",
-                context={"message": command_message},
-                component="AWSIoTConnector"
-            )
-
-    def _process_queue(self) -> None:
-        """
-        Background thread to process message queue and sync stored data.
-        """
-        while self.running:
-            try:
-                # Process up to 10 messages at a time
-                messages = []
-                for _ in range(10):
-                    try:
-                        msg = self.message_queue.get_nowait()
-                        messages.append(msg)
-                        self.message_queue.task_done()  # Mark as done only if retrieved
-                    except queue.Empty:
-                        break
-
-                if messages:
-                    sent = self.batch_send(messages)
-                    if not sent:
-                        # If batch send failed, store messages locally
-                        for message in messages:
-                            self.store_local(message)
-
-                # Sync stored data periodically (every 5 minutes)
-                current_time = time.time()
-                if self.last_sync_time is None or (current_time - self.last_sync_time) >= 300:
-                    self.sync_stored_data()
-                    self.last_sync_time = current_time
-
-                # Check connection periodically
-                if not self.connected and self.connection:
-                    if (current_time - self.last_connect_attempt) >= (self.connect_backoff_time * (2 ** min(self.connect_retry_count, 8))):
-                        self.last_connect_attempt = current_time
-                        try:
-                            self._connect()
-                        except Exception as e:
-                            logger.error(
-                                "Failed to reconnect to AWS IoT Core",
-                                exception=e,
-                                component="AWSIoTConnector"
-                            )
-
-                # Sleep to prevent tight loop
-                time.sleep(10)  # Adjust based on requirements
-            except Exception as e:
-                logger.error(
-                    "Error in message processing",
-                    exception=e,
-                    component="AWSIoTConnector"
-                )
-                time.sleep(30)  # Longer sleep on error to prevent rapid retries
-
-    @handle_errors(component="AWSIoTConnector")
+        except Exception as e:
+            print(f"Failed to unsubscribe from {topic}: {str(e)}")
+            return False
+    
     def send_metrics(self, metrics: Dict[str, Any]) -> bool:
         """
-        Send single metric to cloud.
+        Send metrics to AWS IoT Core
         
         Args:
-            metrics: Dictionary containing metrics to send
+            metrics: Metrics to send
             
         Returns:
-            bool: True if the metrics were queued successfully, False otherwise
-            
-        Raises:
-            CloudError: If metrics could not be queued
-        """
-        if not self.initialized:
-            logger.warning(
-                "AWS IoT connector not initialized",
-                component="AWSIoTConnector"
-            )
-            self.store_local(metrics)
-            return False
-
-        try:
-            # Add metadata
-            message = {
-                "device_id": self.device_id,
-                "solution_type": self.solution_type,
-                "timestamp": datetime.datetime.utcnow().isoformat(),
-                "metrics": metrics,
-            }
-
-            # Try to add to queue, store locally if queue is full
-            try:
-                self.message_queue.put_nowait(message)
-                return True
-            except queue.Full:
-                logger.warning(
-                    "Message queue full, storing metrics locally",
-                    component="AWSIoTConnector"
-                )
-                self.store_local(message)
-                return False
-        except Exception as e:
-            logger.error(
-                "Error sending metrics",
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            self.store_local(metrics)
-            return False
-
-    @handle_errors(component="AWSIoTConnector")
-    def batch_send(self, metrics_batch: List[Dict[str, Any]]) -> bool:
-        """
-        Send batch of metrics to AWS IoT Core.
-        
-        Args:
-            metrics_batch: List of metric dictionaries to send
-            
-        Returns:
-            bool: True if sent successfully, False otherwise
-            
-        Raises:
-            ConnectionError: If not connected to AWS IoT Core
-            CloudError: If send operation fails
-        """
-        if not metrics_batch:
-            return True
-
-        if not self.connected or not self.connection:
-            logger.warning(
-                "Not connected to AWS IoT Core, storing metrics locally",
-                context={"metrics_count": len(metrics_batch)},
-                component="AWSIoTConnector"
-            )
-            return False
-
-        try:
-            # Batch messages into a single payload
-            payload = {
-                "batch_size": len(metrics_batch),
-                "batch_timestamp": datetime.datetime.utcnow().isoformat(),
-                "messages": metrics_batch,
-            }
-
-            # Publish to AWS IoT Core with QoS 1 (at least once delivery)
-            topic = f"devices/{self.device_id}/metrics"
-            publish_future = self.connection.publish(
-                topic=topic, 
-                payload=json.dumps(payload), 
-                qos=mqtt.QoS.AT_LEAST_ONCE
-            )
-            
-            # Wait for message to be published
-            publish_future.result(timeout=5)
-            
-            # Update stats
-            self.sync_stats["messages_sent"] += len(metrics_batch)
-            
-            logger.debug(
-                f"Sent {len(metrics_batch)} metrics to AWS IoT Core",
-                component="AWSIoTConnector"
-            )
-            return True
-            
-        except Exception as e:
-            # If send fails, store messages locally
-            self.connected = False  # Mark as disconnected to trigger reconnect
-            error_msg = f"Error in batch send: {str(e)}"
-            logger.error(
-                error_msg,
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            self.sync_stats["last_error"] = {
-                "timestamp": time.time(),
-                "message": str(e)
-            }
-            
-            return False
-
-    @handle_errors(component="AWSIoTConnector")
-    def store_local(self, metrics: Dict[str, Any]) -> None:
-        """
-        Store metrics in local SQLite database.
-        
-        Args:
-            metrics: Dictionary containing metrics to store
-            
-        Raises:
-            CloudError: If storage fails
+            bool: True if metrics were sent successfully
         """
         try:
-            session = self.db_manager.get_session()
-            try:
-                # Determine metric type
-                metric_type = "unknown"
-                if isinstance(metrics, dict):
-                    if "metrics" in metrics and isinstance(metrics["metrics"], dict):
-                        metric_info = metrics["metrics"]
-                        if "type" in metric_info:
-                            metric_type = metric_info["type"]
-                    elif "type" in metrics:
-                        metric_type = metrics["type"]
-
-                # Create new metric record
-                metric = EdgeMetric(
-                    device_id=self.device_id,
-                    solution_type=self.solution_type,
-                    metric_type=metric_type,
-                    metric_value=metrics,
-                    timestamp=datetime.datetime.utcnow(),
-                )
-                session.add(metric)
-                session.commit()
-                
-                # Update stats
-                self.sync_stats["messages_stored"] += 1
-                
-                logger.debug(
-                    f"Stored metric locally: {metric_type}",
-                    component="AWSIoTConnector"
-                )
-                
-            except Exception as e:
-                session.rollback()
-                logger.error(
-                    "Database error storing metrics locally",
-                    exception=e,
-                    component="AWSIoTConnector"
-                )
-                raise CloudError(
-                    f"Failed to store metrics locally: {str(e)}",
-                    source="aws_iot_local",
-                    recoverable=False
-                )
-            finally:
-                session.close()
+            # Convert metrics to JSON string
+            payload = json.dumps(metrics)
+            
+            # Publish to the metrics topic
+            return self.publish("metrics", payload)
+            
         except Exception as e:
-            logger.error(
-                "Error storing metrics locally",
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            # Fatal error if we can't store locally
-            raise CloudError(
-                f"Failed to store metrics locally: {str(e)}",
-                source="aws_iot_local",
-                recoverable=False
-            )
-
-    @handle_errors(component="AWSIoTConnector")
-    @retry_on_error(max_retries=3)
-    def sync_stored_data(self) -> None:
-        """
-        Sync stored offline data to AWS IoT Core.
-        
-        Raises:
-            ConnectionError: If not connected to AWS IoT Core
-            SyncError: If sync operation fails
-        """
-        if not self.connected or not self.connection:
-            logger.debug(
-                "Not connected to AWS IoT Core, skipping sync",
-                component="AWSIoTConnector"
-            )
-            return
-
-        try:
-            session = self.db_manager.get_session()
-            try:
-                # Get pending metrics (limit to 100 at a time)
-                pending_metrics = (
-                    session.query(EdgeMetric)
-                    .filter(
-                        and_(
-                            EdgeMetric.sync_status == "pending",
-                            EdgeMetric.device_id == self.device_id,
-                        )
-                    )
-                    .limit(100)
-                    .all()
-                )
-
-                if not pending_metrics:
-                    logger.debug(
-                        "No pending metrics to sync",
-                        component="AWSIoTConnector"
-                    )
-                    return
-
-                # Log sync attempt
-                logger.info(
-                    f"Syncing {len(pending_metrics)} stored metrics",
-                    component="AWSIoTConnector"
-                )
-
-                # Convert to list of messages
-                messages = [metric.to_dict() for metric in pending_metrics]
-
-                # Try to send batch
-                if self.batch_send(messages):
-                    # Update sync status
-                    for metric in pending_metrics:
-                        metric.sync_status = "synced"
-                    session.commit()
-                    
-                    # Update stats
-                    self.sync_stats["messages_synced"] += len(pending_metrics)
-                    logger.info(
-                        f"Successfully synced {len(pending_metrics)} stored metrics",
-                        component="AWSIoTConnector"
-                    )
-
-            except Exception as e:
-                session.rollback()
-                logger.error(
-                    "Database error during sync",
-                    exception=e,
-                    component="AWSIoTConnector"
-                )
-                raise SyncError(
-                    f"Failed to sync stored data: {str(e)}",
-                    source="aws_iot",
-                    recoverable=True
-                )
-            finally:
-                session.close()
-        except Exception as e:
-            logger.error(
-                "Error syncing stored data",
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            raise SyncError(
-                f"Failed to sync stored data: {str(e)}",
-                source="aws_iot",
-                recoverable=True
-            )
-
-    def get_status(self) -> Dict[str, Any]:
-        """
-        Get connector status information.
-        
-        Returns:
-            Dictionary with status information
-        """
-        return {
-            "connected": self.connected,
-            "initialized": self.initialized,
-            "device_id": self.device_id,
-            "solution_type": self.solution_type,
-            "queue_size": self.message_queue.qsize(),
-            "last_sync_time": self.last_sync_time,
-            "sync_stats": self.sync_stats,
-            "connect_retry_count": self.connect_retry_count
-        }
-
-    @handle_errors(component="AWSIoTConnector")
+            print(f"Failed to send metrics: {str(e)}")
+            return False
+    
     def cleanup(self) -> None:
         """
-        Cleanup resources.
-        
-        Raises:
-            CloudError: If cleanup fails
+        Clean up resources
         """
-        self.running = False
-        
-        # Wait for processing thread to finish
-        if self.processing_thread:
-            self.processing_thread.join(timeout=5)
-
-        # Disconnect from AWS IoT Core
-        if self.connection and self.connected:
-            try:
-                logger.info("Disconnecting from AWS IoT Core", component="AWSIoTConnector")
-                disconnect_future = self.connection.disconnect()
-                disconnect_future.result(timeout=5)
-                self.connected = False
-            except Exception as e:
-                logger.warning(
-                    "Error disconnecting from AWS IoT Core",
-                    exception=e,
-                    component="AWSIoTConnector"
-                )
-
-        # Clean up database
         try:
-            self.db_manager.cleanup()
-        except Exception as e:
-            logger.error(
-                "Error cleaning up database",
-                exception=e,
-                component="AWSIoTConnector"
-            )
+            # Disconnect from AWS IoT Core
+            if self.mqtt_connection and self.is_connected:
+                print("Disconnecting from AWS IoT Core")
+                disconnect_future = self.mqtt_connection.disconnect()
+                disconnect_future.result(timeout=5)
+                
+            self.is_connected = False
+            self.connected_event.clear()
+            print("AWS IoT Core connector cleaned up")
             
-        self.initialized = False
-        logger.info("AWS IoT connector cleaned up", component="AWSIoTConnector")
+        except Exception as e:
+            print(f"Error during cleanup: {str(e)}")

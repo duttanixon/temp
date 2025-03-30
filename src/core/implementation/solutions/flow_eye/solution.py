@@ -16,6 +16,7 @@ from core.implementation.cloud.factories.formatter_factory import (
 )
 from core.implementation.common.sqlite_manager import DatabaseManager
 from .models import HumanResult, TrafficResult
+from .sync_handler import BatchSyncHandler
 
 
 class FlowEyeSolution(ISolution):
@@ -90,6 +91,15 @@ class FlowEyeSolution(ISolution):
         else:
             self.cloud_connector = None
             self.metrics_formatter = None
+        
+        if self.cloud_connector:
+            self.sync_handler = BatchSyncHandler(
+                self.db_manager,
+                self.cloud_connector,
+                config
+            )
+            self.sync_handler.start()
+
 
         # Initialize the processing queue and thread
         self.frame_queue = Queue(maxsize=100)
@@ -131,11 +141,11 @@ class FlowEyeSolution(ISolution):
                 if frame_result:
                     self._write_to_database(frame_result)
 
-                # Handle cloud communication if enabled
-                if self.cloud_connector and self.metrics_formatter:
-                    metrics = self.metrics_formatter.format_metrics(frame_data)
-                    if metrics:
-                        self.cloud_connector.send_metrics(metrics)
+                # # Handle cloud communication if enabled
+                # if self.cloud_connector and self.metrics_formatter:
+                #     metrics = self.metrics_formatter.format_metrics(frame_data)
+                #     if metrics:
+                #         self.cloud_connector.send_metrics(metrics)
                 
                 # Mark task as done
                 self.frame_queue.task_done()

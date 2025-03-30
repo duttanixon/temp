@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from contextlib import contextmanager
-import datetime
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 
@@ -12,7 +12,7 @@ Base = declarative_base()
 # Helper function to get current time in Tokyo timezone
 
 def tokyo_time():
-    return datetime.datetime.now(ZoneInfo("Asia/Tokyo"))
+    return datetime.now(ZoneInfo("Asia/Tokyo"))
 
 
 class DatabaseManager:

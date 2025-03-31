@@ -45,8 +45,7 @@ def main():
         app.run()
 
     except Exception as e:
-        print(traceback.format_exc())
-        print(f"Error: {e}")
+        pass
 
 
 if __name__ == "__main__":

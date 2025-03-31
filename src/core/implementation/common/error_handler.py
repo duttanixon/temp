@@ -44,19 +44,17 @@ class ErrorMetrics:
                 ts for ts in self.error_timestamps[error_type] if ts > cutoff_time
             ]
 
-    def get_error_rate(self, error_type: str, window_seconds: float = 3600) -> float:
+    def _get_error_rate(self, error_type: str, window_seconds: float = 3600) -> float:
         """Get the error rate for a specific error type in the given time window"""
-        with self._lock:
-            if error_type not in self.error_timestamps:
-                return 0.0
-                
-            current_time = time.time()
-            cutoff_time = current_time - window_seconds
-            recent_errors = [
-                ts for ts in self.error_timestamps[error_type] if ts > cutoff_time
-            ]
-            
-            return len(recent_errors) / window_seconds * 3600 # per hour error rate
+        if error_type not in self.error_timestamps:
+            return 0.0  
+        current_time = time.time()
+        cutoff_time = current_time - window_seconds
+        recent_errors = [
+            ts for ts in self.error_timestamps[error_type] if ts > cutoff_time
+        ]
+        
+        return len(recent_errors) / window_seconds * 3600 # per hour error rate
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get error metrics for monitoring"""
@@ -66,7 +64,7 @@ class ErrorMetrics:
                 "error_types": list(self.error_counts.keys()),
                 "error_counts": dict(self.error_counts),
                 "error_rates": {
-                    error_type: self.get_error_rate(error_type)
+                    error_type: self._get_error_rate(error_type)
                     for error_type in self.error_counts
                 }
             }
@@ -92,7 +90,7 @@ class ErrorHandler:
     def get_instance(cls) -> 'ErrorHandler':
         """Get singleton instance of the error handler"""
         if cls._instance is None:
-            with cls._lock():
+            with cls._lock:
                 if cls._instance is None:
                     cls._instance = cls()
         return cls._instance
@@ -153,7 +151,6 @@ class ErrorHandler:
         context = context or {}
         error_type = error.__class__.__name__
         error_msg = str(error)
-        
         # Log the error
         logger.error(
             f"Error in {component or 'unknown'}: {error_msg}",
@@ -161,7 +158,7 @@ class ErrorHandler:
             exception=error,
             component=component
         )
-        
+
         # Record metrics
         self.metrics.record_error(error_type, error_msg)
         

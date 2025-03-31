@@ -43,10 +43,10 @@ solution:
         video_width: 1280
         video_height: 720
         video_format: "RGB"
-        # type: rpi
-        # file_path: rpi
-        type: file
-        file_path: resources/data/ch01_00000000143000000.mp4
+        type: rpi
+        file_path: rpi
+        # type: file
+        # file_path: resources/data/ch01_00000000143000000.mp4
     output:
         type: default
         streaming: true

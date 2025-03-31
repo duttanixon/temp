@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 # Configure the basic logging system
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(funcName)s : %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
@@ -67,7 +67,7 @@ class StructuredLogger:
         main_handler = logging.FileHandler(main_log_file)
         main_handler.setLevel(logging.INFO)
         formatter = logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+            "%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(funcName)s : %(message)s"
         )
         main_handler.setFormatter(formatter)
         self.logger.addHandler(main_handler)
@@ -190,9 +190,9 @@ class StructuredLogger:
         # Also log to standard logger
         log_method = getattr(self.logger, level.lower())
         if exception:
-            log_method(f"{message} - {exception.__class__.__name__}: {str(exception)}")
+            log_method(f"{message} - {exception.__class__.__name__}: {str(exception)}", exc_info=exception, stacklevel=3)
         else:
-            log_method(message)
+            log_method(message, stacklevel=3)
 
     def debug(
         self, 

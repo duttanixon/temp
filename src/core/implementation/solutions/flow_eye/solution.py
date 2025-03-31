@@ -38,12 +38,8 @@ class FlowEyeSolution(ISolution):
         self.running = True
         self.use_frame = config.get("use_frame", True)
 
-        # Initialize frame streaming server if enabled in config
-        streaming_enabled = config.get("output").get("streaming", False)
-
-        print(streaming_enabled)
-        if streaming_enabled:
-            output_handler.initialize_streaming()
+        # Initialize streaming
+        output_handler.initialize_streaming()
 
         # Store configuration
         self.nms_score_threshold = config["nms_score_threshold"]

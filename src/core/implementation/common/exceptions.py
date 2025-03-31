@@ -73,7 +73,7 @@ class OutputHandlerError(IOError):
     pass
 
 
-class FileNotFoundError(IOError):
+class AppFileNotFoundError(IOError):
     """Raised when a file is not found"""
     pass
 

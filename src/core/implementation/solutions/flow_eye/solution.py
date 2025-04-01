@@ -72,21 +72,21 @@ class FlowEyeSolution(ISolution):
         basedb_dir = config["sqlite_base_dir"]
         self.db_manager = DatabaseManager(basedb_dir)
 
-
         # initialize cloud communication
+        self.cloud_connector = None
+        self.metrics_formatter = None
+
         if "cloud" in config:
             self.cloud_connector = CloudConnectorFactory.create(config["cloud"])
-            self.cloud_connector.initialize(config["cloud"])
+            if self.cloud_connector:
+                self.cloud_connector.initialize(config["cloud"])
 
-            # Create metrics formatter
-            formatter_config = {
-                "solution_type": "flow_eye",
-                "report_interval": config["cloud"].get("report_interval", 60),
-            }
-            self.metrics_formatter = MetricsFormatterFactory.create(formatter_config)
-        else:
-            self.cloud_connector = None
-            self.metrics_formatter = None
+                # Create metrics formatter
+                formatter_config = {
+                    "solution_type": "flow_eye",
+                    "report_interval": config["cloud"].get("report_interval", 60),
+                }
+                self.metrics_formatter = MetricsFormatterFactory.create(formatter_config)
         
         if self.cloud_connector:
             self.sync_handler = BatchSyncHandler(

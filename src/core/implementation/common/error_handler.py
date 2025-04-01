@@ -2,7 +2,7 @@
 Error handler for the edge analytics application.
 Provides centralized error handling, recovery strategies, and metrics tracking.
 """
-
+import time
 import sys
 import traceback
 import threading
@@ -153,8 +153,7 @@ class ErrorHandler:
         error_msg = str(error)
         # Log the error
         logger.error(
-            f"Error in {component or 'unknown'}: {error_msg}",
-            context=context,
+            f"Error in {component or 'unknown'}",
             exception=error,
             component=component
         )
@@ -168,14 +167,12 @@ class ErrorHandler:
                 self.recovery_strategies[error_type](error, context)
                 logger.info(
                     f"Applied recovery strategy for {error_type}",
-                    context=context,
                     component=component
                 )
                 return True
             except Exception as recovery_error:
                 logger.error(
                     f"Recovery strategy failed for {error_type}",
-                    context=context,
                     exception=recovery_error,
                     component=component
                 )
@@ -185,7 +182,6 @@ class ErrorHandler:
             # Log that we're handling a recoverable error
             logger.info(
                 f"Handling recoverable error: {error_type}",
-                context=context,
                 component=component
             )
             return True
@@ -205,15 +201,12 @@ class ErrorHandler:
         if current_retry < max_retries:
             # Calculate backoff time
             backoff_time = min(30, (2 ** current_retry))
-            
             logger.info(
                 f"Retry {current_retry+1}/{max_retries} after {backoff_time}s for {error.__class__.__name__}",
                 context={"backoff_time": backoff_time, "retry": current_retry + 1}
             )
-            
             # Sleep for backoff time
             time.sleep(backoff_time)
-            
             # Update context for next retry
             context["current_retry"] = current_retry + 1
             
@@ -221,10 +214,10 @@ class ErrorHandler:
             retry_func = context.get("retry_function")
             if retry_func and callable(retry_func):
                 retry_func()
+            
         else:
             logger.error(
                 f"Max retries ({max_retries}) exceeded for {error.__class__.__name__}",
-                context=context,
                 exception=error
             )
             raise SystemError("Max retries exceeded", details=context)
@@ -268,8 +261,7 @@ class ErrorHandler:
         except Exception as e:
             logger.error(
                 "Failed to restart pipeline", 
-                exception=e,
-                context=context
+                exception=e
             )
             raise
 

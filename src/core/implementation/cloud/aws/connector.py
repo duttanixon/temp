@@ -1,5 +1,5 @@
 """
-AWS IoT Core connector implementation with robust error handling.
+AWS IoT Core connector implementation.
 """
 
 import json
@@ -17,6 +17,11 @@ from awscrt import mqtt, io, auth
 from awsiot import mqtt_connection_builder
 
 from core.interfaces.cloud.cloud_connector import ICloudConnector
+from core.implementation.common.logger import get_logger
+from core.implementation.common.exceptions import CloudError, ConnectionError, AuthenticationError
+from core.implementation.common.error_handler import handle_errors, retry_on_error
+
+logger = get_logger()
 
 class AWSIoTCoreConnector(ICloudConnector):
     """
@@ -32,7 +37,9 @@ class AWSIoTCoreConnector(ICloudConnector):
         self.key_path = None
         self.connected_event = threading.Event()
         self.subscriptions = {}  # Topic -> callback mapping
-        
+        logger.info("AWSIoTCoreConnector created", component="AWSIoTConnector")
+
+    @handle_errors(component="AWSIoTConnector")    
     def initialize(self, config: Dict[str, Any]) -> bool:
         """
         Initialize the AWS IoT Core connection
@@ -42,6 +49,10 @@ class AWSIoTCoreConnector(ICloudConnector):
             
         Returns:
             bool: True if initialization is successful
+
+        Raises:
+            CloudError: If initialization fails
+            AuthnticationError: If certificate files are invalid or missing
         """
         try:
             # Extract configuration
@@ -56,8 +67,13 @@ class AWSIoTCoreConnector(ICloudConnector):
             
             # Validate required configuration
             if not self.endpoint:
-                print("AWS IoT Core endpoint is required")
-                return False
+                error_msg = "AWS IoT Core endpoint is required"
+                logger.error(error_msg, component="AWSIoTConnector")
+                raise CloudError(
+                    error_msg,
+                    code="MISSING_ENDPOINT",
+                    source="AWSIoTConnector"
+                )
                 
             # Check if certificate files exist
             for file_path, file_desc in [
@@ -66,25 +82,63 @@ class AWSIoTCoreConnector(ICloudConnector):
                 (self.key_path, "Device private key")
             ]:
                 if not os.path.exists(file_path):
-                    print(f"{file_desc} not found at {file_path}")
-                    return False
-
-            # Connect to AWS IoT Core
-            return self._connect()
+                    error_msg = f"{file_desc} not found at {file_path}"
+                    logger.error(error_msg, component="AWSIoTConnector")
+                    raise AuthenticationError(
+                        error_msg,
+                        code="CERT_FILE_NOT_FOUND",
+                        details={"file_path": file_path, "file_type": file_desc},
+                        source="AWSIoTConnector"
+                    )
             
+            # Connect to AWS IoT Core
+            success = self._connect()
+
+            if success:
+                logger.info(
+                    "AWSIoTCoreConnector initialized successfully",
+                    context={"endpoint": self.endpoint, "client_id": self.client_id},
+                    component="AWSIoTConnector"
+                )
+
+            return success
+        
+        except (CloudError, AuthenticationError):
+            raise
         except Exception as e:
-            print(f"Failed to initialize AWS IoT Core connector: {str(e)}")
-            return False
-    
+            error_msg = "Failed to initialize AWS IoT Core connector"
+            logger.err(error_msg,
+            exception=e,
+            component="AWSIoTConnector"
+            )
+            raise CloudError(
+                error_msg,
+                code="INIT_FAILED",
+                details={"error": str(e)},
+                source="AWSIoTConnector"
+            ) from e
+            
+    @handle_errors(component="AWSIoTConnector")
     def _connect(self) -> bool:
         """
         Connect to AWS IoT Core
         
         Returns:
             bool: True if connection is successful
+        
+        Raises:
+            ConnectionError: If connection fails
         """
         try:
             # Create a MQTT connection
+            logger.info(
+                "Connecting to AWS IoT Core",
+                context={
+                    "endpoint": self.endpoint,
+                    "client_id": self.client_id
+                },
+                component="AWSIoTConnector"
+            )
             self.mqtt_connection = mqtt_connection_builder.mtls_from_path(
                 endpoint=self.endpoint,
                 cert_filepath=self.cert_path,
@@ -97,45 +151,60 @@ class AWSIoTCoreConnector(ICloudConnector):
                 on_connection_resumed=self._on_connection_resumed
             )
             
-            print(f"Connecting to AWS IoT Core at {self.endpoint} with client ID {self.client_id}...")
-            
             # Connect with timeout
             connect_future = self.mqtt_connection.connect()
-            # Wait for connection to complete
-            connect_result = connect_future.result(timeout=10)  
             
             # Wait for connection to complete
             try:
                 connect_result = connect_future.result(timeout=10)
-                print(f"Connection result: {connect_result}")
+                logger.debug(f"Connection Result: {connect_result}", component="AWSIoTConnector")
                 
                 if connect_result:
                     self.is_connected = True
                     self.connected_event.set()
-                    print(f"Connected to AWS IoT Core as {self.client_id}")
-                    
+                    logger.info(f"Connected to AWS IoT Core as {self.client_id}", component="AWSIoTConnector")
+                                        
                     # Re-subscribe to topics if needed
                     self._resubscribe()
                     
                     return True
                 else:
-                    print("Failed to connect: connection future returned False")
+                    logger.error("Failed to connect: connection future returned False", component="AWSIoTConnector")
                     return False
                     
             except Exception as connect_error:
-                print(f"Connection error details: {type(connect_error).__name__}: {connect_error}")
-                if hasattr(connect_error, "error_code"):
-                    print(f"Error code: {connect_error.error_code}")
-                if hasattr(connect_error, "exception"):
-                    print(f"Inner exception: {connect_error.exception}")
-                return False
+                error_msg = "Connection timeout or error"
+                logger.error(
+                    error_msg,
+                    exception=connect_error,
+                    context={
+                        "error_type": type(connect_error).__name__,
+                        "error_code": getattr(connect_error, "error_code", None),
+                    },
+                    component="AWSIoTConnector"
+                )
+                raise ConnectionError(
+                    error_msg,
+                    code="CONNECTION_FAILED",
+                    details={"error": str(connect_error)},
+                    source="AWSIoTConnector"
+                ) # from connect_error
 
-            
         except Exception as e:
-            print(f"Failed to connect to AWS IoT Core: {str(e)}")
-            self.is_connected = False
-            self.connected_event.clear()
-            return False
+            if not isinstance(e, ConnectionError):
+                error_msg = "Failed to connect to AWS IoT Core"
+                logger.error(
+                    error_msg,
+                    exception=e,
+                    component="AWSIoTConnector"
+                )
+                raise ConnectionError(
+                    error_msg,
+                    code="CONNECTION_ERROR",
+                    details={"error": str(e)},
+                    source="AWSIoTConnector"
+                ) # from e
+            raise
     
     def _resubscribe(self):
         """Resubscribe to all topics after reconnection"""
@@ -143,17 +212,29 @@ class AWSIoTCoreConnector(ICloudConnector):
             try:
                 self.subscribe(topic, callback)
             except Exception as e:
-                lprint(f"Failed to resubscribe to {topic}: {str(e)}")
+                logger.error(
+                    f"Failed to resubscribe to {topic}",
+                    exception=e,
+                    component="AWSIoTConnector"
+                )
     
     def _on_connection_interrupted(self, connection, error, **kwargs):
         """Callback when connection is interrupted"""
-        print(f"Connection interrupted: {error}")
+        logger.warning(
+            "Connection interrupted",
+            context={"error": str(error)},
+            component="AWSIoTConnector"
+        )
         self.is_connected = False
         self.connected_event.clear()
     
     def _on_connection_resumed(self, connection, return_code, session_present, **kwargs):
         """Callback when connection is resumed"""
-        print(f"Connection resumed with code: {return_code}, session present: {session_present}")
+        logger.info(
+            "Connection resumed",
+            context={"return_code": return_code, "session_present": session_present},
+            component="AWSIoTConnector"
+        )
         self.is_connected = True
         self.connected_event.set()
         
@@ -161,6 +242,7 @@ class AWSIoTCoreConnector(ICloudConnector):
         if not session_present:
             self._resubscribe()
     
+    @handle_errors(component="AWSIoTConnector")
     def publish(self, topic: str, payload: str, qos: int = 1) -> bool:
         """
         Publish a message to a topic
@@ -172,18 +254,30 @@ class AWSIoTCoreConnector(ICloudConnector):
             
         Returns:
             bool: True if message was published successfully
+        Raises:
+            CloudError: If publishing fails
         """
         try:
             # Ensure we're connected
             if not self.is_connected:
-                print("Not connected to AWS IoT Core, attempting to reconnect")
+                logger.warning(
+                    "Not Connected to AWS IoT Core, attempting to reconnect",
+                    component="AWSIoTConnector"
+                )
                 if not self._connect():
-                    print("Failed to reconnect to AWS IoT Core")
+                    logger.error("Failed to reconnect to AWS IoT Core", component="AWSIoTConnector")
                     return False
             
             # Convert QoS to mqtt.QoS
             mqtt_qos = mqtt.QoS.AT_MOST_ONCE if qos == 0 else mqtt.QoS.AT_LEAST_ONCE
+            
             # Publish the message
+            logger.debug(
+                f"Publishing to topic {topic}",
+                context={"qos": qos},
+                component="AWSIoTConnector"
+            )
+            
             publish_future, packet_id = self.mqtt_connection.publish(
                 topic=topic,
                 payload=payload,
@@ -195,18 +289,30 @@ class AWSIoTCoreConnector(ICloudConnector):
             
             # Check result
             if publish_result:
+                logger.debug(f"Successfully published to {topic}", component="AWSIoTConnector")
                 return True
             else:
-                print(f"Failed to publish message to {topic}: unknown error")
+                logger.error(f"Failed to publish message to {topic}: unknown error", component="AWSIoTConnector")
                 return False
             
         except Exception as e:
-            print(f"Failed to publish message to {topic}: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(
+                f"Failed to publish message to {topic}",
+                exception=e,
+                component="AWSIoTConnector"
+            )
             self.is_connected = False
             self.connected_event.clear()
-            return False
+
+            raise CloudError(
+                f"Failed to publish message to {topic}",
+                code="PUBLISH_FAILED",
+                details={"topic": topic, "error": str(e)},
+                source="AWSIoTConnector",
+                recoverable=False
+            ) from e
     
+    @handle_errors(component="AWSIoTConnector")
     def subscribe(self, topic: str, callback: Callable, qos: int = 1) -> bool:
         """
         Subscribe to a topic
@@ -218,13 +324,19 @@ class AWSIoTCoreConnector(ICloudConnector):
             
         Returns:
             bool: True if subscription was successful
+        
+        Raises:
+            CloudError: If subscription fails
         """
         try:
             # Ensure we're connected
             if not self.is_connected:
-                print("Not connected to AWS IoT Core, attempting to reconnect")
+                logger.warning(
+                    "Not connected to AWS IoT Core, attempting to reconnect",
+                    component="AWSIoTConnector"
+                )
                 if not self._connect():
-                    print("Failed to reconnect to AWS IoT Core")
+                    logger.error("Failed to reconnect to AWS IoT Core", component="AWSIoTConnector")
                     return False
             
             # Convert QoS to mqtt.QoS
@@ -236,9 +348,15 @@ class AWSIoTCoreConnector(ICloudConnector):
                     payload_str = payload.decode('utf-8')
                     callback(topic, payload_str)
                 except Exception as e:
-                    print(f"Error processing message from {topic}: {str(e)}")
+                    logger.error(
+                        f"Error processing message from {topic}",
+                        exception=e,
+                        component="AWSIoTConnector"
+                    )
             
             # Subscribe to the topic
+            logger.debug(f"Subscribing to topic {topic}", component="AWSIoTConnector")
+
             subscribe_future, packet_id = self.mqtt_connection.subscribe(
                 topic=topic,
                 qos=mqtt_qos,
@@ -251,13 +369,28 @@ class AWSIoTCoreConnector(ICloudConnector):
             # Store the subscription
             self.subscriptions[topic] = callback
             
-            print(f"Subscribed to {topic} with QoS {subscribe_result['qos']}")
+            logger.info(
+                f"Subsribed to {topic}",
+                context={"qos": subscribe_result['qos']},
+                component="AWSIoTConnector"
+            )
             return True
             
         except Exception as e:
-            print(f"Failed to subscribe to {topic}: {str(e)}")
-            return False
+            logger.error(
+                f"Failed to subscribe to {topic}",
+                exception=e,
+                component="AWSIoTConnector"
+            )
+            raise CloudError(
+                f"Failed to subscribe to {topic}",
+                code="SUBSCRIBE_FAILED",
+                details={"topic": topic, "error": str(e)},
+                source="AWSIoTConnector",
+                recoverable=False
+            ) from e
     
+    @handle_errors(component="AWSIoTConnector")
     def unsubscribe(self, topic: str) -> bool:
         """
         Unsubscribe from a topic
@@ -277,6 +410,7 @@ class AWSIoTCoreConnector(ICloudConnector):
                 return True
             
             # Unsubscribe from the topic
+            logger.debug(f"Unsubscribing from topic {topic}", component="AWSIoTConnector")
             unsubscribe_future, packet_id = self.mqtt_connection.unsubscribe(topic)
             unsubscribe_future.result(timeout=5)
             
@@ -284,13 +418,24 @@ class AWSIoTCoreConnector(ICloudConnector):
             if topic in self.subscriptions:
                 del self.subscriptions[topic]
             
-            print(f"Unsubscribed from {topic}")
+            logger.info(f"Unsubscribed from {topic}", component="AWSIoTConnector")
             return True
             
         except Exception as e:
-            print(f"Failed to unsubscribe from {topic}: {str(e)}")
-            return False
-    
+            logger.error(
+                f"Failed to unsubscribe from {topic}",
+                exception=e,
+                component="AWSIoTConnector"
+            )
+            raise CloudError(
+                f"Failed to unsubscribe from {topic}",
+                code="UNSUBSCRIBE_FAILED",
+                details={"topic": topic, "error": str(e)},
+                source="AWSIoTConnector",
+                recoverable=False
+            ) from e
+
+    @handle_errors(component="AWSIoTConnector")    
     def send_metrics(self, metrics: Dict[str, Any]) -> bool:
         """
         Send metrics to AWS IoT Core
@@ -303,14 +448,29 @@ class AWSIoTCoreConnector(ICloudConnector):
         """
         try:
             # Convert metrics to JSON string
+            logger.debug(
+                "Sending metrics to AWS IoT Core",
+                context={"metrics_keys": list(metrics.keys())},
+                component="AWSIoTConnector"
+            )
             payload = json.dumps(metrics)
             
             # Publish to the metrics topic
             return self.publish("metrics", payload)
             
         except Exception as e:
-            print(f"Failed to send metrics: {str(e)}")
-            return False
+            logger.error(
+                "Failed to send metrics",
+                exception=e,
+                component="AWSIoTConnector"
+            )
+            raise CloudError(
+                "Failed to send metrics",
+                code="METRICS_SEND_FAILED",
+                details={"error": str(e)},
+                source="AWSIoTConnector",
+                recoverable=False
+            ) from e
     
     def cleanup(self) -> None:
         """
@@ -319,13 +479,17 @@ class AWSIoTCoreConnector(ICloudConnector):
         try:
             # Disconnect from AWS IoT Core
             if self.mqtt_connection and self.is_connected:
-                print("Disconnecting from AWS IoT Core")
+                logger.info("Disconnecting from AWS IoT Core", component="AWSIoTConnector")
                 disconnect_future = self.mqtt_connection.disconnect()
                 disconnect_future.result(timeout=5)
                 
             self.is_connected = False
             self.connected_event.clear()
-            print("AWS IoT Core connector cleaned up")
+            logger.info("AWS IoT Core connector cleaned up", component="AWSIoTConnector")
             
         except Exception as e:
-            print(f"Error during cleanup: {str(e)}")
+            logger.error(
+                "Error during cleanup",
+                exception=e,
+                component="AWSIoTConnector"
+            )

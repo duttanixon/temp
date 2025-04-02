@@ -11,6 +11,9 @@ class HumanResult(Base):
     age = Column(Integer, nullable=False)
     timestamp = Column(DateTime(timezone=True), default=tokyo_time)
     is_synced = Column(Boolean, default=False)
+    is_processing =  Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=tokyo_time)
+    last_updated = Column(DateTime(timezone=True), default=tokyo_time, onupdate=tokyo_time)
 
 
     def __repr__(self):
@@ -24,7 +27,8 @@ class HumanResult(Base):
             "gender": self.gender,
             "age": self.age,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "is_synced": self.is_synced
+            "is_synced": self.is_synced,
+            "is_processing": self.is_processing
         }
 
 
@@ -37,6 +41,9 @@ class TrafficResult(Base):
     vehicletype = Column(String, nullable=False)
     timestamp = Column(DateTime(timezone=True), default=tokyo_time)
     is_synced = Column(Boolean, default=False)
+    is_processing = Column(Boolean, default=False)
+    last_updated = Column(DateTime(timezone=True), default=tokyo_time, onupdate=tokyo_time)
+    created_at = Column(DateTime(timezone=True), default=tokyo_time)
     
     def __repr__(self):
         return f"<TrafficResult(id={self.id}, vehicletype={self.vehicletype})>"
@@ -48,5 +55,6 @@ class TrafficResult(Base):
             "to_polygon": self.to_polygon,
             "vehicletype": self.vehicletype,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "is_synced": self.is_synced
+            "is_synced": self.is_synced,
+            "is_processing": self.is_processing
         }

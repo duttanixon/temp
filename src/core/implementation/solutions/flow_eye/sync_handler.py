@@ -6,18 +6,32 @@ import random
 import traceback
 import threading
 from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from core.implementation.common.sqlite_manager import DatabaseManager
 from core.interfaces.cloud.cloud_connector import ICloudConnector
+from core.implementation.common.logger import get_logger
+from core.implementation.common.exceptions import SyncError, DatabaseError, CloudError
+from core.implementation.common.error_handler import handle_errors
+
 from .models import HumanResult, TrafficResult
 
 
+logger = get_logger()
+
+
 class BatchSyncHandler:
+    """Handler for batch sychonization of data to the cloud"""
+
     def __init__(self, db_manager: DatabaseManager, cloud_connector:ICloudConnector, config: Dict[str, Any]):
         """
         Initialize the batch synchonization handler
+
+        Args:
+            db_manager: Database manager instance
+            cloud_connector: Cloud connector instance
+            config: Synchonization configuration
         """
         self.db_manager = db_manager
         self.cloud_connector = cloud_connector
@@ -41,22 +55,36 @@ class BatchSyncHandler:
     def start(self):
         """Start the sync manager background thread"""
         if self.running:
-            print("Sync Handler is already running")
+            logger.info("Sync Handler is already running", component="BatchSyncHandler")
             return
         
         self.running = True
         self.sync_thread = threading.Thread(target=self._sync_worker)
         self.sync_thread.daemon = True
         self.sync_thread.start()
-        print(f"BatchHandler started with {self.sync_batch_size} batch size and {self.sync_interval}s interval")
+        logger.info(
+            "BatchSyncHandler started",
+            context={
+                "device_id": self.device_id,
+                "sync_batch_size": self.sync_batch_size,
+                "sync_interval": self.sync_interval
+            },
+            component="BatchSyncHandler"
+        )
+
 
     def stop(self):
         """Stop the sync handler thread"""
+        logger.info("Stopping BatchSyncHandler", component="BatchSyncHandler")
         self.running = False
-
+        if self.sync_thread and self.sync_thread.is_alive():
+            self.sync_thread.join(timeout=5)
+        logger.info("BatchSyncHandler stopped", component="BatchSyncHandler")
     
     def _sync_worker(self):
         """Background worker that periodically synchonizes data"""
+        logger.info("Sync worker thread started", component="BatchSyncHandler")
+
         while self.running:
             try:
                 # Check if it's time to sync
@@ -67,90 +95,163 @@ class BatchSyncHandler:
                     # Process all unsynced data in batches
                     self._process_all_unsynced_data()
                     self.last_sync_time = now
+                    self.cleanup_stale_processing()
+
 
                 # sleep a bit to avoiud high cpu usage                
                 time.sleep(2)
             
             except Exception as e:
-                print(f"Error in sync worker: {str(e)}")
+                logger.error(
+                    "Error in sync worker",
+                    exception=e,
+                    component="BatchSyncHandler"
+                )
                 time.sleep(5)
     
-
+    @handle_errors(component="BatchSyncHandler")
     def _process_all_unsynced_data(self):
-        """Process all unsynced data in batches"""
+        """Process all unsynced data in batches
+        Raises:        
+            SyncError: If synchronization fails        
+        """
         try:
             # First, count total unsynced records
             with self.db_manager.session_scope() as session:
-                total_human = session.query(HumanResult).filter_by(is_synced=False).count()
-                total_traffic = session.query(TrafficResult).filter_by(is_synced=False).count()
-            
+                try:
+                    total_human = session.query(HumanResult).filter_by(is_synced=False, is_processing=False).count()
+                    total_traffic = session.query(TrafficResult).filter_by(is_synced=False, is_processing=False).count()
+                except Exception as e:
+                    logger.error("Error occured during database operation", exception=e, component="BatchSyncHandler")
+                    session.rollback()
+                    return
+
             if total_human == 0 and total_traffic == 0:
-                print("No records to sync")
+                logger.info("No records to sync", component="BatchSyncHandler")
                 return
             
-            # Calculate number of batches needed
-            human_batches = (total_human + self.sync_batch_size -1) // self.sync_batch_size if total_human > 0 else 0
-            traffic_batches = (total_traffic + self.sync_batch_size -1) // self.sync_batch_size if total_traffic > 0 else 0
-            total_batches = max(human_batches, traffic_batches)
+            # Process records 
 
-            print(f"Starting sync of {total_human} human records and {total_traffic} traffic records in {total_batches} batches")
+            batch_num = 0
+            total_processed = 0
 
-            # process each batch
-            for batch_num in range(total_batches):
+            while True:
                 if not self.running:
-                    print("Sync interrupted - shutting down")
+                    logger.info("Sync interrupted - shutting down", component="BatchSyncHandler")
                     break
                 
-                # Calculate offsets for this batch
-                offset = batch_num * self.sync_batch_size
+                # Fetch the next batch of unsynced records
+                human_records, traffic_records = self._fetch_batch()
+  
+                # If no records were found, we're done
+                total_records = len(human_records) + len(traffic_records)
+                if total_records == 0:
+                    break
 
-                # Process batch
-                self._sync_batch(offset, batch_num + 1, total_batches)
+                # Process this batch
+                batch_num += 1
+                total_processed += total_records
+
+                self._sync_batch(human_records, traffic_records, batch_num)
 
                 # Add a small delay between batches
-                if batch_num < total_batches - 1:
-                    time.sleep(0.1)
-            
-            print(f"Sync cycle completed: processed {total_batches} batches")
+                time.sleep(0.1)
+
+            logger.info(
+                "Sync cycle completed",
+                context={
+                    "batches_processed": batch_num,
+                    "records_processed": total_processed
+                },
+                component="BatchSyncHandler"
+            )
 
         except Exception as e:
-            print(f"Error processing unsynced data: {str(e)}")
+            error_msg = "Error processing unsynced data"
+            logger.error(
+                error_msg,
+                exception=e,
+                component="BatchSyncHandler"
+            )
+            raise SyncError(
+                error_msg,
+                code="SYNC_PROCESS_FAILED",
+                details={"error": str(e)},
+                source="BatchSyncHandler"
+            ) from e
 
+ 
+    def _fetch_batch(self) -> Tuple[List[Dict], List[Dict]]:
+        """Fetch a batch of unsynced records that are not currently being processed
+        
+        Returns:
+            Tuple[List[Dict], List[Dict]]: Human and traffic records with their IDs
 
-    def _sync_batch(self, offset: int, current_batch: int, total_batches: int):
-        """Fetch and sync a batch of unsynched data"""
-        try:
-            human_records = []
-            traffic_records = []
+        Raises:
+            DatabaseError: If a database operation fails
+        """
 
-            with self.db_manager.session_scope() as session:
-                # Get unsynced human results with offset
-                human_query = session.query(HumanResult).filter_by(is_synced=False).order_by(
-                    HumanResult.timestamp).offset(offset).limit(self.sync_batch_size)
+        human_records = []
+        traffic_records = []
+        
+        with self.db_manager.session_scope() as session:
+            # Get unsynced human results that aren't being processed
+            try:
+                cutoff_time = datetime.now(ZoneInfo("Asia/Tokyo")) - timedelta(minutes=2)
+                human_query = session.query(HumanResult).filter(
+                    HumanResult.is_synced == False,
+                    HumanResult.is_processing == False,
+                    HumanResult.created_at < cutoff_time
+                ).order_by(HumanResult.timestamp).limit(self.sync_batch_size)
+
+                traffic_query = session.query(TrafficResult).filter(
+                    TrafficResult.is_synced == False,
+                    TrafficResult.is_processing == False,
+                    TrafficResult.created_at < cutoff_time
+                ).order_by(TrafficResult.timestamp).limit(self.sync_batch_size)
+
+                # Mark these records as processing and collect them
                 for record in human_query:
                     human_records.append(record.to_dict())
-
-                # Get unsynced traffic results with offset
-                traffic_query = session.query(TrafficResult).filter_by(is_synced=False).order_by(
-                    TrafficResult.timestamp).offset(offset).limit(self.sync_batch_size)
+                    record.is_processing = True
+                
+                # Mark these records as processing and collect them
                 for record in traffic_query:
                     traffic_records.append(record.to_dict())
-            
+                    record.is_processing = True
+
+                return human_records, traffic_records
+            except Exception as e:
+                logger.error(
+                    "Database error in  fetching batch of unsynced records",
+                    exception=e,
+                    component="BatchSyncHandler"
+                )
+                session.rollback()
+                return [], []                     
+
+    def _sync_batch(self, human_records: List[Dict], traffic_records: List[Dict], batch_num: int) -> None:
+        """sync a batch of unsynched data
+        
+        Args:
+            human_records: List of human result records
+            traffic_records: List of traffic result records
+            batch_num: Current batch number
+
+        """
+        try:
             total_records = len(human_records) + len(traffic_records)
             if total_records == 0:
-                print(f"No records to sync in batch {current_batch}/{total_batches}")
+                logger.debug(f"No records to sync in batch {batch_num}", component="BatchSyncHandler")
                 return
 
             # Prepare the payload
-            batch_id = f"{self.device_id}-{int(time.time())}-{current_batch}"
+            batch_id = f"{self.device_id}-{int(time.time())}-{batch_num}"
             payload = {
                 "device_id": self.device_id,
                 "batch_id": batch_id,
                 "timestamp": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat(),
-                "batch_info": {
-                    "current": current_batch,
-                    "total": total_batches
-                },
+                "batch_num": batch_num,
                 "record_count": total_records,
                 "human_data": human_records,
                 "traffic_data": traffic_records
@@ -163,11 +264,25 @@ class BatchSyncHandler:
             self._send_batch(batch_id, payload)
         
         except Exception as e:
-            print(f"Error syncing batch: {str(e)}")
+            error_msg = f"Error preparing sync batch {batch_num}"
+            logger.error(
+                error_msg,
+                exception=e,
+                context={"batch_num": batch_num, "record_count": total_records},
+                component="BatchSyncHandler"
+            )
+            if human_records or traffic_records:
+                self._reset_processing_flags(human_records, traffic_records)
 
 
-    def _send_batch(self, batch_id: str, payload: Dict[str, Any], is_retry:bool = False):
-        """Send a batch of data to AWS IoT Core"""
+    def _send_batch(self, batch_id: str, payload: Dict[str, Any], is_retry:bool = False) -> None:
+        """Send a batch of data to AWS IoT Core and schedule retry upon failure
+        Args:
+            batch_id: Unique identifier for this batch
+            payload: Data payload to send
+            is_retry: Whether this is a retry attempt
+        
+        """
         try:
             # Compress if enabled
             if self.compression_enabled:
@@ -185,18 +300,34 @@ class BatchSyncHandler:
                 }
             
             if hasattr(self.cloud_connector, 'connected_event') and not self.cloud_connector.connected_event.wait(timeout=5):
-                print(f"Not connected to AWS IoT Core, scheduling retry for batch {batch_id}")
+                logger.warning(
+                    "Cloud connection not available, scheduling retry",
+                    context={"batch_id": batch_id},
+                    component="BatchSyncHandler"
+                )
                 self._schedule_retry(batch_id, payload)
                 return 
 
-            # Send to IoT Core
-            success = self.cloud_connector.publish(self.sync_topic, json.dumps(message))
+            try:
+                # Send to IoT Core
+                success = self.cloud_connector.publish(self.sync_topic, json.dumps(message))
+            except Exception as e:
+                logger.error(
+                    "Error publishing to cloud",
+                    exception=e,
+                    context={"batch_id": batch_id, "topic": self.sync_topic},
+                    component="BatchSyncHandler"
+                )               
 
             if success:
-                batch_info = payload.get("batch_info", {})
-                current = batch_info.get("current", "?")
-                total = batch_info.get("total", "?")
-                print(f"Successfully sent batch {current}/{total} (ID: {batch_id}) with {payload['record_count']} records")
+                logger.info(
+                    "Successfully sent batch to cloud",
+                    context={
+                        "batch_id": batch_id,
+                        "record_count": payload['record_count']
+                    },
+                    component="BatchSyncHandler"
+                )
 
                 # Mark records as synced
                 self._mark_records_synced(payload)
@@ -204,39 +335,130 @@ class BatchSyncHandler:
                 if batch_id in self.retry_count:
                     del self.retry_count[batch_id]
             else:
-                print(f"Failed to send batch {batch_id}")
+                logger.warning(
+                    "Cloud publish returned false",
+                    context={"batch_id": batch_id},
+                    component="BatchSyncHandler"
+                )
                 self._schedule_retry(batch_id, payload)
         
         except Exception as e:
-            print(f"Error sending batch {batch_id}: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(
+                "Unexpected error sending batch",
+                exception=e,
+                context={"batch_id": batch_id, "is_retry": is_retry},
+                component="BatchSyncHandler"
+            )
             self._schedule_retry(batch_id, payload)
 
     def _mark_records_synced(self, payload: Dict[str, Any]):
-        """Mark records as synched in the database"""
-        try:
-            with self.db_manager.session_scope() as session:
+        """Mark records as synced in the database
+        
+        Args:
+            payload: The payload containing the records to mark as synced
+        """
+        with self.db_manager.session_scope() as session:
+            try:
                 # Mark human records as synced
-                for record in payload["human_data"]:
-                    session.query(HumanResult).filter_by(id=record["id"]).update({"is_synced": True})
-                
+                human_ids = [record["id"] for record in payload["human_data"]]
+                if human_ids:
+                    human_updated = session.query(HumanResult).filter(
+                        HumanResult.id.in_(human_ids)
+                    ).update({
+                        "is_synced": True,
+                        "is_processing": False
+                    }, synchronize_session=False)
+
+
                 # Mark traffic records as synced
-                for record in payload["traffic_data"]:
-                    session.query(TrafficResult).filter_by(id=record["id"]).update({"is_synced": True})
+                traffic_ids = [record["id"] for record in payload["traffic_data"]]
+                if traffic_ids:
+                    traffic_updated = session.query(TrafficResult).filter(
+                        TrafficResult.id.in_(traffic_ids)
+                    ).update({
+                        "is_synced": True,
+                        "is_processing": False
+                    }, synchronize_session=False)
                 
                 # Commits happens automatically due to session_scope
-        except Exception as e:
-            print(f"Error marking records as synced: {str(e)}")
+            except Exception as e:
+                logger.error(
+                    "Database error while marking records as synced",
+                    exception=e,
+                    context={"error": str(e)},
+                    component="BatchSyncHandler"
+                )      
+                session.rollback()
+                human_records = payload.get("human_data", [])
+                traffic_records = payload.get("traffic_data", [])
+                self._reset_processing_flags(human_records, traffic_records)
+
+
+    def _reset_processing_flags(self, human_records: List[Dict], traffic_records: List[Dict]):
+        """Reset processing flags for records in case of errors
+        
+        Args:
+            human_records: List of human result records
+            traffic_records: List of traffic result records
+        """
+        with self.db_manager.session_scope() as session:
+            try:
+                # Reset processing flag for human records
+                human_ids = [record["id"] for record in human_records]
+                if human_ids:
+                    human_updated = session.query(HumanResult).filter(
+                        HumanResult.id.in_(human_ids)
+                    ).update({
+                        "is_processing": False
+                    }, synchronize_session=False)
+
+                # Mark traffic records as synced
+                traffic_ids = [record["id"] for record in traffic_records]
+                if traffic_ids:
+                    traffic_updated = session.query(TrafficResult).filter(
+                        TrafficResult.id.in_(traffic_ids)
+                    ).update({
+                        "is_processing": False
+                    }, synchronize_session=False)
+
+                # Commits happens automatically due to session_scope
+            except Exception as e:
+                logger.error(
+                    "Error resetting processing flags",
+                    exception=e,
+                    component="BatchSyncHandler"
+                )
+                session.rollback()
+
 
 
     def _schedule_retry(self, batch_id: str, payload: Dict[str, Any]):
-        """Schedule a retry with exponential backoff"""
+        """Schedule a retry with exponential backoff
+        
+        Args:
+            batch_id: The batch ID to retry
+            payload: The payload to send
+        """
         if batch_id not in self.retry_count:
             self.retry_count[batch_id] = 0
 
         retry_count = self.retry_count[batch_id]
         if retry_count >= self.max_retries:
-            print(f"Exceeded max retries ({self.max_retries}) for batch {batch_id}")
+            logger.warning(
+                "Exceeded max retries for batch",
+                context={
+                    "batch_id": batch_id,
+                    "max_retries": self.max_retries
+                },
+                component="BatchSyncHandler"
+            )
+            # Reset processing flags since we've given up on this batch
+            human_records = payload.get("human_data", [])
+            traffic_records = payload.get("traffic_data", [])
+            self._reset_processing_flags(human_records, traffic_records)
+            # Remove from retry tracking
+            if batch_id in self.retry_count:
+                del self.retry_count[batch_id]
             return
         
         # Calculate backoff time with exponential backoff and some jitter to prevent thundering herd
@@ -244,8 +466,16 @@ class BatchSyncHandler:
         jitter = backoff_seconds * 0.2 * (1 - 2 * random.random())
         backoff_seconds = max(1, backoff_seconds + jitter)
 
-        print(f"Scheduling retry {retry_count + 1}/{self.max_retries} for batch {batch_id} in {backoff_seconds:.1f}s")
-
+        logger.info(
+            "Scheduling retry for batch",
+            context={
+                "batch_id": batch_id,
+                "retry": retry_count + 1,
+                "max_retries": self.max_retries,
+                "backoff_seconds": round(backoff_seconds, 1)
+            },
+            component="BatchSyncHandler"
+        )
         # Increment retry count
         self.retry_count[batch_id] += 1
 
@@ -255,11 +485,48 @@ class BatchSyncHandler:
         timer.daemon = True
         timer.start()
 
-
-    def force_sync(self):
-        """Force an immediate synchronization"""
-        print("Force sync requested")
-        self.last_sync_time = datetime.min  # Set to past time to trigger immediate sync
-
-
+    @handle_errors(component="BatchSyncHandler")
+    def cleanup_stale_processing(self, max_age_minutes: int = 60):
+        """Reset processing flag for records that have been stuck in processing state
+        
+        Args:
+            max_age_minutes: Maximum time (in minutes) a record can be in processing state
+        """ 
+        with self.db_manager.session_scope() as session:
+            try:
+                # Calculate the cutoff time
+                cutoff_time = datetime.now(ZoneInfo("Asia/Tokyo")) - timedelta(minutes=max_age_minutes)
+                # Reset human records
+                human_count = session.query(HumanResult).filter(
+                    HumanResult.is_processing == True,
+                    HumanResult.is_synced == False,
+                    HumanResult.last_updated < cutoff_time
+                ).update({"is_processing": False})
+                
+                # Reset traffic records
+                traffic_count = session.query(TrafficResult).filter(
+                    TrafficResult.is_processing == True,
+                    TrafficResult.is_synced == False,
+                    TrafficResult.last_updated < cutoff_time
+                ).update({"is_processing": False})
+                
+                total_reset = human_count + traffic_count
+                if total_reset > 0:
+                    logger.info(
+                        f"Reset processing flag for stale records",
+                        context={
+                            "human_records": human_count,
+                            "traffic_records": traffic_count,
+                            "max_age_minutes": max_age_minutes
+                        },
+                        component="BatchSyncHandler"
+                    )
+        
+            except Exception as e:
+                logger.error(
+                    "Error cleaning up stale processing records",
+                    exception=e,
+                    component="BatchSyncHandler"
+                )
+                session.rollback()
 

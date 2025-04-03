@@ -17,7 +17,7 @@ from .models import HumanResult, TrafficResult
 from .sync_handler import BatchSyncHandler
 
 
-class FlowEyeSolution(ISolution):
+class CityEyeSolution(ISolution):
     def __init__(
         self,
         config: Dict[str, Any],
@@ -80,7 +80,7 @@ class FlowEyeSolution(ISolution):
 
                 # Create metrics formatter
                 formatter_config = {
-                    "solution_type": "flow_eye",
+                    "solution_type": "city_eye",
                     "report_interval": config["cloud"].get("report_interval", 60),
                 }
         

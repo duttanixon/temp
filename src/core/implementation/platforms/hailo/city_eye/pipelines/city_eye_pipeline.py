@@ -13,8 +13,8 @@ from .pipeline_helper import (
 )
 
 
-def build_flow_eye_pipeline_string(pipe):
-    """Build flow eye pipeline"""
+def build_city_eye_pipeline_string(pipe):
+    """Build city eye pipeline"""
 
     sink_key = getattr(pipe, "sink_type", "file")
     sink_factories = {

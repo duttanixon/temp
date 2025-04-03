@@ -4,8 +4,8 @@ Main entry point for the edge analytics application.
 
 from core.implementation.common.config_manager import ConfigManager
 from core.implementation.platforms.application import VideoAnalyticsApp
-from core.implementation.solutions.flow_eye.solution import FlowEyeSolution
-from core.implementation.platforms.hailo.flow_eye.controller import (
+from core.implementation.solutions.city_eye.solution import CityEyeSolution
+from core.implementation.platforms.hailo.city_eye.controller import (
     HailoPipelineController,
 )
 from core.implementation.io.factories.input_factory import InputSourceFactory
@@ -19,7 +19,7 @@ import traceback
 
 def main():
     try:
-        config_manager = ConfigManager("configs/flow-eye.yaml")
+        config_manager = ConfigManager("configs/city-eye.yaml")
         config = config_manager.load_config()
 
         # Create I/O handlers using factories
@@ -30,7 +30,7 @@ def main():
             config["solution"]["output"]
         )
 
-        solution: ISolution = FlowEyeSolution(
+        solution: ISolution = CityEyeSolution(
             config["solution"], input_source=input_source, output_handler=output_handler
         )
 

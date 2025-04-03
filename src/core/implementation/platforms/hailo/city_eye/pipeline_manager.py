@@ -1,4 +1,4 @@
-from .pipelines.flow_eye_pipeline import build_flow_eye_pipeline_string
+from .pipelines.city_eye_pipeline import build_city_eye_pipeline_string
 from .rpi_camera_handler import RPICameraHandler
 import traceback
 import sys
@@ -19,7 +19,7 @@ class PipelineManager:
         self.pipeline = None
         self.rpi_handler = None
         self._setup_configuration(config, solution)
-        pipeline_string = self._get_flow_eye_pipeline_string()
+        pipeline_string = self._get_city_eye_pipeline_string()
         self.create_pipeline(pipeline_string)
         self._initialize_input_source()
         self._initialize_fps_check()
@@ -127,5 +127,5 @@ class PipelineManager:
             f"output-format-type=HAILO_FORMAT_TYPE_FLOAT32"
         )
 
-    def _get_flow_eye_pipeline_string(self) -> str:
-        return build_flow_eye_pipeline_string(self)
+    def _get_city_eye_pipeline_string(self) -> str:
+        return build_city_eye_pipeline_string(self)

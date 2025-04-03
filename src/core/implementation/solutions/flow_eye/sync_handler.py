@@ -1,7 +1,4 @@
 import time
-import json
-import gzip
-import base64
 import random
 import traceback
 import threading
@@ -12,7 +9,7 @@ from zoneinfo import ZoneInfo
 from core.implementation.common.sqlite_manager import DatabaseManager
 from core.interfaces.cloud.cloud_connector import ICloudConnector
 from core.implementation.common.logger import get_logger
-from core.implementation.common.exceptions import SyncError, DatabaseError, CloudError
+from core.implementation.common.exceptions import SyncError, CloudError
 from core.implementation.common.error_handler import handle_errors
 
 from .models import HumanResult, TrafficResult
@@ -42,7 +39,6 @@ class BatchSyncHandler:
         self.sync_interval = config.get("sync_interval_seconds", 120)
         self.max_retries = config.get("max_retries", 5)
         self.initial_backoff = config.get("initial_backoff_seconds", 2)
-        self.compression_enabled = config.get("enable_compression", True)
         self.sync_topic = config.get("sync_topic", "device/ai-data/batch")
 
 
@@ -186,9 +182,6 @@ class BatchSyncHandler:
         
         Returns:
             Tuple[List[Dict], List[Dict]]: Human and traffic records with their IDs
-
-        Raises:
-            DatabaseError: If a database operation fails
         """
 
         human_records = []
@@ -284,21 +277,6 @@ class BatchSyncHandler:
         
         """
         try:
-            # Compress if enabled
-            if self.compression_enabled:
-                json_str = json.dumps(payload)
-                compressed = gzip.compress(json_str.encode('utf-8'))
-                encoded_payload = base64.b64encode(compressed).decode('utf-8')
-                message = {
-                    "compressed": True,
-                    "data": encoded_payload
-                }
-            else:
-                message = {
-                    "compressed": False,
-                    "data": payload
-                }
-            
             if hasattr(self.cloud_connector, 'connected_event') and not self.cloud_connector.connected_event.wait(timeout=5):
                 logger.warning(
                     "Cloud connection not available, scheduling retry",
@@ -310,7 +288,7 @@ class BatchSyncHandler:
 
             try:
                 # Send to IoT Core
-                success = self.cloud_connector.publish(self.sync_topic, json.dumps(message))
+                success = self.cloud_connector.publish(self.sync_topic, payload)
             except Exception as e:
                 logger.error(
                     "Error publishing to cloud",

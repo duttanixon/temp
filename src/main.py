@@ -45,7 +45,7 @@ def main():
         app.run()
 
     except Exception as e:
-        pass
+        print(e)
 
 
 if __name__ == "__main__":

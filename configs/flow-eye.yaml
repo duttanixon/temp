@@ -27,7 +27,6 @@ solution:
     sqlite_base_dir: /opt/db
     sync_batch_size: 100
     sync_interval_seconds: 10
-    enable_compression: true
     sync_topic: sdk/test/python
 
 
@@ -61,7 +60,8 @@ solution:
         client_id: basicPubSub
         endpoint: "a23bd20ty64577-ats.iot.ap-northeast-1.amazonaws.com"
         certs_dir: "/home/Raspi5_2/ws/nixon/cc-edge-analytics/certificates"
-        cert_path: "raspi-test-device-001.cert.pem"
-        private_key_path: "raspi-test-device-001.private.key"
-        root_ca_path: "root-CA.crt"
+        cert_path: "8c78b02040c506b43c1cb6462f24bec7e680832fe2ab9b5abe9ae8eceb72e92a-certificate.pem.crt"
+        private_key_path: "8c78b02040c506b43c1cb6462f24bec7e680832fe2ab9b5abe9ae8eceb72e92a-private.pem.key"
+        root_ca_path: "AmazonRootCA1.pem"
         solution_type: "city-eye"
+        enable_compression: true

@@ -11,9 +11,7 @@ from core.interfaces.io.input_source import IInputSource
 from core.interfaces.io.output_handler import IOutputHandler
 
 from core.implementation.cloud.factories.cloud_factory import CloudConnectorFactory
-from core.implementation.cloud.factories.formatter_factory import (
-    MetricsFormatterFactory,
-)
+from core.implementation.common.event_formatter import EventFormatter
 from core.implementation.common.sqlite_manager import DatabaseManager
 from .models import HumanResult, TrafficResult
 from .sync_handler import BatchSyncHandler
@@ -74,19 +72,17 @@ class FlowEyeSolution(ISolution):
 
         # initialize cloud communication
         self.cloud_connector = None
-        self.metrics_formatter = None
 
         if "cloud" in config:
             self.cloud_connector = CloudConnectorFactory.create(config["cloud"])
             if self.cloud_connector:
-                self.cloud_connector.initialize(config["cloud"])
+                self.cloud_connector.initialize(config["cloud"], self.__class__.__name__)
 
                 # Create metrics formatter
                 formatter_config = {
                     "solution_type": "flow_eye",
                     "report_interval": config["cloud"].get("report_interval", 60),
                 }
-                self.metrics_formatter = MetricsFormatterFactory.create(formatter_config)
         
         if self.cloud_connector:
             self.sync_handler = BatchSyncHandler(
@@ -136,12 +132,6 @@ class FlowEyeSolution(ISolution):
 
                 if frame_result:
                     self._write_to_database(frame_result)
-
-                # # Handle cloud communication if enabled
-                # if self.cloud_connector and self.metrics_formatter:
-                #     metrics = self.metrics_formatter.format_metrics(frame_data)
-                #     if metrics:
-                #         self.cloud_connector.send_metrics(metrics)
                 
                 # Mark task as done
                 self.frame_queue.task_done()

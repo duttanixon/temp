@@ -8,15 +8,17 @@ import logging
 import threading
 import traceback
 import uuid
+import os
 from typing import Dict, Any, Optional, Callable
 from datetime import datetime
-import os
+
 
 # Import AWS IoT SDK v2
 from awscrt import mqtt, io, auth
 from awsiot import mqtt_connection_builder
 
 from core.interfaces.cloud.cloud_connector import ICloudConnector
+from core.implementation.common.event_formatter import EventFormatter
 from core.implementation.common.logger import get_logger
 from core.implementation.common.exceptions import CloudError, ConnectionError, AuthenticationError
 from core.implementation.common.error_handler import handle_errors, retry_on_error
@@ -32,15 +34,13 @@ class AWSIoTCoreConnector(ICloudConnector):
         self.is_connected = False
         self.client_id = None
         self.endpoint = None
-        self.ca_path = None
-        self.cert_path = None
-        self.key_path = None
         self.connected_event = threading.Event()
         self.subscriptions = {}  # Topic -> callback mapping
+
         logger.info("AWSIoTCoreConnector created", component="AWSIoTConnector")
 
     @handle_errors(component="AWSIoTConnector")    
-    def initialize(self, config: Dict[str, Any]) -> bool:
+    def initialize(self, config: Dict[str, Any], solution_type:str) -> bool:
         """
         Initialize the AWS IoT Core connection
         
@@ -58,12 +58,10 @@ class AWSIoTCoreConnector(ICloudConnector):
             # Extract configuration
             self.endpoint = config.get("endpoint")
             self.client_id = config.get("client_id", f"CityEye-{str(uuid.uuid4())[:8]}")
-            
-            # Certificate paths - expand relative paths if needed
-            certs_dir = config.get("certs_dir", "./certs")
-            self.ca_path = os.path.join(certs_dir, config.get("root_ca_path"))
-            self.cert_path = os.path.join(certs_dir,config.get("cert_path"))
-            self.key_path = os.path.join(certs_dir,config.get("private_key_path"))
+            self.certificate_id = self._load_certificates_and_extract_id(config)
+            # Create event fomatter
+            compression_enabled = config.get("enable_compression", True)
+            self.event_formatter = EventFormatter(self.certificate_id, solution_type, compression_enabled)
             
             # Validate required configuration
             if not self.endpoint:
@@ -241,15 +239,84 @@ class AWSIoTCoreConnector(ICloudConnector):
         # Resubscribe if session is not present
         if not session_present:
             self._resubscribe()
-    
+
+    def _load_certificates_and_extract_id(self,  config: Dict[str, Any]) -> str:
+        """
+        Extract the certificate ID from the certificate file.
+
+        Raises:
+            AuthenticationError
+        """
+        certs_dir = config.get("certs_dir", "./certs")
+        cert_id = None
+        self.key_path = None
+        self.cert_path = None
+        self.ca_path = None
+
+        if not os.path.isdir(certs_dir):
+            raise AuthenticationError(
+                "Certificate directory not found",
+                code="CERT_DIR_NOT_FOUND",
+                details={"cert_dir": certs_dir},
+                source="AWSIoTConnector",
+                recoverable = False
+            )
+
+        try:
+            for filename in os.listdir(certs_dir):
+                filepath = os.path.join(certs_dir, filename)
+                
+                if "private" in filename:
+                    self.key_path = filepath
+                    if cert_id is None and "-" in filename:
+                        cert_id = filename.split('-')[0]
+                elif "certificate" in filename:
+                    self.cert_path = filepath
+                    if cert_id is None and "-" in filename:
+                        cert_id = filename.split('-')[0]
+                elif "rootca" in filename.lower():
+                    self.ca_path = filepath
+
+            # Check if all required files were found
+            missing = []
+            if self.key_path is None:
+                missing.append("private key")
+            if self.cert_path is None:
+                missing.append("certificate")
+            if self.ca_path is None:
+                missing.append("root CA")
+            if cert_id is None:
+                missing.append("certificate ID")
+            if missing:
+                raise AuthenticationError(
+                    f"Missing required certificate components: {', '.join(missing)}",
+                    code="CERT_ID_NOT_DERIVED",
+                    details={"cert_dir": certs_dir, "missing": missing},
+                    source="AWSIoTConnector",
+                    recoverable = False
+                )
+            return cert_id
+
+        except Exception as e:
+            # Include the original exception details in the error message
+            error_msg = f"Certificate ID could not be derived from certificate files: {str(e)}"
+            raise AuthenticationError(
+                error_msg,
+                code="CERT_ID_NOT_FOUND",
+                details={"cert_dir": certs_dir, "error": str(e)},
+                source="AWSIoTConnector",
+                recoverable = False
+            )
+
+
     @handle_errors(component="AWSIoTConnector")
-    def publish(self, topic: str, payload: str, qos: int = 1) -> bool:
+    def publish(self, topic: str, payload: Dict[str, Any], qos: int = 1) -> bool:
         """
         Publish a message to a topic
         
         Args:
             topic: Topic to publish to
-            payload: Message payload (JSON string)
+            payload: Message payload
             qos: Quality of Service (0, 1)
             
         Returns:
@@ -268,6 +335,9 @@ class AWSIoTCoreConnector(ICloudConnector):
                     logger.error("Failed to reconnect to AWS IoT Core", component="AWSIoTConnector")
                     return False
             
+            # format and compress the payload
+            formatted_payload = self.event_formatter.format_event(payload)
+
             # Convert QoS to mqtt.QoS
             mqtt_qos = mqtt.QoS.AT_MOST_ONCE if qos == 0 else mqtt.QoS.AT_LEAST_ONCE
             
@@ -280,7 +350,7 @@ class AWSIoTCoreConnector(ICloudConnector):
             
             publish_future, packet_id = self.mqtt_connection.publish(
                 topic=topic,
-                payload=payload,
+                payload=formatted_payload,
                 qos=mqtt_qos
             )
             

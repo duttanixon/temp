@@ -109,6 +109,8 @@ class TrackingError(SolutionError):
     """Raised when there's an issue with object tracking"""
     pass
 
+class DatabaseError(SolutionError):
+    """Raosed when database initalization failed"""
 
 # Cloud connectivity errors
 class CloudError(EdgeAnalyticsError):

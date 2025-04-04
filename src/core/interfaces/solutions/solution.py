@@ -12,11 +12,11 @@ class ISolution(ABC):
         pass
 
     @abstractmethod
-    def get_frame(self) -> Optional[np.array]:
-        """Get current frame"""
+    def get_frame_count(self, counter_type:str) -> Optional[int]:
+        """Get the current value of specific counter"""
         pass
 
     @abstractmethod
-    def set_frame(self, frame: np.ndarray) -> None:
-        """Set current frame"""
+    def cleanup(self) -> None:
+        """Cleanup resources"""
         pass

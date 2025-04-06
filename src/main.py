@@ -36,7 +36,7 @@ def main():
 
         # Create platform-specific controller
         platform_controller: IPlatformController = HailoPipelineController(
-            config, solution
+            config["platform"], solution
         )
 
         # Create platform-agnostic application

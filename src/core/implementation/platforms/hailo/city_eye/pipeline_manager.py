@@ -97,15 +97,15 @@ class PipelineManager:
     def _setup_configuration(self, config: Dict[str, Any], solution) -> None:
         """Sets up Hailo-specific configuration"""
         # Platform configuration
-        self.arch = config["platform"]["type"]
-        self.detection_model_path = config["platform"]["detection_model_path"]
-        self.person_attributes_model_path = config["platform"]["attribute_model_path"]
-        self.post_process_so = config["platform"]["postprocess_so_path"]
-        self.post_function_name = config["platform"]["postprocess_function_name"]
-        self.labels_json = config["platform"]["labels_json"]
-        self.postprocess_dir = config["platform"]["postprocess_dir"]
-        self.measure_fps = config["platform"]["measure_fps"]
-        self.sink_type = config["platform"]["sink_type"]
+        self.arch = config["type"]
+        self.detection_model_path = config["detection_model_path"]
+        self.person_attributes_model_path = config["attribute_model_path"]
+        self.post_process_so = config["postprocess_so_path"]
+        self.post_function_name = config["postprocess_function_name"]
+        self.labels_json = config["labels_json"]
+        self.postprocess_dir = config["postprocess_dir"]
+        self.measure_fps = config["measure_fps"]
+        self.sink_type = config["sink_type"]
 
         # Solution-specific configuration
         self.solution = solution

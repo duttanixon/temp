@@ -5,41 +5,157 @@ from collections import defaultdict
 from .base import BaseCounter
 from typing import List, Dict, Any, DefaultDict, Optional, Tuple 
 from shapely.geometry.polygon import Polygon
+from core.implementation.common.logger import get_logger
+from core.implementation.common.exceptions import SolutionError
+from core.implementation.common.error_handler import handle_errors
+
+logger = get_logger()
 
 class Counter(BaseCounter):
-    def __init__(self, xlines_cfg_path:str, count_output_path:str, class_names_dict: Dict[str, List[str]], buffer_size:int = 30, frame_thresh:int=5, cos_thresh:int = 0.0, handle:bool=True):
-        self.class_names_dict = {k.lower(): v for k, v in class_names_dict.items()}
-        assert ('age' in self.class_names_dict and 'gender' in self.class_names_dict and 'vehicle' in self.class_names_dict)
-        self.age_classes: List[str] = self.class_names_dict['age']
-        self.gender_classes: List[str] = self.class_names_dict['gender']
-        self.vehicle_classes: List[str] = self.class_names_dict['vehicle']
-        vehicle_class_names = [f"vehicle::{vehicle_class}" for vehicle_class in self.vehicle_classes]
-        self.class_names: List[str] = [f"{gender}::{age}" for age in self.age_classes for gender in self.gender_classes]
-        self.class_names.extend(vehicle_class_names)
-        self.name_idx_map: Dict[str, int] =  {name: idx for idx, name in enumerate(self.class_names)}
-        self.idx_name_map:Dict[str, int] = {idx: name for name, idx in self.name_idx_map.items()}
-        self.frame_thresh: int = frame_thresh
-        self.cos_thresh: float = cos_thresh
-        self.handle: bool = handle
-        self.track_id_dict: Dict[str, Any] = {}
-        self.finished_track_id: List[str] = []
-        self.buffer_size: int = buffer_size
-        self.xlines_cfg_path: str = xlines_cfg_path
-        self.xlines_info, self.xlines = self._load_xlines()
-        self._init_counter()
-        self.count_output_path:str = count_output_path
-
-    def _load_xlines(self):
-        print(self.xlines_cfg_path)
-        with open(self.xlines_cfg_path, 'r') as f:
-            xlines_info = json.load(f)
-        xlines = [Polygon([[int(p['x']), int(p['y'])] for p in xline['content']]) for xline in xlines_info]
-        return xlines_info, xlines
+    """Counter for tracking objects moving through defined zones"""
     
-    def _init_counter(self, point_cfgs:list=None):
+    def __init__(self, xlines_cfg_path:str, count_output_path:str, class_names_dict: Dict[str, List[str]], buffer_size:int = 30, frame_thresh:int=5, cos_thresh:int = 0.0, handle:bool=True):
+
+        """
+        Initialize the counter with configuration.
+        
+        Args:
+            xlines_cfg_path: Path to crossing lines configuration
+            count_output_path: Path to output counted results
+            class_names_dict: Dictionary mapping detection types to class names
+            buffer_size: Size of tracking buffer
+            frame_thresh: Threshold for frame-based decisions
+            cos_thresh: Cosine similarity threshold
+            handle: Whether to handle detections directly
+            
+        Raises:
+            SolutionError: If initialization fails
+        """
+
+        try:
+            # Normalize class names dict to lowercase keys for consistency
+            self.class_names_dict = {k.lower(): v for k, v in class_names_dict.items()}
+
+            
+            # Validate required classes
+            required_classes = ['age', 'gender', 'vehicle']
+            for required_class in required_classes:
+                if required_class not in self.class_names_dict:
+                    error_msg = f"Missing required class in class_names_dict: {required_class}"
+                    logger.error(error_msg, component="Counter")
+                    raise SolutionError(
+                        error_msg,
+                        code="MISSING_REQUIRED_CLASS",
+                        details={"required_classes": required_classes, "provided_classes": list(self.class_names_dict.keys())},
+                        source="Counter"
+                    )
+            
+            # Store class names for different detection types
+            self.age_classes: List[str] = self.class_names_dict['age']
+            self.gender_classes: List[str] = self.class_names_dict['gender']
+            self.vehicle_classes: List[str] = self.class_names_dict['vehicle']
+        
+            # Create combined class names for counting        
+            vehicle_class_names = [f"vehicle::{vehicle_class}" for vehicle_class in self.vehicle_classes]
+            self.class_names: List[str] = [f"{gender}::{age}" for age in self.age_classes for gender in self.gender_classes]
+            self.class_names.extend(vehicle_class_names)
+
+            # Create maps for name to index and index to name
+            self.name_idx_map: Dict[str, int] =  {name: idx for idx, name in enumerate(self.class_names)}
+            self.idx_name_map:Dict[str, int] = {idx: name for name, idx in self.name_idx_map.items()}
+        
+            # Store configuration        
+            self.frame_thresh: int = frame_thresh
+            self.cos_thresh: float = cos_thresh
+            self.handle: bool = handle
+            self.track_id_dict: Dict[str, Any] = {}
+            self.finished_track_id: List[str] = []
+            self.buffer_size: int = buffer_size
+            self.xlines_cfg_path: str = xlines_cfg_path
+        
+            # Load crossing lines configuration        
+            self.xlines_info, self.xlines = self._load_xlines()
+
+            # Initialize counter        
+            self._init_counter()
+            self.count_output_path:str = count_output_path
+
+            logger.info(
+                "Counter initialized successfully",
+                context={
+                    "class_count": len(self.class_names),
+                    "xlines_count": len(self.xlines),
+                    "buffer_size": buffer_size
+                },
+                component="Counter"
+            )
+
+        except Exception as e:
+            if not isinstance(e, SolutionError):
+                error_msg = "Failed to initialize counter"
+                logger.error(
+                    error_msg,
+                    exception=e,
+                    component="Counter"
+                )
+                raise SolutionError(
+                    error_msg,
+                    code="COUNTER_INIT_FAILED",
+                    details={"error": str(e)},
+                    source="Counter"
+                ) from e
+            raise
+
+    @handle_errors(component="Counter")
+    def _load_xlines(self):
+        """
+        Load crossing lines configuration from file.
+        
+        Returns:
+            Tuple of xlines info and polygon objects
+            
+        Raises:
+            SolutionError: If xlines configuration cannot be loaded
+        """
+        try:
+            logger.debug(f"Loading xlines from {self.xlines_cfg_path}", component="Counter")
+
+            with open(self.xlines_cfg_path, 'r') as f:
+                xlines_info = json.load(f)
+
+            # Convert xlines to Polygon objects
+
+            xlines = [Polygon([[int(p['x']), int(p['y'])] for p in xline['content']]) for xline in xlines_info]
+            return xlines_info, xlines
+
+        except Exception as e:
+            error_msg = f"Failed to load xlines from {self.xlines_cfg_path}"
+            logger.error(
+                error_msg,
+                exception=e,
+                component="Counter"
+            )
+            raise SolutionError(
+                error_msg,
+                code="XLINES_LOAD_FAILED",
+                details={"path": self.xlines_cfg_path, "error": str(e)},
+                source="Counter"
+            ) from e            
+    
+    @handle_errors(component="Counter")
+    def _init_counter(self, point_cfgs: List[List[float]] = None):
+        """
+        Initialize counter data structures.
+        
+        Args:
+            point_cfgs: Point configurations for detection
+        """
         if point_cfgs is None:
             point_cfgs = [[1 / 2, 1]]
+
         self.point_cfgs = point_cfgs
+
+        # Initialize tracking dictionary        
         self.track_dict = defaultdict(lambda: {
             "labels": [],
             "boxes": [],
@@ -48,17 +164,37 @@ class Counter(BaseCounter):
             "trajs": [],
             "route": ""
         })
+        # Initialize direction and count tables
         self.direction_dict, self.count_table = self.get_direction_and_count_table(self.xlines)
+        logger.debug("Counter data structures initialized", component="Counter")
 
+    @handle_errors(component="Counter")
     def _get_track_dict(self, frame_idx:int, detections_result: "Detection")->DefaultDict[str, Dict[str, Any]]:
+        """
+        Extract tracking dictionary from detection results.
+        
+        Args:
+            frame_idx: Current frame index
+            detections_result: Detection results
+            
+        Returns:
+            Dictionary of tracking data
+            
+        Raises:
+            SolutionError: If detection processing fails
+        """
+
         track_dict = defaultdict(lambda: {
             "boxes": [],
             "labels": [],
             "velocities": [],
             "last_update_frame": 0,
         })
+
         for data in detections_result:
             track_id = data.track_id
+
+            # Determine class label
             if data.class_id!=1:
                 vehicle_class=data.label
                 label_key = self.name_idx_map.get(f"vehicle::{vehicle_class}", -1)
@@ -67,12 +203,24 @@ class Counter(BaseCounter):
                 label_key = self.name_idx_map.get(f"{gender}::{age}", -1)
             else:
                 label_key = -1
+
+            # Store detection data
             track_dict[track_id]["boxes"].append(data.bbox)
             track_dict[track_id]["labels"].append(label_key) 
             track_dict[track_id]["last_update_frame"] = frame_idx
         return track_dict                
     
     def _update_trajectory(self, track_id: int, frame_id: int, polygon_id: int, box: List[float] ) -> None:
+        """
+        Update trajectory for a tracked object.
+        
+        Args:
+            track_id: Object track ID
+            frame_id: Current frame ID
+            polygon_id: Polygon ID the object is in
+            box: Bounding box of the object
+        """
+        # Determine direction based on velocity
         direction = self.determine_direction(self.track_dict[track_id], box, polygon_id, track_id)
         last_traj = self.track_dict[track_id]["trajs"][-1] if self.track_dict[track_id]["trajs"] else None
         reset_last_out = last_traj and last_traj["in_idx"] == last_traj["out_idx"]
@@ -88,6 +236,7 @@ class Counter(BaseCounter):
                     "frame_th_out": None,
                     "found_out": False,
                 })
+
         elif direction == "out":
             if not self.track_dict[track_id]["trajs"]:
                 self.track_dict[track_id]["trajs"].append({
@@ -102,6 +251,17 @@ class Counter(BaseCounter):
             self.track_dict[track_id]["trajs"][-1]["out_idx"] = polygon_id    
 
     def count_by_frame(self, frame_idx:int, detections_result: Dict[int, Dict[str, Any]]):
+        """
+        Process detections for the current frame and update counts.
+        
+        Args:
+            frame_idx: Current frame index
+            detections_result: Detection results
+            
+        Returns:
+            Updated tracking dictionary
+            
+        """
         track_dict = self._get_track_dict(frame_idx, detections_result) # get the tracks of the particular frame only
 
         for track_id, v in track_dict.items():
@@ -132,6 +292,18 @@ class Counter(BaseCounter):
         return self.track_dict
     
     def _update_count_table(self, track_id:int, traj:Optional[Dict], label_pred:int) -> Optional[str]:
+        """
+        Update count table with completed trajectory.
+        
+        Args:
+            track_id: Object track ID
+            traj: Trajectory information
+            label_pred: Predicted label index
+            
+        Returns:
+            Route string or None if no valid route
+        """
+
         route = None
         if traj:
             if traj["frame_th_in"] is not None and traj["frame_th_out"] is not None:
@@ -152,6 +324,17 @@ class Counter(BaseCounter):
         return route
 
     def finish_tracklets(self, current_frame_idx: int) -> Optional[Tuple[str, str]]:
+        """
+        Process finished tracklets and update counts.
+        
+        Args:
+            current_frame_idx: Current frame index
+            
+        Returns:
+            Tuple of route and class if a tracklet was finished, None otherwise
+
+        """
+
         for track_id, track_info in list(self.track_dict.items()):
             if current_frame_idx - track_info["last_update_frame"] > self.buffer_size:
                 self.finished_track_id.append(track_id)

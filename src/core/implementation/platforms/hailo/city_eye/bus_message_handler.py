@@ -5,7 +5,11 @@ import datetime
 from typing import Any
 from .pipeline_manager import PipelineManager
 from .base import GstContext
+from core.implementation.common.logger import get_logger
+from core.implementation.common.exceptions import PipelineError, PlatformError
+from core.implementation.common.error_handler import handle_errors
 
+logger = get_logger()
 
 class BusMessageHandler:
     """Responsible for handling GStreamer bus messages with detailed logging for hailo pipelines"""
@@ -17,6 +21,15 @@ class BusMessageHandler:
         gst_context: GstContext,
         isDebug: bool = False,
     ):
+        """
+        Initialize the bus message handler.
+        
+        Args:
+            pipeline_manager: Pipeline manager instance
+            loop: GLib main loop
+            gst_context: GStreamer context
+            isDebug: Whether debug logging is enabled
+        """
         self.pipeline_manager = pipeline_manager
         self.loop = loop
         self.context = gst_context
@@ -24,7 +37,7 @@ class BusMessageHandler:
         self.debug_callback = None
         self.isDebug = isDebug
 
-        self.log_file_path = os.path.join(os.path.dirname("__file__"), "message.log")
+        self.log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "message.log")
         self.log_file = None
 
         # stats collection
@@ -42,6 +55,12 @@ class BusMessageHandler:
             # Log pipeline description
             self._log_pipeline_description()
 
+        logger.info(
+            "BusMessageHandler initialized", 
+            context={"debug_enabled": self.isDebug},
+            component="BusMessageHandler"
+        )
+
     def _init_log_file(self):
         """Initialize the log file (only called if isDebug is True)"""
         try:
@@ -52,10 +71,17 @@ class BusMessageHandler:
                 f"HAILO PIPELINE SESSION STARTED AT {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}"
             )
             self.log_to_file(f"{'=' * 80}")
+            logger.debug(f"Initialized message log file: {self.log_file_path}", component="BusMessageHandler")
         except Exception as e:
-            print(f"Error opening log file: {e}", file=sys.stderr)
+            logger.error(
+                "Error opening log file",
+                exception=e,
+                context={"file_path": self.log_file_path},
+                component="BusMessageHandler"
+            )
             self.log_file = None
 
+    @handle_errors(component="BusMessageHandler")
     def log_to_file(self, message: str):
         """Write a message to the log file if debug is enabled, otherwise print to console"""
         if self.isDebug and self.log_file:
@@ -63,10 +89,17 @@ class BusMessageHandler:
                 self.log_file.write(f"{message}\n")
                 self.log_file.flush()  # Ensure it's written immediately
             except Exception as e:
-                print(f"Error writing to log file: {e}", file=sys.stderr)
+                logger.error(
+                    "Error writing to log file",
+                    exception=e,
+                    component="BusMessageHandler"
+                )
         elif not self.isDebug and message.startswith("ERROR:"):
             # Always print errors to console regardless of debug mode
-            print(message, file=sys.stderr)
+            logger.error(
+                message,
+                component="BusMessageHandler"
+            )
 
     def _log_pipeline_description(self):
         """Log detailed information about the pipeline configuration (only if isDebug is True)"""
@@ -150,6 +183,11 @@ class BusMessageHandler:
 
                     except Exception as e:
                         self.log_to_file(f"     Error getting element info: {e}")
+                        logger.warning(
+                            f"Error getting info for element {element_name}",
+                            exception=e,
+                            component="BusMessageHandler"
+                        )
 
                 # Special logging for Hailo elements
                 self._log_hailo_specific_elements(elements)
@@ -159,7 +197,13 @@ class BusMessageHandler:
 
         except Exception as e:
             self.log_to_file(f"Error logging pipeline description: {e}")
+            logger.error(
+                "Error logging pipeline description",
+                exception=e,
+                component="BusMessageHandler"
+            )
 
+    @handle_errors(component="BusMessageHandler")
     def _log_hailo_specific_elements(self, elements):
         """Log special information about hailo specific elements (only if isDebug is True)"""
         if not self.isDebug:
@@ -318,6 +362,7 @@ class BusMessageHandler:
     def set_debug_callback(self, callback: Any):
         """Set the debug callback for dumping pipeline on error"""
         self.debug_callback = callback
+        logger.debug("Debug callback set", component="BusMessageHandler")
 
     def __del__(self):
         """Clean up resources when the object is destroyed"""
@@ -330,15 +375,21 @@ class BusMessageHandler:
                 self.log_to_file(f"{'#' * 40}")
                 self.log_file.close()
             except Exception:
-                pass
+                logger.error(
+                    "Error closing log file",
+                    exception=e,
+                    component="BusMessageHandler"
+                )
 
     def handle_eos(self) -> None:
         """Handles end-of-stream message"""
+        logger.info("End-of-stream received, stopping pipeline", component="BusMessageHandler")
         self.pipeline_manager.set_state(self.context.gst.State.NULL)
         self.loop.quit()
 
     def handle_error(self) -> None:
         """Handles error message"""
+        logger.error("Error message received, stopping pipeline", component="BusMessageHandler")
         self.pipeline_manager.set_state(self.context.gst.State.NULL)
         self.loop.quit()
 
@@ -346,8 +397,22 @@ class BusMessageHandler:
         """Returns whether an error has occurred"""
         return self.error_occurred
 
+    @handle_errors(component="BusMessageHandler")
     def bus_call(self, bus, message, *args) -> bool:
-        """Handles bus messages from the pipeline with detailed logging"""
+        """
+        Handles bus messages from the pipeline with detailed logging.
+        
+        Args:
+            bus: GStreamer bus
+            message: GStreamer message
+            *args: Additional arguments
+            
+        Returns:
+            bool: True to continue processing messages
+            
+        Raises:
+            PipelineError: If an error occurs during message processing
+        """
         # Always process messages regardless of debug mode,
         # but only log details if isDebug is True
 
@@ -381,6 +446,16 @@ class BusMessageHandler:
             error_msg = f"ERROR: {err}"
             debug_msg = f"Debug details: {debug}"
 
+            # Structured logging for higher visibility and better traceability
+            logger.error(
+                f"Pipeline error: {err}",
+                context={
+                    "source_element": src_name,
+                    "debug_info": debug
+                },
+                component="BusMessageHandler"
+            )
+
             if self.isDebug:
                 self.log_to_file(error_msg)
                 self.log_to_file(debug_msg)
@@ -402,17 +477,29 @@ class BusMessageHandler:
                         self.log_to_file("  Unable to retrieve element state")
                 except Exception:
                     self.log_to_file("  Could not retrieve element state")
+                    logger.warning(
+                        "Could not retrieve element state",
+                        exception=e,
+                        component="BusMessageHandler"
+                    )
             else:
                 # Print to stderr in non-debug mode
-                print(error_msg, file=sys.stderr)
-                print(debug_msg, file=sys.stderr)
-                print(f"Error source: {src_name}", file=sys.stderr)
+                logger.error(error_msg, component="BusMessageHandler")
+                logger.error(debug_msg, component="BusMessageHandler")
+                logger.error(f"Error source: {src_name}", component="BusMessageHandler")
 
             self.error_occurred = True
 
             # Dump pipeline state if debug callback is set
             if self.debug_callback:
-                self.debug_callback("error")
+                try:
+                    self.debug_callback("error")
+                except Exception as e:
+                    logger.error(
+                        "Error in debug callback",
+                        exception=e,
+                        component="BusMessageHandler"
+                    )
 
             self.handle_error()
 

@@ -71,8 +71,8 @@ def build_city_eye_pipeline_string(pipe):
         + f"{detection_segment} ! "
         + f"{tracking_segment} ! "
         + f"{person_attribute_segment} ! "
-        + f"{output_segment} ! "
         + (f"{fps_display_segment} ! " if pipe.measure_fps else "")
+        + f"{output_segment} ! "
         + f"{overlay_segment} ! "
         + f"{sink_segment}"
     )

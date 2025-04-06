@@ -3,6 +3,8 @@ from core.implementation.common.sqlite_manager import Base, tokyo_time
 import uuid
 
 class HumanResult(Base):
+    """Model for storing human detection and tracking results"""
+
     __tablename__ = 'human_result'
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     from_polygon = Column(String, nullable=False)
@@ -20,6 +22,7 @@ class HumanResult(Base):
         return f"<HumanResult(id={self.id}, from={self.from_polygon}, to={self.to_polygon})>"
     
     def to_dict(self):
+        """Convert the model to a dictionary for serialization"""
         return {
             "id": self.id,
             "from_polygon": self.from_polygon,
@@ -33,6 +36,8 @@ class HumanResult(Base):
 
 
 class TrafficResult(Base):
+    """Model for storing traffic/vehicle detection and tracking results"""
+
     __tablename__ = 'traffic_result'
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -49,6 +54,7 @@ class TrafficResult(Base):
         return f"<TrafficResult(id={self.id}, vehicletype={self.vehicletype})>"
     
     def to_dict(self):
+        """Convert the model to a dictionary for serialization"""
         return {
             "id": self.id,
             "from_polygon": self.from_polygon,

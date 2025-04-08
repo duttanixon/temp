@@ -34,6 +34,7 @@ class AWSIoTCoreConnector(ICloudConnector):
         self.is_connected = False
         self.client_id = None
         self.endpoint = None
+        self.solution_type = None
         self.connected_event = threading.Event()
         self.subscriptions = {}  # Topic -> callback mapping
 
@@ -57,11 +58,12 @@ class AWSIoTCoreConnector(ICloudConnector):
         try:
             # Extract configuration
             self.endpoint = config.get("endpoint")
-            self.client_id = config.get("client_id", f"CityEye-{str(uuid.uuid4())[:8]}")
             self.certificate_id = self._load_certificates_and_extract_id(config)
+            self.client_id = self.certificate_id
             # Create event fomatter
+            self.solution_type = solution_type
             compression_enabled = config.get("enable_compression", True)
-            self.event_formatter = EventFormatter(self.certificate_id, solution_type, compression_enabled)
+            self.event_formatter = EventFormatter(self.certificate_id, self.solution_type, compression_enabled)
             
             # Validate required configuration
             if not self.endpoint:
@@ -504,6 +506,15 @@ class AWSIoTCoreConnector(ICloudConnector):
                 source="AWSIoTConnector",
                 recoverable=False
             ) from e
+
+    @handle_errors(component="AWSIoTConnector")
+    def get_sync_topic(self):
+        """
+        get publish topic for syncing data to cloud
+        """
+        return f"devices/{self.client_id}/data/{self.solution_type}"
+    
+    
 
     @handle_errors(component="AWSIoTConnector")    
     def send_metrics(self, metrics: Dict[str, Any]) -> bool:

@@ -39,7 +39,7 @@ class BatchSyncHandler:
         self.sync_interval = config.get("sync_interval_seconds", 120)
         self.max_retries = config.get("max_retries", 5)
         self.initial_backoff = config.get("initial_backoff_seconds", 2)
-        self.sync_topic = config.get("sync_topic", "device/ai-data/batch")
+        self.sync_topic = self.cloud_connector.get_sync_topic()
 
 
         # Internal State

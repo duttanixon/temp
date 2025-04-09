@@ -53,4 +53,14 @@ data "archive_file" "lambda_archives" {
     depends_on  = [local_file.lambda_sources_files] 
 }
 
+data "archive_file" "ec2_scheduler_lambda" {
+  type        = "zip"
+  output_path = "${path.module}/build/ec2_scheduler_lambda.zip"
+  source {
+    content  = file("${path.module}/files/ec2_scheduler.py")
+    filename = "ec2_scheduler.py"
+  }
+}
+
+
 data "aws_caller_identity" "current" {}

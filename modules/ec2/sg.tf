@@ -1,0 +1,53 @@
+# Security group for the EC2 instance
+resource "aws_security_group" "app_server_sg" {
+    name            =   "${var.environment}-ec2-app-server-sg"
+    description     =   "Security group for the application server"
+
+    # SSH access
+    ingress {
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        cidr_blocks = var.allowed_ssh_cidrs
+        description = "SSH access"
+    }
+
+    # PostgreSQL access
+    ingress {
+        from_port   = 5432
+        to_port     = 5432
+        protocol    = "tcp"
+        cidr_blocks = var.allowed_service_cidrs
+        description = "PostgreSQL access"
+    }
+
+    # Keycloak access
+    ingress {
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = var.allowed_service_cidrs
+        description = "Keycloak access"
+    }
+
+    # Frontend access (HTTP)
+    ingress {
+        from_port   = 80
+        to_port     = 80
+        protocol    = "tcp"
+        cidr_blocks = var.allowed_service_cidrs
+        description = "Frontend HTTP access"
+    }
+
+    # Allow all outboud traffic
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        description = "Allow all outbound traffic"
+    }
+
+    tags = {
+        Name = "${var.environment}-app-server-sg"
+    }
+}

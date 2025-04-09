@@ -24,4 +24,13 @@ module "lambdas" {
     # Pass ant required variables to the module
     aws_region = var.aws_region
     environment = var.environment
+    instance_id = module.ec2.instance_id
+}
+
+module "ec2" {
+    source =  "../../modules/ec2"
+
+    # Pass ant required variables to the module
+    aws_region = var.aws_region
+    environment = var.environment
 }

@@ -7,3 +7,8 @@ variable "environment" {
     description="Environment name"
     type = string
 }
+
+variable "instance_id" {
+  description = "ID of the EC2 instance to schedule"
+  type        = string
+}

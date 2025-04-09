@@ -14,3 +14,36 @@ variable "environment" {
     description="Environment name"
     type = string
 }
+
+
+
+# EC2 module variables
+variable "availability_zone" {
+    description = "Availability zone suffix (a, b, c, etc.)"
+    type        = string
+}
+
+variable "instance_type" {
+    description = "EC2 instance type"
+    type        = string
+}
+
+variable "allowed_ssh_cidrs" {
+    description = "List of CIDR blocks allowed to SSH into the instance"
+    type        = list(string)
+}
+
+variable "allowed_service_cidrs" {
+    description = "List of CIDR blocks allowed to access services"
+    type        = list(string)
+}
+
+variable "data_volume_size" {
+    description = "Size in GB for the data volume (for all services)"
+    type        = number
+}
+
+variable "engineer_ssh_keys" {
+    description = "List of SSH public keys for the engineers"
+    type        = list(string)
+}

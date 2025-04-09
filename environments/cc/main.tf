@@ -17,3 +17,11 @@ module "iot" {
     aws_region = var.aws_region
     environment = var.environment
 }
+
+module "lambdas" {
+    source =  "../../modules/lambdas"
+
+    # Pass ant required variables to the module
+    aws_region = var.aws_region
+    environment = var.environment
+}

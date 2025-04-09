@@ -14,15 +14,8 @@ resource "aws_iot_policy" "device_policy" {
                 ]
             Resource = [
                 # ${iot:ClientId} must match ${iot:CertificateID} for secure device identification
-                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:client/$${iot:ClientId}"
-
+                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:client/*"
             ]
-            Condition = {
-                Bool = {
-                    "iot:Connection.Thing.IsAttached": ["true"]
-                    }
-                }
-
             },
             {
                 Effect = "Allow"
@@ -31,9 +24,9 @@ resource "aws_iot_policy" "device_policy" {
                 ]
                 Resource = [
                     # Allow devices to publish data based on their certificate ID
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:CertificateId}/data/*",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/data/*",
                     # Allow devices to publish their status
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:CertificateId}/status"
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/status"
                 ]
 
             },
@@ -44,7 +37,7 @@ resource "aws_iot_policy" "device_policy" {
                     ]
                 Resource = [
                 # Allow devices to subscribe to commands from the cloud
-                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:CertificateId}/commands"
+                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:ClientId}/commands"
                 ]
             },
             {
@@ -54,7 +47,7 @@ resource "aws_iot_policy" "device_policy" {
                 ]
             Resource = [
                 # Allow devices to receive commands from the cloud
-                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:CertificateId}/commands"
+                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/commands"
                 ]
             }
 

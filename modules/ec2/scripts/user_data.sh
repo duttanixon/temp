@@ -2,18 +2,20 @@
 set -e
 
 # Install necessary packages for Ubuntu
-apt-get update
-apt-get install -y curl unzip ca-certificates
+sudo apt-get update
+sudo apt-get install -y curl unzip ca-certificates
 
-# Install AWS CLI
-echo "Installing AWS CLI..."
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
-rm -rf aws awscliv2.zip  # Clean up temporary files
+# # Install AWS CLI
+# echo "Installing AWS CLI..."
+# curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+# unzip awscliv2.zip
+# ./aws/install
+# rm -rf aws awscliv2.zip  # Clean up temporary files
 
-# install jq git postgresql
-apt-get install -y jq git postgresql
+# install jq git
+# sudo apt install -y postgresql-all
+sudo apt install -y git-all jq
+
 
 # install docker
 for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
@@ -27,7 +29,7 @@ sudo chmod a+r /etc/apt/keyrings/docker.asc
 # Add the repository to Apt sources:
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$${UBUNTU_CODENAME:-$${VERSION_CODENAME}}") stable" | \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get update
 
@@ -35,14 +37,14 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 
 # Docker post-installation
 echo "Configuring Docker permissions..."
-groupadd -f docker  # -f prevents errors if group already exists
-usermod -aG docker ubuntu  # Explicitly name the ubuntu user
-systemctl enable docker
-systemctl start docker
+sudo groupadd -f docker  # -f prevents errors if group already exists
+sudo usermod -aG docker ubuntu  # Explicitly name the ubuntu user
+sudo systemctl enable docker
+newgrp docker
 
 # Mount EBS volume
 echo "Mounting data volume..."
-DATA_DEVICE="/dev/sdf"
+DATA_DEVICE="/dev/nvme1n1"
 DATA_DIR="/opt/data"
 mkdir -p $DATA_DIR
 

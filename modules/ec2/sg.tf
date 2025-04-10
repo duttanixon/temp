@@ -45,6 +45,7 @@ resource "aws_security_group" "app_server_sg" {
         to_port     = 0
         protocol    = "-1"
         description = "Allow all outbound traffic"
+        cidr_blocks = ["0.0.0.0/0"]
     }
 
     tags = {

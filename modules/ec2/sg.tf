@@ -39,6 +39,15 @@ resource "aws_security_group" "app_server_sg" {
         description = "Frontend HTTP access"
     }
 
+    # Backend access (HTTP)
+    ingress {
+        from_port   = 8000
+        to_port     = 8000
+        protocol    = "tcp"
+        cidr_blocks = var.allowed_service_cidrs
+        description = "Backend HTTP access"
+    }
+
     # Allow all outboud traffic
     egress {
         from_port   = 0

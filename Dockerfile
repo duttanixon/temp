@@ -15,6 +15,11 @@ RUN pip install --upgrade pip && \
 # Install any needed packages specified in Pipfile
 RUN pipenv install --deploy --ignore-pipfile
 
+# Create app_docker user and group
+RUN groupadd -r app_docker && \
+    useradd -r -g app_docker app_docker && \
+    mkdir -p /data && \
+    chown -R app_docker:app_docker /data
 
 COPY ./app /code/app
 

@@ -23,19 +23,19 @@ jobs:
     - name: Setup known_hosts
       run: |
         mkdir -p ~/.ssh
-        ssh-keyscan -H {{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
     
     - name: Create application directory
       run: |
-        ssh ubuntu@{{ secrets.EC2_HOST }} "mkdir -p ~/application"
+        ssh ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/application"
     
     - name: Deploy to EC2
       run: |
         # Copy project files to server
-        scp -r ./* ubuntu@{{ secrets.EC2_HOST }}:~/application
+        scp -r ./* ubuntu@${{ secrets.EC2_HOST }}:~/application
 
         # Connect to server and run deployment script
-        ssh ubuntu@{{ secrets.EC2_HOST }} << 'EOF'
+        ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
           cd application
           # Build and start Docker container
           docker build -t platform-backend:latest .

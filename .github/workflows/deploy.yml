@@ -28,21 +28,12 @@ jobs:
       run: |
         ssh ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/frontend-app"
     
-    - name: Generate version tag
-      id: version
-      run: |
-        # Generate a version tag based on timestamp and commit hash
-        VERSION=$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT"
-    
     - name: Deploy to EC2
-      env:
-        VERSION: ${{ steps.version.outputs.VERSION }}
       run: |
         # Create a tar of the source code
-        tar --exclude='node_modules' --exclude='.next' --exclude='.git' -czf app-source.tar.gz .
+        git archive --format=tar HEAD | gzip > app-source.tar.gz
 
-        # Copy the source code and Dockerfile
+        # Copy the source code to EC2
         scp app-source.tar.gz ubuntu@${{ secrets.EC2_HOST }}:~/frontend-app/
 
         # SSH into EC2 and deploy
@@ -53,8 +44,7 @@ jobs:
           tar -xzf app-source.tar.gz
 
           # Build the Docker image with version tag
-          docker build -t platform-frontend:${VERSION} .
-          docker tag platform-frontend:${VERSION} platform-frontend:latest
+          docker build -t platform-frontend:latest .
 
           # Stop and remove existing container if it exists
           docker stop platform-frontend || true
@@ -67,4 +57,3 @@ jobs:
           rm app-source.tar.gz
 
           EOF
-

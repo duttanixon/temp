@@ -37,7 +37,7 @@ jobs:
         scp app-source.tar.gz ubuntu@${{ secrets.EC2_HOST }}:~/frontend-app/
 
         # SSH into EC2 and deploy
-        ssh ubuntu@${{ secrets.EC2_HOST }} <<EOF
+        ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
           cd ~/frontend-app
           
           # Extract the source code
@@ -51,9 +51,8 @@ jobs:
           docker rm platform-frontend || true
 
           # Run the new container
-          docker run -d -name platform-frontend -p 3000:3000 --restart always platform-frontend
+          docker run -d --name platform-frontend -p 3000:3000 platform-frontend:latest
 
           # Clean up
           rm app-source.tar.gz
-
-          EOF
+        EOF

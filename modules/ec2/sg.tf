@@ -32,8 +32,8 @@ resource "aws_security_group" "app_server_sg" {
 
     # Frontend access (HTTP)
     ingress {
-        from_port   = 80
-        to_port     = 80
+        from_port   = 3000
+        to_port     = 3000
         protocol    = "tcp"
         cidr_blocks = var.allowed_service_cidrs
         description = "Frontend HTTP access"

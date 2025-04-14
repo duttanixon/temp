@@ -1,0 +1,70 @@
+name: Deploy to EC2
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [deploy]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+    
+    - name: Setup known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Create application directory
+      run: |
+        ssh ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/frontend-app"
+    
+    - name: Generate version tag
+      id: version
+      run: |
+        # Generate a version tag based on timestamp and commit hash
+        VERSION=$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT"
+    
+    - name: Deploy to EC2
+      env:
+        VERSION: ${{ steps.version.outputs.VERSION }}
+      run: |
+        # Create a tar of the source code
+        tar --exclude='node_modules' --exclude='.next' --exclude='.git' -czf app-source.tar.gz .
+
+        # Copy the source code and Dockerfile
+        scp app-source.tar.gz ubuntu@${{ secrets.EC2_HOST }}:~/frontend-app/
+
+        # SSH into EC2 and deploy
+        ssh ubuntu@${{ secrets.EC2_HOST }} <<EOF
+          cd ~/frontend-app
+          
+          # Extract the source code
+          tar -xzf app-source.tar.gz
+
+          # Build the Docker image with version tag
+          docker build -t platform-frontend:${VERSION} .
+          docker tag platform-frontend:${VERSION} platform-frontend:latest
+
+          # Stop and remove existing container if it exists
+          docker stop platform-frontend || true
+          docker rm platform-frontend || true
+
+          # Run the new container
+          docker run -d -name platform-frontend -p 3000:3000 --restart always platform-frontend
+
+          # Clean up
+          rm app-source.tar.gz
+
+          EOF
+

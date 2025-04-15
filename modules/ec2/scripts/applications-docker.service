@@ -1,0 +1,18 @@
+[Unit]
+Description=Application docker containers
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/ubuntu
+EnvironmentFile=/home/ubuntu/app-dockers.env
+ExecStartPre=/bin/bash -c 'chmod +x /home/ubuntu/run-dockers.sh /home/ubuntu/stop-dockers.sh'
+ExecStart=/home/ubuntu/run-dockers.sh
+ExecStop=/home/ubuntu/stop-dockers.sh
+User=ubuntu
+Group=docker
+
+[Install]
+WantedBy=multi-user.target

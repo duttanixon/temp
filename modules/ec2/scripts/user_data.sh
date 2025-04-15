@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+
 # Install necessary packages for Ubuntu
 sudo apt-get update
 sudo apt-get install -y curl unzip ca-certificates
@@ -29,7 +30,7 @@ sudo chmod a+r /etc/apt/keyrings/docker.asc
 # Add the repository to Apt sources:
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  $(. /etc/os-release && echo "$${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get update
 
@@ -46,29 +47,14 @@ newgrp docker
 echo "Mounting data volume..."
 DATA_DEVICE="/dev/nvme1n1"
 DATA_DIR="/opt/data"
-mkdir -p $DATA_DIR
+sudo mkdir -p $DATA_DIR
 
 # Wait for device to become available
 max_retries=10
 retry_count=0
-while [ ! -e $DATA_DEVICE ] && [ $retry_count -lt $max_retries ]; do
-  echo "Waiting for device $DATA_DEVICE to become available... ($retry_count/$max_retries)"
-  sleep 5
-  retry_count=$((retry_count+1))
-done
 
-if [ ! -e $DATA_DEVICE ]; then
-  echo "ERROR: Device $DATA_DEVICE did not become available after $max_retries retries"
-  exit 1
-fi
 
-# Check if the volume is already formatted
-if [ "$(file -s $DATA_DEVICE)" = "$DATA_DEVICE: data" ]; then
-  echo "Formatting data volume..."
-  mkfs -t xfs $DATA_DEVICE
-  # Wait for formatting to complete
-  sleep 5
-fi
+
 
 # Add to fstab for automatic mounting on reboot
 if ! grep -q "$DATA_DEVICE" /etc/fstab; then
@@ -92,17 +78,22 @@ fi
 echo "EBS volume successfully mounted at $DATA_DIR"
 
 # Create directory structure
-mkdir -p $DATA_DIR/postgres
-mkdir -p $DATA_DIR/keycloak
-mkdir -p $DATA_DIR/app/frontend
-mkdir -p $DATA_DIR/app/backend
-mkdir -p $DATA_DIR/nginx
+mkdir -p /opt/data/postgres
+mkdir -p /opt/data/keycloak
+mkdir -p /opt/data/app_docker
+
+
+
+# Create users with specific UIDs/GIDs if needed
+sudo useradd -r -s /bin/false postgres_docker
+sudo useradd -r -s /bin/false keycloak_docker
+sudo useradd -r -s /bin/false app_docker
 
 # Set correct permissions
-chown -R postgres:postgres $DATA_DIR/postgres
-chown -R ubuntu:ubuntu $DATA_DIR/keycloak
-chown -R ubuntu:ubuntu $DATA_DIR/app
-chown -R ubuntu:ubuntu $DATA_DIR/nginx
+sudo chown -R postgres_docker:postgres_docker /opt/data/database
+sudo chown -R keycloak_docker:keycloak_docker /opt/data/keycloak
+sudo chown -R app_docker:app_docker /opt/data/app
+
 
 
 # Add engineer SSH keys

@@ -47,8 +47,8 @@ jobs:
           docker build -t platform-frontend:latest .
 
           # Stop and remove existing container if it exists
-          docker stop platform-frontend || true
-          docker rm platform-frontend || true
+          docker stop platform-frontend-container || true
+          docker rm platform-frontend-container || true
 
           # Run the new container
           docker run -d --name platform-frontend -p 3000:3000 platform-frontend:latest

@@ -281,7 +281,7 @@ def test_suspend_customer(client: TestClient, db: Session, admin_token: str, cus
     # Check response
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "suspended"
+    assert data["status"] == "SUSPENDED"
     
     # Verify database update
     db.expire_all()
@@ -333,7 +333,7 @@ def test_activate_customer(client: TestClient, db: Session, admin_token: str, su
     # Check response
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "active"
+    assert data["status"] == "ACTIVE"
     
     # Verify database update
     db.expire_all()

@@ -39,11 +39,11 @@ def upgrade() -> None:
         sa.Column('password_hash', sa.String(), nullable=False),
         sa.Column('first_name', sa.String(), nullable=True),
         sa.Column('last_name', sa.String(), nullable=True),
-        sa.Column('role', sa.Enum('admin', 'engineer','auditor', 'customer_admin', 'customer_user', name='user_role'), nullable=False),
+        sa.Column('role', sa.Enum('ADMIN', 'ENGINEER','AUDITOR', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', name='user_role'), nullable=False),
         sa.Column('last_login', sa.DateTime(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('status', sa.Enum('active', 'inactive', 'suspended', name='user_status'), nullable=False, server_default='active'),
+        sa.Column('status', sa.Enum('ACTIVE', 'INACTIVE', 'SUSPENDED', name='user_status'), nullable=False, server_default='ACTIVE'),
         sa.ForeignKeyConstraint(['customer_id'], ['customers.customer_id'], ),
         sa.PrimaryKeyConstraint('user_id')
     )

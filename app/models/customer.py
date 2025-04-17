@@ -12,9 +12,9 @@ def jst_now():
     return datetime.now(ZoneInfo("Asia/Tokyo"))
 
 class CustomerStatus(str, enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    SUSPENDED = "suspended"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    SUSPENDED = "SUSPENDED"
 
 class Customer(Base):
     __tablename__ = "customers"

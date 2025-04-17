@@ -15,17 +15,17 @@ def jst_now():
 
 
 class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    ENGINEER = "engineer"
-    AUDITOR = "auditor"
-    CUSTOMER_ADMIN = "customer_admin"
-    CUSTOMER_USER = "customer_user"
+    ADMIN = "ADMIN"
+    ENGINEER = "ENGINEER"
+    AUDITOR = "AUDITOR"
+    CUSTOMER_ADMIN = "CUSTOMER_ADMIN"
+    CUSTOMER_USER = "CUSTOMER_USER"
 
 
 class UserStatus(str, enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    SUSPENDED = "suspended"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    SUSPENDED = "SUSPENDED"
 
 class User(Base):
     __tablename__ = "users"

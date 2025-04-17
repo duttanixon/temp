@@ -16,7 +16,6 @@ from app.crud.user import user as user_crud
 # Test cases for current user endpoint (GET /users/me)
 def test_read_user_me(client: TestClient, customer_user_token: str, customer_user: User):
     """Test getting current user information"""
-    print("test_read_user_me")
     response = client.get(
         f"{settings.API_V1_STR}/users/me",
         headers={"Authorization": f"Bearer {customer_user_token}"}
@@ -201,7 +200,7 @@ def test_create_user_admin(client: TestClient, db: Session, admin_token: str, cu
             "password": "newuserpassword",
             "first_name": "New",
             "last_name": "User",
-            "role": "customer_user",
+            "role": "CUSTOMER_USER",
             "customer_id": str(customer.customer_id)
         }
         
@@ -241,7 +240,7 @@ def test_create_user_existing_email(client: TestClient, admin_token: str, custom
         "password": "newpassword",
         "first_name": "Duplicate",
         "last_name": "User",
-        "role": "customer_user"
+        "role": "CUSTOMER_USER"
     }
     
     response = client.post(
@@ -286,7 +285,7 @@ def test_update_user_admin(client: TestClient, db: Session, admin_token: str, cu
     update_data = {
         "first_name": "Admin",
         "last_name": "Updated",
-        "role": "customer_admin"  # Change role
+        "role": "CUSTOMER_ADMIN"  # Change role
     }
     
     response = client.put(
@@ -324,7 +323,7 @@ def test_suspend_user(client: TestClient, db: Session, admin_token: str, custome
     # Check response
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "suspended"
+    assert data["status"] == "SUSPENDED"
     
     # Verify database update
     db.expire_all()
@@ -362,7 +361,7 @@ def test_activate_user(client: TestClient, db: Session, admin_token: str, suspen
     # Check response
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "active"
+    assert data["status"] == "ACTIVE"
     
     # Verify database update
     db.expire_all()
@@ -421,7 +420,7 @@ def test_create_customer_user(client: TestClient, db: Session, customer_admin_to
         "password": "password123",
         "first_name": "New",
         "last_name": "Customer User",
-        "role": "customer_user"
+        "role": "CUSTOMER_USER"
     }
         
     response = client.post(
@@ -458,7 +457,7 @@ def test_create_customer_admin_role(client: TestClient, customer_admin_token: st
         "password": "password123",
         "first_name": "New",
         "last_name": "Customer Admin",
-        "role": "customer_admin"
+        "role": "CUSTOMER_ADMIN"
     }
     
     response = client.post(
@@ -470,7 +469,7 @@ def test_create_customer_admin_role(client: TestClient, customer_admin_token: st
     # Check response - should succeed
     assert response.status_code == 200
     data = response.json()
-    assert data["role"] == "customer_admin"
+    assert data["role"] == "CUSTOMER_ADMIN"
 
 def test_create_admin_role_as_customer_admin(client: TestClient, customer_admin_token: str, customer: User):
     """Test customer admin attempting to create a system admin"""
@@ -479,7 +478,7 @@ def test_create_admin_role_as_customer_admin(client: TestClient, customer_admin_
         "password": "password123",
         "first_name": "New",
         "last_name": "System Admin",
-        "role": "admin"  # Not allowed for customer_admin to create
+        "role": "ADMIN"  # Not allowed for customer_admin to create
     }
     
     response = client.post(
@@ -501,7 +500,7 @@ def test_create_user_different_customer(client: TestClient, customer_admin_token
         "password": "password123",
         "first_name": "Different",
         "last_name": "Customer",
-        "role": "customer_user"
+        "role": "CUSTOMER_USER"
     }
     
     response = client.post(

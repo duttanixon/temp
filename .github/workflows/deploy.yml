@@ -29,6 +29,15 @@ jobs:
       run: |
         ssh ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/application"
     
+    - name : Create .env file
+      run: |
+        ssh ubuntu@${{ secrets.EC2_HOST }} "cat > ~/application/.env << 'EOL'
+        API_V1_STR=/api/v1
+        ALGORITHM=HS256
+        ACCESS_TOKEN_EXPIRE_MINUTES=30
+        DATABASE_URL=${{ secrets.DATABASE_URL }}
+        EOL"
+
     - name: Deploy to EC2
       run: |
         # Copy project files to server
@@ -48,6 +57,7 @@ jobs:
           docker run -d --name platform-backend-container \
             -p 8000:80 \
             -v /opt/data/app_docker:/data \
+            -v /home/ubuntu/application/.env:/code/.env \
             --user app_docker \
             platform-backend:latest
           echo "Deployment completed successfully!"

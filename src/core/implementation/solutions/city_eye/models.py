@@ -64,3 +64,43 @@ class TrafficResult(Base):
             "is_synced": self.is_synced,
             "is_processing": self.is_processing
         }
+
+class TestResult(Base):
+    """Model for storing test results with aggregated counts by video file"""
+
+    __tablename__ = 'test_result'
+
+    id = Column(String(36), primary_key = True, default=lambda : str(uuid.uuid4()))
+    video_file_name = Column(String, nullable=False, unique=True)
+    total_count = Column(Integer, default=0)
+    male_young = Column(Integer, default=0)
+    female_young =  Column(Integer, default=0)
+    male_middle = Column(Integer, default=0)
+    female_middle = Column(Integer, default=0) 
+    male_senior = Column(Integer, default=0)
+    female_senior = Column(Integer, default=0)
+    male_silver = Column(Integer, default=0)
+    female_silver = Column(Integer, default=0)
+
+    def __repr__(self):
+        return f"<TestResult(id={self.id}, video_file={self.video_file_name}, total={self.total_count})>"
+    
+    def to_dict(self):
+        """Convert the model to a dictionary for serialization"""
+        return {
+            "id": self.id,
+            "video_file_name": self.video_file_name,
+            "total_count": self.total_count,
+            "male_count": self.male_young + self.male_middle +  self.male_senior + self.male_silver,
+            "female_count": self.female_young + self.female_middle +  self.female_senior + self.female_silver,
+            "male_young": self.male_young,
+            "female_young": self.female_young,
+            "male_middle": self.male_middle,
+            "female_middle": self.female_middle,
+            "male_senior": self.male_senior,
+            "female_senior":self.female_senior,
+            "male_silver": self.male_silver,
+            "female_silver": self.female_silver
+        }
+
+    

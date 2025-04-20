@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # TAPPAS CORE Definitions
-CORE_VENV_NAME="flow_eye_venv"
+CORE_VENV_NAME="city_eye_venv"
 CORE_REQUIRED_VERSION=("3.30.0" "3.31.0")
 
 # TAPPAS Definitions

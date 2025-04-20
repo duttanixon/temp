@@ -51,6 +51,37 @@ class CityEyeSolution(ISolution):
         self.output_handler = output_handler
         self.use_frame = config.get("use_frame", True)
 
+        # Check if running in test mode
+        self.test_mode = config.get("test", False)
+        self.test_counts = {
+            "total": 0,
+            "male_young": 0,
+            "female_young": 0,
+            "male_middle": 0,
+            "female_middle": 0,
+            "male_senior": 0,
+            "female_senior": 0,
+            "male_silver": 0,
+            "female_silver": 0
+        }
+
+        # Get the video file name if in test mode
+        if self.test_mode:
+            input_props = input_source.get_properties()
+            if input_props.get("type") == "file":
+                self.video_file_name = os.path.basename(input_props.get("path", "unknown"))
+                logger.info(
+                    "Running in test mode",
+                    context={"video_file": self.video_file_name},
+                    component="CityEyeSolution"
+                )
+            else:
+                logger.warning(
+                    "Test mode is enabled but input is not a file",
+                    component="CityEyeSolution"
+                )
+                self.video_file_name = "live_feed"            
+
         # Initialize input source
         try:
             logger.debug("Initaizing input source", component="CityEyeSolution")
@@ -260,6 +291,12 @@ class CityEyeSolution(ISolution):
                         gender=gender,
                         age=age
                     )
+                    # Update test counts if in test mode
+                    if self.test_mode:
+                        self.test_counts["total"] += 1
+                        # Update the combined gender-age counter
+                        gender_age_key = f"{gender}_{age}"
+                        self.test_counts[gender_age_key] += 1
     
                 session.add(item)
             except Exception as e:
@@ -271,6 +308,62 @@ class CityEyeSolution(ISolution):
                 )
                 session.rollback()
 
+    def _update_test_results(self) -> None:
+        """
+        Update test results in database when in test mode.
+        Called during cleanup to ensure final counts are stored.
+        """
+        if not self.test_mode or self.test_counts["total"] == 0:
+            return
+        
+        try:
+            logger.info(
+                "Updating test results",
+                context={
+                    "video_file": self.video_file_name,
+                    "total_count": self.test_counts["total"]
+                },
+                component="CityEyeSolution"
+            )            
+
+            with self.db_manager.session_scope() as session:
+                # Check if entry already exists for this video file
+                existing = session.query(TestResult).filter_by(
+                    video_file_name=self.video_file_name
+                ).first()
+                
+                if existing:
+                    # Update existing record
+                    existing.total_count = self.test_counts["total"]
+                    existing.male_young = self.test_counts["male_young"]
+                    existing.female_young = self.test_counts["female_young"]
+                    existing.male_middle = self.test_counts["male_middle"]
+                    existing.female_middle = self.test_counts["female_middle"]
+                    existing.male_senior = self.test_counts["male_senior"]
+                    existing.female_senior = self.test_counts["female_senior"]
+                    existing.male_silver = self.test_counts["male_silver"]
+                    existing.female_silver = self.test_counts["female_silver"]
+                else:
+                    # Create new record
+                    test_result = TestResult(
+                        video_file_name=self.video_file_name,
+                        total_count=self.test_counts["total"],
+                        male_young=self.test_counts["male_young"],
+                        female_young=self.test_counts["female_young"],
+                        male_middle=self.test_counts["male_middle"],
+                        female_middle=self.test_counts["female_middle"],
+                        male_senior=self.test_counts["male_senior"],
+                        female_senior=self.test_counts["female_senior"],
+                        male_silver=self.test_counts["male_silver"],
+                        female_silver=self.test_counts["female_silver"]
+                    )
+                    session.add(test_result)
+        except Exception as e:
+            logger.error(
+                "Error updating test results",
+                exception=e,
+                component="CityEyeSolution"
+            )
 
 
     def increment_counters(self, counter_type) -> None:
@@ -307,6 +400,10 @@ class CityEyeSolution(ISolution):
         Stops background threads and closes connections.
         """
         logger.info("Cleaning up CityEyeSolution resources", component="CityEyeSolution")
+
+        # If in test mode, update test results in database
+        if self.test_mode:
+            self._update_test_results()
 
         # Stop running flag to terminate background threads
         self.running = False

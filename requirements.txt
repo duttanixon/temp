@@ -8,3 +8,5 @@ SQLAlchemy
 awscrt
 awsiotsdk
 ruff
+pandas
+shapely

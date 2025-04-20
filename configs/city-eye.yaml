@@ -27,6 +27,7 @@ solution:
     sqlite_base_dir: /opt/db
     sync_batch_size: 100
     sync_interval_seconds: 10
+    test: true
 
 
 

@@ -13,7 +13,11 @@ from app.schemas.customer import (
 )
 
 from app.utils.audit import log_action
+from app.utils.logger import get_logger
 import uuid
+
+# Initialize logger
+logger = get_logger("api.customers")
 
 router = APIRouter()
 
@@ -42,14 +46,17 @@ def create_customer(
     """
     Create new customer (admin only)
     """
+    logger.info(f"Creating new customer: {customer_in.name} by user: {current_user.email} (ID: {current_user.user_id})")
     existing_customer = customer.get_by_name(db, name=customer_in.name)
     if existing_customer:
+        logger.warning(f"Customer creation failed - name already exists: {customer_in.name}")
         raise HTTPException(
             status_code=400,
             detail="A customer with this name already exists in the system",
         )
     
     new_customer = customer.create(db, obj_in=customer_in)
+    logger.info(f"Customer created successfully: {new_customer.name} (ID: {new_customer.customer_id})")
     
     # Log customer creation
     log_action(

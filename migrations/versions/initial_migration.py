@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column('address', sa.String(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('status', sa.Enum('active', 'inactive', 'suspended', name='customer_status'), nullable=False, server_default='active'),
+        sa.Column('status', sa.Enum('ACTIVE', 'INACTIVE', 'SUSPENDED', name='customer_status'), nullable=False, server_default='ACTIVE'),
         sa.PrimaryKeyConstraint('customer_id')
     )
 

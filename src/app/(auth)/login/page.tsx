@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
-import { toast, Toaster } from "sonner"; // sonnerから直接toastをインポート
 import '@/app/globals.css';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast, Toaster } from "sonner"; // sonnerから直接toastをインポート
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,7 +29,8 @@ export default function LoginPage() {
       formData.append('client_id', 'string');
       formData.append('client_secret', 'string');
 
-      const loginResponse = await fetch("http://54.168.126.215:8000/api/v1/auth/login", {
+      const loginUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/login`
+      const loginResponse = await fetch(loginUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -54,18 +55,20 @@ export default function LoginPage() {
       // トークンを localStorage に保存
       localStorage.setItem('accessToken', accessToken);
 
-      const response = await fetch("http://54.168.126.215:8000/api/v1/users", {
+      const myProfileUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/users/me` 
+      const myProfileResponse = await fetch(myProfileUrl, {
         headers: {
           'accept': 'application/json',
           'Authorization': `Bearer ${accessToken}`, // Bearerトークンを使用
         }
       });
       
-      if (!response.ok) {
+      if (!myProfileResponse.ok) {
         throw new Error("ユーザー情報の取得に失敗しました");
       }
 
-      const users = await response.json();
+      const myProfile = await myProfileResponse.json();
+      console.log("ユーザープロフィール:", myProfile);
       
       // 成功トーストを表示
       toast.success("ログイン成功", {

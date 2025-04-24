@@ -8,7 +8,7 @@ import { useState } from "react";
 import axios from "axios";
 import { cva } from "class-variance-authority";
 
-export const tagVariants = cva("text-sm font-normal text-[#7F8C8D]", {
+export const tabVariants = cva("text-sm font-normal text-[#7F8C8D] h-full", {
   variants: {
     state: {
       active:
@@ -122,18 +122,13 @@ export const CustomerForm = () => {
   const handleCreate = async () => {
     localStorage.removeItem("accessToken"); // トークンリセット
     localStorage.setItem("tokenResetDone", "true"); // フラグを立てる
+    // アクセストークンを持っているかの検証だが、上記のトークンリセットでトークンは消えているので、必ずトークンを取得する
     try {
       let token = localStorage.getItem("accessToken") || "";
       console.log("アクセストークン", token);
       if (!token) {
         token = await fetchAccessToken();
         console.log("アクセストークン", token);
-        if (!token) {
-          setErrorMessage(
-            "アクセストークンが見つかりません。ログインしてください。"
-          );
-          return;
-        }
         localStorage.setItem("accessToken", token);
       }
       await createCustomer(token);
@@ -144,37 +139,35 @@ export const CustomerForm = () => {
     }
   };
   return (
-    <div className="bg-[#FFFFFF] border border-[#BDC3C7] rounded w-full h-[577.8px]">
+    <div className="bg-[#FFFFFF] border border-[#BDC3C7] rounded w-full h-full">
       <Tabs defaultValue="basic">
         <TabsList className="bg-[#FFFFFF] border-b-2 border-[#ECF0F1] rounded mb-4 space-x-2 w-full h-[44.4px] shadow-none">
-          <TabsTrigger value="basic" className={tagVariants()}>
-            Basic Info
+          <TabsTrigger value="basic" className={tabVariants()}>
+            基本情報
           </TabsTrigger>
-          <TabsTrigger value="contact" className={tagVariants()}>
-            Contact
+          <TabsTrigger value="contact" className={tabVariants()}>
+            連絡先
           </TabsTrigger>
-          <TabsTrigger value="subscription" className={tagVariants()}>
-            Subscription
+          <TabsTrigger value="subscription" className={tabVariants()}>
+            サブスクリプション
           </TabsTrigger>
-          <TabsTrigger value="users" className={tagVariants()}>
-            Users
+          <TabsTrigger value="users" className={tabVariants()}>
+            ユーザー
           </TabsTrigger>
-          <TabsTrigger value="solutions" className={tagVariants()}>
-            Solutions
+          <TabsTrigger value="solutions" className={tabVariants()}>
+            ソリューション
           </TabsTrigger>
-          <TabsTrigger value="settings" className={tagVariants()}>
-            Settings
+          <TabsTrigger value="settings" className={tabVariants()}>
+            設定
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="basic" className="space-y-4 p-4">
-          <h2 className="text-[#2C3E50] font-bold text-lg">
-            Company Information
-          </h2>
+        <TabsContent value="basic" className="space-y-4 pl-8">
+          <h2 className="text-[#2C3E50] font-bold text-lg">会社情報</h2>
           <div className="flex flex-col gap-5 pt-4">
-            <div>
+            <>
               <Label htmlFor="companyName" className={labelStyle()}>
-                Company Name *
+                会社名 *
               </Label>
               <Input
                 className={inputStyle()}
@@ -182,10 +175,10 @@ export const CustomerForm = () => {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
               />
-            </div>
-            <div>
+            </>
+            <>
               <Label htmlFor="email" className={labelStyle()}>
-                Contact Email *
+                連絡先メール *
               </Label>
               <Input
                 className={inputStyle()}
@@ -193,10 +186,10 @@ export const CustomerForm = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
-            <div>
+            </>
+            <>
               <Label htmlFor="address" className={labelStyle()}>
-                Address
+                住所
               </Label>
               <Input
                 className={inputStyle()}
@@ -204,31 +197,32 @@ export const CustomerForm = () => {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
-            </div>
+            </>
           </div>
-          <div className="py-30">
-            <div className="flex gap-2 pt-4">
+          <div className="pt-30 pb-10">
+            <div className="flex gap-2 text-sm">
               <Button
                 className="w-[140px] bg-[#27AE60] hover:bg-[#27AE60] active:bg-[#27AE60] focus:bg-[#27AE60] text-[#FFFFFF]"
                 variant="default"
                 onClick={handleCreate}
               >
-                Create
+                作成
               </Button>
               <Button
                 className="w-[140px] bg-[#BDC3C7] hover:bg-[#BDC3C7] active:bg-[#BDC3C7] focus:bg-[#BDC3C7] focus:text-[#7F8C8D]"
                 variant="outline"
                 disabled
               >
-                Cancel
+                キャンセル
               </Button>
               <Button
                 className="w-[250px] bg-[#3498DB] hover:bg-[#3498DB] active:bg-[#3498DB] focus:bg-[#3498DB] text-[#FFFFFF]"
                 variant="secondary"
                 disabled
               >
-                Create & Configure Solutions
+                作成 & ソリューション設定
               </Button>
+              <p className="p-5 text-[#7F8C8D]">* 必須項目</p>
             </div>
             {completedMessage && !errorMessage && (
               <Message message={completedMessage} type="success" />

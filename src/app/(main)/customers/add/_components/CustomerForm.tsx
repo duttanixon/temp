@@ -7,6 +7,29 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState } from "react";
 import axios from "axios";
 import { cva } from "class-variance-authority";
+import { FC } from "react";
+
+type FormFieldProps = {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+};
+export const FormField: FC<FormFieldProps> = ({
+  id,
+  label,
+  value,
+  onChange,
+  required = false,
+}) => (
+  <div className="flex flex-col gap-2">
+    <Label htmlFor={id} className={labelStyle()}>
+      {label} {required && "*"}
+    </Label>
+    <Input className={inputStyle()} id={id} value={value} onChange={onChange} />
+  </div>
+);
 
 export const tabVariants = cva("text-sm font-normal text-[#7F8C8D] h-full", {
   variants: {
@@ -167,39 +190,26 @@ export const CustomerForm = () => {
         <TabsContent value="basic" className="space-y-4 pl-8">
           <h2 className="text-[#2C3E50] font-bold text-lg">会社情報</h2>
           <div className="flex flex-col gap-5 pt-4">
-            <>
-              <Label htmlFor="companyName" className={labelStyle()}>
-                会社名 *
-              </Label>
-              <Input
-                className={inputStyle()}
-                id="companyName"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-              />
-            </>
-            <>
-              <Label htmlFor="email" className={labelStyle()}>
-                連絡先メール *
-              </Label>
-              <Input
-                className={inputStyle()}
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </>
-            <>
-              <Label htmlFor="address" className={labelStyle()}>
-                住所
-              </Label>
-              <Input
-                className={inputStyle()}
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-            </>
+            <FormField
+              id="companyName"
+              label="会社名"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              required
+            />
+            <FormField
+              id="email"
+              label="メールアドレス"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <FormField
+              id="address"
+              label="住所"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
           </div>
           <div className="pt-30 pb-10">
             <div className="flex gap-2 text-sm">
@@ -224,7 +234,7 @@ export const CustomerForm = () => {
               >
                 作成 & ソリューション設定
               </Button>
-              <p className="p-5 text-[#7F8C8D]">* 必須項目</p>
+              <span className="p-5 text-[#7F8C8D]">* 必須項目</span>
             </div>
             {completedMessage && !errorMessage && (
               <Message message={completedMessage} type="success" />

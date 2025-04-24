@@ -29,7 +29,7 @@ export const CustomerForm = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [completedMessage, setCompletedMessage] = useState("");
   const password = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "";
-
+  // 顧客作成可否のメッセージを表示
   const Message = ({
     message,
     type,
@@ -47,7 +47,7 @@ export const CustomerForm = () => {
       </div>
     );
   };
-
+  // フォームのリセットを行う関数
   const resetFormAfterDelay = (delay: number = 2000) => {
     setTimeout(() => {
       setCompanyName("");
@@ -57,7 +57,7 @@ export const CustomerForm = () => {
       setErrorMessage("");
     }, delay);
   };
-
+  // アクセストークンを取得する関数
   const fetchAccessToken = async () => {
     const formData = new URLSearchParams();
     formData.append("grant_type", "password");
@@ -82,6 +82,7 @@ export const CustomerForm = () => {
       throw new Error(detail);
     }
   };
+  // 顧客データ作成APIを呼び出す関数
   const createCustomer = async (token: string) => {
     const customerPayload = {
       name: companyName,
@@ -103,7 +104,7 @@ export const CustomerForm = () => {
       resetFormAfterDelay(2000);
     } catch (error: any) {
       console.error("Registration error:", error);
-      setCompletedMessage(""); // Clear success message on error
+      setCompletedMessage("");
       const detail = error.response?.data?.detail || "";
       console.error("登録エラー詳細:", error.response?.data);
       setErrorMessage(
@@ -119,9 +120,10 @@ export const CustomerForm = () => {
     }
     resetFormAfterDelay(2000);
   };
+  // 作成ボタン押下時の処理
   const handleCreate = async () => {
-    localStorage.removeItem("accessToken"); // トークンリセット
-    localStorage.setItem("tokenResetDone", "true"); // フラグを立てる
+    localStorage.removeItem("accessToken");
+    localStorage.setItem("tokenResetDone", "true");
     // アクセストークンを持っているかの検証だが、上記のトークンリセットでトークンは消えているので、必ずトークンを取得する
     try {
       let token = localStorage.getItem("accessToken") || "";

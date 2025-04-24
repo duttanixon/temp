@@ -34,7 +34,7 @@ export default function LoginPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "accept": "application/json",
+
         },
         body: formData.toString()
       });
@@ -62,14 +62,14 @@ export default function LoginPage() {
           'Authorization': `Bearer ${accessToken}`, // Bearerトークンを使用
         }
       });
-      
+
       if (!myProfileResponse.ok) {
         throw new Error("ユーザー情報の取得に失敗しました");
       }
 
       const myProfile = await myProfileResponse.json();
       console.log("ユーザープロフィール:", myProfile);
-      
+
       // 成功トーストを表示
       toast.success("ログイン成功", {
           description: "ダッシュボードにリダイレクトします",

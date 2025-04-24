@@ -6,6 +6,7 @@ import Link from 'next/link'
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { name: 'My Devices', icon: Database, href: '/devices' },
+  { name: 'Customers', icon: Database, href: '/customers/add' },
   { name: 'Analytics', icon: BarChart2, href: '/analytics' },
   { name: 'Alerts', icon: AlertCircle, href: '/alerts' },
   { name: 'Support', icon: HeadphonesIcon, href: '/support' },
@@ -20,7 +21,7 @@ export function Sidebar() {
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon
-            
+
             return (
               <Link
                 key={item.name}

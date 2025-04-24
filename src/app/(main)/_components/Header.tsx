@@ -6,7 +6,7 @@ export function Header() {
   return (
     <header className="bg-[#2C3E50] text-white px-4 py-2 flex items-center justify-between">
       <h1 className="text-lg font-semibold">IoT Edge Device Portal</h1>
-      
+
       <div className="flex items-center gap-4">
         {/* <Button variant="ghost" size="icon" className="text-white hover:bg-slate-700">
           <Bell className="h-5 w-5" />

@@ -2,9 +2,29 @@ from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
 from app.models import customer
+from app.schemas.customer import Customer
 from pydantic import BaseModel, EmailStr
 
 from app.models.user import UserRole, UserStatus 
+
+# Enhanced User Schema with Customer details
+class UserWithCustomerSchema(BaseModel):
+    user_id: UUID
+    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    role: Optional[UserRole] = None
+    status: Optional[UserStatus] = None
+    customer_id: Optional[UUID] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
+    # Include full customer information
+    customer: Optional[Customer] = None
+
+    class Config:
+        from_attributes = True
+
 
 # Base User Schema (shared properties)
 class UserBase(BaseModel):

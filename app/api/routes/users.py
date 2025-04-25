@@ -251,7 +251,12 @@ def create_user(
     
     return new_user
 
-@router.get("/{user_id}", response_model=UserAdminView)
+@router.get(
+        "/{user_id}", response_model=UserAdminView,
+        responses={
+            403: {"description": "Not enough privileges"},
+            404: {"description": "User not found"}
+    })
 def read_user_by_id(
     user_id: uuid.UUID,
     db: Session = Depends(deps.get_db),
@@ -278,7 +283,7 @@ def read_user_by_id(
         if db_user.customer_id != current_user.customer_id:
             raise HTTPException(
                 status_code=403,
-                detail="Not authorized to access users from other customers",
+                detail="Not enough privileges",
             )
         return db_user
     # Other roles don't have access

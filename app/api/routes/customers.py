@@ -35,7 +35,14 @@ def read_customers(
     return customers
 
 
-@router.post("", response_model=CustomerAdminView)
+@router.post(
+        "",
+        response_model=CustomerAdminView,
+        responses={
+            400: {"description": "Bad Request - Customer already exists"},
+            403: {"description": "Forbidden - Not enough privileges"}
+        }
+)
 def create_customer(
     *,
     db: Session = Depends(deps.get_db),
@@ -52,7 +59,7 @@ def create_customer(
         logger.warning(f"Customer creation failed - name already exists: {customer_in.name}")
         raise HTTPException(
             status_code=400,
-            detail="A customer with this name already exists in the system",
+            detail="Customer already exists",
         )
     
     new_customer = customer.create(db, obj_in=customer_in)

@@ -73,7 +73,7 @@ def get_current_admin_user(
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
+            detail="Not enough privileges"
         )
     return current_user
 
@@ -83,7 +83,7 @@ def get_current_admin_or_engineer_user(
     if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
+            detail="Not enough privileges"
         )
     return current_user
 
@@ -93,6 +93,6 @@ def get_current_customer_admin_user(
     if current_user.role != UserRole.CUSTOMER_ADMIN and current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
+            detail="Not enough privileges"
         )
     return current_user

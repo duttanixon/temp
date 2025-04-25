@@ -12,6 +12,7 @@ from app.schemas.user import (
     UserUpdate,
     UserPasswordChange,
     UserAdminView,
+    UserWithCustomerSchema
 )
 from app.utils.audit import log_action
 from app.utils.email import send_welcome_email
@@ -28,14 +29,24 @@ def generate_password() -> str:
     return ''.join(secrets.choice(alphabet) for i in range(12))
 
 
-@router.get("/me", response_model=UserSchema)
+@router.get("/me", response_model=UserWithCustomerSchema)
 def read_user_me(
+    db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get current user
+    Get current user with their organization details (if applicable)
     """
-    return current_user
+    # Create a dictionary to hold the user data and customer info
+    result = {
+        **jsonable_encoder(current_user),
+        "customer": None
+    }
+    if current_user.customer_id:
+        customer_obj = customer.get_by_id(db, customer_id=current_user.customer_id)
+        if customer_obj:
+            result["customer"] = jsonable_encoder(customer_obj)
+    return result
 
 @router.put("/me", response_model=UserSchema)
 def update_user_me(
@@ -105,25 +116,91 @@ def read_users(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(deps.get_current_admin_user),
+    customer_id: Optional[uuid.UUID] = None,
+    current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Retrieve users (admin only)
+    Retrieve users
+    - For admins and engineers: All users or filtered by customer_id if provided
+    - For customer admins: Only users from their own customer
+    - For regular users: Not accessible
     """
-    users = user.get_multi(db, skip=skip, limit=limit)
-    return users
+    # Admin and Engineer can see all users or filter by customer
+    if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if customer_id:
+            # Verify the customer exists
+            db_customer = customer.get_by_id(db, customer_id=customer_id)
+            if not db_customer:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Customer not found",
+                )
+            return user.get_by_customer(db, customer_id=customer_id)
+        else:
+            return user.get_multi(db, skip=skip, limit=limit)
+        
+    # Customer admins can only see users from their customer
+    elif current_user.role == UserRole.CUSTOMER_ADMIN:
+        # If customer_id is provided, ensure it matches their own customer
+        if customer_id and current_user.customer_id != customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access users from other customers",
+            )
+        return user.get_by_customer(db, customer_id=current_user.customer_id)
+
+    # Other users don't have access
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail="Not enough privileges",
+        )
 
 @router.post("", response_model=UserAdminView)
 def create_user(
     *,
     db: Session = Depends(deps.get_db),
     user_in: UserCreate,
-    current_user: User = Depends(deps.get_current_admin_user),
+    current_user: User = Depends(deps.get_current_active_user),
     request: Request,
+    customer_id: Optional[uuid.UUID] = None,
 ) -> Any:
     """
-    Create new user (admin only)
+    Create new user.
+    - For admins: Can create any user type for any customer
+    - For customer admins: Can only create users for their own customer with limited roles
+    - For regular users: Not accessible
     """
+    # Check user's role for permissions
+    if current_user.role == UserRole.ADMIN:
+        # Admin can create any user
+        effective_customer_id = user_in.customer_id or customer_id
+        
+    elif current_user.role == UserRole.CUSTOMER_ADMIN:
+        # Customer admin can only create users for their own customer
+        effective_customer_id = current_user.customer_id
+        
+        # Ensure they're not trying to create users for other customers
+        if user_in.customer_id and user_in.customer_id != current_user.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to create users for other customers",
+            )
+
+        # Customer admin can only create customer users or customer admins
+        if user_in.role not in [UserRole.CUSTOMER_USER, UserRole.CUSTOMER_ADMIN]:
+            raise HTTPException(
+                status_code=403,
+                detail="Customer admins can only create customer users or customer admins",
+            )
+    else:
+        # Other roles don't have access
+        raise HTTPException(
+            status_code=403,
+            detail="Not enough privileges",
+        )
+
+    # Check if user already exists
     existing_user = user.get_by_email(db, email=user_in.email)
     if existing_user:
         raise HTTPException(
@@ -131,24 +208,25 @@ def create_user(
             detail="The user with this email already exists in the system",
         )
     
-    # If customer_id is provided, ensure it exists
-    if user_in.customer_id:
-        db_customer = customer.get_by_id(db, customer_id=user_in.customer_id)
+    # Set customer ID if provided
+    if effective_customer_id:
+        # Verify customer exists
+        db_customer = customer.get_by_id(db, customer_id=effective_customer_id)
         if not db_customer:
             raise HTTPException(
                 status_code=404,
                 detail="The customer with this ID does not exist",
             )
+        user_in.customer_id = effective_customer_id
     
     # If password not provided, generate one
+    should_send_email = False
     if not hasattr(user_in, 'password') or not user_in.password:
         password = generate_password()
         user_in.password = password
         should_send_email = True
-        print("here "*30)
-    else:
-        should_send_email = False
-    
+
+    # Create the user
     new_user = user.create(db, obj_in=user_in)
     
     # Send welcome email with generated password
@@ -166,6 +244,7 @@ def create_user(
         action_type="USER_CREATE",
         resource_type="USER",
         resource_id=str(new_user.user_id),
+        details={"customer_id": str(new_user.customer_id) if new_user.customer_id else None},
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
     )
@@ -176,10 +255,13 @@ def create_user(
 def read_user_by_id(
     user_id: uuid.UUID,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_admin_user),
+    current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get a specific user by id (admin only)
+    Get a specific user by id.
+    - For admins: Can access any user
+    - For customer admins: Can only access users from their own customer
+    - For regular users: Not accessible
     """
     db_user = user.get_by_id(db, user_id=user_id)
     if not db_user:
@@ -187,7 +269,24 @@ def read_user_by_id(
             status_code=404,
             detail="User not found",
         )
-    return db_user
+    # Admins can see any user
+    if current_user.role == UserRole.ADMIN:
+        return db_user
+    
+    # Customer admins can only see users from their customer
+    elif current_user.role == UserRole.CUSTOMER_ADMIN:
+        if db_user.customer_id != current_user.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access users from other customers",
+            )
+        return db_user
+    # Other roles don't have access
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail="Not enough privileges",
+        )
 
 @router.put("/{user_id}", response_model=UserAdminView)
 def update_user(
@@ -195,11 +294,14 @@ def update_user(
     db: Session = Depends(deps.get_db),
     user_id: uuid.UUID,
     user_in: UserUpdate,
-    current_user: User = Depends(deps.get_current_admin_user),
+    current_user: User = Depends(deps.get_current_active_user),
     request: Request,
 ) -> Any:
     """
-    Update a user (admin only)
+    Update a user.
+    - For admins: Can update any user
+    - For customer admins: Can only update users from their own customer with limited roles
+    - For regular users: Not accessible
     """
     db_user = user.get_by_id(db, user_id=user_id)
     if not db_user:
@@ -207,16 +309,49 @@ def update_user(
             status_code=404,
             detail="User not found",
         )
-    
-    # If customer_id is provided, ensure it exists
-    if user_in.customer_id:
-        db_customer = customer.get_by_id(db, customer_id=user_in.customer_id)
-        if not db_customer:
+
+    # Check permissions based on role
+    if current_user.role == UserRole.ADMIN or current_user.role == UserRole.ENGINEER:
+        # Admins can update any user
+        if user_in.customer_id:
+            # If customer_id is being changed, verify it exists
+            db_customer = customer.get_by_id(db, customer_id=user_in.customer_id)
+            if not db_customer:
+                raise HTTPException(
+                    status_code=404,
+                    detail="The customer with this ID does not exist",
+                )
+
+    elif current_user.role == UserRole.CUSTOMER_ADMIN:
+        # Customer admins can only update users from their own customer
+        if db_user.customer_id != current_user.customer_id:
             raise HTTPException(
-                status_code=404,
-                detail="The customer with this ID does not exist",
+                status_code=403,
+                detail="Not authorized to update users from other customers",
+            )
+
+        # Customer admins can't change user's customer
+        if user_in.customer_id and user_in.customer_id != current_user.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to change user's customer",
+            )
+
+        
+        # Customer admins can only assign customer user or customer admin roles
+        if user_in.role and user_in.role not in [UserRole.CUSTOMER_USER, UserRole.CUSTOMER_ADMIN]:
+            raise HTTPException(
+                status_code=403,
+                detail="Customer admins can only assign customer user or customer admin roles",
             )
     
+    else:
+        # Other roles don't have permission
+        raise HTTPException(
+            status_code=403,
+            detail="Not enough privileges",
+        )
+
     updated_user = user.update(db, db_obj=db_user, obj_in=user_in)
     
     # Log user update
@@ -238,11 +373,14 @@ def suspend_user(
     *,
     db: Session = Depends(deps.get_db),
     user_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_admin_user),
+    current_user: User = Depends(deps.get_current_active_user),
     request: Request,
 ) -> Any:
     """
-    Suspend a user (admin only)
+    Suspend a user.
+    - For admins: Can suspend any user except themselves
+    - For customer admins: Can only suspend users from their own customer
+    - For regular users: Not accessible
     """
     db_user = user.get_by_id(db, user_id=user_id)
     if not db_user:
@@ -257,7 +395,27 @@ def suspend_user(
             status_code=400,
             detail="Cannot suspend yourself",
         )
+    # Check role-based permissions
+    if current_user.role == UserRole.ADMIN:
+        # Admin can suspend any user (except self)
+        pass
     
+    elif current_user.role == UserRole.CUSTOMER_ADMIN:
+        # Customer admin can only suspend users from their customer
+        if db_user.customer_id != current_user.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to suspend users from other customers",
+            )
+    
+    else:
+        # Other roles don't have permission
+        raise HTTPException(
+            status_code=403,
+            detail="Not enough privileges",
+        )
+
+
     suspended_user = user.suspend(db, user_id=user_id)
     
     # Log user suspension
@@ -279,11 +437,14 @@ def activate_user(
     *,
     db: Session = Depends(deps.get_db),
     user_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_admin_user),
+    current_user: User = Depends(deps.get_current_active_user),
     request: Request,
 ) -> Any:
     """
-    Activate a suspended user (admin only)
+    Activate a suspended user.
+    - For admins: Can activate any user
+    - For customer admins: Can only activate users from their own customer
+    - For regular users: Not accessible
     """
     db_user = user.get_by_id(db, user_id=user_id)
     if not db_user:
@@ -291,7 +452,27 @@ def activate_user(
             status_code=404,
             detail="User not found",
         )
+
+    # Check role-based permissions
+    if current_user.role == UserRole.ADMIN:
+        # Admin can activate any user
+        pass
     
+    elif current_user.role == UserRole.CUSTOMER_ADMIN:
+        # Customer admin can only activate users from their customer
+        if db_user.customer_id != current_user.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to activate users from other customers",
+            )
+    
+    else:
+        # Other roles don't have permission
+        raise HTTPException(
+            status_code=403,
+            detail="Not enough privileges",
+        )
+
     activated_user = user.activate(db, user_id=user_id)
     
     # Log user activation
@@ -306,102 +487,3 @@ def activate_user(
     )
     
     return activated_user
-
-# Customer admin routes
-@router.get("/customer/{customer_id}", response_model=List[UserAdminView])
-def read_users_by_customer(
-    customer_id: uuid.UUID,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_customer_admin_user),
-) -> Any:
-    """
-    Retrieve users for a specific customer (admin and customer admin)
-    """
-    # If user is customer admin, ensure they belong to the requested customer
-    if current_user.role == UserRole.CUSTOMER_ADMIN and current_user.customer_id != customer_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to access users from other customers",
-        )
-    
-    users = user.get_by_customer(db, customer_id=customer_id)
-    return users
-
-
-@router.post("/customer/{customer_id}", response_model=UserAdminView)
-def create_customer_user(
-    *,
-    db: Session = Depends(deps.get_db),
-    customer_id: uuid.UUID,
-    user_in: UserCreate,
-    current_user: User = Depends(deps.get_current_customer_admin_user),
-    request: Request,
-) -> Any:
-    """
-    Create new user for a specific customer (admin and customer admin)
-    """
-    # If user is customer admin, ensure they belong to the requested customer
-    if current_user.role == UserRole.CUSTOMER_ADMIN and current_user.customer_id != customer_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to create users for other customers",
-        )
-    
-    # Ensure customer exists
-    db_customer = customer.get_by_id(db, customer_id=customer_id)
-    if not db_customer:
-        raise HTTPException(
-            status_code=404,
-            detail="The customer with this ID does not exist",
-        )
-    
-    # Check if user already exists
-    existing_user = user.get_by_email(db, email=user_in.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system",
-        )
-    
-    # Customer admin can only create customer users
-    if current_user.role == UserRole.CUSTOMER_ADMIN and user_in.role not in [UserRole.CUSTOMER_USER, UserRole.CUSTOMER_ADMIN]:
-        raise HTTPException(
-            status_code=403,
-            detail="Customer admins can only create customer users or customer admins",
-        )
-    
-    # Set customer ID
-    user_in.customer_id = customer_id
-    
-    # If password not provided, generate one
-    if not hasattr(user_in, 'password') or not user_in.password:
-        password = generate_password()
-        user_in.password = password
-        should_send_email = True
-    else:
-        should_send_email = False
-    
-    new_user = user.create(db, obj_in=user_in)
-    
-    # Send welcome email with generated password
-    if should_send_email:
-        send_welcome_email(
-            new_user.email, 
-            f"{new_user.first_name or ''} {new_user.last_name or ''}".strip() or new_user.email,
-            password
-        )
-    
-    # Log user creation
-    log_action(
-        db=db,
-        user_id=current_user.user_id,
-        action_type="USER_CREATE",
-        resource_type="USER",
-        resource_id=str(new_user.user_id),
-        details={"customer_id": str(customer_id)},
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
-    )
-    
-    return new_user
-

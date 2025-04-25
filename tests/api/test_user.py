@@ -14,8 +14,8 @@ from app.core.config import settings
 from app.crud.user import user as user_crud
 
 # Test cases for current user endpoint (GET /users/me)
-def test_read_user_me(client: TestClient, customer_user_token: str, customer_user: User):
-    """Test getting current user information"""
+def test_read_user_me(client: TestClient, customer_user_token: str, customer_user: User, customer: User):
+    """Test getting current user information including customer details"""
     response = client.get(
         f"{settings.API_V1_STR}/users/me",
         headers={"Authorization": f"Bearer {customer_user_token}"}
@@ -24,9 +24,17 @@ def test_read_user_me(client: TestClient, customer_user_token: str, customer_use
     # Check response
     assert response.status_code == 200
     data = response.json()
+    print(data)
     assert data["email"] == customer_user.email
     assert "user_id" in data
     assert str(data["user_id"]) == str(customer_user.user_id)
+
+    # Check customer information is included
+    assert "customer" in data
+    assert data["customer"] is not None
+    assert "customer_id" in data["customer"]
+    assert str(data["customer"]["customer_id"]) == str(customer.customer_id)
+    assert data["customer"]["name"] == customer.name
 
 def test_read_user_me_no_token(client: TestClient):
     """Test getting current user without authentication"""
@@ -36,6 +44,25 @@ def test_read_user_me_no_token(client: TestClient):
     
     # Check response
     assert response.status_code == 401
+
+
+def test_read_user_me_without_customer(client: TestClient, admin_token: str, admin_user: User):
+    """Test getting admin user info who doesn't belong to a customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/users/me",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == admin_user.email
+    assert "user_id" in data
+    assert str(data["user_id"]) == str(admin_user.user_id)
+    
+    # Check customer information is null for admin
+    assert "customer" in data
+    assert data["customer"] is None
 
 # Test cases for update current user endpoint (PUT /users/me)
 def test_update_user_me(client: TestClient, db: Session, customer_user_token: str, customer_user: User):
@@ -162,6 +189,7 @@ def test_change_password_incorrect_current(client: TestClient, customer_user_tok
     assert "detail" in data
     assert data["detail"] == "Incorrect password"
 
+# Test unified user listing endpoint
 def test_get_all_users_admin(client: TestClient, admin_token: str):
     """Test admin getting all users"""
     response = client.get(
@@ -175,9 +203,38 @@ def test_get_all_users_admin(client: TestClient, admin_token: str):
     assert isinstance(data, list)
     assert len(data) >= 5  # We created 5 test users in our seed data
 
+def test_get_customer_users_as_customer_admin(client: TestClient, customer_admin_token: str, customer_admin_user: User):
+    """Test customer admin getting users for their customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/users",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # All users should belong to the customer admin's customer
+    for user_item in data:
+        assert str(user_item["customer_id"]) == str(customer_admin_user.customer_id)
+
+
+def test_get_other_customer_users_as_customer_admin(client: TestClient, customer_admin_token: str, suspended_customer: User):
+    """Test customer admin attempting to get users from a different customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/users?customer_id={suspended_customer.customer_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "other customers" in data["detail"]
 
 def test_get_all_users_non_admin(client: TestClient, customer_user_token: str):
-    """Test non-admin attempting to get all users"""
+    """Test non-admin/non-customer-admin attempting to get users"""
     response = client.get(
         f"{settings.API_V1_STR}/users",
         headers={"Authorization": f"Bearer {customer_user_token}"}
@@ -233,6 +290,114 @@ def test_create_user_admin(client: TestClient, db: Session, admin_token: str, cu
         # Password shouldn't be in the response
         assert "password" not in data
 
+def test_create_user_customer_admin(client: TestClient, db: Session, customer_admin_token: str, customer_admin_user: User):
+    """Test customer admin creating a user for their customer"""
+    with patch('app.utils.email.send_welcome_email') as mock_send_email:
+        mock_send_email.return_value = True
+        
+        user_data = {
+            "email": "newcustomeruser@example.com",
+            "password": "password123",
+            "first_name": "New",
+            "last_name": "Customer User",
+            "role": "CUSTOMER_USER"
+        }
+        
+        response = client.post(
+            f"{settings.API_V1_STR}/users",
+            headers={"Authorization": f"Bearer {customer_admin_token}"},
+            json=user_data
+        )
+
+        print(response.json())
+        
+        # Check response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == user_data["email"]
+        assert data["role"] == user_data["role"]
+        assert str(data["customer_id"]) == str(customer_admin_user.customer_id)
+        
+        # Verify user was created in database
+        db.expire_all()
+        created_user = db.query(User).filter(User.email == user_data["email"]).first()
+        assert created_user is not None
+        assert created_user.customer_id == customer_admin_user.customer_id
+
+
+def test_create_user_with_customer_id_param(client: TestClient, db: Session, admin_token: str, customer: User):
+    """Test creating user with customer_id as a query parameter"""
+    with patch('app.utils.email.send_welcome_email') as mock_send_email:
+        mock_send_email.return_value = True
+        
+        user_data = {
+            "email": "paramuser@example.com",
+            "password": "password123",
+            "first_name": "Param",
+            "last_name": "User",
+            "role": "CUSTOMER_USER"
+        }
+        
+        response = client.post(
+            f"{settings.API_V1_STR}/users?customer_id={customer.customer_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json=user_data
+        )
+        
+        # Check response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == user_data["email"]
+        assert str(data["customer_id"]) == str(customer.customer_id)
+
+
+def test_create_admin_role_as_customer_admin(client: TestClient, customer_admin_token: str):
+    """Test customer admin attempting to create a system admin"""
+    user_data = {
+        "email": "newsystemadmin@example.com",
+        "password": "password123",
+        "first_name": "New",
+        "last_name": "System Admin",
+        "role": "ADMIN"  # Not allowed for customer_admin to create
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/users",
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
+        json=user_data
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "can only create customer users or customer admins" in data["detail"]
+
+
+def test_create_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: User):
+    """Test customer admin attempting to create user for different customer"""
+    user_data = {
+        "email": "differentcustomer@example.com",
+        "password": "password123",
+        "first_name": "Different",
+        "last_name": "Customer",
+        "role": "CUSTOMER_USER",
+        "customer_id": str(suspended_customer.customer_id)
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/users",
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
+        json=user_data
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "other customers" in data["detail"]
+
+
 def test_create_user_existing_email(client: TestClient, admin_token: str, customer_user: User):
     """Test creating user with existing email"""
     user_data = {
@@ -255,8 +420,9 @@ def test_create_user_existing_email(client: TestClient, admin_token: str, custom
     assert "detail" in data
     assert "already exists" in data["detail"]
 
-def test_get_user_by_id(client: TestClient, admin_token: str, customer_user: User):
-    """Test getting a specific user by ID"""
+# Test get user by ID
+def test_get_user_by_id_admin(client: TestClient, admin_token: str, customer_user: User):
+    """Test admin getting a specific user by ID"""
     response = client.get(
         f"{settings.API_V1_STR}/users/{customer_user.user_id}",
         headers={"Authorization": f"Bearer {admin_token}"}
@@ -267,6 +433,42 @@ def test_get_user_by_id(client: TestClient, admin_token: str, customer_user: Use
     data = response.json()
     assert str(data["user_id"]) == str(customer_user.user_id)
     assert data["email"] == customer_user.email
+
+def test_get_user_by_id_customer_admin_same_customer(client: TestClient, customer_admin_token: str, customer_user: User):
+    """Test customer admin getting a user from their customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/users/{customer_user.user_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert str(data["user_id"]) == str(customer_user.user_id)
+
+def test_get_user_by_id_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
+    """Test customer admin attempting to get user from different customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/users/{admin_user.user_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+
+def test_get_user_by_id_regular_user(client: TestClient, customer_user_token: str, admin_user: User):
+    """Test regular user attempting to get user by ID"""
+    response = client.get(
+        f"{settings.API_V1_STR}/users/{admin_user.user_id}",
+        headers={"Authorization": f"Bearer {customer_user_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
 
 
 def test_get_user_by_id_non_admin(client: TestClient, customer_user_token: str, admin_user: User):
@@ -312,9 +514,47 @@ def test_update_user_admin(client: TestClient, db: Session, admin_token: str, cu
     ).first()
     assert audit_log is not None
 
+def test_update_user_customer_admin_same_customer(client: TestClient, db: Session, customer_admin_token: str, customer_user: User):
+    """Test customer admin updating a user from their customer"""
+    update_data = {
+        "first_name": "Customer Admin",
+        "last_name": "Updated"
+    }
+    
+    response = client.put(
+        f"{settings.API_V1_STR}/users/{customer_user.user_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
+        json=update_data
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert data["first_name"] == update_data["first_name"]
+    assert data["last_name"] == update_data["last_name"]
 
-def test_suspend_user(client: TestClient, db: Session, admin_token: str, customer_user: User):
-    """Test suspending a user"""
+def test_update_user_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
+    """Test customer admin attempting to update user from different customer"""
+    update_data = {
+        "first_name": "Unauthorized",
+        "last_name": "Update"
+    }
+    
+    response = client.put(
+        f"{settings.API_V1_STR}/users/{admin_user.user_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
+        json=update_data
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "other customers" in data["detail"]
+
+# Test suspend user endpoint
+def test_suspend_user_admin(client: TestClient, db: Session, admin_token: str, customer_user: User):
+    """Test admin suspending a user"""
     response = client.post(
         f"{settings.API_V1_STR}/users/{customer_user.user_id}/suspend",
         headers={"Authorization": f"Bearer {admin_token}"}
@@ -336,6 +576,31 @@ def test_suspend_user(client: TestClient, db: Session, admin_token: str, custome
         AuditLog.resource_id == str(customer_user.user_id)
     ).first()
     assert audit_log is not None
+
+def test_suspend_user_customer_admin_same_customer(client: TestClient, db: Session, customer_admin_token: str, customer_user: User):
+    """Test customer admin suspending a user from their customer"""
+    response = client.post(
+        f"{settings.API_V1_STR}/users/{customer_user.user_id}/suspend",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "SUSPENDED"
+
+def test_suspend_user_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
+    """Test customer admin attempting to suspend user from different customer"""
+    response = client.post(
+        f"{settings.API_V1_STR}/users/{admin_user.user_id}/suspend",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "other customers" in data["detail"]
 
 def test_suspend_self(client: TestClient, admin_token: str, admin_user: User):
     """Test attempting to suspend own account"""
@@ -374,146 +639,6 @@ def test_activate_user(client: TestClient, db: Session, admin_token: str, suspen
         AuditLog.resource_id == str(suspended_user.user_id)
     ).first()
     assert audit_log is not None
-
-
-# Test cases for customer admin operations
-
-def test_get_users_by_customer(client: TestClient, customer_admin_token: str, customer: User):
-    """Test customer admin getting users for their customer"""
-    response = client.get(
-        f"{settings.API_V1_STR}/users/customer/{customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    
-    # All users should belong to the customer
-    for user in data:
-        assert str(user["customer_id"]) == str(customer.customer_id)
-
-def test_get_users_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: User):
-    """Test customer admin attempting to get users for a different customer"""
-    response = client.get(
-        f"{settings.API_V1_STR}/users/customer/{suspended_customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response - should be forbidden
-    assert response.status_code == 403
-    data = response.json()
-    assert "detail" in data
-    assert "other customers" in data["detail"]
-
-
-
-def test_create_customer_user(client: TestClient, db: Session, customer_admin_token: str, customer: User):
-    """Test customer admin creating a new user for their customer"""
-    # # Mock the email sending function
-    # with patch('app.utils.email.send_welcome_email') as mock_send_email:
-    #     mock_send_email.return_value = True
-        
-    user_data = {
-        "email": "newcustomeruser@example.com",
-        "password": "password123",
-        "first_name": "New",
-        "last_name": "Customer User",
-        "role": "CUSTOMER_USER"
-    }
-        
-    response = client.post(
-        f"{settings.API_V1_STR}/users/customer/{customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"},
-        json=user_data
-    )
-        
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert data["email"] == user_data["email"]
-    assert data["role"] == user_data["role"]
-    assert str(data["customer_id"]) == str(customer.customer_id)
-        
-    # Verify user was created in database
-    db.expire_all()
-    created_user = db.query(User).filter(User.email == user_data["email"]).first()
-    assert created_user is not None
-    assert created_user.customer_id == customer.customer_id
-        
-    # Verify audit log
-    audit_log = db.query(AuditLog).filter(
-        AuditLog.action_type == "USER_CREATE",
-        AuditLog.resource_id == str(created_user.user_id)
-    ).first()
-    assert audit_log is not None
-
-
-def test_create_customer_admin_role(client: TestClient, customer_admin_token: str, customer: User):
-    """Test customer admin creating another customer admin"""
-    user_data = {
-        "email": "newcustomeradmin@example.com",
-        "password": "password123",
-        "first_name": "New",
-        "last_name": "Customer Admin",
-        "role": "CUSTOMER_ADMIN"
-    }
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/users/customer/{customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"},
-        json=user_data
-    )
-    
-    # Check response - should succeed
-    assert response.status_code == 200
-    data = response.json()
-    assert data["role"] == "CUSTOMER_ADMIN"
-
-def test_create_admin_role_as_customer_admin(client: TestClient, customer_admin_token: str, customer: User):
-    """Test customer admin attempting to create a system admin"""
-    user_data = {
-        "email": "newsystemadmin@example.com",
-        "password": "password123",
-        "first_name": "New",
-        "last_name": "System Admin",
-        "role": "ADMIN"  # Not allowed for customer_admin to create
-    }
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/users/customer/{customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"},
-        json=user_data
-    )
-    
-    # Check response - should be forbidden
-    assert response.status_code == 403
-    data = response.json()
-    assert "detail" in data
-    assert "can only create customer users or customer admins" in data["detail"]
-
-def test_create_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: User):
-    """Test customer admin attempting to create user for different customer"""
-    user_data = {
-        "email": "differentcustomer@example.com",
-        "password": "password123",
-        "first_name": "Different",
-        "last_name": "Customer",
-        "role": "CUSTOMER_USER"
-    }
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/users/customer/{suspended_customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"},
-        json=user_data
-    )
-    
-    # Check response - should be forbidden
-    assert response.status_code == 403
-    data = response.json()
-    assert "detail" in data
-    assert "other customers" in data["detail"]
 
     
 # def test_create_user_with_auto_password(client: TestClient, admin_token: str, customer: User):

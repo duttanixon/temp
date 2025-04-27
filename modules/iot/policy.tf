@@ -54,3 +54,71 @@ resource "aws_iot_policy" "device_policy" {
         ]
     })
 }
+
+
+# Iam policy for IOT thing group and policy management from backend service
+
+resource "aws_iam_policy" "iot_backend_policy" {
+
+  name        = "${var.environment}-iot-backend-service-policy"
+  description = "Policy for managing IoT thing groups and policies"
+
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          # Thing group permissions
+          "iot:CreateThingGroup",
+          "iot:DescribeThingGroup",
+          "iot:UpdateThingGroup",
+          "iot:DeleteThingGroup",
+          "iot:ListThingGroups",
+          "iot:ListThingGroupsForThing",
+          "iot:AddThingToThingGroup",
+          "iot:RemoveThingFromThingGroup",
+          "iot:ListThingsInThingGroup",
+
+
+          # Thing permissions
+          "iot:CreateThing",
+          "iot:UpdateThing",
+          "iot:DeleteThing",
+          "iot:ListThings",
+          "iot:DescribeThing",
+
+          # Policy permissions
+          "iot:CreatePolicy",
+          "iot:AttachPolicy",
+          "iot:DetachPolicy",
+          "iot:ListPolicies",
+          "iot:ListPolicyVersions",
+          "iot:GetPolicy",
+          "iot:DeletePolicy",
+          
+          # Certificate permissions
+          "iot:CreateKeysAndCertificate",
+          "iot:DescribeCertificate",
+          "iot:ListCertificates",
+          "iot:UpdateCertificate",
+          "iot:DeleteCertificate",
+          
+          # Allow attaching policies to thing groups
+          "iot:AttachThingPrincipal",
+          "iot:DetachThingPrincipal",
+          "iot:AttachPrincipalPolicy",
+          "iot:DetachPrincipalPolicy"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach the policy to the platform admin user from the common module
+resource "aws_iam_user_policy_attachment" "iot_admin_policy_attachment" {
+  user       = var.platform_backend_user_name
+  policy_arn = aws_iam_policy.iot_backend_policy.arn
+}

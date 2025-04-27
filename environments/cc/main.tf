@@ -16,6 +16,7 @@ module "iot" {
     # Pass ant required variables to the module
     aws_region = var.aws_region
     environment = var.environment
+    platform_backend_user_name = module.common.backend_service_user_name
 }
 
 module "lambdas" {
@@ -32,5 +33,12 @@ module "ec2" {
 
     # Pass ant required variables to the module
     aws_region = var.aws_region
+    environment = var.environment
+}
+
+module "common" {
+    source =  "../../modules/common"
+
+    # Pass ant required variables to the module
     environment = var.environment
 }

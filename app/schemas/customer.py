@@ -39,8 +39,9 @@ class Customer(CustomerBase):
 
 # Admin view of customer (more detailed)
 class CustomerAdminView(Customer):
-    # This could include additional fields in the future
-    pass
+    iot_thing_group_name: Optional[str] = None
+    iot_thing_group_arn: Optional[str] = None
+
 
     class Config:
         from_attributes = True

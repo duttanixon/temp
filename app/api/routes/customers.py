@@ -3,7 +3,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.crud import customer
+from app.crud import customer, user
 from app.models.user import User, UserRole
 from app.schemas.customer import (
     Customer as CustomerSchema,
@@ -198,3 +198,45 @@ def activate_customer(
     )
     
     return activated_customer
+
+@router.delete("/{customer_id}", response_model=CustomerAdminView)
+def delete_customer(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_admin_user),
+    request: Request,
+) -> Any:
+    """
+    Delete a customer (admin only)
+    Note - バックエンド利用のみ。
+    """
+    db_customer = customer.get_by_id(db, customer_id=customer_id)
+    if not db_customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found",
+        )
+
+    # Check if customer has any users
+    user_list = user.get_by_customer(db, customer_id=customer_id)
+    if user_list and len(user_list) > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete customer with associated users. Remove all users first.",
+        )    
+    deleted_customer = customer.remove(db, customer_id=customer_id)
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="CUSTOMER_DELETE",
+        resource_type="CUSTOMER",
+        resource_id=str(customer_id),
+        details={"customer_name": db_customer.name},
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+    
+    return deleted_customer
+    # todo: Check for other dependencies like devices or solutions
+    # This would depend on specific data model

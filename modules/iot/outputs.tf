@@ -8,3 +8,13 @@ output "iot_logging_role_arn" {
 #     description = "Name of the CloudWatch log group for IoT Core logs"
 #     value       = aws_cloudwatch_log_group.iot_logs.name
 # }
+
+output "device_policy_arn" {
+  description = "The ARN of the IoT device communication policy"
+  value       = aws_iot_policy.device_policy.arn
+}
+
+output "device_policy_name" {
+  description = "The name of the IoT device communication policy"
+  value       = aws_iot_policy.device_policy.name
+}

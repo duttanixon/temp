@@ -10,6 +10,8 @@ provider "aws" {
     }
 }
 
+data "aws_caller_identity" "current" {}
+
 module "iot" {
     source = "../../modules/iot"
 

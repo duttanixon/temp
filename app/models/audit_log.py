@@ -21,7 +21,7 @@ class AuditLog(Base):
     details = Column(JSON, nullable=True)
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
-    timestamp = Column(DateTime, nullable=False, default=jst_now)
+    timestamp = Column(DateTime(timezone=True), nullable=False, default=jst_now)
 
     # relationship
     user = relationship("User", back_populates="audit_logs")

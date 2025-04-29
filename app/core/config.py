@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     IOT_CUSTOMER_POLICY_ARN: Optional[str] = None
     IOT_ENABLED: bool = True  # Flag to enable/disable IoT integration
     
-
+    # S3 Settings
+    S3_BUCKET_NAME: Optional[str] = None
+    S3_CERTIFICATES_PATH: Optional[str] = None
 
 
     class Config:

@@ -33,3 +33,4 @@ class Customer(Base):
     
     # 1:N
     users = relationship("User", back_populates="customer")
+    devices = relationship("Device", back_populates="customer")

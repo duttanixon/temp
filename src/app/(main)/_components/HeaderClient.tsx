@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 
 interface HeaderClientProps {
     userName: string;
-    userRole: string;
     customerName: string;
     isSubHeaderView: boolean;
     isAuthenticated: boolean;
@@ -22,7 +21,6 @@ interface HeaderClientProps {
 
 export function HeaderClient({
     userName,
-    userRole,
     customerName,
     isSubHeaderView,
     isAuthenticated,

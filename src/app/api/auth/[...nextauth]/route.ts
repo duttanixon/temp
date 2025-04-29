@@ -1,3 +1,4 @@
+import axios from "axios"; // axiosをインポート
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -31,75 +32,38 @@ export const authOptions: NextAuthOptions = {
                     // APIエンドポイント
                     const loginUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/login`;
 
-                    // ログインリクエスト
-                    const loginResponse = await fetch(loginUrl, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded",
-                            Accept: "application/json",
-                        },
-                        body: formData.toString(),
-                    });
+                    // axiosを使用したログインリクエスト
+                    const loginResponse = await axios.post(
+                        loginUrl,
+                        formData.toString(),
+                        {
+                            headers: {
+                                "Content-Type":
+                                    "application/x-www-form-urlencoded",
+                                Accept: "application/json",
+                            },
+                        }
+                    );
 
-                    if (!loginResponse.ok) {
-                        console.error(
-                            "ログイン失敗:",
-                            await loginResponse.text()
-                        );
-                        return null;
-                    }
-
-                    // レスポンスからaccess_tokenを取得
-                    const loginData = await loginResponse.json();
-                    const accessToken = loginData.access_token;
+                    // axiosでは、レスポンスデータは直接.dataプロパティからアクセス
+                    const accessToken = loginResponse.data.access_token;
 
                     if (!accessToken) {
                         console.error("アクセストークンが見つかりません");
                         return null;
                     }
 
-                    // ユーザー情報を取得
+                    // axiosを使用したユーザー情報取得
                     const myProfileUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/users/me`;
-                    const myProfileResponse = await fetch(myProfileUrl, {
+                    const myProfileResponse = await axios.get(myProfileUrl, {
                         headers: {
                             Accept: "application/json",
                             Authorization: `Bearer ${accessToken}`,
                         },
                     });
 
-                    if (!myProfileResponse.ok) {
-                        console.error(
-                            "ユーザー情報取得失敗:",
-                            await myProfileResponse.text()
-                        );
-                        return null;
-                    }
-
-                    // カスタマー情報を取得
-                    const userProfile = await myProfileResponse.json();
-                    let customerName = "";
-
-                    if (userProfile.customer_id) {
-                        const customerUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers/${userProfile.customer_id}`;
-                        const customerResponse = await fetch(customerUrl, {
-                            headers: {
-                                Accept: "application/json",
-                                Authorization: `Bearer ${accessToken}`,
-                            },
-                        });
-
-                        if (!customerResponse.ok) {
-                            console.error(
-                                "カスタマー情報取得失敗:",
-                                await customerResponse.text()
-                            );
-                            // return null;
-                        } else {
-                            const customerData = await customerResponse.json();
-                            customerName = customerData.name || "";
-                            console.log("カスタマーデータ:", customerData);
-                        }
-                    }
+                    // ユーザープロフィール情報を取得
+                    const userProfile = myProfileResponse.data;
                     console.log("ユーザープロフィール:", userProfile);
 
                     // next-auth用のユーザーオブジェクトを返す
@@ -113,10 +77,18 @@ export const authOptions: NextAuthOptions = {
                         customerId: userProfile.customer_id,
                         accessToken: accessToken, // トークンも保存
                         lastLogin: userProfile.last_login,
-                        customerName: customerName,
+                        customerName: userProfile.customer?.name,
                     };
                 } catch (error) {
-                    console.error("認証エラー:", error);
+                    // axiosエラーハンドリング
+                    if (axios.isAxiosError(error)) {
+                        console.error(
+                            "認証エラー:",
+                            error.response?.data || error.message
+                        );
+                    } else {
+                        console.error("認証エラー:", error);
+                    }
                     return null;
                 }
             },

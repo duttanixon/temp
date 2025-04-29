@@ -14,21 +14,21 @@ import {
 import Link from "next/link";
 
 const menuItems = [
-    { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "Devices", icon: Database, href: "/devices" },
-    { name: "Customers", icon: Building, href: "/customers" },
-    { name: "Solutions", icon: LightbulbIcon, href: "/solutions" },
-    { name: "Analytics", icon: BarChart2, href: "/analytics" },
-    { name: "Alerts", icon: AlertCircle, href: "/alerts" },
-    { name: "Maintenance", icon: WrenchIcon, href: "/maintenance" },
-    { name: "Administration", icon: AppWindowMacIcon, href: "", isDiv: true },
+    { name: "ダッシュボード", icon: LayoutDashboard, href: "/dashboard" },
+    { name: "デバイス", icon: Database, href: "/devices" },
+    { name: "顧客", icon: Building, href: "/customers" },
+    { name: "ソリューション", icon: LightbulbIcon, href: "/solutions" },
+    { name: "分析", icon: BarChart2, href: "/analytics" },
+    { name: "通知", icon: AlertCircle, href: "/alerts" },
+    { name: "メンテナンス", icon: WrenchIcon, href: "/maintenance" },
+    { name: "管理", icon: AppWindowMacIcon, href: "", isDiv: true },
 ];
 
 // 管理メニュー項目（サブメニュー付き）
 const adminMenuItems = [
-    { name: "User Management", icon: ArrowRight, href: "/users" },
-    { name: "System Settings", icon: ArrowRight, href: "/settings" },
-    { name: "Audit Logs", icon: ArrowRight, href: "/logs" },
+    { name: "ユーザー管理", icon: ArrowRight, href: "/users" },
+    { name: "システム設定", icon: ArrowRight, href: "/settings" },
+    { name: "ログ", icon: ArrowRight, href: "/logs" },
 ];
 
 export function AdminSidebar() {

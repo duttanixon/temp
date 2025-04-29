@@ -21,7 +21,6 @@ export async function Header() {
     return (
         <HeaderClient
             userName={userName}
-            userRole={userRole}
             customerName={customerName}
             isSubHeaderView={isSubHeaderView}
             isAuthenticated={!!session}

@@ -11,12 +11,12 @@ import {
 import Link from "next/link";
 
 const menuItems = [
-    { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "My Devices", icon: Database, href: "/devices" },
-    { name: "Analytics", icon: BarChart2, href: "/analytics" },
-    { name: "Alerts", icon: AlertCircle, href: "/alerts" },
-    { name: "Support", icon: HeadphonesIcon, href: "/support" },
-    { name: "User Management", icon: Users, href: "/users", active: true },
+    { name: "ダッシュボード", icon: LayoutDashboard, href: "/dashboard" },
+    { name: "デバイス", icon: Database, href: "/devices" },
+    { name: "分析", icon: BarChart2, href: "/analytics" },
+    { name: "通知", icon: AlertCircle, href: "/alerts" },
+    { name: "サポート", icon: HeadphonesIcon, href: "/support" },
+    { name: "ユーザー管理", icon: Users, href: "/users", active: true },
 ];
 
 export function CustomerSidebar() {

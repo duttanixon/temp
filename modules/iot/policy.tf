@@ -122,3 +122,36 @@ resource "aws_iam_user_policy_attachment" "iot_admin_policy_attachment" {
   user       = var.platform_backend_user_name
   policy_arn = aws_iam_policy.iot_backend_policy.arn
 }
+
+
+# IAM policy for certificate bucket access
+resource "aws_iam_policy" "certificate_bucket_access" {
+  name        = "${var.environment}-certificate-bucket-access-policy"
+  description = "Policy for accessing the IoT certificate S3 bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:DeleteObject",
+          "s3:GeneratePresignedUrl"
+        ]
+        Resource = [
+          aws_s3_bucket.certificate_bucket.arn,
+          "${aws_s3_bucket.certificate_bucket.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach certificate bucket access policy to the backend service user
+resource "aws_iam_user_policy_attachment" "certificate_bucket_access_attachment" {
+  user       = var.platform_backend_user_name
+  policy_arn = aws_iam_policy.certificate_bucket_access.arn
+}

@@ -18,3 +18,10 @@ output "device_policy_name" {
   description = "The name of the IoT device communication policy"
   value       = aws_iot_policy.device_policy.name
 }
+
+
+# Add certificate bucket information to outputs
+output "certificate_bucket_name" {
+  description = "Name of the S3 bucket used for storing IoT certificates"
+  value       = aws_s3_bucket.certificate_bucket.bucket
+}

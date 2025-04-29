@@ -34,3 +34,9 @@ output "ec2_instance_ip_address" {
     description = "Dev instance IP address"
     value = module.ec2.instance_ip
 }
+
+# Add certificate bucket output
+output "certificate_bucket_name" {
+  description = "Name of the S3 bucket used for storing IoT certificates"
+  value       = module.iot.certificate_bucket_name
+}

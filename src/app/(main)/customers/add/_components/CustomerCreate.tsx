@@ -9,7 +9,7 @@ type Props = {
   handleCancel: () => void;
 };
 
-const buttonVariants = cva("w-[140px] text-sm font-normal cursor-pointer", {
+const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
   variants: {
     variant: {
       default:

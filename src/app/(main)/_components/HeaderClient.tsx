@@ -37,7 +37,7 @@ export function HeaderClient({
         <div>
             <header className="bg-[#2C3E50] text-white px-8 py-2 flex items-center justify-between">
                 <h1 className="text-xl font-semibold">
-                    IoT Edge Device Portal
+                    IoT エッジデバイス管理サービス(仮)
                 </h1>
                 {isAuthenticated && (
                     <div className="flex items-center gap-4">
@@ -74,9 +74,7 @@ export function HeaderClient({
             {/* サブヘッダー - 顧客ユーザー向け */}
             {isSubHeaderView && (
                 <div className="bg-[#34495E] text-white px-8 py-2 border-t border-gray-700">
-                    <h2 className="text-lg font-medium">
-                        {customerName} Portal
-                    </h2>
+                    <h2 className="text-lg font-medium">{customerName}</h2>
                 </div>
             )}
         </div>

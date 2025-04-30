@@ -45,5 +45,5 @@ python -m pytest tests/api/test_auth.py
 ### Run a specific test function:
 
 ```bash
-python -m pytest tests/api/test_auth.py::test_login_success
+python -m pytest -s --disable-warnings tests/api/test_auth.py::test_login_success
 ```

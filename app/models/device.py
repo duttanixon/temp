@@ -21,7 +21,7 @@ class DeviceType(str, enum.Enum):
 class Device(Base):
     __tablename__ = "devices"
     name = Column(String, nullable=False)
-    device_id = Column(UUID(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
+    device_id = Column(UUID(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
     description = Column(String, nullable=True)
 
     # Device identifiers

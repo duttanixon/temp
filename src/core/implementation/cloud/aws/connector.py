@@ -58,8 +58,7 @@ class AWSIoTCoreConnector(ICloudConnector):
         try:
             # Extract configuration
             self.endpoint = config.get("endpoint")
-            self.certificate_id = self._load_certificates_and_extract_id(config)
-            self.client_id = self.certificate_id
+            self.certificate_id, self.client_id = self._load_certificates_and_extract_id(config)
             # Create event fomatter
             self.solution_type = solution_type
             compression_enabled = config.get("enable_compression", True)
@@ -251,6 +250,7 @@ class AWSIoTCoreConnector(ICloudConnector):
         """
         certs_dir = config.get("certs_dir", "./certs")
         cert_id = None
+        client_id = None
         self.key_path = None
         self.cert_path = None
         self.ca_path = None
@@ -267,17 +267,16 @@ class AWSIoTCoreConnector(ICloudConnector):
         try:
             for filename in os.listdir(certs_dir):
                 filepath = os.path.join(certs_dir, filename)
-                
-                if "private" in filename:
+                if "key" in filename:
                     self.key_path = filepath
-                    if cert_id is None and "-" in filename:
-                        cert_id = filename.split('-')[0]
-                elif "certificate" in filename:
+                elif "pem" in filename and "rootca" not in filename.lower():
                     self.cert_path = filepath
-                    if cert_id is None and "-" in filename:
-                        cert_id = filename.split('-')[0]
+                    if cert_id is None:
+                        filename_without_extention = os.path.splitext(filename)[0]
+                        cert_id, client_id = filename_without_extention.split("_")
                 elif "rootca" in filename.lower():
                     self.ca_path = filepath
+
 
             # Check if all required files were found
             missing = []
@@ -289,6 +288,9 @@ class AWSIoTCoreConnector(ICloudConnector):
                 missing.append("root CA")
             if cert_id is None:
                 missing.append("certificate ID")
+            if client_id is None:
+                missing.append("Client ID")
+
             if missing:
                 raise AuthenticationError(
                     f"Missing required certificate components: {', '.join(missing)}",
@@ -297,7 +299,7 @@ class AWSIoTCoreConnector(ICloudConnector):
                     source="AWSIoTConnector",
                     recoverable = False
                 )
-            return cert_id
+            return cert_id, client_id
 
         except Exception as e:
             # Include the original exception details in the error message

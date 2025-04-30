@@ -15,6 +15,8 @@ type Props = {
 type FormFieldProps = {
   id: string;
   label: string;
+  type: string;
+  name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   required?: boolean;
@@ -23,6 +25,8 @@ type FormFieldProps = {
 export const FormField: FC<FormFieldProps> = ({
   id,
   label,
+  type,
+  name,
   value,
   onChange,
   required = false,
@@ -34,8 +38,11 @@ export const FormField: FC<FormFieldProps> = ({
     <Input
       className={formVariants({ variant: "input" })}
       id={id}
+      type={type}
+      name={name}
       value={value}
       onChange={onChange}
+      required
     />
   </div>
 );
@@ -73,6 +80,8 @@ export const BasicTab = ({
         <FormField
           id="companyName"
           label="会社名"
+          type="text"
+          name="companyName"
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
           required
@@ -80,6 +89,8 @@ export const BasicTab = ({
         <FormField
           id="email"
           label="メールアドレス"
+          type="email"
+          name="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -87,6 +98,8 @@ export const BasicTab = ({
         <FormField
           id="address"
           label="住所"
+          type="text"
+          name="address"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />

@@ -173,13 +173,13 @@ class IoTCore:
             logger.error(f"Error adding thing to group: {str(e)}")
             raise
 
-    def upload_certificate_to_s3(self, certificate_id, certificate_pem, private_key):
+    def upload_certificate_to_s3(self, certificate_id, certificate_pem, private_key, thing_name):
         """
         Upload certificate files to S3
         """
         try:
             # Create S3 paths
-            cert_path = f"certificates/{certificate_id}/{certificate_id}.pem"
+            cert_path = f"certificates/{certificate_id}/{certificate_id}_{thing_name}.pem"
             key_path = f"certificates/{certificate_id}/{certificate_id}.key"
             
             # Upload certificate
@@ -263,7 +263,8 @@ class IoTCore:
             s3_info = self.upload_certificate_to_s3(
                 certificate_id, 
                 certificate_pem, 
-                private_key
+                private_key,
+                thing_name
             )
             
             # Return all provisioning info

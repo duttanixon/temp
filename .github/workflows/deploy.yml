@@ -36,6 +36,14 @@ jobs:
         ALGORITHM=HS256
         ACCESS_TOKEN_EXPIRE_MINUTES=30
         DATABASE_URL=${{ secrets.DATABASE_URL }}
+        AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION=${{ vars.AWS_REGION }}
+        AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+        IOT_CUSTOMER_POLICY_NAME=${{ secrets.IOT_CUSTOMER_POLICY_NAME }}
+        IOT_CUSTOMER_POLICY_ARN=${{ secrets.IOT_CUSTOMER_POLICY_ARN }}
+        S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+        S3_CERTIFICATES_PATH=${{ vars.S3_CERTIFICATES_PATH }}
         EOL"
 
     - name: Deploy to EC2

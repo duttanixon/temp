@@ -26,6 +26,7 @@ def main():
         input_source: IInputSource = InputSourceFactory.create(
             config["solution"]["input"]
         )
+        
         output_handler: IOutputHandler = OutputHandlerFactory.create(
             config["solution"]["output"]
         )

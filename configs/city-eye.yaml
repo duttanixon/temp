@@ -6,7 +6,7 @@ platform:
     source_type: file
     detection_model_path: /opt/models/detection/yolov8m.hef
     attribute_model_path: /opt/models/classification/person_attr_resnet_v1_18.hef
-    postprocess_so_path: /home/Raspi5_2/hailo-rpi5-examples/venv_hailo_rpi5_examples/lib/python3.11/site-packages/resources/libyolo_hailortpp_postprocess.so
+    postprocess_so_path: /usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/libyolo_hailortpp_postprocess.so
     postprocess_function_name: filter_letterbox
     labels_json: ""
     disable_sync: false
@@ -22,12 +22,12 @@ solution:
     use_frame: True
     nms_score_threshold: 0.3
     nms_iou_threshold: 0.45
-    xlines_cfg_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/configs/xlines_cfg.json
-    count_output_path: /home/Raspi5_2/ws/nixon/cc-edge-analytics/resources/data/count_result.json
+    xlines_cfg_path: /home/cybercore/ws/nixon/cc-platform-edge-solutions-90012/configs/xlines_cfg.json
+    count_output_path: /home/cybercore/ws/nixon/cc-platform-edge-solutions-90012/resources/data/count_result.json
     sqlite_base_dir: /opt/db
     sync_batch_size: 100
     sync_interval_seconds: 10
-    test: true
+    test: false
 
 
 
@@ -45,7 +45,7 @@ solution:
         # type: rpi
         # file_path: rpi
         type: file
-        file_path: resources/data/ch01_00000000143000000.mp4
+        file_path: resources/data/verification-ch01_00000000396000000.mp4
     output:
         type: default
         streaming: true
@@ -58,9 +58,9 @@ solution:
     cloud:
         provider: aws_iot
         endpoint: "a23bd20ty64577-ats.iot.ap-northeast-1.amazonaws.com"
-        certs_dir: "/home/Raspi5_2/ws/nixon/cc-edge-analytics/certificates"
-        cert_path: "8c78b02040c506b43c1cb6462f24bec7e680832fe2ab9b5abe9ae8eceb72e92a-certificate.pem.crt"
-        private_key_path: "8c78b02040c506b43c1cb6462f24bec7e680832fe2ab9b5abe9ae8eceb72e92a-private.pem.key"
+        certs_dir: "/home/cybercore/ws/nixon/cc-platform-edge-solutions-90012/certificates"
+        cert_path: "b1bc3ac4d0b4a3d932ddeb66ad75ab88da21c3e7c6acb6e9c5f13188e9255be4.pem"
+        private_key_path: "b1bc3ac4d0b4a3d932ddeb66ad75ab88da21c3e7c6acb6e9c5f13188e9255be4.key"
         root_ca_path: "AmazonRootCA1.pem"
         solution_type: "city-eye"
         enable_compression: true

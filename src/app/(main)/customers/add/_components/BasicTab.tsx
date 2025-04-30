@@ -28,15 +28,30 @@ export const FormField: FC<FormFieldProps> = ({
   required = false,
 }) => (
   <div className="flex flex-col gap-1">
-    <Label htmlFor={id} className={labelStyle()}>
-      {label} {required && "*"}
+    <Label htmlFor={id} className={formVariants({ variant: "label" })}>
+      {label} {required && <span className="text-[#FF0000]">*</span>}
     </Label>
-    <Input className={inputStyle()} id={id} value={value} onChange={onChange} />
+    <Input
+      className={formVariants({ variant: "input" })}
+      id={id}
+      value={value}
+      onChange={onChange}
+    />
   </div>
 );
 
-export const labelStyle = cva("text-sm font-normal text-[#7F8C8D]");
-export const inputStyle = cva("w-96 h-[35.56px] border border-[#BDC3C7]");
+export const formVariants = cva("", {
+  variants: {
+    variant: {
+      label: "text-sm font-normal text-[#7F8C8D]",
+      input: "w-96 h-[35.56px] border border-[#BDC3C7]",
+      companyInfo: "text-lg font-bold text-[#2C3E50]",
+    },
+  },
+  defaultVariants: {
+    variant: "companyInfo",
+  },
+});
 
 export const BasicTab = ({
   companyName,
@@ -49,7 +64,7 @@ export const BasicTab = ({
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center gap-x-16">
-        <h2 className="text-lg font-bold text-[#2C3E50]">会社情報</h2>
+        <h2 className={formVariants({ variant: "companyInfo" })}>会社情報</h2>
         <span className="text-sm font-normal text-[#7F8C8D]">
           <span className="text-[#FF0000]">*</span> 必須項目
         </span>

@@ -54,6 +54,32 @@ brew install pipenv
 </details>
 
 <details>
+<summary>Create automatic schemas</summary>
+
+To generate the migration
+```bash
+alembic revision --autogenerate -m "<messsage>"
+```
+
+Apply the migration
+```bash
+
+alembic upgrade head
+```
+
+Check migration history
+```bash
+
+alembic history
+```
+
+Verify current vesion
+ ```bash
+ alembic current
+ ```
+
+
+<details>
 <summary>Running the Application</summary>
 
 ```bash

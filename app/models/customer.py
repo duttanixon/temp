@@ -26,6 +26,11 @@ class Customer(Base):
     created_at = Column(DateTime(timezone=True), default=jst_now)
     updated_at = Column(DateTime(timezone=True), default=jst_now, onupdate=jst_now)
     status = Column(Enum(CustomerStatus, name='customer_status'), nullable=False, default=CustomerStatus.ACTIVE)
+
+    # Add new fields for AWS IoT Thing Group
+    iot_thing_group_name = Column(String, nullable=True)
+    iot_thing_group_arn = Column(String,nullable=True)
     
     # 1:N
     users = relationship("User", back_populates="customer")
+    devices = relationship("Device", back_populates="customer")

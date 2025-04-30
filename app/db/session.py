@@ -3,7 +3,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 from app.utils.logger import get_logger
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 # Get logger
 logger = get_logger("db")
 
@@ -11,6 +12,9 @@ engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+def jst_now():
+    return datetime.now(ZoneInfo("Asia/Tokyo"))
 
 # # Add event listeners for SQL execution
 # @event.listens_for(engine, "before_cursor_execute")

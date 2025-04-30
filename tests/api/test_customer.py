@@ -5,6 +5,7 @@ import pytest
 import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from unittest.mock import patch
 
 from app.models.audit_log import AuditLog
 from app.models.customer import Customer, CustomerStatus
@@ -51,8 +52,15 @@ def test_get_all_customers_pagination(client: TestClient, admin_token: str):
     assert len(data) == 1  # We requested just 1 item
 
 # Test cases for customer creation (POST /customers)
-def test_create_customer_admin(client: TestClient, db: Session, admin_token: str):
+@patch('app.utils.aws_iot.iot_core.create_customer_thing_group')
+def test_create_customer_admin(mock_create_thing_group, client: TestClient, db: Session, admin_token: str):
     """Test admin creating a new customer"""
+    # Configure mock to return a suitable response
+    mock_create_thing_group.return_value = {
+        "thing_group_name": "customer-test",
+        "thing_group_arn": "arn:aws:iot:region:account:thinggroup/customer-test"
+    }
+    
     customer_data = {
         "name": "New Test Customer",
         "contact_email": "contact@newtestcustomer.com",

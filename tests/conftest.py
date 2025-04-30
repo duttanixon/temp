@@ -7,9 +7,12 @@ import pytest
 import uuid
 from typing import Dict, Generator, List
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, JSON
 from sqlalchemy.orm import Session, sessionmaker
 from datetime import datetime, timedelta
+# Add these imports for JSONB support in SQLite
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.compiler import compiles
 
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
@@ -17,6 +20,7 @@ from app.db.session import Base, get_db
 from app.main import app
 from app.models.user import User, UserRole, UserStatus
 from app.models.customer import Customer, CustomerStatus
+from app.models.device import Device, DeviceStatus, DeviceType
 
 # Test database URL - use SQLite for tests 
 TEST_DATABASE_URL = f"sqlite:///./test.db"
@@ -37,6 +41,12 @@ def override_get_db():
         db.close()
 
 app.dependency_overrides[get_db] = override_get_db
+
+# Add this to make JSONB work with SQLite
+@compiles(JSONB, 'sqlite')
+def compile_jsonb_sqlite(element, compiler, **kw):
+    # Use JSON type for SQLite instead of JSONB
+    return compiler.visit_JSON(element, **kw)
 
 @pytest.fixture(scope="function")
 def db() -> Generator:
@@ -161,6 +171,25 @@ def expired_token(admin_user: User) -> str:
         expires_delta=timedelta(minutes=-30)  # Negative minutes = expired
     )
 
+@pytest.fixture
+def device(db: Session, customer: Customer) -> Device:
+    """Get a basic test device created by the seed function"""
+    return db.query(Device).filter(Device.device_type == DeviceType.NVIDIA_JETSON).first()
+
+@pytest.fixture
+def raspberry_device(db: Session, customer: Customer) -> Device:
+    """Get a Raspberry Pi test device created by the seed function"""
+    return db.query(Device).filter(Device.device_type == DeviceType.RASPBERRY_PI).first()
+
+@pytest.fixture
+def provisioned_device(db: Session, customer: Customer) -> Device:
+    """Get a provisioned device created by the seed function"""
+    return db.query(Device).filter(Device.status == DeviceStatus.PROVISIONED).first()
+
+@pytest.fixture
+def active_device(db: Session, customer: Customer) -> Device:
+    """Get an active device created by the seed function"""
+    return db.query(Device).filter(Device.status == DeviceStatus.ACTIVE).first()
 
 def seed_test_data(db: Session) -> None:
     """
@@ -240,10 +269,183 @@ def seed_test_data(db: Session) -> None:
         customer_id=active_customer.customer_id,
         status=UserStatus.SUSPENDED
     )
+    # Create test devices
+    basic_device = Device(
+        device_id=uuid.uuid4(),
+        name="Test Device",
+        description="A test device for testing",
+        mac_address="00:11:22:33:44:55",
+        serial_number="SN123456789",
+        device_type=DeviceType.NVIDIA_JETSON,
+        firmware_version="1.0.0",
+        location="Test Location",
+        customer_id=active_customer.customer_id,
+        ip_address="192.168.1.100",
+        status=DeviceStatus.PROVISIONED,
+        is_online=False
+    )
+    
+    raspberry_device = Device(
+        device_id=uuid.uuid4(),
+        name="Raspberry Pi Device",
+        description="A Raspberry Pi test device",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        serial_number="SNRPI123456",
+        device_type=DeviceType.RASPBERRY_PI,
+        firmware_version="2.0.0",
+        location="Pi Location",
+        customer_id=active_customer.customer_id,
+        ip_address="192.168.1.200",
+        status=DeviceStatus.INACTIVE,
+        is_online=False
+    )
+    
+    active_device = Device(
+        device_id=uuid.uuid4(),
+        name="Active Device",
+        description="An active test device",
+        mac_address="11:22:33:44:55:66",
+        serial_number="SNACTIVE123",
+        device_type=DeviceType.NVIDIA_JETSON,
+        firmware_version="1.5.0",
+        location="Active Location",
+        customer_id=active_customer.customer_id,
+        ip_address="192.168.1.150",
+        status=DeviceStatus.ACTIVE,
+        is_online=True,
+        thing_name="active-device-thing",
+        thing_arn="arn:aws:iot:region:account:thing/active-device-thing",
+        certificate_id="cert123",
+        certificate_arn="arn:aws:iot:region:account:cert/cert123"
+    )
+    
+    suspended_device = Device(
+        device_id=uuid.uuid4(),
+        name="Suspended Customer Device",
+        description="A device for the suspended customer",
+        mac_address="66:77:88:99:AA:BB",
+        serial_number="SNSUSPENDED",
+        device_type=DeviceType.NVIDIA_JETSON,
+        firmware_version="1.0.0",
+        location="Suspended Location",
+        customer_id=suspended_customer.customer_id,
+        status=DeviceStatus.INACTIVE,
+        is_online=False
+    )
     
     db.add(admin_user)
     db.add(engineer_user)
     db.add(customer_admin_user)
     db.add(customer_user)
     db.add(suspended_user)
+    db.add(basic_device)
+    db.add(raspberry_device)
+    db.add(active_device)
+    db.add(suspended_device)
     db.commit()
+
+
+
+
+
+# # Test fixtures for devices
+# @pytest.fixture
+# def device(db: Session, customer: Customer) -> Device:
+#     """Create and return a test device"""
+#     device = Device(
+#         device_id=uuid.uuid4(),
+#         name="Test Device",
+#         description="Test device for testing",
+#         mac_address="00:11:22:33:44:55",
+#         serial_number="SN12345",
+#         device_type=DeviceType.NVIDIA_JETSON,
+#         firmware_version="1.0.0",
+#         status=DeviceStatus.PROVISIONED,
+#         customer_id=customer.customer_id,
+#         configuration={"test": "value"}
+#     )
+#     db.add(device)
+#     db.commit()
+#     db.refresh(device)
+#     return device
+
+# @pytest.fixture
+# def provisioned_device(db: Session, customer: Customer) -> Device:
+#     """Create and return a provisioned test device with AWS IoT info"""
+#     device = Device(
+#         device_id=uuid.uuid4(),
+#         name="Provisioned Device",
+#         description="Provisioned device with IoT info",
+#         mac_address="AA:BB:CC:DD:EE:FF",
+#         serial_number="SN67890",
+#         device_type=DeviceType.RASPBERRY_PI,
+#         firmware_version="2.0.0",
+#         status=DeviceStatus.ACTIVE,
+#         customer_id=customer.customer_id,
+#         thing_name="test-thing",
+#         thing_arn="arn:aws:iot:us-west-2:123456789012:thing/test-thing",
+#         certificate_id="cert-id-123",
+#         certificate_arn="arn:aws:iot:us-west-2:123456789012:cert/cert-id-123",
+#         certificate_path="certificates/cert-id-123/cert-id-123.pem",
+#         private_key_path="certificates/cert-id-123/cert-id-123.key",
+#         configuration={"test": "provisioned"}
+#     )
+#     db.add(device)
+#     db.commit()
+#     db.refresh(device)
+#     return device
+
+# @pytest.fixture
+# def inactive_device(db: Session, customer: Customer) -> Device:
+#     """Create and return an inactive test device"""
+#     device = Device(
+#         device_id=uuid.uuid4(),
+#         name="Inactive Device",
+#         description="Inactive device for testing",
+#         mac_address="11:22:33:44:55:66",
+#         serial_number="SN54321",
+#         device_type=DeviceType.NVIDIA_JETSON,
+#         firmware_version="1.5.0",
+#         status=DeviceStatus.INACTIVE,
+#         customer_id=customer.customer_id,
+#         configuration={"status": "inactive"}
+#     )
+#     db.add(device)
+#     db.commit()
+#     db.refresh(device)
+#     return device
+
+
+# # SQLite compatibility fix
+# @pytest.fixture(scope="function", autouse=True)
+# def setup_sqlite_for_json(db):
+#     """
+#     Configure SQLite connection to handle JSON fields properly.
+#     This runs before each test function automatically.
+#     """
+#     # Register JSON handling functions with SQLite connection
+#     connection = db.connection()
+    
+#     def json_serializer(obj):
+#         return json.dumps(obj)
+    
+#     def json_deserializer(text):
+#         return json.loads(text) if text else None
+    
+#     # Register functions with sqlite connection
+#     connection.create_function("json_serialize", 1, json_serializer)
+#     connection.create_function("json_deserialize", 1, json_deserializer)
+
+#     # Apply changes to any existing device data
+#     devices = db.query(Device).all()
+#     for device in devices:
+#         if isinstance(device.configuration, str):
+#             device.configuration = json.loads(device.configuration)
+#         elif device.configuration is None:
+#             device.configuration = {}
+    
+#     db.flush()
+    
+#     yield
+    
+#     # Nothing to clean up

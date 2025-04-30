@@ -65,6 +65,13 @@ class CityEyeSolution(ISolution):
             "female_silver": 0
         }
 
+        # Initialize input source
+        try:
+            logger.debug("Initaizing input source", component="CityEyeSolution")
+            self.input_source.initialize()
+        except Exception as e:
+            logger.error("Failed to initialize input source", exception=e, component="CityEyeSolution")
+
         # Get the video file name if in test mode
         if self.test_mode:
             input_props = input_source.get_properties()
@@ -81,13 +88,6 @@ class CityEyeSolution(ISolution):
                     component="CityEyeSolution"
                 )
                 self.video_file_name = "live_feed"            
-
-        # Initialize input source
-        try:
-            logger.debug("Initaizing input source", component="CityEyeSolution")
-            self.input_source.initialize()
-        except Exception as e:
-            logger.error("Failed to initialize input source", exception=e, component="CityEyeSolution")
 
         # Set solution running state
         self.running = True

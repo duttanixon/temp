@@ -386,6 +386,11 @@ class HailoPipelineController(IPlatformController):
             # Notify solution that we're stopping
             if hasattr(self.solution, 'running'):
                 self.solution.running = False
+            
+            # Clean up solution
+            if hasattr(self.solution, 'cleanup'):
+                logger.info("Calling solution cleanup method", component="HailoPupelineController")
+                self.solution.cleanup()
                 
             # Dump pipeline state before cleanup if debugging is enabled
             if self.debug_enabled:

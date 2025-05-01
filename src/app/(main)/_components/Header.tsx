@@ -1,31 +1,29 @@
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { User } from 'lucide-react'
+// HeaderContainer.tsx (Server Component)
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from "next-auth/next";
+import { HeaderClient } from "./HeaderClient";
 
-export function Header() {
-  return (
-    <header className="bg-[#2C3E50] text-white px-4 py-2 flex items-center justify-between">
-      <h1 className="text-lg font-semibold">IoT Edge Device Portal</h1>
+export async function Header() {
+    // サーバーサイドでセッション情報を取得
+    const session = await getServerSession(authOptions);
 
-      <div className="flex items-center gap-4">
-        {/* <Button variant="ghost" size="icon" className="text-white hover:bg-slate-700">
-          <Bell className="h-5 w-5" />
-        </Button>
-         */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 text-white cursor-pointer">
-              <User className="h-5 w-5" />
-              <span>Customer Admin ▾</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Logout</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
-  )
+    // ユーザー情報を抽出
+    const userRole = session?.user?.role || "";
+    const customerName = session?.user?.customerName || "Tokyo Metro";
+    const userName =
+        session?.user?.name || session?.user?.email?.split("@")[0] || "";
+
+    // サブヘッダーを表示するロール
+    const subHeaderViewRoles = ["CUSTOMER_ADMIN", "CUSTOMER_USER"];
+    // ユーザーロールに基づいてサブヘッダーを選択
+    const isSubHeaderView = subHeaderViewRoles.includes(userRole);
+
+    return (
+        <HeaderClient
+            userName={userName}
+            customerName={customerName}
+            isSubHeaderView={isSubHeaderView}
+            isAuthenticated={!!session}
+        />
+    );
 }

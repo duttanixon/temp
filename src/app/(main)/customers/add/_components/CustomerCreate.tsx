@@ -25,7 +25,6 @@ const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
 export const CustomerCreate = ({
   errorMessage,
   completedMessage,
-  handleCreate,
   handleCancel,
 }: Props) => {
   // 顧客作成可否のメッセージを表示
@@ -53,7 +52,6 @@ export const CustomerCreate = ({
         <Button
           className={buttonVariants({ variant: "default" })}
           type="submit"
-          onClick={handleCreate}
         >
           作成
         </Button>

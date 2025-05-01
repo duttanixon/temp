@@ -42,7 +42,7 @@ export const FormField: FC<FormFieldProps> = ({
       name={name}
       value={value}
       onChange={onChange}
-      required
+      required={required}
     />
   </div>
 );

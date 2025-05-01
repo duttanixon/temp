@@ -1,5 +1,5 @@
-import { BasicTab } from "./BasicTab";
-import { SubscriptionTab } from "./SubscriptionTab";
+import { BasicTab } from "./BasicTabContent";
+import { SubscriptionTab } from "./SubscriptionTabContent";
 
 type Props = {
   activeTab: string;

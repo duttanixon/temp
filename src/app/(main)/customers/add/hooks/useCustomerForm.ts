@@ -5,6 +5,14 @@ import { AxiosError } from "axios";
 
 const password = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "";
 
+type CustomerResponse = {
+  id: string;
+  name: string;
+  contact_email: string;
+  address: string;
+  status: string;
+};
+
 export const useCustomerFormBasic = () => {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
@@ -15,7 +23,7 @@ export const useCustomerFormBasic = () => {
   const router = useRouter();
 
   // フォームのリセットを行う関数
-  const resetFormAfterDelay = () => {
+  const resetFormAfterDelay = (): void => {
     setTimeout(() => {
       setCompanyName("");
       setEmail("");
@@ -26,7 +34,7 @@ export const useCustomerFormBasic = () => {
   };
 
   // アクセストークンを取得する関数
-  const fetchAccessToken = async () => {
+  const fetchAccessToken = async (): Promise<string> => {
     const formData = new URLSearchParams();
     formData.append("grant_type", "password");
     formData.append("username", email);
@@ -52,11 +60,14 @@ export const useCustomerFormBasic = () => {
         const detail = error.response?.data?.detail || "Login failed";
         throw new Error(detail);
       }
+      throw new Error("Unknown login error");
     }
   };
 
   // 顧客データ作成APIを呼び出す関数
-  const createCustomer = async (token: string) => {
+  const createCustomer = async (
+    token: string
+  ): Promise<CustomerResponse | null> => {
     const customerPayload = {
       name: companyName,
       contact_email: email,
@@ -77,6 +88,7 @@ export const useCustomerFormBasic = () => {
       });
       console.log("Registration complete:", response.data);
       setCompletedMessage("登録が完了しました");
+      return response.data;
     } catch (error) {
       console.error("Registration error:", error);
       setCompletedMessage("");
@@ -89,11 +101,12 @@ export const useCustomerFormBasic = () => {
             : "顧客データの作成に失敗しました"
         );
       }
+      return null;
     }
   };
 
   // 作成ボタン押下時の処理
-  const handleCreate = async () => {
+  const handleCreate = async (): Promise<void> => {
     localStorage.removeItem("accessToken");
     localStorage.setItem("tokenResetDone", "true");
 
@@ -114,11 +127,11 @@ export const useCustomerFormBasic = () => {
   };
 
   // キャンセルボタン押下時の処理
-  const handleCancel = () => {
+  const handleCancel = (): void => {
     router.push("/customers");
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     handleCreate();
   };

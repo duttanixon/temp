@@ -134,16 +134,25 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
         if not results:
             return {
                 "total_videos": 0,
-                "total_counts": 0,
+                "total_human": 0,
+                "total_vehicle": 0,
                 "gender_ratio": {"male": 0, "female": 0},
-                "age_distribution": {"young": 0, "middle": 0, "senior": 0, "silver": 0}
+                "age_distribution": {"young": 0, "middle": 0, "senior": 0, "silver": 0},
+                "traffic_distribution":{"bus": 0, "car": 0, "bicycle":0, "truck": 0, "motorcycle": 0}
+
             }
             
         # Calculate statistics
         total_videos = len(results)
-        total_counts = sum(r["total_count"] for r in results)
+        total_human = sum(r["total_human"] for r in results)
         male_count = sum(r["male_count"] for r in results)
         female_count = sum(r["female_count"] for r in results)
+        bus_count = sum(r["bus"] for r in results)
+        car_count = sum(r["car"] for r in results)
+        motorcycle_count = sum(r["motorcycle"] for r in results)
+        bicycle_count = sum(r["bicycle"] for r in results)
+        motorcycle_count = sum(r["motorcycle"] for r in results)
+        truck_count = sum(r["truck"] for r in results)
         
         # Calculate gender ratio
         total_gender = male_count + female_count
@@ -194,6 +203,13 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
                 "male_silver": male_silver_count,
                 "female_silver": female_silver_count
             }
+            traffic_distribution = {
+                "bus": bus_count,
+                "truck": truck_count,
+                "bicycle": bicycle_count,
+                "car": car_count,
+                "motorcycle": motorcycle_count
+            }
         else:
             age_distribution = {"young": 0, "middle": 0, "senior": 0, "silver": 0}
             age_gender_distribution = {
@@ -202,13 +218,23 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
                 "male_senior": 0, "female_senior": 0,
                 "male_silver": 0, "female_silver": 0
             }
+            traffic_distribution = {
+                "bus": 0,
+                "truck": 0,
+                "bicycle": 0,
+                "car": 0,
+                "motorcycle": 0
+            }
+        
+
             
         return {
             "total_videos": total_videos,
-            "total_counts": total_counts,
+            "total_human": total_human,
             "gender_ratio": gender_ratio,
             "age_distribution": age_distribution,
             "age_gender_distribution": age_gender_distribution,
+            "traffic_distribution": traffic_distribution,
             "videos_processed": [r["video_file_name"] for r in results]
         }
         

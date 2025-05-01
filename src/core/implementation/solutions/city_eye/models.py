@@ -72,7 +72,7 @@ class TestResult(Base):
 
     id = Column(String(36), primary_key = True, default=lambda : str(uuid.uuid4()))
     video_file_name = Column(String, nullable=False, unique=True)
-    total_count = Column(Integer, default=0)
+    total_human = Column(Integer, default=0)
     male_young = Column(Integer, default=0)
     female_young =  Column(Integer, default=0)
     male_middle = Column(Integer, default=0)
@@ -81,16 +81,24 @@ class TestResult(Base):
     female_senior = Column(Integer, default=0)
     male_silver = Column(Integer, default=0)
     female_silver = Column(Integer, default=0)
+    
+    # Vehicle detection counts
+    total_vehicles = Column(Integer, default=0)
+    bicycle = Column(Integer, default=0)
+    car = Column(Integer, default=0)
+    motorcycle = Column(Integer, default=0)
+    bus = Column(Integer, default=0)
+    truck = Column(Integer, default=0)
 
     def __repr__(self):
-        return f"<TestResult(id={self.id}, video_file={self.video_file_name}, total={self.total_count})>"
+        return f"<TestResult(id={self.id}, video_file={self.video_file_name}, total_human={self.total_human}, total_vehicles={self.total_vehicles})>"
     
     def to_dict(self):
         """Convert the model to a dictionary for serialization"""
         return {
             "id": self.id,
             "video_file_name": self.video_file_name,
-            "total_count": self.total_count,
+            "total_human": self.total_human,
             "male_count": self.male_young + self.male_middle +  self.male_senior + self.male_silver,
             "female_count": self.female_young + self.female_middle +  self.female_senior + self.female_silver,
             "male_young": self.male_young,
@@ -100,7 +108,14 @@ class TestResult(Base):
             "male_senior": self.male_senior,
             "female_senior":self.female_senior,
             "male_silver": self.male_silver,
-            "female_silver": self.female_silver
+            "female_silver": self.female_silver,
+            # Vehicle counts
+            "total_vehicles": self.total_vehicles,
+            "bicycle": self.bicycle,
+            "car": self.car,
+            "motorcycle": self.motorcycle,
+            "bus": self.bus,
+            "truck": self.truck
         }
 
     

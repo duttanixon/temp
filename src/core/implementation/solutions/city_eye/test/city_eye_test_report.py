@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 
 """
-Test Report Generation Tool for CityEye
+Unified Test Report Generation Tool for CityEye
 
-This script generates reports from test results stored in the database.
+This script generates combined reports for human and vehicle detection from test results
+stored in the database
 """
 
 import os
 import sys
 import argparse
 import pandas as pd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from pathlib import Path
 
-# Add parent directory to path for imports
-# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from core.implementation.common.sqlite_manager import DatabaseManager
-from core.implementation.solutions.flow_eye.test_utils import (
+from core.implementation.solutions.city_eye.test.test_utils import (
     get_test_results,
     export_test_results_csv,
     get_test_statistics
@@ -35,7 +33,7 @@ def parse_args():
     
     parser.add_argument(
         "--output-dir",
-        default="./reports",
+        default="../reports",
         help="Directory to save reports (default: ./reports)"
     )
     
@@ -60,20 +58,24 @@ def generate_csv_report(db_manager, output_dir, video_file=None):
         if video_file:
             results = get_test_results(db_manager, video_file)
             if not results:
-                print(f"No test results found for video: {video_file}")
+                print(f"No test results found" + (f" for video: {video_file}" if video_file else ""))
                 return None
                 
             df = pd.DataFrame(results)
-            output_file = os.path.join(output_dir, f"{video_file}_test_results.csv")
+
+
+            output_file = os.path.join(output_dir, f"{video_file}_unified_test_results.csv")
+
+            # Ensure output directory exists
+            os.makedirs(output_dir, exist_ok=True)
+
             df.to_csv(output_file, index=False)
-            print(f"CSV report generated: {output_file}")
+            print(f"Unified CSV report generated: {output_file}")
+
             return output_file
         else:
-            # Export all test results
-            output_file = export_test_results_csv(db_manager, output_dir)
-            if output_file:
-                print(f"CSV report generated: {output_file}")
-            return output_file
+            print("No video file provided to produce test result for")
+
     except Exception as e:
         print(f"Error generating CSV report: {str(e)}")
         return None
@@ -228,10 +230,10 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             plt.figure(figsize=(14, 8))
             
             # Sort by total count for better visualization
-            df = df.sort_values(by='total_count', ascending=False)
+            df = df.sort_values(by='total_human', ascending=False)
             
             # Use bar plot for comparison
-            plt.bar(df['video_file_name'], df['total_count'])
+            plt.bar(df['video_file_name'], df['total_human'])
             plt.xticks(rotation=45, ha='right')
             plt.title('Detection Count Comparison by Video')
             plt.ylabel('Total Detections')
@@ -255,9 +257,6 @@ def main():
     # Create database manager
     db_manager = DatabaseManager(args.db_dir)
     
-    # Create output directory
-    os.makedirs(args.output_dir, exist_ok=True)
-    
     # Generate requested reports
     if args.format in ['csv', 'all']:
         generate_csv_report(db_manager, args.output_dir, args.video)
@@ -270,7 +269,7 @@ def main():
     
     print("\n== CityEye Test Statistics ==")
     print(f"Total videos processed: {stats['total_videos']}")
-    print(f"Total detections: {stats['total_counts']}")
+    print(f"Total detections: {stats['total_human']}")
     print("\nGender Ratio:")
     print(f"  Male: {stats['gender_ratio']['male']:.1f}%")
     print(f"  Female: {stats['gender_ratio']['female']:.1f}%")
@@ -289,6 +288,12 @@ def main():
     print(f"  Female Senior: {stats['age_gender_distribution']['female_senior']}")
     print(f"  Male Silver: {stats['age_gender_distribution']['male_silver']}")
     print(f"  Female Silver: {stats['age_gender_distribution']['female_silver']}")
+    print(f"  Bus: {stats['traffic_distribution']['bus']}")
+    print(f"  Truck: {stats['traffic_distribution']['truck']}")
+    print(f"  Motocycle: {stats['traffic_distribution']['motorcycle']}")
+    print(f"  Bicycle: {stats['traffic_distribution']['bicycle']}")
+    print(f"  Car: {stats['traffic_distribution']['car']}")
+
     
     if args.video:
         print(f"\nResults filtered for video: {args.video}")

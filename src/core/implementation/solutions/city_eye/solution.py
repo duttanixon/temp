@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Tuple
 import numpy as np
+import os
 import signal
 import threading
 from queue import Queue, Empty, Full
@@ -17,7 +18,7 @@ from core.implementation.common.logger import get_logger
 from core.implementation.common.exceptions import SolutionError, ProcessingError, TrackingError, DatabaseError
 from core.implementation.common.error_handler import handle_errors
 
-from .models import HumanResult, TrafficResult
+from .models import HumanResult, TrafficResult, TestResult
 from .sync_handler import BatchSyncHandler
 
 logger = get_logger()
@@ -54,7 +55,7 @@ class CityEyeSolution(ISolution):
         # Check if running in test mode
         self.test_mode = config.get("test", False)
         self.test_counts = {
-            "total": 0,
+            "total_human": 0,
             "male_young": 0,
             "female_young": 0,
             "male_middle": 0,
@@ -62,7 +63,14 @@ class CityEyeSolution(ISolution):
             "male_senior": 0,
             "female_senior": 0,
             "male_silver": 0,
-            "female_silver": 0
+            "female_silver": 0,
+            # Add traffic test counters
+            "total_vehicles": 0,
+            "bicycle": 0,
+            "car": 0,
+            "motorcycle": 0, 
+            "bus": 0,
+            "truck": 0
         }
 
         # Initialize input source
@@ -135,7 +143,7 @@ class CityEyeSolution(ISolution):
             self.class_names_dict = {
                 'gender' : ['male', 'female'],
                 'age': ['young', 'middle', 'senior', 'silver'],
-                'vehicle':['bicycles','car','bus','truck','motorcycle'] #bicycle=2, car =3,motorcycle=4, bus=6, truck=8
+                'vehicle':['bicycle','car','bus','truck','motorcycle'] #bicycle=2, car =3,motorcycle=4, bus=6, truck=8
             }
             self.count = Counter(self.xlines_cfg_path,self.count_output_path,self.class_names_dict)
         except Exception as e:
@@ -229,6 +237,7 @@ class CityEyeSolution(ISolution):
                 try:
                     self.count.count_by_frame(self.counters["frame_number"],frame_data["object_meta"])
                     frame_result = self.count.finish_tracklets(self.counters["frame_number"])
+                    print(frame_result)
                 except Exception as e:
                     logger.error("Error in counting module", exception=e, component="CityEyeSolution")
                     frame_result = None
@@ -283,6 +292,12 @@ class CityEyeSolution(ISolution):
                         to_polygon=to_polygon,
                         vehicletype= vehicle_type
                     )
+                    # Update test counts if in test mode for traffic
+                    if self.test_mode:
+                        self.test_counts["total_vehicles"] += 1
+                        # Update the vehicle type counter
+                        if vehicle_type in self.test_counts:
+                            self.test_counts[vehicle_type] += 1
                 else:
                     gender, age = class_.split("::")
                     item = HumanResult(
@@ -293,7 +308,7 @@ class CityEyeSolution(ISolution):
                     )
                     # Update test counts if in test mode
                     if self.test_mode:
-                        self.test_counts["total"] += 1
+                        self.test_counts["total_human"] += 1
                         # Update the combined gender-age counter
                         gender_age_key = f"{gender}_{age}"
                         self.test_counts[gender_age_key] += 1
@@ -313,7 +328,7 @@ class CityEyeSolution(ISolution):
         Update test results in database when in test mode.
         Called during cleanup to ensure final counts are stored.
         """
-        if not self.test_mode or self.test_counts["total"] == 0:
+        if not self.test_mode or (self.test_counts["total_human"] == 0 and self.test_counts["total_vehicles"] == 0):
             return
         
         try:
@@ -321,7 +336,8 @@ class CityEyeSolution(ISolution):
                 "Updating test results",
                 context={
                     "video_file": self.video_file_name,
-                    "total_count": self.test_counts["total"]
+                    "total_human": self.test_counts["total_human"],
+                    "total_vehicles": self.test_counts["total_vehicles"]
                 },
                 component="CityEyeSolution"
             )            
@@ -333,8 +349,8 @@ class CityEyeSolution(ISolution):
                 ).first()
                 
                 if existing:
-                    # Update existing record
-                    existing.total_count = self.test_counts["total"]
+                    # Update existing human record
+                    existing.total_huamn = self.test_counts["total_human"]
                     existing.male_young = self.test_counts["male_young"]
                     existing.female_young = self.test_counts["female_young"]
                     existing.male_middle = self.test_counts["male_middle"]
@@ -343,11 +359,21 @@ class CityEyeSolution(ISolution):
                     existing.female_senior = self.test_counts["female_senior"]
                     existing.male_silver = self.test_counts["male_silver"]
                     existing.female_silver = self.test_counts["female_silver"]
+
+                    # Update existing vehicle record
+                    existing.total_vehicles = self.test_counts["total_vehicles"]
+                    existing.bicycle = self.test_counts["bicycle"]
+                    existing.car = self.test_counts["car"]
+                    existing.motorcycle = self.test_counts["motorcycle"]
+                    existing.bus = self.test_counts["bus"]
+                    existing.truck = self.test_counts["truck"]
+
+                    
                 else:
                     # Create new record
                     test_result = TestResult(
                         video_file_name=self.video_file_name,
-                        total_count=self.test_counts["total"],
+                        total_human=self.test_counts["total_human"],
                         male_young=self.test_counts["male_young"],
                         female_young=self.test_counts["female_young"],
                         male_middle=self.test_counts["male_middle"],
@@ -355,9 +381,26 @@ class CityEyeSolution(ISolution):
                         male_senior=self.test_counts["male_senior"],
                         female_senior=self.test_counts["female_senior"],
                         male_silver=self.test_counts["male_silver"],
-                        female_silver=self.test_counts["female_silver"]
+                        female_silver=self.test_counts["female_silver"],
+                        total_vehicles = self.test_counts["total_vehicles"],
+                        bicycle = self.test_counts["bicycle"],
+                        car = self.test_counts["car"],
+                        motorcycle = self.test_counts["motorcycle"],
+                        bus = self.test_counts["bus"],
+                        truck = self.test_counts["truck"]
                     )
                     session.add(test_result)
+                    session.commit()
+            logger.info(
+                "Test result update completed",
+                context={
+                    "video_file": self.video_file_name,
+                    "total_human": self.test_counts["total_human"],
+                    "total_vehicles": self.test_counts["total_vehicles"]
+                },
+                component="CityEyeSolution"
+            )   
+                
         except Exception as e:
             logger.error(
                 "Error updating test results",

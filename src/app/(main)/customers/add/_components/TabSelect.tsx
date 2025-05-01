@@ -1,5 +1,5 @@
-import { BasicTab } from "./BasicTabContent";
-import { SubscriptionTab } from "./SubscriptionTabContent";
+import { BasicTabContent } from "./BasicTabContent";
+import { SubscriptionTabContent } from "./SubscriptionTabContent";
 
 type Props = {
   activeTab: string;
@@ -23,7 +23,7 @@ export const TabSelect = ({
   switch (activeTab) {
     case "basic":
       return (
-        <BasicTab
+        <BasicTabContent
           companyName={companyName}
           setCompanyName={setCompanyName}
           email={email}
@@ -33,7 +33,7 @@ export const TabSelect = ({
         />
       );
     case "subscription":
-      return <SubscriptionTab />;
+      return <SubscriptionTabContent />;
     default:
       return null;
   }

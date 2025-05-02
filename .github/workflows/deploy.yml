@@ -51,7 +51,7 @@ jobs:
           docker rm platform-frontend-container || true
 
           # Run the new container
-          docker run -d --name platform-frontend -p 3000:3000 platform-frontend:latest
+          docker run -d --name platform-frontend-container -p 3000:3000 platform-frontend:latest
 
           # Clean up
           rm app-source.tar.gz

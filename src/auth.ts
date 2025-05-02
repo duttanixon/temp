@@ -1,6 +1,6 @@
-import axios from "axios"; // axiosをインポート
+import axios from "axios";
 import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
 
@@ -10,8 +10,16 @@ type User = {
     name: string;
     email: string;
     image?: string;
+    role?: string;
+    customerId?: string;
+    accessToken?: string;
+    lastLogin?: string;
+    customerName?: string;
+    firstName?: string;
+    lastName?: string;
 };
 
+// ユーザー認証関数
 async function getUser(email: string, password: string) {
     try {
         const loginUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/login`;
@@ -19,7 +27,7 @@ async function getUser(email: string, password: string) {
         // axiosを使用したリクエスト
         const formData = new URLSearchParams();
         formData.append("grant_type", "password");
-        formData.append("username", email); // usernameとしてemailを送信
+        formData.append("username", email);
         formData.append("password", password);
         formData.append("scope", "");
         formData.append("client_id", "string");
@@ -37,20 +45,13 @@ async function getUser(email: string, password: string) {
         const accessToken = loginResponse.data.access_token;
         console.log("取得したアクセストークン:", accessToken);
 
-        // // トークンを localStorage に保存
-        // // 注意: Next.jsのサーバーコンポーネントではlocalStorageは使用できません
-        // // クライアントサイドでのみ実行されるようにする必要があります
-        // if (typeof window !== "undefined") {
-        //     localStorage.setItem("accessToken", accessToken);
-        // }
-
         const myProfileUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/users/me`;
 
         // axiosでGETリクエスト（認証ヘッダー付き）
         const myProfileResponse = await axios.get(myProfileUrl, {
             headers: {
                 accept: "application/json",
-                Authorization: `Bearer ${accessToken}`, // 認証トークンをヘッダーに追加
+                Authorization: `Bearer ${accessToken}`,
             },
         });
 
@@ -63,8 +64,15 @@ async function getUser(email: string, password: string) {
                 id: myProfile.id,
                 name: myProfile.name,
                 email: myProfile.email,
-                image: myProfile.image, // 画像URL
-                // 追加のユーザープロフィール情報があればここに追加
+                image: myProfile.image,
+                // next-auth v5ではJWTに含める追加情報
+                role: myProfile.role || "user",
+                customerId: myProfile.customer_id,
+                accessToken: accessToken,
+                lastLogin: myProfile.last_login,
+                customerName: myProfile.customer?.name,
+                firstName: myProfile.first_name,
+                lastName: myProfile.last_name,
             },
         };
     } catch (error) {
@@ -78,11 +86,56 @@ async function getUser(email: string, password: string) {
     }
 }
 
+// NextAuth v5の設定
 export const { auth, signIn, signOut, handlers } = NextAuth({
-    ...authConfig,
+    ...authConfig, // auth.configから設定を継承
+    session: { strategy: "jwt" }, // JWT戦略を明示的に指定
+    callbacks: {
+        // JWT作成時のコールバック
+        async jwt({ token, user }) {
+            // 初回ログイン時にユーザー情報をトークンに追加
+            if (user) {
+                token.id = user.id;
+                token.role = user.role;
+                token.customerId = user.customerId;
+                token.accessToken = user.accessToken;
+                token.lastLogin = user.lastLogin;
+                token.customerName = user.customerName;
+                token.firstName = user.firstName;
+                token.lastName = user.lastName;
+            }
+            return token;
+        },
+        // セッション作成時のコールバック
+        async session({ session, token }) {
+            // セッションにトークンの情報を追加
+            if (token && session.user) {
+                session.user.id = token.id as string;
+                session.user.role = token.role as string;
+                session.user.customerId = token.customerId as
+                    | string
+                    | undefined;
+                session.accessToken = token.accessToken as string;
+                session.user.lastLogin = token.lastLogin as string | undefined;
+                session.user.customerName = token.customerName as
+                    | string
+                    | undefined;
+                session.user.firstName = token.firstName;
+                session.user.lastName = token.lastName;
+            }
+            return session;
+        },
+    },
     providers: [
-        Credentials({
-            async authorize(credentials): Promise<User | null> {
+        CredentialsProvider({
+            // サインインフォームの設定（任意）
+            name: "ログイン情報",
+            credentials: {
+                email: { label: "メールアドレス", type: "email" },
+                password: { label: "パスワード", type: "password" },
+            },
+            async authorize(credentials) {
+                // 認証ロジック
                 const parsedCredentials = z
                     .object({
                         email: z.string().email(),

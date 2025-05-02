@@ -12,6 +12,8 @@ declare module "next-auth" {
             customerId?: string;
             lastLogin?: string;
             customerName?: string;
+            firstName?: string;
+            lastName?: string;
         } & DefaultSession["user"];
     }
 
@@ -23,6 +25,8 @@ declare module "next-auth" {
         accessToken: string;
         lastLogin?: string;
         customerName?: string;
+        firstName?: string;
+        lastName?: string;
     }
 }
 
@@ -35,5 +39,7 @@ declare module "next-auth/jwt" {
         accessToken: string;
         lastLogin?: string;
         customerName?: string;
+        firstName?: string;
+        lastName?: string;
     }
 }

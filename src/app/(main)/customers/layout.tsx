@@ -1,18 +1,17 @@
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import Forbidden from "../_components/Forbidden";
 
 export default async function MainLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  // サーバーサイドでセッションを取得
-  const session = await getServerSession(authOptions);
-  // ADMINではない場合はforbiddenページにリダイレクト
-  if (session?.user?.role !== "ADMIN") {
-    return <Forbidden />;
-  }
+    // サーバーサイドでセッションを取得
+    const session = await auth();
+    // ADMINではない場合はforbiddenページにリダイレクト
+    if (session?.user?.role !== "ADMIN") {
+        return <Forbidden />;
+    }
 
-  return <>{children}</>;
+    return <>{children}</>;
 }

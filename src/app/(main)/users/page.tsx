@@ -1,9 +1,8 @@
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 
 export default async function page() {
     // サーバーサイドでセッションを取得
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     console.log(session);
     return (
         <div className="flex flex-col">

@@ -1,0 +1,361 @@
+from typing import Any, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from app.api import deps
+from app.crud import customer_solution, customer, solution
+from app.models import User, UserRole, CustomerSolution
+from app.schemas.customer_solution import (
+    CustomerSolution as CustomerSolutionSchema,
+    CustomerSolutionCreate,
+    CustomerSolutionUpdate,
+    CustomerSolutionAdminView,
+)
+from app.utils.audit import log_action
+from app.utils.logger import get_logger
+import uuid
+from datetime import date
+
+logger = get_logger("api.customer_solutions")
+
+router = APIRouter()
+
+@router.get("", response_model=List[CustomerSolutionAdminView])
+def get_customer_solutions(
+    db: Session = Depends(deps.get_db),
+    customer_id: Optional[uuid.UUID] = None,
+    solution_id: Optional[uuid.UUID] = None,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(deps.get_current_admin_or_engineer_user),
+) -> Any:
+    """
+    Get all customer solutions (admin only).
+    Filter by customer_id or solution_id if provided.
+    """
+    if customer_id:
+        # Check if customer exists
+        customer_obj = customer.get_by_id(db, customer_id=customer_id)
+        if not customer_obj:
+            raise HTTPException(
+                status_code=404,
+                detail="Customer not found"
+            )
+        return customer_solution.get_enhanced_by_customer(db, customer_id=customer_id, skip=skip, limit=limit)
+
+    elif solution_id:
+        # Check if solution exists
+        solution_obj = solution.get_by_id(db, solution_id=solution_id)
+        if not solution_obj:
+            raise HTTPException(
+                status_code=404,
+                detail="Solution not found"
+            )
+
+        return customer_solution.get_enhanced_by_solution(db, solution_id=solution_id, skip=skip, limit=limit)
+
+    else:
+        return customer_solution.get_enhanced_multi(db, skip=skip, limit=limit)
+
+    
+
+@router.get("/customer/{customer_id}", response_model=List[CustomerSolutionAdminView])
+def get_customer_solutions_by_customer(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get all solutions for a specific customer.
+    - Admins and Engineers can see for any customer
+    - Customer admins and users can only see their own customer's solutions
+    """
+    # Get the customer
+    customer_obj = customer.get_by_id(db, customer_id=customer_id)
+    if not customer_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+    
+    
+    # Check permissions
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if current_user.customer_id != customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access other customers' solutions"
+            )
+    
+    # Get the solutions
+    return customer_solution.get_by_customer(db, customer_id=customer_id)
+
+
+@router.post("", response_model=CustomerSolutionSchema)
+def add_solution_to_customer(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_solution_in: CustomerSolutionCreate,
+    current_user: User = Depends(deps.get_current_admin_user),
+    request: Request,
+) -> Any:
+    """
+    Add a solution to a customer (admin only).
+    """
+    # Check if customer exists
+    customer_obj = customer.get_by_id(db, customer_id=customer_solution_in.customer_id)
+    if not customer_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+    
+    
+    # Check if solution exists
+    solution_obj = solution.get_by_id(db, solution_id=customer_solution_in.solution_id)
+    if not solution_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="Solution not found"
+        )
+    
+    
+    # Check if customer already has this solution
+    existing = customer_solution.get_by_customer_and_solution(
+        db, 
+        customer_id=customer_solution_in.customer_id, 
+        solution_id=customer_solution_in.solution_id
+    )
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Customer already has access to solution {solution_obj.name}"
+        )
+    
+    # Add the solution to the customer
+    new_customer_solution = customer_solution.create(db, obj_in=customer_solution_in)
+
+    
+    # Log action
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="CUSTOMER_SOLUTION_ADD",
+        resource_type="CUSTOMER_SOLUTION",
+        resource_id=str(new_customer_solution.id),
+        details={
+            "customer_id": str(customer_obj.customer_id),
+            "customer_name": customer_obj.name,
+            "solution_id": str(solution_obj.solution_id),
+            "solution_name": solution_obj.name,
+            "max_devices": new_customer_solution.max_devices
+        },
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+    
+    return new_customer_solution
+
+
+@router.get("/customer/{customer_id}/solution/{solution_id}", response_model=CustomerSolutionSchema)
+def get_specific_customer_solution(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    solution_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get a specific solution access for a customer.
+    - Admins and Engineers can see for any customer
+    - Customer users can only see their own customer's solutions
+    """
+    # Check permissions
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if current_user.customer_id != customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access other customers' solutions"
+            )
+    
+    # Get the specific customer solution
+    cs = customer_solution.get_by_customer_and_solution_enhanced(
+        db, customer_id=customer_id, solution_id=solution_id
+    )
+    
+    if not cs:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer solution not found"
+        )
+    
+    return cs
+
+
+@router.put("/customer/{customer_id}/solution/{solution_id}", response_model=CustomerSolutionSchema)
+def update_specific_customer_solution(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    solution_id: uuid.UUID,
+    customer_solution_in: CustomerSolutionUpdate,
+    current_user: User = Depends(deps.get_current_admin_user),
+    request: Request,
+) -> Any:
+    """
+    Update a customer's solution access.
+    """
+    # Get the customer solution
+    cs = customer_solution.get_by_customer_and_solution(
+        db, customer_id=customer_id, solution_id=solution_id
+    )
+    
+    if not cs:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer solution not found"
+        )
+    
+    # Update the customer solution
+    updated_cs = customer_solution.update(
+        db, db_obj=cs, obj_in=customer_solution_in
+    )
+    
+    # Log action
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="CUSTOMER_SOLUTION_UPDATE",
+        resource_type="CUSTOMER_SOLUTION",
+        resource_id=str(cs.id),
+        details={"updated_fields": [k for k, v in customer_solution_in.dict(exclude_unset=True).items() if v is not None]},
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+    
+    return updated_cs
+
+
+@router.post("/customer/{customer_id}/solution/{solution_id}/suspend", response_model=CustomerSolutionSchema)
+def suspend_specific_customer_solution(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    solution_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_admin_user),
+    request: Request,
+) -> Any:
+    """
+    Suspend a customer's access to a solution.
+    """
+    # Get the customer solution
+    cs = customer_solution.get_by_customer_and_solution(
+        db, customer_id=customer_id, solution_id=solution_id
+    )
+    
+    if not cs:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer solution not found"
+        )
+    
+    # Suspend the customer solution
+    suspended_cs = customer_solution.suspend(db, id=cs.id)
+    
+    # Log action
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="CUSTOMER_SOLUTION_SUSPEND",
+        resource_type="CUSTOMER_SOLUTION",
+        resource_id=str(cs.id),
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+    
+    return suspended_cs
+
+@router.post("/customer/{customer_id}/solution/{solution_id}/activate", response_model=CustomerSolutionSchema)
+def activate_specific_customer_solution(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    solution_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_admin_user),
+    request: Request,
+) -> Any:
+    """
+    Activate a customer's access to a solution.
+    """
+    # Get the customer solution
+    cs = customer_solution.get_by_customer_and_solution(
+        db, customer_id=customer_id, solution_id=solution_id
+    )
+    
+    if not cs:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer solution not found"
+        )
+    
+    # Activate the customer solution
+    activated_cs = customer_solution.activate(db, id=cs.id)
+    
+    # Log action
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="CUSTOMER_SOLUTION_ACTIVATE",
+        resource_type="CUSTOMER_SOLUTION",
+        resource_id=str(cs.id),
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+    
+    return activated_cs
+
+
+@router.delete("/customer/{customer_id}/solution/{solution_id}", response_model=CustomerSolutionSchema)
+def remove_specific_customer_solution(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    solution_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_admin_user),
+    request: Request,
+) -> Any:
+    """
+    バックエンド用のAPI
+    Remove a solution from a customer.
+    This will also check if the solution is deployed to any of the customer's devices.
+    """
+    # Get the customer solution
+    cs = customer_solution.get_by_customer_and_solution(
+        db, customer_id=customer_id, solution_id=solution_id
+    )
+    
+    if not cs:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer solution not found"
+        )
+    
+    # Check if solution is deployed to any devices
+    # (same code as before to check deployments)
+    
+    # Remove the customer solution
+    removed_cs = customer_solution.remove(db, id=cs.id)
+    
+    # Log action
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="CUSTOMER_SOLUTION_REMOVE",
+        resource_type="CUSTOMER_SOLUTION",
+        resource_id=str(cs.id),
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+    
+    return removed_cs

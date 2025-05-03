@@ -2,3 +2,6 @@ from app.models.user import User, UserRole, UserStatus
 from app.models.customer import Customer, CustomerStatus
 from app.models.audit_log import AuditLog
 from app.models.device import Device, DeviceStatus, DeviceType
+from app.models.solution import Solution, SolutionStatus
+from app.models.customer_solution import CustomerSolution, LicenseStatus
+from app.models.device_solution import DeviceSolution, DeviceSolutionStatus

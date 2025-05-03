@@ -24,7 +24,6 @@ def test_read_user_me(client: TestClient, customer_user_token: str, customer_use
     # Check response
     assert response.status_code == 200
     data = response.json()
-    print(data)
     assert data["email"] == customer_user.email
     assert "user_id" in data
     assert str(data["user_id"]) == str(customer_user.user_id)
@@ -308,8 +307,6 @@ def test_create_user_customer_admin(client: TestClient, db: Session, customer_ad
             headers={"Authorization": f"Bearer {customer_admin_token}"},
             json=user_data
         )
-
-        print(response.json())
         
         # Check response
         assert response.status_code == 200

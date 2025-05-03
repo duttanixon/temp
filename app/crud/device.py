@@ -77,7 +77,8 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         certificate_id: str,
         certificate_arn: str,
         certificate_path: str,
-        private_key_path: str
+        private_key_path: str,
+        status: DeviceStatus = DeviceStatus.PROVISIONED
     ) -> Device:
         device = self.get_by_id(db, device_id=device_id)
         device.thing_name = thing_name
@@ -86,6 +87,7 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         device.certificate_arn = certificate_arn
         device.certificate_path = certificate_path
         device.private_key_path = private_key_path
+        device.status = status
         db.add(device)
         db.commit()
         db.refresh(device)

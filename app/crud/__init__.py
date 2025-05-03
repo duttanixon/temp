@@ -2,3 +2,6 @@ from app.crud.base import CRUDBase
 from app.crud.user import user
 from app.crud.customer import customer
 from app.crud.device import device
+from app.crud.solution import solution
+from app.crud.customer_solution import customer_solution
+from app.crud.device_solution import device_solution

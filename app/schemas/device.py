@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
 
-from app.models.device import DeviceStatus, DeviceType
+from app.models import DeviceStatus, DeviceType, DeviceSolutionStatus
 
 # Base Device Schema (shared properties)
 class DeviceBase(BaseModel):
@@ -63,5 +63,15 @@ class DeviceAdminView(Device):
     ip_address: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
 
+    class Config:
+        from_attributes = True
+
+class DeviceWithSolutionView(DeviceAdminView):
+    """Extended device view with current solution information"""
+    current_solution_id: Optional[UUID] = None
+    current_solution_name: Optional[str] = None
+    current_solution_status: Optional[DeviceSolutionStatus] = None
+    deployment_id: Optional[UUID] = None
+    
     class Config:
         from_attributes = True

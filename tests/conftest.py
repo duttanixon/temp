@@ -18,10 +18,7 @@ from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from app.db.session import Base, get_db
 from app.main import app
-from app.models.user import User, UserRole, UserStatus
-from app.models.customer import Customer, CustomerStatus
-from app.models.device import Device, DeviceStatus, DeviceType
-
+from app.models import User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, LicenseStatus, SolutionStatus
 # Test database URL - use SQLite for tests 
 TEST_DATABASE_URL = f"sqlite:///./test.db"
 
@@ -191,6 +188,44 @@ def active_device(db: Session, customer: Customer) -> Device:
     """Get an active device created by the seed function"""
     return db.query(Device).filter(Device.status == DeviceStatus.ACTIVE).first()
 
+
+
+@pytest.fixture
+def test_customer_solution(db: Session, customer: Customer) -> CustomerSolution:
+    """Get a customer solution created by the seed function"""
+    return db.query(CustomerSolution).filter(
+        CustomerSolution.customer_id == customer.customer_id
+    ).first()
+
+@pytest.fixture
+def suspended_customer_solution(db: Session, suspended_customer: Customer, admin_token: str, 
+                               client: TestClient) -> CustomerSolution:
+    """Create a customer solution for the suspended customer"""
+    # First check if one already exists
+    existing = db.query(CustomerSolution).filter(
+        CustomerSolution.customer_id == suspended_customer.customer_id
+    ).first()
+    
+    if existing:
+        return existing
+    
+    # Create a new one if it doesn't exist
+    solution_obj = db.query(Solution).first()
+    
+    new_cs = CustomerSolution(
+        id=uuid.uuid4(),
+        customer_id=suspended_customer.customer_id,
+        solution_id=solution_obj.solution_id,
+        license_status=LicenseStatus.ACTIVE,
+        max_devices=5
+    )
+    db.add(new_cs)
+    db.commit()
+    db.refresh(new_cs)
+    
+    return new_cs
+
+
 def seed_test_data(db: Session) -> None:
     """
     Populate the test database with sample data for testing
@@ -332,6 +367,45 @@ def seed_test_data(db: Session) -> None:
         status=DeviceStatus.INACTIVE,
         is_online=False
     )
+
+
+    # Create test solutions
+    test_solution = Solution(
+        solution_id=uuid.uuid4(),
+        name="Test Solution",
+        description="A test solution for device management",
+        version="1.0.0",
+        compatibility=["NVIDIA_JETSON", "RASPBERRY_PI"],
+        status=SolutionStatus.ACTIVE
+    )
+    
+    beta_solution = Solution(
+        solution_id=uuid.uuid4(),
+        name="Beta Solution",
+        description="A beta solution for testing",
+        version="0.5.0",
+        compatibility=["NVIDIA_JETSON"],
+        status=SolutionStatus.BETA
+    )
+
+    # Create customer-solution relationships
+    test_customer_solution = CustomerSolution(
+        id=uuid.uuid4(),
+        customer_id=active_customer.customer_id,
+        solution_id=test_solution.solution_id,
+        license_status=LicenseStatus.ACTIVE,
+        max_devices=10
+    )
+    
+    # Create device-solution deployment
+    test_device_solution = DeviceSolution(
+        id=uuid.uuid4(),
+        device_id=active_device.device_id,
+        solution_id=test_solution.solution_id,
+        status=DeviceSolutionStatus.ACTIVE,
+        version_deployed=test_solution.version,
+        configuration={"param1": "value1", "param2": "value2"}
+    )
     
     db.add(admin_user)
     db.add(engineer_user)
@@ -342,4 +416,8 @@ def seed_test_data(db: Session) -> None:
     db.add(raspberry_device)
     db.add(active_device)
     db.add(suspended_device)
+    db.add(test_solution)
+    db.add(beta_solution)
+    db.add(test_customer_solution)
+    db.add(test_device_solution)
     db.commit()

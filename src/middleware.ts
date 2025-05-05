@@ -23,6 +23,11 @@ export default auth(async function middleware(req) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Handle /login path - redirect authenticated users away from login
+  if (path === "/login" && session) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   // Allow access to the page
   return NextResponse.next();
 });

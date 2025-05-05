@@ -65,6 +65,7 @@ async function getUser(email: string, password: string) {
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig, // auth.configから設定を継承
   session: { strategy: "jwt" }, // JWT戦略を明示的に指定
+
   callbacks: {
     // JWT作成時のコールバック
     async jwt({ token, user }) {
@@ -72,6 +73,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
       if (user) {
         token = { ...token, ...user };
       }
+
+      // Check if token has expired (could implement token refresh here)
+      // const tokenExpiration = (token.exp as number) * 1000;
+      // if (Date.now() > tokenExpiration) {
+      //   // Could implement token refresh logic here
+      // }
+
       return token;
     },
     // セッション作成時のコールバック

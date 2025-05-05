@@ -2,10 +2,13 @@
 Test cases for authentication routes.
 """
 import pytest
+from datetime import datetime
+from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
+
 from sqlalchemy.orm import Session
 
-from app.models.audit_log import AuditLog
+from app.models import AuditLog, User
 from app.core.config import settings
 
 # Test cases for login endpoint
@@ -119,3 +122,80 @@ def test_token_verification_no_token(client: TestClient):
     assert response.status_code == 401
     data = response.json()
     assert "detail" in data
+
+def test_refresh_token_success(client: TestClient, admin_token: str):
+    """Test successful token refresh with a valid token"""
+    response = client.post(
+        f"{settings.API_V1_STR}/auth/refresh-token",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+    
+    # Verify the new token is valid by using it
+    test_response = client.post(
+        f"{settings.API_V1_STR}/auth/test-token",
+        headers={"Authorization": f"Bearer {data['access_token']}"}
+    )
+    assert test_response.status_code == 200
+
+@patch('app.core.security.is_token_expired')
+def test_refresh_token_not_expired(mock_is_expired, client: TestClient, admin_token: str):
+    """Test token refresh when token is not near expiration"""
+    # Mock the token as not expired
+    mock_is_expired.return_value = False
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/auth/refresh-token",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should return the same token
+    assert response.status_code == 200
+    data = response.json()
+    assert data["access_token"] == admin_token
+    assert data["token_type"] == "bearer"
+
+def test_refresh_token_no_auth_header(client: TestClient):
+    """Test token refresh without providing Authorization header"""
+    response = client.post(
+        f"{settings.API_V1_STR}/auth/refresh-token"
+    )
+    
+    # Check response - should fail
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+    assert "Invalid authentication credentials" in data["detail"]
+
+
+def test_refresh_token_invalid_format(client: TestClient):
+    """Test token refresh with invalid Authorization header format"""
+    response = client.post(
+        f"{settings.API_V1_STR}/auth/refresh-token",
+        headers={"Authorization": "InvalidFormat token123"}
+    )
+    
+    # Check response - should fail
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+    assert "Invalid authentication credentials" in data["detail"]
+
+
+def test_refresh_token_invalid_token(client: TestClient):
+    """Test token refresh with invalid token"""
+    response = client.post(
+        f"{settings.API_V1_STR}/auth/refresh-token",
+        headers={"Authorization": "Bearer invalid.token.format"}
+    )
+    
+    # Check response - should fail
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+    assert "Invalid token" in data["detail"]

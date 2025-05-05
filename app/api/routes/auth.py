@@ -1,13 +1,14 @@
 # implement authentication routes
 
 from datetime import timedelta
-from typing import Any
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from typing import Any, Optional
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.core.config import settings
-from app.core.security import create_access_token
+from app.core.security import create_access_token, verify_token, refresh_token, is_token_expired
+import uuid
 from app.crud import user
 from app.models.user import User
 from app.schemas.token import Token
@@ -84,3 +85,72 @@ def test_token(request: Request, current_user: User = Depends(deps.get_current_u
     client_ip = request.client.host if request.client else "unknown"
     logger.debug(f"Token test by user: {current_user.email} (ID: {current_user.user_id}) from IP: {client_ip}")
     return current_user
+
+@router.post("/refresh-token", response_model=Token)
+def refresh_access_token(
+    request: Request,
+    authorization: Optional[str] = Header(None)
+) -> Any:
+    """
+    Refresh an access token before it expires
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401, 
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    token = authorization.replace("Bearer ", "")
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
+    # Verify the token first
+    payload = verify_token(token)
+    if not payload:
+        logger.warning(f"Token refresh failed - invalid token from IP: {client_ip}")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    
+    # Get user ID from token
+    user_id = payload.get("sub")
+    if not user_id:
+        logger.warning(f"Token refresh failed - no user ID in token from IP: {client_ip}")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # Check if token is close to expiration (otherwise no need to refresh)
+    if not is_token_expired(payload):
+        # Token is still valid for more than 5 minutes - return the same token
+        return {"access_token": token, "token_type": "bearer"}
+
+    # Generate a new token
+    new_token = refresh_token(token)
+    if not new_token:
+        logger.warning(f"Token refresh failed for user ID: {user_id} from IP: {client_ip}")
+        raise HTTPException(
+            status_code=401,
+            detail="Could not refresh token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # Log successful token refresh
+    logger.info(f"Token refreshed for user ID: {user_id} from IP: {client_ip}")
+    log_action(
+        db=db,
+        user_id=uuid.UUID(user_id),
+        action_type="TOKEN_REFRESH",
+        resource_type="USER",
+        resource_id=user_id,
+        ip_address=client_ip,
+        user_agent=user_agent
+    )
+    
+    return {"access_token": new_token, "token_type": "bearer"}

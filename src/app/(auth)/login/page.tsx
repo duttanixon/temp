@@ -2,14 +2,26 @@
 
 import "@/app/globals.css";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
+import { toast } from "sonner";
 import { LoginForm } from "./_components/LoginForm";
 
 export default function LoginPage() {
   const { status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  // Show error message if session expired
+  useEffect(() => {
+    if (error) {
+      toast.error("Session Expired", {
+        description: error,
+      });
+    }
+  }, [error]);
 
   // Much simpler redirect logic
   useEffect(() => {

@@ -1,27 +1,52 @@
-import type { NextAuthConfig } from 'next-auth';
+import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
-    pages: {
-        signIn: '/login',
-        // signOut: '/logout',
-        // error: '/error',
-        // verifyRequest: '/verify-request',
-    },
-    callbacks: {
-        authorized({
-            auth,
-            request: {nextUrl}
-        }) {
-            const isLoggedIn = !!auth?.user;    // ログインしているかどうか
-            const isOnDashboard = nextUrl.pathname.startsWith('/dashboard'); // ダッシュボードにいるかどうか
-            if (isOnDashboard) {
-                if (!isLoggedIn) return true;
-                return false;   // ログインしていなければloginページにリダイレクト
-            } else if (isLoggedIn && nextUrl.pathname === '/login') {
-                return Response.redirect(new URL('/dashboard', nextUrl));
-            }
-            return true;
+  pages: {
+    signIn: "/login",
+  },
+  callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isAuthPage = nextUrl.pathname.startsWith("/login");
+
+      // Redirect authenticated users away from auth pages
+      if (isAuthPage) {
+        if (isLoggedIn) {
+          return Response.redirect(new URL("/", nextUrl));
         }
+        return true;
+      }
+
+      // Require authentication for other pages
+      if (!isLoggedIn) {
+        return false; // Redirects to login
+      }
+
+      return true;
     },
-    providers: [],  // ログインオプション auth/index.ts側で設定
-} satisfies NextAuthConfig
+  },
+  providers: [],
+} satisfies NextAuthConfig;
+
+// import type { NextAuthConfig } from 'next-auth';
+
+// export const authConfig = {
+//   pages: {
+//     signIn: '/login',
+//   },
+//   callbacks: {
+//     authorized({ auth, request: { nextUrl } }) {
+//       const isLoggedIn = !!auth?.user;
+//       const isAuthPage = nextUrl.pathname === '/login';
+
+//       // Allow access to login page when not logged in
+//       if (isAuthPage) {
+//         return true;
+//       }
+
+//       // Require authentication for all other pages
+//       return isLoggedIn;
+//     }
+//   },
+//   providers: [],
+// } satisfies NextAuthConfig;

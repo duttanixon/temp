@@ -75,20 +75,23 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         token = {
           ...token,
           ...user,
-          tokenExpires: Date.now() + 30 * 60 * 1000,
+          tokenExpires:
+            Date.now() + Number(process.env.TOKEN_EXPIRATION_TIME) ||
+            30 * 60 * 1000,
         };
 
         return token;
       }
 
-      // For existing token, check if it is exppired
+      // For existing token, check if it is expired
       if (token.tokenExpires && typeof token.tokenExpires === "number") {
         // If token is expired
-        if (Date.now() > token.tokenExpires) {
+        if (Date.now() > token.tokenExpires - 1 * 60 * 1000) {
           try {
             // Try to refresh the token using backend
             const refreshUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/refresh-token`;
             const response = await fetch(refreshUrl, {
+              method: "POST",
               headers: {
                 Authorization: `Bearer ${token.accessToken}`,
                 "Content-Type": "application/json",
@@ -96,11 +99,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             });
             // If refresh succeeds, update token
             if (response.ok) {
-              const userData = await response.json();
+              const data = await response.json();
               return {
                 ...token,
-                accessToken: token.accessToken, // Keep the same token for now
-                tokenExpires: Date.now() + 30 * 60 * 1000, // Extend by 30 min
+                accessToken: data.accessToken,
+                tokenExpires:
+                  Date.now() + Number(process.env.TOKEN_EXPIRATION_TIME) ||
+                  30 * 60 * 1000,
               };
             } else {
               // If refresh fails, token is invalid - force re-login

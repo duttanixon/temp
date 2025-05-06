@@ -73,12 +73,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     async jwt({ token, user }: { token: JWT; user?: any }) {
       // 初回ログイン時にユーザー情報をトークンに追加
       if (user) {
+        const expirationMinutes =
+          Number(process.env.TOKEN_EXPIRATION_TIME) || 30; // Get the number of minutes (e.g., 30)
+
         token = {
           ...token,
           ...user,
-          tokenExpires:
-            Date.now() + Number(process.env.TOKEN_EXPIRATION_TIME) ||
-            30 * 60 * 1000,
+          tokenExpires: Date.now() + expirationMinutes * 60 * 1000,
         };
 
         return token;
@@ -86,13 +87,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
       // For existing token, check if it is expired
       if (token.tokenExpires && typeof token.tokenExpires === "number") {
-        // If token is expires with in TOKEN_EXPIRATION_CHECK_TIME minutes, refresh it
-        if (
-          Date.now() >
-            token.tokenExpires -
-              Number(process.env.TOKEN_EXPIRATION_CHECK_TIME) ||
-          5 * 60 * 1000
-        ) {
+        const checkTimeMinutes =
+          Number(process.env.TOKEN_EXPIRATION_CHECK_TIME) || 5; // Get the number of minutes (e.g., 1)
+        if (Date.now() > token.tokenExpires - checkTimeMinutes * 60 * 1000) {
           try {
             // Try to refresh the token using backend
             const refreshUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/refresh-token`;
@@ -108,7 +105,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
               const data = await response.json();
               return {
                 ...token,
-                accessToken: data.accessToken,
+                accessToken: data.access_token,
                 tokenExpires:
                   Date.now() + Number(process.env.TOKEN_EXPIRATION_TIME) ||
                   30 * 60 * 1000,

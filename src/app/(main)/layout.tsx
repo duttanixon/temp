@@ -9,14 +9,18 @@ export default async function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
+  console.log("📂 MAIN LAYOUT: Initializing main layout (server component)");
   // Get session from server-side auth
   const session = await auth();
+  console.log("📂 MAIN LAYOUT: Session exists:", !!session);
 
   // Redirect to login if not authenticated
   if (!session) {
+    console.log("📂 MAIN LAYOUT: No session, redirecting to login");
     redirect("/login");
   }
 
+  console.log("📂 MAIN LAYOUT: Session valid, rendering main layout");
   return (
     <SessionHandler>
       <div className="min-h-screen flex flex-col bg-slate-900">

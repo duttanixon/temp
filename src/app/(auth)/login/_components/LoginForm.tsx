@@ -7,34 +7,44 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    console.log("📝 LOGIN: Form submitted with email:", email);
 
     try {
       // Use next-auth's signIn directly
+      console.log("📝 LOGIN: Calling signIn() with credentials");
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
 
+      console.log("📝 LOGIN: SignIn result:", result);
+
       if (result?.error) {
         throw new Error(result.error || "ログインに失敗しました");
       }
 
       // 成功トーストを表示
+      console.log("📝 LOGIN: Login successful, redirecting");
       toast.success("ログイン成功", {
         description: "ダッシュボードにリダイレクトします",
       });
+
+      // Add redirect to dashboard
+      router.push("/");
     } catch (error) {
-      console.error("ログインエラー:", error);
+      console.error("📝 LOGIN: Login error:", error);
       // エラートーストを表示
       toast.error("ログイン失敗", {
         description:

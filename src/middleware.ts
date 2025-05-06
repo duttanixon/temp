@@ -4,7 +4,17 @@ import { NextResponse } from "next/server";
 
 // Main middleware function that protects all routes
 export default auth(async function middleware(req) {
+  console.log(
+    "🔒 MIDDLEWARE: Checking route access for:",
+    req.nextUrl.pathname
+  );
   const session = req.auth;
+  console.log(
+    "🔒 MIDDLEWARE: Session exists:",
+    !!session,
+    "Error:",
+    session?.error || "none"
+  );
   const path = req.nextUrl.pathname;
 
   // Public paths that don't require authentication
@@ -18,8 +28,18 @@ export default auth(async function middleware(req) {
     (pp) => path === pp || path.startsWith(`${pp}/`)
   );
 
+  console.log(
+    "🔒 MIDDLEWARE: Path is public:",
+    isPublicPath,
+    "Valid session:",
+    hasValidSession
+  );
+
   // If path requires auth and user is not authenticated, redirect to login
   if (!isPublicPath && !hasValidSession) {
+    console.log(
+      "🔒 MIDDLEWARE: Redirecting to login - protected route with no valid session"
+    );
     const loginUrl = new URL("/login", req.url);
     // Store the original URL to redirect back after login
     loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
@@ -28,9 +48,13 @@ export default auth(async function middleware(req) {
 
   // Handle /login path - redirect authenticated users away from login
   if (path === "/login" && hasValidSession) {
+    console.log(
+      "🔒 MIDDLEWARE: Redirecting to home - user already authenticated"
+    );
     return NextResponse.redirect(new URL("/", req.url));
   }
 
+  console.log("🔒 MIDDLEWARE: Access granted to:", path);
   // Allow access to the page
   return NextResponse.next();
 });

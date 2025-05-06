@@ -103,12 +103,12 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             // If refresh succeeds, update token
             if (response.ok) {
               const data = await response.json();
+              const expirationMinutes =
+                Number(process.env.TOKEN_EXPIRATION_TIME) || 30;
               return {
                 ...token,
                 accessToken: data.access_token,
-                tokenExpires:
-                  Date.now() + Number(process.env.TOKEN_EXPIRATION_TIME) ||
-                  30 * 60 * 1000,
+                tokenExpires: Date.now() + expirationMinutes * 60 * 1000,
               };
             } else {
               // If refresh fails, token is invalid - force re-login

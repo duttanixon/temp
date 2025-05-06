@@ -71,6 +71,10 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     // JWT作成時のコールバック
     // JWT run during inital login, on every api request and during session updates update() from client via useSession()
     async jwt({ token, user }: { token: JWT; user?: any }) {
+      // If token already has an error, don't try to refresh it again
+      if (token.error) {
+        return token;
+      }
       // 初回ログイン時にユーザー情報をトークンに追加
       if (user) {
         const expirationMinutes =

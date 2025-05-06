@@ -10,13 +10,16 @@ export default auth(async function middleware(req) {
   // Public paths that don't require authentication
   const publicPaths = ["/login", "/api/auth"];
 
+  // Check for valid session (exists AND has no error)
+  const hasValidSession = session && !session.error;
+
   // Check if the current path is a public path
   const isPublicPath = publicPaths.some(
     (pp) => path === pp || path.startsWith(`${pp}/`)
   );
 
   // If path requires auth and user is not authenticated, redirect to login
-  if (!isPublicPath && !session) {
+  if (!isPublicPath && !hasValidSession) {
     const loginUrl = new URL("/login", req.url);
     // Store the original URL to redirect back after login
     loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
@@ -24,7 +27,7 @@ export default auth(async function middleware(req) {
   }
 
   // Handle /login path - redirect authenticated users away from login
-  if (path === "/login" && session) {
+  if (path === "/login" && hasValidSession) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 

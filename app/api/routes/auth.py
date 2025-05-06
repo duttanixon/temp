@@ -89,6 +89,7 @@ def test_token(request: Request, current_user: User = Depends(deps.get_current_u
 @router.post("/refresh-token", response_model=Token)
 def refresh_access_token(
     request: Request,
+    db: Session = Depends(deps.get_db),
     authorization: Optional[str] = Header(None)
 ) -> Any:
     """

@@ -87,7 +87,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         if (Date.now() > token.tokenExpires) {
           try {
             // Try to refresh the token using backend
-            const refreshUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/test-token`;
+            const refreshUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/refresh-token`;
             const response = await fetch(refreshUrl, {
               headers: {
                 Authorization: `Bearer ${token.accessToken}`,

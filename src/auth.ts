@@ -69,6 +69,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
   callbacks: {
     // JWT作成時のコールバック
+    // JWT run during inital login, on every api request and during session updates update() from client via useSession()
     async jwt({ token, user }: { token: JWT; user?: any }) {
       // 初回ログイン時にユーザー情報をトークンに追加
       if (user) {
@@ -85,8 +86,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
       // For existing token, check if it is expired
       if (token.tokenExpires && typeof token.tokenExpires === "number") {
-        // If token is expired
-        if (Date.now() > token.tokenExpires - 1 * 60 * 1000) {
+        // If token is expires with in TOKEN_EXPIRATION_CHECK_TIME minutes, refresh it
+        if (
+          Date.now() >
+            token.tokenExpires -
+              Number(process.env.TOKEN_EXPIRATION_CHECK_TIME) ||
+          5 * 60 * 1000
+        ) {
           try {
             // Try to refresh the token using backend
             const refreshUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/refresh-token`;
@@ -124,6 +130,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     async session({ session, token }) {
       // Return a new session object with all the required properties
       // If there was an error refreshing the token, trigger a session error
+      // called after jwt callback and upon useSession() in client
       if (token.error) {
         session.error = token.error;
       }

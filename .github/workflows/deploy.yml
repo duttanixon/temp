@@ -45,7 +45,6 @@ jobs:
 
           # Create .env file with GitHub secrets
           cat > .env << EOF
-DATABASE_URL="${{ secrets.DATABASE_URL }}"
 AUTH_SECRET="${{ secrets.AUTH_SECRET }}"
 NEXT_PUBLIC_BACKEND_API_URL="${{ secrets.NEXT_PUBLIC_BACKEND_API_URL }}"
 NEXT_PUBLIC_BACKEND_API_VERSION="${{ secrets.NEXT_PUBLIC_BACKEND_API_VERSION }}"

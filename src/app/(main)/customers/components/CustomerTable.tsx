@@ -1,10 +1,7 @@
-// File: app/(main)/customers/components/CustomerTable.tsx
 'use client'
 
 import CustomerPagination from '@/app/(main)/customers/components/Pagination'
-import CustomerDetailModal from '@/app/(main)/customers/components/CustomerDetailModal'
-import CustomerEditModal from '@/app/(main)/customers/components/CustomerEditModal'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Customer {
   customer_id: string
@@ -28,22 +25,10 @@ export default function CustomerTable({
   setPage,
   itemsPerPage
 }: CustomerTableProps) {
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [editOpen, setEditOpen] = useState(false)
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const router = useRouter()
 
   const paginated = customers.slice(page * itemsPerPage, (page + 1) * itemsPerPage)
   const totalItems = customers.length
-
-  const openDetail = (customer: Customer) => {
-    setSelectedCustomer(customer)
-    setDetailOpen(true)
-  }
-
-  const openEdit = (customer: Customer) => {
-    setSelectedCustomer(customer)
-    setEditOpen(true)
-  }
 
   return (
     <div className="space-y-4">
@@ -51,12 +36,13 @@ export default function CustomerTable({
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left">
             <tr>
-              <th className="p-2">Customer Name</th>
-              <th>Contact Email</th>
-              <th>Address</th>
-              <th>Status</th>
-              <th>Created On</th>
-              <th>Actions</th>
+              <th className="p-2">顧客名</th>
+              <th className="p-2">連絡先メール</th>
+              <th className="p-2">地球</th>
+              {/* <th className="p-2">デバイス</th> */}
+              <th className="p-2">ステータス</th>
+              <th className="p-2">作成日</th>
+              <th className="p-2">アクション</th>
             </tr>
           </thead>
           <tbody>
@@ -66,15 +52,19 @@ export default function CustomerTable({
                 <td>{customer.contact_email}</td>
                 <td>{customer.address}</td>
                 <td>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    customer.status === 'ACTIVE'
-                      ? 'bg-green-100 text-green-700'
-                      : customer.status === 'INACTIVE'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {customer.status}
-                  </span>
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                  customer.status === 'ACTIVE'
+                    ? 'bg-green-100 text-green-700'
+                    : customer.status === 'INACTIVE'
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {customer.status === 'ACTIVE'
+                    ? 'アクティブ'
+                    : customer.status === 'INACTIVE'
+                    ? '非アクティブ'
+                    : '一時停止中'}
+                </span>
                 </td>
                 <td>
                   <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded-full">
@@ -84,15 +74,15 @@ export default function CustomerTable({
                 <td className="space-x-2">
                   <button
                     className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded"
-                    onClick={() => openEdit(customer)}
+                    onClick={() => router.push(`/customers/customerDetails/${customer.customer_id}/edit`)}
                   >
-                    Edit
+                    編集
                   </button>
                   <button
                     className="bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded"
-                    onClick={() => openDetail(customer)}
+                    onClick={() => router.push(`/customers/customerDetails/${customer.customer_id}`)}
                   >
-                    View
+                    表示
                   </button>
                 </td>
               </tr>
@@ -107,9 +97,6 @@ export default function CustomerTable({
         totalItems={totalItems}
         itemsPerPage={itemsPerPage}
       />
-
-      <CustomerDetailModal open={detailOpen} onOpenChange={setDetailOpen} customer={selectedCustomer} />
-      <CustomerEditModal open={editOpen} onOpenChange={setEditOpen} customer={selectedCustomer} onSubmit={() => {}} />
     </div>
   )
 }

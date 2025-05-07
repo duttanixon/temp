@@ -5,15 +5,49 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AddCustomerPage() {
+  const router = useRouter();
+
   const [companyName, setCompanyName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    console.log('Creating customer:', { companyName, contactEmail, address });
-    // TODO: Connect to API
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          name: companyName,
+          contact_email: contactEmail,
+          address,
+          status: 'ACTIVE' // optional default
+        })
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to create customer');
+      }
+
+      const data = await res.json();
+      console.log('Customer created:', data);
+
+      // Redirect or show success
+      router.push('/customers'); // redirect to customer list page
+    } catch (error) {
+      console.error('Submit error:', error);
+      alert('Failed to create customer');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -22,7 +56,6 @@ export default function AddCustomerPage() {
       <p className="text-sm text-gray-500 mb-6">Customers &gt; Add New Customer</p>
 
       <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-6">
-
         {/* Tabs */}
         <div className="flex space-x-4 border-b pb-4">
           <button className="px-4 py-2 bg-blue-600 text-white rounded">Basic Info</button>
@@ -50,6 +83,7 @@ export default function AddCustomerPage() {
             <div className="w-1/2">
               <Label>Contact Email *</Label>
               <Input
+                type="email"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="Enter contact email"
@@ -67,15 +101,15 @@ export default function AddCustomerPage() {
               />
             </div>
           </div>
-
         </div>
 
         {/* Buttons */}
         <div className="flex justify-start space-x-4 pt-4">
-          <Button onClick={handleSubmit}>Create</Button>
-          <Button variant="outline">Cancel</Button>
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Creating...' : 'Create'}
+          </Button>
+          <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
         </div>
-
       </div>
     </div>
   );

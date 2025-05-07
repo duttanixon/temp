@@ -1,134 +1,135 @@
-'use client';
+'use client'
 
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function EditCustomerPage() {
-  const [companyName, setCompanyName] = useState('Tokyo Metro Co., Ltd.');
-  const [businessType, setBusinessType] = useState('Transportation');
-  const [contactEmail, setContactEmail] = useState('admin@tokyometro.jp');
-  const [contactPhone, setContactPhone] = useState('+81 3-3837-7111');
-  const [address, setAddress] = useState('3-19-6 Higashi-Ueno, Taito-ku');
-  const [accountStatus, setAccountStatus] = useState('Active');
+  const { id } = useParams()
+  const router = useRouter()
 
-  const handleSave = () => {
-    console.log('Saving customer:', {
-      companyName,
-      businessType,
-      contactEmail,
-      contactPhone,
-      address,
-      accountStatus,
-    });
-    // TODO: Connect to API
-  };
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({
+    name: '',
+    businessType: '',
+    contactEmail: '',
+    contactPhone: '',
+    address: '',
+    status: 'ACTIVE',
+  })
+
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      try {
+        const res = await fetch(`/api/customers/${id}`)
+        if (!res.ok) throw new Error('Failed to fetch')
+        const data = await res.json()
+
+        setForm({
+          name: data.name || '',
+          businessType: data.business_type || '',
+          contactEmail: data.contact_email || '',
+          contactPhone: data.contact_phone || '',
+          address: data.address || '',
+          status: data.status || 'ACTIVE',
+        })
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCustomer()
+  }, [id])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch(`/api/customers/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          name: form.name,
+          business_type: form.businessType,
+          contact_email: form.contactEmail,
+          contact_phone: form.contactPhone,
+          address: form.address,
+          status: form.status,
+        }),
+      })
+
+      if (!res.ok) throw new Error('Update failed')
+      router.push(`/customers/customerDetails/${id}`)
+    } catch (err) {
+      console.error('Save error:', err)
+    }
+  }
+
+  if (loading) return <div className="p-6">Loading...</div>
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-2">Edit Customer: Tokyo Metro</h1>
-      <p className="text-sm text-gray-500 mb-6">Customer ID: TKM-20230815</p>
-
+      <h1 className="text-2xl font-bold mb-2">Edit Customer: {form.name}</h1>
       <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-6">
-
-        {/* Tabs */}
-        <div className="flex space-x-4 border-b pb-4">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded">Basic Info</button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded">Contact</button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded">Subscription</button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded">Users</button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded">Solutions</button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded">Devices</button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded">Settings</button>
-        </div>
-
-        {/* Form */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Company Information</h2>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Left Column */}
             <div className="space-y-4">
-              <div>
-                <Label>Company Name *</Label>
-                <Input
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Enter company name"
-                />
-              </div>
+              <Label>Company Name *</Label>
+              <Input name="name" value={form.name} onChange={handleChange} />
             </div>
-
-            {/* Right Column */}
             <div className="space-y-4">
-              <div>
-                <Label>Business Type</Label>
-                <Input
-                  value={businessType}
-                  onChange={(e) => setBusinessType(e.target.value)}
-                  placeholder="Enter business type"
-                />
-              </div>
+              <Label>Business Type</Label>
+              <Input name="businessType" value={form.businessType} onChange={handleChange} />
             </div>
           </div>
 
-          {/* Contact Email + Contact Phone, side-by-side and each 50% of the full card width */}
           <div className="flex flex-col md:flex-row gap-6">
             <div className="w-full md:w-1/2">
               <Label>Contact Email *</Label>
-              <Input
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="Enter contact email"
-              />
+              <Input name="contactEmail" value={form.contactEmail} onChange={handleChange} />
             </div>
             <div className="w-full md:w-1/2">
               <Label>Contact Phone *</Label>
-              <Input
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="Enter contact phone"
-              />
+              <Input name="contactPhone" value={form.contactPhone} onChange={handleChange} />
             </div>
           </div>
 
-          {/* Address (full width) */}
           <div>
-            <Label>Address *</Label>
-            <Textarea
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Enter address"
-              rows={3}
-            />
+            <Label>Address</Label>
+            <Textarea name="address" value={form.address} onChange={handleChange} rows={3} />
           </div>
 
-          {/* Account Status (half width) */}
           <div className="w-1/2">
-            <Label>Account Status *</Label>
+            <Label>Status</Label>
             <select
-              value={accountStatus}
-              onChange={(e) => setAccountStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white"
             >
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Pending">Pending</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
+              <option value="PENDING">PENDING</option>
             </select>
           </div>
         </div>
 
-        {/* Buttons */}
         <div className="flex justify-start space-x-4 pt-4">
           <Button onClick={handleSave}>Save</Button>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
         </div>
-
       </div>
     </div>
-  );
+  )
 }

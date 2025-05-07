@@ -2,10 +2,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AddCustomerButton from '@/app/(main)/customers/components/AddCustomerButton'
 import SearchFilters from '@/app/(main)/customers/components/SearchFilters'
 import StatsCard from '@/app/(main)/customers/components/StatsCard'
 import CustomerTable from '@/app/(main)/customers/components/CustomerTable'
+import Link from 'next/link'
 
 interface Customer {
   customer_id: string
@@ -68,23 +68,27 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6 px-6 pt-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Customer Management</h1>
-        <AddCustomerButton />
+        <h1 className="text-2xl font-semibold">顧客管理セクション</h1>
+        <Link href="/customers/add">
+          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded">
+            + 顧客追加 
+          </button>
+        </Link>
       </div>
 
       <SearchFilters onSearch={handleSearch} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatsCard title="Total Customers" value={total} />
-        <StatsCard title="Active Customers" value={active} colorClass="text-green-600" />
-        <StatsCard title="Total Devices" value={devices} colorClass="text-blue-600" />
+        <StatsCard title="合計顧客数" value={total} />
+        <StatsCard title="アクティブな顧客" value={active} colorClass="text-green-600" />
+        <StatsCard title="合計デバイス数" value={devices} colorClass="text-blue-600" />
       </div>
 
       <CustomerTable
         customers={filteredCustomers}
         page={page}
         setPage={setPage}
-        itemsPerPage={5}
+        itemsPerPage={10}
         />
     </div>
   )

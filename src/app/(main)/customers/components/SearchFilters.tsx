@@ -11,8 +11,8 @@ interface SearchFiltersProps {
 
 export default function SearchFilters({ onSearch }: SearchFiltersProps) {
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('All Statuses')
-  const [region, setRegion] = useState('All Regions')
+  const [status, setStatus] = useState('ステータスがすべてのステータス')
+  const [region, setRegion] = useState('地域: すべての地域')
 
   const handleSubmit = () => {
     onSearch(query.trim(), status, region)
@@ -21,14 +21,14 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
   return (
     <div className="flex flex-wrap gap-4 items-center">
       <select className="border px-3 py-2 rounded text-sm" value={status} onChange={e => setStatus(e.target.value)}>
-        <option>All Statuses</option>
+        <option>ステータスがすべてのステータス</option>
         <option>Active</option>
         <option>Suspended</option>
         <option>Inactive</option>
       </select>
 
       <select className="border px-3 py-2 rounded text-sm" value={region} onChange={e => setRegion(e.target.value)}>
-        <option>All Regions</option>
+        <option>地域: すべての地域</option>
         <option>Japan</option>
         <option>South Korea</option>
         <option>Singapore</option>
@@ -36,12 +36,12 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
       </select>
 
       <Input
-        placeholder="Search customers..."
+        placeholder="顧客を検索…"
         className="w-64"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      <Button variant="outline" onClick={handleSubmit}>Search</Button>
+      <Button variant="outline" onClick={handleSubmit}>検査</Button>
     </div>
   )
 }

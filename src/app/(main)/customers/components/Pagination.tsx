@@ -28,7 +28,7 @@ export default function CustomerPagination({
         disabled={page === 0}
         className="px-3 py-1 border rounded disabled:opacity-50"
       >
-        Prev
+        前
       </button>
 
       {pages.map((p) => (
@@ -46,7 +46,7 @@ export default function CustomerPagination({
         disabled={!hasNextPage}
         className="px-3 py-1 border rounded disabled:opacity-50"
       >
-        Next
+        次
       </button>
     </div>
   )

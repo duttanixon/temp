@@ -1,29 +1,19 @@
 "use client";
 
-import "@/app/globals.css";
-import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense } from "react";
 import { Toaster } from "sonner";
-import { toast } from "sonner";
 import { LoginForm } from "./_components/LoginForm";
+import { ErrorMessage } from "./_components/ErrorMessage";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
+  // Keep these client-side hooks
   const { status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error");
 
-  // Show error message if session expired
-  useEffect(() => {
-    if (error) {
-      toast.error("Session Expired", {
-        description: error,
-      });
-    }
-  }, [error]);
-
-  // Much simpler redirect logic
+  // Redirect logic
   useEffect(() => {
     if (status === "authenticated") {
       router.replace("/");
@@ -32,7 +22,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full">
-      {/* 左側のサイドバー */}
+      {/* Left sidebar */}
       <div
         className="w-full max-w-md p-8 text-white flex flex-col"
         style={{ backgroundColor: "#2c5d82" }}
@@ -58,14 +48,19 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 右側のログインフォーム */}
+      {/* Right side login form */}
       <div
         className="w-full flex items-center justify-center p-8"
         style={{ backgroundColor: "#f5f7f9" }}
       >
         <LoginForm />
       </div>
-      {/* Sonnerのトースターコンポーネントを追加 */}
+
+      {/* Wrap the search params handling in Suspense */}
+      <Suspense fallback={null}>
+        <ErrorMessage />
+      </Suspense>
+
       <Toaster richColors closeButton position="bottom-left" />
     </div>
   );

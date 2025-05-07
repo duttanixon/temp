@@ -1,4 +1,3 @@
-import axios from "axios";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { z } from "zod";
@@ -21,30 +20,43 @@ async function getUser(email: string, password: string) {
     formData.append("client_id", "string");
     formData.append("client_secret", "string");
 
-    // axiosでPOSTリクエスト
-    const loginResponse = await axios.post(loginUrl, formData.toString(), {
+    // native fetchでPOSTリクエスト
+    const loginResponse = await fetch(loginUrl, {
+      method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
+      body: formData.toString(),
     });
 
+    if (!loginResponse.ok) {
+      throw new Error(`Login failed: ${loginResponse.status}`);
+    }
+
+    const loginData = await loginResponse.json();
     console.log("🔑 AUTH: Login successful, received token");
+
     // レスポンスからaccess_tokenを取得
-    const accessToken = loginResponse.data.access_token;
+    const accessToken = loginData.access_token;
 
     const myProfileUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/users/me`;
     console.log("🔑 AUTH: Fetching user profile from:", myProfileUrl);
 
-    // axiosでGETリクエスト（認証ヘッダー付き）
-    const myProfileResponse = await axios.get(myProfileUrl, {
+    // Use native fetch for profile request
+    const myProfileResponse = await fetch(myProfileUrl, {
+      method: "GET",
       headers: {
         accept: "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
     });
 
-    const myProfile = myProfileResponse.data;
+    if (!myProfileResponse.ok) {
+      throw new Error(`Profile fetch failed: ${myProfileResponse.status}`);
+    }
+
+    const myProfile = await myProfileResponse.json();
     console.log("🔑 AUTH: Retrieved user profile, role:", myProfile.role);
 
     return {

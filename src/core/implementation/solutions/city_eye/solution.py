@@ -237,7 +237,6 @@ class CityEyeSolution(ISolution):
                 try:
                     self.count.count_by_frame(self.counters["frame_number"],frame_data["object_meta"])
                     frame_result = self.count.finish_tracklets(self.counters["frame_number"])
-                    print(frame_result)
                 except Exception as e:
                     logger.error("Error in counting module", exception=e, component="CityEyeSolution")
                     frame_result = None

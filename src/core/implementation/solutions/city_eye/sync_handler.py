@@ -239,9 +239,8 @@ class BatchSyncHandler:
                 return
 
             # Prepare the payload
-            batch_id = f"{self.device_id}-{int(time.time())}-{batch_num}"
+            batch_id = f"{int(time.time())}-{batch_num}"
             payload = {
-                "device_id": self.device_id,
                 "batch_id": batch_id,
                 "timestamp": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat(),
                 "batch_num": batch_num,

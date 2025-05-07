@@ -37,12 +37,22 @@ jobs:
         scp app-source.tar.gz ubuntu@${{ secrets.EC2_HOST }}:~/frontend-app/
 
         # SSH into EC2 and deploy
-        ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+        ssh ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
           cd ~/frontend-app
           
           # Extract the source code
           tar -xzf app-source.tar.gz
 
+          # Create .env file with GitHub secrets
+          cat > .env << EOF
+DATABASE_URL="${{ secrets.DATABASE_URL }}"
+AUTH_SECRET="${{ secrets.AUTH_SECRET }}"
+NEXT_PUBLIC_BACKEND_API_URL="${{ secrets.NEXT_PUBLIC_BACKEND_API_URL }}"
+NEXT_PUBLIC_BACKEND_API_VERSION="${{ secrets.NEXT_PUBLIC_BACKEND_API_VERSION }}"
+NEXT_PUBLIC_AUTH_REDIRECT_URL="${{ secrets.NEXT_PUBLIC_AUTH_REDIRECT_URL }}"
+TOKEN_EXPIRATION_TIME="${{ secrets.TOKEN_EXPIRATION_TIME }}"
+TOKEN_EXPIRATION_CHECK_TIME="${{ secrets.TOKEN_EXPIRATION_CHECK_TIME }}"
+EOF
           # Build the Docker image with version tag
           docker build -t platform-frontend:latest .
 
@@ -50,9 +60,12 @@ jobs:
           docker stop platform-frontend-container || true
           docker rm platform-frontend-container || true
 
-          # Run the new container
-          docker run -d --name platform-frontend-container -p 3000:3000 platform-frontend:latest
+          # Run the new container with environment variables
+          docker run -d --name platform-frontend-container \
+            -p 3000:3000 \
+            --env-file .env \
+            platform-frontend:latest
 
           # Clean up
           rm app-source.tar.gz
-        EOF
+        ENDSSH

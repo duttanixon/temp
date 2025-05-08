@@ -1,17 +1,17 @@
 import { auth } from "@/auth";
-import Forbidden from "../_components/Forbidden";
+import Forbidden from "@/app/(main)/_components/Forbidden";
 
 export default async function MainLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    // サーバーサイドでセッションを取得
-    const session = await auth();
-    // ADMINではない場合はforbiddenページにリダイレクト
-    if (session?.user?.role !== "ADMIN") {
-        return <Forbidden />;
-    }
+  // サーバーサイドでセッションを取得
+  const session = await auth();
+  // ADMINではない場合はforbiddenページにリダイレクト
+  if (session?.user?.role !== "ADMIN") {
+    return <Forbidden />;
+  }
 
-    return <>{children}</>;
+  return <>{children}</>;
 }

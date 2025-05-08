@@ -4,12 +4,15 @@ import { cva } from "class-variance-authority";
 import { FC } from "react";
 
 type Props = {
+  customerId?: string;
   companyName: string;
   setCompanyName: (val: string) => void;
   email: string;
   setEmail: (val: string) => void;
   address: string;
   setAddress: (val: string) => void;
+  status: string;
+  setStatus: (val: string) => void;
 };
 
 type FormFieldProps = {
@@ -60,13 +63,15 @@ export const formVariants = cva("", {
   },
 });
 
-export const BasicTabContent = ({
+export const EditBasicTabContent = ({
   companyName,
   setCompanyName,
   email,
   setEmail,
   address,
   setAddress,
+  status,
+  setStatus,
 }: Props) => {
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -88,7 +93,7 @@ export const BasicTabContent = ({
         />
         <FormField
           id="email"
-          label="メールアドレス"
+          label="連絡先メールアドレス"
           type="email"
           name="email"
           value={email}
@@ -102,6 +107,15 @@ export const BasicTabContent = ({
           name="address"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
+        />
+        <FormField
+          id="status"
+          label="アカウント状態"
+          type="text"
+          name="status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          required
         />
       </div>
     </div>

@@ -5,7 +5,7 @@ import { cva } from "class-variance-authority";
 type Props = {
   errorMessage: string;
   completedMessage: string;
-  handleCreate: () => void;
+  handleCreate?: () => void;
   handleCancel: () => void;
 };
 
@@ -22,7 +22,7 @@ const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
     variant: "default",
   },
 });
-export const CustomerCreate = ({
+export const CustomerButton = ({
   errorMessage,
   completedMessage,
   handleCancel,

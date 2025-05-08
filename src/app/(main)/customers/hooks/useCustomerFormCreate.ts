@@ -12,7 +12,7 @@ type CustomerResponse = {
   status: string;
 };
 
-export const useCustomerFormBasic = (token: string) => {
+export const useCustomerFormCreate = (token: string) => {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");

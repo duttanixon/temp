@@ -17,7 +17,8 @@ def classify_gender(attribute_value):
 # Helper function to classify age group
 def classify_age(attributes):
     """Classify age group based on attribute values."""
-    age_groups = ["young", "middle", "senior", "silver"]
+    # age_groups = ["less_than_18", "18_to_29", "30_to_49", "50_to_64", "65_plus"]
+    age_groups = ["18_to_29", "30_to_49", "50_to_64", "65_plus"]
     max_index = np.argmax(attributes[:4])
     max_confidence = attributes[max_index]
     return (

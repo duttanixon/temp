@@ -124,7 +124,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
         if video_file:
             # Single video plot
             result = results[0]
-            age_categories = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
+            age_categories = ['less_than_18','18_to_29', '30_to_49', '50_to_64', '65_plus']
             
             # Set up grouped bar chart
             x = np.arange(len(age_categories))
@@ -132,19 +132,19 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             
             # Get values from result
             male_values = [
-                result['male_child'],
-                result['male_young'],
-                result['male_middle'],
-                result['male_senior'],
-                result['male_silver']
+                result['male_less_than_18'],
+                result['male_18_to_29'],
+                result['male_30_to_49'],
+                result['male_50_to_64'],
+                result['male_65_plus']
             ]
             
             female_values = [
-                result['female_child'],
-                result['female_young'],
-                result['female_middle'],
-                result['female_senior'],
-                result['female_silver']
+                result['female_less_than_18'],
+                result['female_18_to_29'],
+                result['female_30_to_49'],
+                result['female_50_to_64'],
+                result['female_65_plus']
             ]
             
             # Create grouped bars
@@ -159,7 +159,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             
         else:
             # Aggregate plot for all videos
-            age_categories = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
+            age_categories = ['less_than_18', '18_to_29', '30_to_49', '50_to_64', '65_plus']
             
             # Set up grouped bar chart
             x = np.arange(len(age_categories))
@@ -167,19 +167,19 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             
             # Sum values across all videos
             male_values = [
-                df['male_child'].sum(),
-                df['male_young'].sum(),
-                df['male_middle'].sum(),
-                df['male_senior'].sum(),
-                df['male_silver'].sum()
+                df['male_less_than_18'].sum(),
+                df['male_18_to_29'].sum(),
+                df['male_30_to_49'].sum(),
+                df['male_50_to_64'].sum(),
+                df['male_65_plus'].sum()
             ]
             
             female_values = [
-                df['female_child'].sum(),
-                df['female_young'].sum(),
-                df['female_middle'].sum(),
-                df['female_senior'].sum(),
-                df['female_silver'].sum()
+                df['female_less_than_18'].sum(),
+                df['female_18_to_29'].sum(),
+                df['male_30_to_49'].sum(),
+                df['female_50_to_64'].sum(),
+                df['female_65_plus'].sum()
             ]
             
             # Create grouped bars
@@ -203,25 +203,25 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
         if video_file:
             # Single video plot
             result = results[0]
-            age_labels = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
+            age_labels = ['less_than_18','18_to_29', '30_to_49', '50_to_64', '65_plus']
             age_values = [
-                result['male_child'] + result['female_child'],
-                result['male_young'] + result['female_young'],
-                result['male_middle'] + result['female_middle'],
-                result['male_senior'] + result['female_senior'],
-                result['male_silver'] + result['female_silver']
+                result['male_less_than_18'] + result['female_less_than_18'],
+                result['male_18_to_29'] + result['female_18_to_29'],
+                result['male_30_to_49'] + result['male_30_to_49'],
+                result['male_50_to_64'] + result['female_50_to_64'],
+                result['male_65_plus'] + result['female_65_plus']
             ]
             plt.bar(age_labels, age_values)
             plt.title(f'Age Distribution - {video_file}')
         else:
             # Aggregate plot
-            age_labels = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
+            age_labels = ['less_than_18','18_to_29', '30_to_49', '50_to_64', '65_plus']
             age_values = [
-                df['male_child'].sum() + df['female_child'].sum(),
-                df['male_young'].sum() + df['female_young'].sum(),
-                df['male_middle'].sum() + df['female_middle'].sum(),
-                df['male_senior'].sum() + df['female_senior'].sum(),
-                df['male_silver'].sum() + df['female_silver'].sum()
+                df['male_less_than_18'].sum() + df['female_less_than_18'].sum(),
+                df['male_18_to_29'].sum() + df['female_18_to_29'].sum(),
+                df['male_30_to_49'].sum() + df['male_30_to_49'].sum(),
+                df['male_50_to_64'].sum() + df['female_50_to_64'].sum(),
+                df['male_65_plus'].sum() + df['female_65_plus'].sum()
             ]
             plt.bar(age_labels, age_values)
             plt.title('Age Distribution - All Videos')
@@ -280,23 +280,23 @@ def main():
     print(f"  Male: {stats['gender_ratio']['male']:.1f}%")
     print(f"  Female: {stats['gender_ratio']['female']:.1f}%")
     print("\nAge Distribution:")
-    print(f"  Child: {stats['age_distribution']['child']:.1f}%")
-    print(f"  Young: {stats['age_distribution']['young']:.1f}%")
-    print(f"  Middle: {stats['age_distribution']['middle']:.1f}%")
-    print(f"  Senior: {stats['age_distribution']['senior']:.1f}%")
-    print(f"  Silver: {stats['age_distribution']['silver']:.1f}%")
+    print(f"  less_than_18: {stats['age_distribution']['less_than_18']:.1f}%")
+    print(f"  18_to_29: {stats['age_distribution']['18_to_29']:.1f}%")
+    print(f"  30_to_49: {stats['age_distribution']['30_to_49']:.1f}%")
+    print(f"  50_to_64: {stats['age_distribution']['50_to_64']:.1f}%")
+    print(f"  65_plus: {stats['age_distribution']['65_plus']:.1f}%")
     
     print("\nDetailed Age-Gender Counts:")
-    print(f"  Male Child: {stats['age_gender_distribution']['male_child']}")
-    print(f"  Female Child: {stats['age_gender_distribution']['female_child']}")
-    print(f"  Male Young: {stats['age_gender_distribution']['male_young']}")
-    print(f"  Female Young: {stats['age_gender_distribution']['female_young']}")
-    print(f"  Male Middle: {stats['age_gender_distribution']['male_middle']}")
-    print(f"  Female Middle: {stats['age_gender_distribution']['female_middle']}")
-    print(f"  Male Senior: {stats['age_gender_distribution']['male_senior']}")
-    print(f"  Female Senior: {stats['age_gender_distribution']['female_senior']}")
-    print(f"  Male Silver: {stats['age_gender_distribution']['male_silver']}")
-    print(f"  Female Silver: {stats['age_gender_distribution']['female_silver']}")
+    print(f"  Male less_than_18: {stats['age_gender_distribution']['male_less_than_18']}")
+    print(f"  Female less_than_18: {stats['age_gender_distribution']['female_less_than_18']}")
+    print(f"  Male 18_to_29: {stats['age_gender_distribution']['male_18_to_29']}")
+    print(f"  Female 18_to_29: {stats['age_gender_distribution']['female_18_to_29']}")
+    print(f"  Male 30_to_49: {stats['age_gender_distribution']['male_30_to_49']}")
+    print(f"  Female 30_to_49: {stats['age_gender_distribution']['female_30_to_49']}")
+    print(f"  Male 50_to_64: {stats['age_gender_distribution']['male_50_to_64']}")
+    print(f"  Female 50_to_64: {stats['age_gender_distribution']['female_50_to_64']}")
+    print(f"  Male 65_plus: {stats['age_gender_distribution']['male_65_plus']}")
+    print(f"  Female 65_plus: {stats['age_gender_distribution']['female_65_plus']}")
     print(f"  Bus: {stats['traffic_distribution']['bus']}")
     print(f"  Truck: {stats['traffic_distribution']['truck']}")
     print(f"  Motocycle: {stats['traffic_distribution']['motorcycle']}")

@@ -56,16 +56,16 @@ class CityEyeSolution(ISolution):
         self.test_mode = config.get("test", False)
         self.test_counts = {
             "total_human": 0,
-            "male_child": 0,
-            "female_child": 0,
-            "male_young": 0,
-            "female_young": 0,
-            "male_middle": 0,
-            "female_middle": 0,
-            "male_senior": 0,
-            "female_senior": 0,
-            "male_silver": 0,
-            "female_silver": 0,
+            "male_less_than_18": 0,
+            "female_less_than_18": 0,
+            "male_18_to_29": 0,
+            "female_18_to_29": 0,
+            "male_30_to_49": 0,
+            "female_30_to_49": 0,
+            "male_50_to_64": 0,
+            "female_50_to_64": 0,
+            "male_65_plus": 0,
+            "female_65_plus": 0,
             # Add traffic test counters
             "total_vehicles": 0,
             "bicycle": 0,
@@ -144,7 +144,7 @@ class CityEyeSolution(ISolution):
             self.count_output_path = config["count_output_path"]
             self.class_names_dict = {
                 'gender' : ['male', 'female'],
-                'age': ['child','young', 'middle', 'senior', 'silver'],
+                'age': ['less_than_18','18_to_29', '30_to_49', '50_to_64', '65_plus'],
                 'vehicle':['bicycle','car','bus','truck','motorcycle'] #bicycle=2, car =3,motorcycle=4, bus=6, truck=8
             }
             self.count = Counter(self.xlines_cfg_path,self.count_output_path,self.class_names_dict)
@@ -348,20 +348,20 @@ class CityEyeSolution(ISolution):
                 existing = session.query(TestResult).filter_by(
                     video_file_name=self.video_file_name
                 ).first()
-                
+
                 if existing:
                     # Update existing human record
                     existing.total_huamn = self.test_counts["total_human"]
-                    existing.male_child = self.test_counts["male_child"]
-                    existing.female_child = self.test_counts["female_child"]
-                    existing.male_young = self.test_counts["male_young"]
-                    existing.female_young = self.test_counts["female_young"]
-                    existing.male_middle = self.test_counts["male_middle"]
-                    existing.female_middle = self.test_counts["female_middle"]
-                    existing.male_senior = self.test_counts["male_senior"]
-                    existing.female_senior = self.test_counts["female_senior"]
-                    existing.male_silver = self.test_counts["male_silver"]
-                    existing.female_silver = self.test_counts["female_silver"]
+                    existing.male_less_than_18 = self.test_counts["male_less_than_18"]
+                    existing.female_less_than_18 = self.test_counts["female_less_than_18"]
+                    existing.male_18_to_29 = self.test_counts["male_18_to_29"]
+                    existing.female_18_to_29 = self.test_counts["female_18_to_29"]
+                    existing.male_30_to_49 = self.test_counts["male_30_to_49"]
+                    existing.female_30_to_49 = self.test_counts["female_30_to_49"]
+                    existing.male_50_to_64 = self.test_counts["male_50_to_64"]
+                    existing.female_50_to_64 = self.test_counts["female_50_to_64"]
+                    existing.male_65_plus = self.test_counts["male_65_plus"]
+                    existing.female_65_plus = self.test_counts["female_65_plus"]
 
                     # Update existing vehicle record
                     existing.total_vehicles = self.test_counts["total_vehicles"]
@@ -377,16 +377,16 @@ class CityEyeSolution(ISolution):
                     test_result = TestResult(
                         video_file_name=self.video_file_name,
                         total_human=self.test_counts["total_human"],
-                        male_child=self.test_counts["male_child"],
-                        female_child=self.test_counts["female_child"],
-                        male_young=self.test_counts["male_young"],
-                        female_young=self.test_counts["female_young"],
-                        male_middle=self.test_counts["male_middle"],
-                        female_middle=self.test_counts["female_middle"],
-                        male_senior=self.test_counts["male_senior"],
-                        female_senior=self.test_counts["female_senior"],
-                        male_silver=self.test_counts["male_silver"],
-                        female_silver=self.test_counts["female_silver"],
+                        male_less_than_18=self.test_counts["male_less_than_18"],
+                        female_less_than_18=self.test_counts["female_less_than_18"],
+                        male_18_to_29=self.test_counts["male_18_to_29"],
+                        female_18_to_29=self.test_counts["female_18_to_29"],
+                        male_30_to_49=self.test_counts["male_30_to_49"],
+                        female_30_to_49=self.test_counts["female_30_to_49"],
+                        male_50_to_64=self.test_counts["male_50_to_64"],
+                        female_50_to_64=self.test_counts["female_50_to_64"],
+                        male_65_plus=self.test_counts["male_65_plus"],
+                        female_65_plus=self.test_counts["female_65_plus"],
                         total_vehicles = self.test_counts["total_vehicles"],
                         bicycle = self.test_counts["bicycle"],
                         car = self.test_counts["car"],

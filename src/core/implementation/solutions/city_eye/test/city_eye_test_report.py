@@ -124,7 +124,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
         if video_file:
             # Single video plot
             result = results[0]
-            age_categories = ['Young', 'Middle', 'Senior', 'Silver']
+            age_categories = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
             
             # Set up grouped bar chart
             x = np.arange(len(age_categories))
@@ -132,6 +132,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             
             # Get values from result
             male_values = [
+                result['male_child'],
                 result['male_young'],
                 result['male_middle'],
                 result['male_senior'],
@@ -139,6 +140,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             ]
             
             female_values = [
+                result['female_child'],
                 result['female_young'],
                 result['female_middle'],
                 result['female_senior'],
@@ -157,7 +159,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             
         else:
             # Aggregate plot for all videos
-            age_categories = ['Young', 'Middle', 'Senior', 'Silver']
+            age_categories = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
             
             # Set up grouped bar chart
             x = np.arange(len(age_categories))
@@ -165,6 +167,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             
             # Sum values across all videos
             male_values = [
+                df['male_child'].sum(),
                 df['male_young'].sum(),
                 df['male_middle'].sum(),
                 df['male_senior'].sum(),
@@ -172,6 +175,7 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             ]
             
             female_values = [
+                df['female_child'].sum(),
                 df['female_young'].sum(),
                 df['female_middle'].sum(),
                 df['female_senior'].sum(),
@@ -199,8 +203,9 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
         if video_file:
             # Single video plot
             result = results[0]
-            age_labels = ['Young', 'Middle', 'Senior', 'Silver']
+            age_labels = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
             age_values = [
+                result['male_child'] + result['female_child'],
                 result['male_young'] + result['female_young'],
                 result['male_middle'] + result['female_middle'],
                 result['male_senior'] + result['female_senior'],
@@ -210,8 +215,9 @@ def generate_plot_report(db_manager, output_dir, video_file=None):
             plt.title(f'Age Distribution - {video_file}')
         else:
             # Aggregate plot
-            age_labels = ['Young', 'Middle', 'Senior', 'Silver']
+            age_labels = ['Child', 'Young', 'Middle', 'Senior', 'Silver']
             age_values = [
+                df['male_child'].sum() + df['female_child'].sum(),
                 df['male_young'].sum() + df['female_young'].sum(),
                 df['male_middle'].sum() + df['female_middle'].sum(),
                 df['male_senior'].sum() + df['female_senior'].sum(),
@@ -274,12 +280,15 @@ def main():
     print(f"  Male: {stats['gender_ratio']['male']:.1f}%")
     print(f"  Female: {stats['gender_ratio']['female']:.1f}%")
     print("\nAge Distribution:")
+    print(f"  Child: {stats['age_distribution']['child']:.1f}%")
     print(f"  Young: {stats['age_distribution']['young']:.1f}%")
     print(f"  Middle: {stats['age_distribution']['middle']:.1f}%")
     print(f"  Senior: {stats['age_distribution']['senior']:.1f}%")
     print(f"  Silver: {stats['age_distribution']['silver']:.1f}%")
     
     print("\nDetailed Age-Gender Counts:")
+    print(f"  Male Child: {stats['age_gender_distribution']['male_child']}")
+    print(f"  Female Child: {stats['age_gender_distribution']['female_child']}")
     print(f"  Male Young: {stats['age_gender_distribution']['male_young']}")
     print(f"  Female Young: {stats['age_gender_distribution']['female_young']}")
     print(f"  Male Middle: {stats['age_gender_distribution']['male_middle']}")
@@ -301,6 +310,8 @@ def main():
         print("\nVideos processed:")
         for i, video in enumerate(stats['videos_processed'], 1):
             print(f"  {i}. {video}")
+
+    print(stats)
     
 if __name__ == "__main__":
     main()

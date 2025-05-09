@@ -137,7 +137,7 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
                 "total_human": 0,
                 "total_vehicle": 0,
                 "gender_ratio": {"male": 0, "female": 0},
-                "age_distribution": {"young": 0, "middle": 0, "senior": 0, "silver": 0},
+                "age_distribution": {"child": 0,"young": 0, "middle": 0, "senior": 0, "silver": 0},
                 "traffic_distribution":{"bus": 0, "car": 0, "bicycle":0, "truck": 0, "motorcycle": 0}
 
             }
@@ -166,6 +166,11 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
             
         # Calculate age distribution by gender
         # Combine all male and female counts for each age group
+        male_child_count = sum(r["male_child"] for r in results)
+        female_child_count = sum(r["female_child"] for r in results)
+        child_count = male_child_count + female_child_count
+
+
         male_young_count = sum(r["male_young"] for r in results)
         female_young_count = sum(r["female_young"] for r in results)
         young_count = male_young_count + female_young_count
@@ -182,10 +187,11 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
         female_silver_count = sum(r["female_silver"] for r in results)
         silver_count = male_silver_count + female_silver_count
         
-        total_age = young_count + middle_count + senior_count + silver_count
+        total_age = child_count + young_count + middle_count + senior_count + silver_count
         
         if total_age > 0:
             age_distribution = {
+                "child": (child_count / total_age) * 100,
                 "young": (young_count / total_age) * 100,
                 "middle": (middle_count / total_age) * 100,
                 "senior": (senior_count / total_age) * 100,
@@ -194,6 +200,8 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
             
             # Add gender breakdown for each age group
             age_gender_distribution = {
+                "male_child": male_child_count,
+                "female_child": female_child_count,
                 "male_young": male_young_count,
                 "female_young": female_young_count,
                 "male_middle": male_middle_count,
@@ -211,8 +219,9 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
                 "motorcycle": motorcycle_count
             }
         else:
-            age_distribution = {"young": 0, "middle": 0, "senior": 0, "silver": 0}
+            age_distribution = {"child" : 0, "young": 0, "middle": 0, "senior": 0, "silver": 0}
             age_gender_distribution = {
+                "male_child": 0, "female_child": 0,
                 "male_young": 0, "female_young": 0,
                 "male_middle": 0, "female_middle": 0,
                 "male_senior": 0, "female_senior": 0,

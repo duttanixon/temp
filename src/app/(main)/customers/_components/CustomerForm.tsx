@@ -21,7 +21,7 @@ export const CustomerForm = ({ accessToken, activeTab, customerId }: Props) => {
       <div className="w-230 h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
         <TabSelect activeTab={activeTab} customerId={customerId} {...form} />
       </div>
-      {isEdit ? <CustomerButton {...form} /> : <CustomerButton {...form} />}
+      <CustomerButton isEdit={isEdit} {...form} />
     </form>
   );
 };

@@ -83,7 +83,7 @@ export const useCustomerFormCreate = (token: string) => {
                 : "顧客データの作成に失敗しました"
         );
         if (status === 403) {
-          signOut({ callbackUrl: "/login" }); // ✅ 自動ログアウト
+          signOut({ callbackUrl: "/login" }); // 自動ログアウト
         }
       }
       resetFormAfterDelay(

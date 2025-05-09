@@ -1,6 +1,7 @@
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { cva } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
 type Props = {
   customerId?: string;
@@ -23,7 +24,7 @@ type FormFieldProps<
   value: string;
   onChange: (e: React.ChangeEvent<T>) => void;
   required?: boolean;
-  as?: "input" | "select";
+  as?: "input" | "toggle";
   options?: { label: string; value: string }[];
   type?: string;
 };
@@ -38,14 +39,13 @@ export const FormField = <
   onChange,
   required = false,
   as = "input",
-  options = [],
   type = "text",
 }: FormFieldProps<T>) => (
   <div className="flex flex-col gap-1">
     <Label htmlFor={id} className={formVariants({ variant: "label" })}>
       {label} {required && <span className="text-[#FF0000]">*</span>}
     </Label>
-    {as === "input" ? (
+    {as === "input" && (
       <Input
         className={formVariants({ variant: "input" })}
         id={id}
@@ -55,21 +55,36 @@ export const FormField = <
         onChange={onChange as (e: React.ChangeEvent<HTMLInputElement>) => void}
         required={required}
       />
-    ) : (
-      <select
-        className={formVariants({ variant: "select" })}
-        id={id}
-        name={name}
-        value={value}
-        onChange={onChange as (e: React.ChangeEvent<HTMLSelectElement>) => void}
-        required={required}
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+    )}
+    {as === "toggle" && (
+      <div className="flex items-center gap-3">
+        <label className="relative inline-block w-12 h-6">
+          <input
+            type="checkbox"
+            name={name}
+            checked={value === "ACTIVE"}
+            onChange={(e) => {
+              const syntheticEvent = {
+                target: {
+                  name,
+                  value: e.target.checked ? "ACTIVE" : "INACTIVE",
+                },
+              } as unknown as React.ChangeEvent<T>;
+              onChange(syntheticEvent);
+            }}
+            className="opacity-0"
+          />
+          <span className="toggle-track" />
+        </label>
+        <span
+          className={cn(
+            "text-sm",
+            value === "ACTIVE" ? "text-[#3498DB]" : "text-[#BDC3C7]"
+          )}
+        >
+          {value === "ACTIVE" ? "ON" : "OFF"}
+        </span>
+      </div>
     )}
   </div>
 );
@@ -80,7 +95,6 @@ export const formVariants = cva("", {
       label: "text-sm font-normal text-[#7F8C8D]",
       input: "w-96 h-[35.56px] border border-[#BDC3C7] text-sm",
       companyInfo: "text-lg font-bold text-[#2C3E50]",
-      select: "w-67 h-[35.56px] border border-[#BDC3C7] text-sm",
     },
   },
   defaultVariants: {
@@ -139,7 +153,7 @@ export const EditBasicTabContent = ({
           name="status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          as="select"
+          as="toggle"
           options={[
             { label: "アクティブ", value: "ACTIVE" },
             { label: "非アクティブ", value: "INACTIVE" },

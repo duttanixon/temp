@@ -6,6 +6,7 @@ type Props = {
   errorMessage: string;
   completedMessage: string;
   handleCancel: () => void;
+  isEdit: boolean;
 };
 
 const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
@@ -25,6 +26,7 @@ export const CustomerButton = ({
   errorMessage,
   completedMessage,
   handleCancel,
+  isEdit,
 }: Props) => {
   // 顧客作成可否のメッセージを表示
   const Message = ({
@@ -52,7 +54,7 @@ export const CustomerButton = ({
           className={buttonVariants({ variant: "default" })}
           type="submit"
         >
-          作成
+          {isEdit ? "保存" : "作成"}
         </Button>
         <Button
           className={buttonVariants({ variant: "cancel" })}

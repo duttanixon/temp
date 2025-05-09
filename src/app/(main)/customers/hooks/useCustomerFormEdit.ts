@@ -71,7 +71,7 @@ export const useCustomerFormEdit = (
         }
       );
       if (res.status === 200) {
-        setCompletedMessage("更新が完了しました");
+        // setCompletedMessage("更新が完了しました");
         resetFormAfterDelay(
           {
             clearName: true,
@@ -88,6 +88,7 @@ export const useCustomerFormEdit = (
             setErrorMessage,
           }
         );
+        router.push(`/customers/${customerId}`);
       }
     } catch (error) {
       setErrorMessage("更新に失敗しました");
@@ -95,7 +96,7 @@ export const useCustomerFormEdit = (
       if (error instanceof AxiosError) {
         const status = error.response?.status;
         if (status === 403) {
-          signOut({ callbackUrl: "/login" }); // ✅ 自動ログアウト
+          signOut({ callbackUrl: "/login" }); // 自動ログアウト
         }
       }
       resetFormAfterDelay(

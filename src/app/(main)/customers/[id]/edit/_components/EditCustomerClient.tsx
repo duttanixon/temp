@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CustomerForm } from "@/app/(main)//customers/_components/CustomerForm";
 import { TabsNav } from "@/app/(main)/customers/_components/TabsNav";
 
@@ -14,11 +14,6 @@ export default function CustomerEditPage({ accessToken }: Props) {
   const params = useParams();
   const customerId = params?.id as string;
 
-  useEffect(() => {
-    if (customerId) {
-      console.log("取得したID:", customerId);
-    }
-  }, [customerId]);
   return (
     <div>
       <h2 className="text-sm text-[#7F8C8D]">
@@ -26,7 +21,7 @@ export default function CustomerEditPage({ accessToken }: Props) {
           顧客管理
         </Link>{" "}
         &gt;{" "}
-        <Link href={"/customers/${customer.id}"} className="hover:underline">
+        <Link href={`/customers/${customerId}`} className="hover:underline">
           顧客概要
         </Link>{" "}
         &gt; 編集

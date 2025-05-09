@@ -27,7 +27,7 @@ export default function CustomerEditPage({ accessToken }: Props) {
         </Link>{" "}
         &gt;{" "}
         <Link href={"/customers/${customer.id}"} className="hover:underline">
-          概要
+          顧客概要
         </Link>{" "}
         &gt; 編集
       </h2>

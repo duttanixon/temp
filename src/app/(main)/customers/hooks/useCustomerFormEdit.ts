@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { AxiosError } from "axios";
+import { signOut } from "next-auth/react";
+import { resetFormAfterDelay } from "@/app/(main)/customers/utils/resetFormAfterDelay";
 
 export const useCustomerFormEdit = (
   accessToken: string,
@@ -49,36 +52,71 @@ export const useCustomerFormEdit = (
     if (accessToken && customerId) fetchCustomer();
   }, [accessToken, customerId]);
 
-  // const handleUpdate = async (): Promise<void> => {
-  //   try {
-  //     const payload = {
-  //       name: companyName,
-  //       contact_email: email,
-  //       address,
-  //       status,
-  //     };
-  //     await axios.put(
-  //       `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers/${customerId}`,
-  //       payload,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${accessToken}`,
-  //         },
-  //       }
-  //     );
-  //     setCompletedMessage("更新が完了しました");
-  //   } catch (err) {
-  //     setErrorMessage("更新に失敗しました");
-  //     console.error(err);
-  //   }
-  // };
+  const handleUpdate = async (): Promise<void> => {
+    try {
+      const payload = {
+        name: companyName,
+        contact_email: email,
+        address,
+        status,
+      };
+      const res = await axios.put(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers/${customerId}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (res.status === 200) {
+        setCompletedMessage("更新が完了しました");
+        resetFormAfterDelay(
+          {
+            clearName: true,
+            clearEmail: true,
+            clearAddress: true,
+            clearCompletedMessage: true,
+            clearErrorMessage: true,
+          },
+          {
+            setCompanyName,
+            setEmail,
+            setAddress,
+            setCompletedMessage,
+            setErrorMessage,
+          }
+        );
+      }
+    } catch (error) {
+      setErrorMessage("更新に失敗しました");
+      console.error(error);
+      if (error instanceof AxiosError) {
+        const status = error.response?.status;
+        if (status === 403) {
+          signOut({ callbackUrl: "/login" }); // ✅ 自動ログアウト
+        }
+      }
+      resetFormAfterDelay(
+        { clearErrorMessage: true },
+        {
+          setCompanyName,
+          setEmail,
+          setAddress,
+          setCompletedMessage,
+          setErrorMessage,
+        }
+      );
+    }
+  };
 
   const handleCancel = (): void => {
     router.push("/customers");
   };
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // handleUpdate();
+    handleUpdate();
   };
   return {
     companyName,

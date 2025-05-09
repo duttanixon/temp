@@ -4,6 +4,8 @@ import axios from "axios";
 import { AxiosError } from "axios";
 import { signOut } from "next-auth/react";
 
+import { resetFormAfterDelay } from "@/app/(main)/customers/utils/resetFormAfterDelay";
+
 type CustomerResponse = {
   id: string;
   name: string;
@@ -20,29 +22,6 @@ export const useCustomerFormCreate = (token: string) => {
   const [completedMessage, setCompletedMessage] = useState("");
 
   const router = useRouter();
-
-  // フォームのリセットを行う関数
-  const resetFormAfterDelay = ({
-    clearName = false,
-    clearEmail = false,
-    clearAddress = false,
-    clearCompletedMessage = false,
-    clearErrorMessage = false,
-  }: {
-    clearName?: boolean;
-    clearEmail?: boolean;
-    clearAddress?: boolean;
-    clearCompletedMessage?: boolean;
-    clearErrorMessage?: boolean;
-  }) => {
-    if (clearName) setCompanyName("");
-    if (clearEmail) setEmail("");
-    if (clearAddress) setAddress("");
-    setTimeout(() => {
-      if (clearCompletedMessage) setCompletedMessage("");
-      if (clearErrorMessage) setErrorMessage("");
-    }, 5000);
-  };
 
   // 顧客データ作成APIを呼び出す関数
   const createCustomer = async (
@@ -67,13 +46,22 @@ export const useCustomerFormCreate = (token: string) => {
       });
       console.log("Registration complete:", response.data);
       setCompletedMessage("登録が完了しました");
-      resetFormAfterDelay({
-        clearName: true,
-        clearEmail: true,
-        clearAddress: true,
-        clearCompletedMessage: true,
-        clearErrorMessage: true,
-      });
+      resetFormAfterDelay(
+        {
+          clearName: true,
+          clearEmail: true,
+          clearAddress: true,
+          clearCompletedMessage: true,
+          clearErrorMessage: true,
+        },
+        {
+          setCompanyName,
+          setEmail,
+          setAddress,
+          setCompletedMessage,
+          setErrorMessage,
+        }
+      );
       return response.data;
     } catch (error) {
       console.error("Registration error:", error);
@@ -98,12 +86,20 @@ export const useCustomerFormCreate = (token: string) => {
           signOut({ callbackUrl: "/login" }); // ✅ 自動ログアウト
         }
       }
-      resetFormAfterDelay({ clearErrorMessage: true });
+      resetFormAfterDelay(
+        { clearErrorMessage: true },
+        {
+          setCompanyName,
+          setEmail,
+          setAddress,
+          setCompletedMessage,
+          setErrorMessage,
+        }
+      );
       return null;
     }
   };
 
-  // 作成ボタン押下時の処理
   const handleCreate = async (): Promise<void> => {
     try {
       await createCustomer(token);
@@ -119,6 +115,7 @@ export const useCustomerFormCreate = (token: string) => {
     router.push("/customers");
   };
 
+  // 作成ボタン押下時の処理
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     handleCreate();

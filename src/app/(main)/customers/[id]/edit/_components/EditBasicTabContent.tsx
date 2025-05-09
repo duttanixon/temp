@@ -1,7 +1,6 @@
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { cva } from "class-variance-authority";
-import { FC } from "react";
 
 type Props = {
   customerId?: string;
@@ -15,38 +14,63 @@ type Props = {
   setStatus: (val: string) => void;
 };
 
-type FormFieldProps = {
+type FormFieldProps<
+  T extends HTMLInputElement | HTMLSelectElement = HTMLInputElement,
+> = {
   id: string;
   label: string;
-  type: string;
   name: string;
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (e: React.ChangeEvent<T>) => void;
   required?: boolean;
+  as?: "input" | "select";
+  options?: { label: string; value: string }[];
+  type?: string;
 };
 
-export const FormField: FC<FormFieldProps> = ({
+export const FormField = <
+  T extends HTMLInputElement | HTMLSelectElement = HTMLInputElement,
+>({
   id,
   label,
-  type,
   name,
   value,
   onChange,
   required = false,
-}) => (
+  as = "input",
+  options = [],
+  type = "text",
+}: FormFieldProps<T>) => (
   <div className="flex flex-col gap-1">
     <Label htmlFor={id} className={formVariants({ variant: "label" })}>
       {label} {required && <span className="text-[#FF0000]">*</span>}
     </Label>
-    <Input
-      className={formVariants({ variant: "input" })}
-      id={id}
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      required={required}
-    />
+    {as === "input" ? (
+      <Input
+        className={formVariants({ variant: "input" })}
+        id={id}
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange as (e: React.ChangeEvent<HTMLInputElement>) => void}
+        required={required}
+      />
+    ) : (
+      <select
+        className={formVariants({ variant: "select" })}
+        id={id}
+        name={name}
+        value={value}
+        onChange={onChange as (e: React.ChangeEvent<HTMLSelectElement>) => void}
+        required={required}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    )}
   </div>
 );
 
@@ -54,8 +78,9 @@ export const formVariants = cva("", {
   variants: {
     variant: {
       label: "text-sm font-normal text-[#7F8C8D]",
-      input: "w-96 h-[35.56px] border border-[#BDC3C7]",
+      input: "w-96 h-[35.56px] border border-[#BDC3C7] text-sm",
       companyInfo: "text-lg font-bold text-[#2C3E50]",
+      select: "w-67 h-[35.56px] border border-[#BDC3C7] text-sm",
     },
   },
   defaultVariants: {
@@ -111,11 +136,14 @@ export const EditBasicTabContent = ({
         <FormField
           id="status"
           label="アカウント状態"
-          type="text"
           name="status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          required
+          as="select"
+          options={[
+            { label: "アクティブ", value: "ACTIVE" },
+            { label: "非アクティブ", value: "INACTIVE" },
+          ]}
         />
       </div>
     </div>

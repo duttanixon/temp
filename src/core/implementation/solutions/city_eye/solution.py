@@ -56,6 +56,8 @@ class CityEyeSolution(ISolution):
         self.test_mode = config.get("test", False)
         self.test_counts = {
             "total_human": 0,
+            "male_child": 0,
+            "female_child": 0,
             "male_young": 0,
             "female_young": 0,
             "male_middle": 0,
@@ -142,7 +144,7 @@ class CityEyeSolution(ISolution):
             self.count_output_path = config["count_output_path"]
             self.class_names_dict = {
                 'gender' : ['male', 'female'],
-                'age': ['young', 'middle', 'senior', 'silver'],
+                'age': ['child','young', 'middle', 'senior', 'silver'],
                 'vehicle':['bicycle','car','bus','truck','motorcycle'] #bicycle=2, car =3,motorcycle=4, bus=6, truck=8
             }
             self.count = Counter(self.xlines_cfg_path,self.count_output_path,self.class_names_dict)
@@ -350,6 +352,8 @@ class CityEyeSolution(ISolution):
                 if existing:
                     # Update existing human record
                     existing.total_huamn = self.test_counts["total_human"]
+                    existing.male_child = self.test_counts["male_child"]
+                    existing.female_child = self.test_counts["female_child"]
                     existing.male_young = self.test_counts["male_young"]
                     existing.female_young = self.test_counts["female_young"]
                     existing.male_middle = self.test_counts["male_middle"]
@@ -373,6 +377,8 @@ class CityEyeSolution(ISolution):
                     test_result = TestResult(
                         video_file_name=self.video_file_name,
                         total_human=self.test_counts["total_human"],
+                        male_child=self.test_counts["male_child"],
+                        female_child=self.test_counts["female_child"],
                         male_young=self.test_counts["male_young"],
                         female_young=self.test_counts["female_young"],
                         male_middle=self.test_counts["male_middle"],

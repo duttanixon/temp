@@ -10,7 +10,7 @@ class HumanResult(Base):
     from_polygon = Column(String, nullable=False)
     to_polygon = Column(String, nullable=False)
     gender = Column(String, nullable=False)
-    age = Column(Integer, nullable=False)
+    age = Column(String, nullable=False)
     timestamp = Column(DateTime(timezone=True), default=tokyo_time)
     is_synced = Column(Boolean, default=False)
     is_processing =  Column(Boolean, default=False)
@@ -73,10 +73,12 @@ class TestResult(Base):
     id = Column(String(36), primary_key = True, default=lambda : str(uuid.uuid4()))
     video_file_name = Column(String, nullable=False, unique=True)
     total_human = Column(Integer, default=0)
+    male_child = Column(Integer, default=0)
+    female_child = Column(Integer, default=0)
     male_young = Column(Integer, default=0)
     female_young =  Column(Integer, default=0)
     male_middle = Column(Integer, default=0)
-    female_middle = Column(Integer, default=0) 
+    female_middle = Column(Integer, default=0)
     male_senior = Column(Integer, default=0)
     female_senior = Column(Integer, default=0)
     male_silver = Column(Integer, default=0)
@@ -99,8 +101,10 @@ class TestResult(Base):
             "id": self.id,
             "video_file_name": self.video_file_name,
             "total_human": self.total_human,
-            "male_count": self.male_young + self.male_middle +  self.male_senior + self.male_silver,
-            "female_count": self.female_young + self.female_middle +  self.female_senior + self.female_silver,
+            "male_count": self.male_child + self.male_young + self.male_middle +  self.male_senior + self.male_silver,
+            "female_count": self.female_child + self.female_young + self.female_middle +  self.female_senior + self.female_silver,
+            "male_child": self.male_child,
+            "female_child": self.female_child,            
             "male_young": self.male_young,
             "female_young": self.female_young,
             "male_middle": self.male_middle,

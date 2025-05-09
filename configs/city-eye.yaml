@@ -25,9 +25,9 @@ solution:
     xlines_cfg_path: /home/cybercore/ws/nixon/cc-platform-edge-solutions-90012/configs/xlines_cfg.json
     count_output_path: /home/cybercore/ws/nixon/cc-platform-edge-solutions-90012/resources/data/count_result.json
     sqlite_base_dir: /opt/db
-    sync_batch_size: 100
+    sync_batch_size: 40
     sync_interval_seconds: 10
-    test: false
+    test: true
 
 
 

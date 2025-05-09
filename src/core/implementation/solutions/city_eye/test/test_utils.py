@@ -137,7 +137,7 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
                 "total_human": 0,
                 "total_vehicle": 0,
                 "gender_ratio": {"male": 0, "female": 0},
-                "age_distribution": {"child": 0,"young": 0, "middle": 0, "senior": 0, "silver": 0},
+                "age_distribution": {"less_than_18": 0,"18_to_29": 0, "30_to_49": 0, "50_to_64": 0, "65_plus": 0},
                 "traffic_distribution":{"bus": 0, "car": 0, "bicycle":0, "truck": 0, "motorcycle": 0}
 
             }
@@ -166,50 +166,50 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
             
         # Calculate age distribution by gender
         # Combine all male and female counts for each age group
-        male_child_count = sum(r["male_child"] for r in results)
-        female_child_count = sum(r["female_child"] for r in results)
-        child_count = male_child_count + female_child_count
+        male_less_than_18_count = sum(r["male_less_than_18"] for r in results)
+        female_less_than_18_count = sum(r["female_less_than_18"] for r in results)
+        less_than_18_count = male_less_than_18_count + female_less_than_18_count
 
 
-        male_young_count = sum(r["male_young"] for r in results)
-        female_young_count = sum(r["female_young"] for r in results)
-        young_count = male_young_count + female_young_count
+        male_18_to_29_count = sum(r["male_18_to_29"] for r in results)
+        female_18_to_29_count = sum(r["female_18_to_29"] for r in results)
+        young_count = male_18_to_29_count + female_18_to_29_count
         
-        male_middle_count = sum(r["male_middle"] for r in results)
-        female_middle_count = sum(r["female_middle"] for r in results)
-        middle_count = male_middle_count + female_middle_count
+        male_30_to_49_count = sum(r["male_30_to_49"] for r in results)
+        female_30_to_49_count = sum(r["female_30_to_49"] for r in results)
+        middle_count = male_30_to_49_count + female_30_to_49_count
         
-        male_senior_count = sum(r["male_senior"] for r in results)
-        female_senior_count = sum(r["female_senior"] for r in results)
-        senior_count = male_senior_count + female_senior_count
+        male_50_to_64_count = sum(r["male_50_to_64"] for r in results)
+        female_50_to_64_count = sum(r["female_50_to_64"] for r in results)
+        senior_count = male_50_to_64_count + female_50_to_64_count
         
-        male_silver_count = sum(r["male_silver"] for r in results)
-        female_silver_count = sum(r["female_silver"] for r in results)
-        silver_count = male_silver_count + female_silver_count
+        male_65_plus_count = sum(r["male_65_plus"] for r in results)
+        female_65_plus_count = sum(r["female_65_plus"] for r in results)
+        silver_count = male_65_plus_count + female_65_plus_count
         
-        total_age = child_count + young_count + middle_count + senior_count + silver_count
+        total_age = less_than_18_count + young_count + middle_count + senior_count + silver_count
         
         if total_age > 0:
             age_distribution = {
-                "child": (child_count / total_age) * 100,
-                "young": (young_count / total_age) * 100,
-                "middle": (middle_count / total_age) * 100,
-                "senior": (senior_count / total_age) * 100,
-                "silver": (silver_count / total_age) * 100
+                "less_than_18": (less_than_18_count / total_age) * 100,
+                "18_to_29": (young_count / total_age) * 100,
+                "30_to_49": (middle_count / total_age) * 100,
+                "50_to_64": (senior_count / total_age) * 100,
+                "65_plus": (silver_count / total_age) * 100
             }
             
             # Add gender breakdown for each age group
             age_gender_distribution = {
-                "male_child": male_child_count,
-                "female_child": female_child_count,
-                "male_young": male_young_count,
-                "female_young": female_young_count,
-                "male_middle": male_middle_count,
-                "female_middle": female_middle_count,
-                "male_senior": male_senior_count,
-                "female_senior": female_senior_count,
-                "male_silver": male_silver_count,
-                "female_silver": female_silver_count
+                "male_less_than_18": male_less_than_18_count,
+                "female_less_than_18": female_less_than_18_count,
+                "male_18_to_29": male_18_to_29_count,
+                "female_18_to_29": female_18_to_29_count,
+                "male_30_to_49": male_30_to_49_count,
+                "female_30_to_49": female_30_to_49_count,
+                "male_50_to_64": male_50_to_64_count,
+                "female_50_to_64": female_50_to_64_count,
+                "male_65_plus": male_65_plus_count,
+                "female_65_plus": male_65_plus_count
             }
             traffic_distribution = {
                 "bus": bus_count,
@@ -219,13 +219,13 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
                 "motorcycle": motorcycle_count
             }
         else:
-            age_distribution = {"child" : 0, "young": 0, "middle": 0, "senior": 0, "silver": 0}
+            age_distribution = {"less_than_18" : 0, "18_to_29": 0, "30_to_49": 0, "50_to_64": 0, "65_plus": 0}
             age_gender_distribution = {
-                "male_child": 0, "female_child": 0,
-                "male_young": 0, "female_young": 0,
-                "male_middle": 0, "female_middle": 0,
-                "male_senior": 0, "female_senior": 0,
-                "male_silver": 0, "female_silver": 0
+                "male_less_than_18": 0, "female_less_than_18": 0,
+                "male_18_to_29": 0, "female_18_to_29": 0,
+                "male_30_to_49": 0, "female_30_to_49": 0,
+                "male_50_to_64": 0, "female_50_to_64": 0,
+                "male_65_plus": 0, "female_65_plus": 0
             }
             traffic_distribution = {
                 "bus": 0,

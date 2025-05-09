@@ -73,16 +73,16 @@ class TestResult(Base):
     id = Column(String(36), primary_key = True, default=lambda : str(uuid.uuid4()))
     video_file_name = Column(String, nullable=False, unique=True)
     total_human = Column(Integer, default=0)
-    male_child = Column(Integer, default=0)
-    female_child = Column(Integer, default=0)
-    male_young = Column(Integer, default=0)
-    female_young =  Column(Integer, default=0)
-    male_middle = Column(Integer, default=0)
-    female_middle = Column(Integer, default=0)
-    male_senior = Column(Integer, default=0)
-    female_senior = Column(Integer, default=0)
-    male_silver = Column(Integer, default=0)
-    female_silver = Column(Integer, default=0)
+    male_less_than_18 = Column(Integer, default=0)
+    female_less_than_18 = Column(Integer, default=0)
+    male_18_to_29 = Column(Integer, default=0)
+    female_18_to_29 =  Column(Integer, default=0)
+    male_30_to_49 = Column(Integer, default=0)
+    female_30_to_49 = Column(Integer, default=0)
+    male_50_to_64 = Column(Integer, default=0)
+    female_50_to_64 = Column(Integer, default=0)
+    male_65_plus = Column(Integer, default=0)
+    female_65_plus = Column(Integer, default=0)
     
     # Vehicle detection counts
     total_vehicles = Column(Integer, default=0)
@@ -101,18 +101,18 @@ class TestResult(Base):
             "id": self.id,
             "video_file_name": self.video_file_name,
             "total_human": self.total_human,
-            "male_count": self.male_child + self.male_young + self.male_middle +  self.male_senior + self.male_silver,
-            "female_count": self.female_child + self.female_young + self.female_middle +  self.female_senior + self.female_silver,
-            "male_child": self.male_child,
-            "female_child": self.female_child,            
-            "male_young": self.male_young,
-            "female_young": self.female_young,
-            "male_middle": self.male_middle,
-            "female_middle": self.female_middle,
-            "male_senior": self.male_senior,
-            "female_senior":self.female_senior,
-            "male_silver": self.male_silver,
-            "female_silver": self.female_silver,
+            "male_count": self.male_less_than_18 + self.male_18_to_29 + self.male_30_to_49 +  self.male_50_to_64 + self.male_65_plus,
+            "female_count": self.female_less_than_18 + self.female_18_to_29 + self.female_30_to_49 +  self.female_50_to_64 + self.female_65_plus,
+            "male_less_than_18": self.male_less_than_18,
+            "female_less_than_18": self.female_less_than_18,            
+            "male_18_to_29": self.male_18_to_29,
+            "female_18_to_29": self.female_18_to_29,
+            "male_30_to_49": self.male_30_to_49,
+            "female_30_to_49": self.female_30_to_49,
+            "male_50_to_64": self.male_50_to_64,
+            "female_50_to_64":self.female_50_to_64,
+            "male_65_plus": self.male_65_plus,
+            "female_65_plus": self.female_65_plus,
             # Vehicle counts
             "total_vehicles": self.total_vehicles,
             "bicycle": self.bicycle,

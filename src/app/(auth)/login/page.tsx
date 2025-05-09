@@ -1,12 +1,11 @@
 "use client";
 
-import { Suspense } from "react";
-import { Toaster } from "sonner";
-import { LoginForm } from "./_components/LoginForm";
-import { ErrorMessage } from "./_components/ErrorMessage";
+import { Toaster } from "@/components/ui/sonner";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { ErrorMessage } from "./_components/ErrorMessage";
+import { LoginForm } from "./_components/LoginForm";
 
 export default function LoginPage() {
   // Keep these client-side hooks
@@ -23,15 +22,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen w-full">
       {/* Left sidebar */}
-      <div
-        className="w-full max-w-md p-8 text-white flex flex-col"
-        style={{ backgroundColor: "#2c5d82" }}
-      >
+      <div className="w-full max-w-md p-8 text-white flex flex-col bg-[#2c5d82]">
         <div className="flex items-center mb-8">
           <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center">
-            <span className="text-3xl font-bold" style={{ color: "#3498db" }}>
-              EM
-            </span>
+            <span className="text-3xl font-bold text-[#3498db]">EM</span>
           </div>
         </div>
 
@@ -49,11 +43,10 @@ export default function LoginPage() {
       </div>
 
       {/* Right side login form */}
-      <div
-        className="w-full flex items-center justify-center p-8"
-        style={{ backgroundColor: "#f5f7f9" }}
-      >
-        <LoginForm />
+      <div className="w-full flex items-center justify-center p-8 bg-[#f5f7f9]">
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </div>
 
       {/* Wrap the search params handling in Suspense */}

@@ -28,6 +28,7 @@ module "lambdas" {
     aws_region = var.aws_region
     environment = var.environment
     instance_id = module.ec2.instance_id
+    database_url = var.database_url
 }
 
 module "ec2" {

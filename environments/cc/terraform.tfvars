@@ -2,6 +2,11 @@ aws_region = "ap-northeast-1"
 aws_profile = "cc-platform"
 environment = "cc"
 
+# Database configuration - this is sensitive and should ideally be managed via secrets
+database_url = "postgresql+pg8000://ccadmin:qwerty12345@54.168.126.215/platformdb-dev"
+# In production, use terraform-apply with -var or environment variables instead of hardcoding here
+
+
 # EC2 specific settings
 availability_zone = "a"
 instance_type = "t3a.medium"

@@ -16,6 +16,12 @@ variable "environment" {
 }
 
 
+# Lambda variables
+variable "database_url" {
+    description = "PostgreSQL database URL for the City Eye Lambda function"
+    type = string
+    sensitive = true
+}
 
 # EC2 module variables
 variable "availability_zone" {

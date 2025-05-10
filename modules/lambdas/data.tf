@@ -3,11 +3,12 @@ locals {
         city_eye = {
             function_name   = "${var.environment}-city-eye-data-processor"
             handler         = "city_eye_data_processor.lambda_handler"
-            runtime         = "python3.12"
+            runtime         = "python3.9"
             source_path     =  "${path.module}/files/city_eye_data_processor.py"
             description     = "Processes data from City Eye IoT devices"
             environment_variables = {
                 ENVIRONMENT = var.environment
+                DATABASE_URL = var.database_url
             }
         }
         # Add function for each solution
@@ -17,7 +18,7 @@ locals {
         city_eye_rule = {
             name            =   "${var.environment}_device_data_lambda_rule"
             description     =   "Rule to process City Eye device data and trigger Lambda function"
-            sql             =   "SELECT *, topic(2) AS client_id FROM 'devices/+/data/CityEyeSolution'"
+            sql             =   "SELECT *, topic(2) AS client_id, topic(4) AS solution_name FROM 'devices/+/data/+'"
             lambda_key      =   "city_eye"
         }
         # add rule for each solution

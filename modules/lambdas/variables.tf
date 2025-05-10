@@ -12,3 +12,10 @@ variable "instance_id" {
   description = "ID of the EC2 instance to schedule"
   type        = string
 }
+
+variable "database_url" {
+  description = "PostgreSQL database URL for the City Eye Lambda function"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

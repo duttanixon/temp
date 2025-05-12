@@ -3,6 +3,7 @@ import { Sidebar } from "./_components/Sidebar";
 import SessionHandler from "./_components/SessionHandler";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { Toaster } from "sonner";
 
 export default async function MainLayout({
   children,
@@ -29,6 +30,7 @@ export default async function MainLayout({
           <Sidebar />
           <main className="flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8">
             {children}
+            <Toaster position="bottom-left" richColors />
           </main>
         </div>
       </div>

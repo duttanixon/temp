@@ -39,7 +39,7 @@ def read_customers(
         "",
         response_model=CustomerAdminView,
         responses={
-            400: {"description": "Bad Request - Customer already exists"},
+            400: {"description": "Bad Request - Customer already exists or email already exists"},
             403: {"description": "Forbidden - Not enough privileges"}
         }
 )
@@ -60,6 +60,15 @@ def create_customer(
         raise HTTPException(
             status_code=400,
             detail="Customer already exists",
+        )
+
+    # Check for duplicate email
+    existing_email = customer.get_by_email(db, contact_email=customer_in.contact_email)
+    if existing_email:
+        logger.warning(f"Customer creation failed - email already exists: {customer_in.contact_email}")
+        raise HTTPException(
+            status_code=400,
+            detail="Customer with this email already exists",
         )
     
     new_customer = customer.create(db, obj_in=customer_in)
@@ -133,6 +142,23 @@ def update_customer(
                     detail="Customer with this name already exists",
                 )
 
+    # Check if customer email is being updated
+    if customer_in.contact_email is not None:
+        # Validate that email is not empty
+        if not customer_in.contact_email.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Customer email cannot be empty",
+            )
+        
+        # Check for duplicate email if email is being changed
+        if customer_in.contact_email != db_customer.contact_email:
+            existing_customer = customer.get_by_email(db, contact_email=customer_in.contact_email)
+            if existing_customer:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Customer with this email already exists",
+                )
 
     updated_customer = customer.update(db, db_obj=db_customer, obj_in=customer_in)
     

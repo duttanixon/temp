@@ -19,13 +19,25 @@ apiClient.interceptors.request.use(async (config) => {
 // Helper for consistent error handling
 function handleApiError(error: any): never {
   if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<{ detail?: string }>;
-    const message = axiosError.response?.data?.detail || 
-                    axiosError.message || 
-                    'An unexpected error occurred';
+    const axiosError = error as AxiosError<any>;
+    let message: string;
+    
+    if (axiosError?.message) {
+      message = axiosError.message;
+    } else {
+      message = 'An unexpected error occurred';
+    }
+    
+    console.log('API Error:', message);
     throw new Error(message);
   }
-  throw error;
+  
+  // For non-axios errors
+  if (error instanceof Error) {
+    throw error;
+  }
+  
+  throw new Error('An unexpected error occurred');
 }
 
 // Helper to clean empty fields

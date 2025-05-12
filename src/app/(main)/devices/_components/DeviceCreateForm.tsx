@@ -51,7 +51,7 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
       router.push("/devices");
       router.refresh();
     } catch (error) {
-      console.error("Error creating device:", error);
+      console.log("Error creating device:", error);
       toast.error("作成エラー", {
         description:
           error instanceof Error

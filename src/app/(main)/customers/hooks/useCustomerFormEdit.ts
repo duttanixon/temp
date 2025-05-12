@@ -3,7 +3,6 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { signOut } from "next-auth/react";
-import { resetFormAfterDelay } from "@/app/(main)/customers/utils/resetFormAfterDelay";
 
 export const useCustomerFormEdit = (
   accessToken: string,
@@ -53,7 +52,20 @@ export const useCustomerFormEdit = (
   }, [accessToken, customerId]);
 
   const handleUpdate = async (): Promise<void> => {
+    setErrorMessage("");
     try {
+      if (!companyName || companyName.trim() === "") {
+        setErrorMessage("会社名は必須項目です");
+        return;
+      }
+      if (!email || email.trim() === "") {
+        setErrorMessage("連絡先メールアドレスは必須項目です");
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (email && !emailRegex.test(email)) {
+        setErrorMessage("有効なメールアドレスを入力してください");
+      }
       const payload = {
         name: companyName,
         contact_email: email,
@@ -71,49 +83,36 @@ export const useCustomerFormEdit = (
         }
       );
       if (res.status === 200) {
-        // setCompletedMessage("更新が完了しました");
-        resetFormAfterDelay(
-          {
-            clearName: true,
-            clearEmail: true,
-            clearAddress: true,
-            clearCompletedMessage: true,
-            clearErrorMessage: true,
-          },
-          {
-            setCompanyName,
-            setEmail,
-            setAddress,
-            setCompletedMessage,
-            setErrorMessage,
-          }
-        );
         router.push(`/customers/${customerId}`);
       }
     } catch (error) {
-      setErrorMessage("更新に失敗しました");
       console.error(error);
       if (error instanceof AxiosError) {
         const status = error.response?.status;
         if (status === 403) {
           signOut({ callbackUrl: "/login" }); // 自動ログアウト
         }
-      }
-      resetFormAfterDelay(
-        { clearErrorMessage: true },
-        {
-          setCompanyName,
-          setEmail,
-          setAddress,
-          setCompletedMessage,
-          setErrorMessage,
+        if (status === 400) {
+          const detail = error.response?.data?.detail;
+          console.error(detail);
+          setErrorMessage(
+            status === 400
+              ? typeof detail === "string" &&
+                detail.includes("name already exists")
+                ? "会社名が既に登録されています"
+                : typeof detail === "string" &&
+                    detail.includes("email already exists")
+                  ? "連絡先メールアドレスが既に登録されています"
+                  : "重複しています"
+              : ""
+          );
         }
-      );
+      }
     }
   };
 
   const handleCancel = (): void => {
-    router.push("/customers");
+    router.push(`/customers/${customerId}`);
   };
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -82,7 +82,7 @@ export const FormField = <
             value === "ACTIVE" ? "text-[#3498DB]" : "text-[#BDC3C7]"
           )}
         >
-          {value === "ACTIVE" ? "ON" : "OFF"}
+          {value === "ACTIVE" ? "アクティブ" : "非アクティブ"}
         </span>
       </div>
     )}

@@ -4,8 +4,6 @@ import axios from "axios";
 import { AxiosError } from "axios";
 import { signOut } from "next-auth/react";
 
-import { resetFormAfterDelay } from "@/app/(main)/customers/utils/resetFormAfterDelay";
-
 type CustomerResponse = {
   id: string;
   name: string;
@@ -37,6 +35,8 @@ export const useCustomerFormCreate = (token: string) => {
     const customerUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers`;
 
     try {
+      setCompletedMessage("");
+      setErrorMessage("");
       const response = await axios.post(customerUrl, customerPayload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -46,22 +46,6 @@ export const useCustomerFormCreate = (token: string) => {
       });
       console.log("Registration complete:", response.data);
       setCompletedMessage("登録が完了しました");
-      resetFormAfterDelay(
-        {
-          clearName: true,
-          clearEmail: true,
-          clearAddress: true,
-          clearCompletedMessage: true,
-          clearErrorMessage: true,
-        },
-        {
-          setCompanyName,
-          setEmail,
-          setAddress,
-          setCompletedMessage,
-          setErrorMessage,
-        }
-      );
       return response.data;
     } catch (error) {
       console.error("Registration error:", error);
@@ -73,9 +57,16 @@ export const useCustomerFormCreate = (token: string) => {
 
         setErrorMessage(
           status === 400
-            ? typeof detail === "string" && detail.includes("already exists")
-              ? "既に登録されています"
-              : "不正なリクエストです (Bad Request) "
+            ? typeof detail === "string" &&
+              detail.includes("Customer already exists")
+              ? "会社名が既に登録されています"
+              : typeof detail === "string" &&
+                  detail.includes("Customer with this email already exists")
+                ? "連絡先メールアドレスが既に登録されています"
+                : typeof detail === "string" &&
+                    detail.includes("already exists")
+                  ? "既に登録されています"
+                  : "不正なリクエストです (Bad Request)"
             : status === 403
               ? "権限がありません (Forbidden)"
               : status === 422
@@ -86,16 +77,6 @@ export const useCustomerFormCreate = (token: string) => {
           signOut({ callbackUrl: "/login" }); // 自動ログアウト
         }
       }
-      resetFormAfterDelay(
-        { clearErrorMessage: true },
-        {
-          setCompanyName,
-          setEmail,
-          setAddress,
-          setCompletedMessage,
-          setErrorMessage,
-        }
-      );
       return null;
     }
   };

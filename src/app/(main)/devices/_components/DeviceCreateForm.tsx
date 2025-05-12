@@ -1,9 +1,11 @@
-// src/app/(main)/devices/_components/DeviceCreateForm.tsx
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { deviceService } from "@/services/deviceService";
+import { DeviceCreateFormValues, deviceCreateSchema } from "@/schemas/deviceSchemas";
 
 type Customer = {
   customer_id: string;
@@ -16,52 +18,30 @@ type DeviceCreateFormProps = {
 
 export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form data
-  const [formData, setFormData] = useState({
-    customer_id: "", // Optional - can be empty
-    device_type: "",
-    description: "",
-    mac_address: "",
-    serial_number: "",
-    firmware_version: "",
-    location: "",
-    ip_address: "",
+  // Initialize React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<DeviceCreateFormValues>({
+    resolver: zodResolver(deviceCreateSchema),
+    defaultValues: {
+      customer_id: "",
+      device_type: undefined, // Let the user select
+      description: "",
+      mac_address: "",
+      serial_number: "",
+      firmware_version: "",
+      location: "",
+      ip_address: "",
+    },
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: DeviceCreateFormValues) => {
     try {
-      // Basic validation - only device_type is required
-      if (!formData.device_type) {
-        throw new Error("デバイスタイプを選択してください");
-      }
-
-      const response = await fetch(`/api/devices`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "デバイスの作成に失敗しました");
-      }
+      // Use the service to create the device
+      await deviceService.createDevice(data);
 
       toast.success("デバイスが作成されました", {
         description: "新しいデバイスが正常に作成されました。",
@@ -78,8 +58,6 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             ? error.message
             : "予期せぬエラーが発生しました",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -91,7 +69,7 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
         </h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Customer Selection - Optional */}
           <div>
@@ -103,9 +81,7 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             </label>
             <select
               id="customer_id"
-              name="customer_id"
-              value={formData.customer_id}
-              onChange={handleChange}
+              {...register("customer_id")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
             >
               <option value="">顧客を選択（任意）</option>
@@ -115,6 +91,9 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
                 </option>
               ))}
             </select>
+            {errors.customer_id && (
+              <p className="mt-1 text-xs text-red-500">{errors.customer_id.message}</p>
+            )}
             <p className="mt-1 text-xs text-[#7F8C8D]">
               顧客を選択しない場合、後で割り当てることができます
             </p>
@@ -130,16 +109,16 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             </label>
             <select
               id="device_type"
-              name="device_type"
-              value={formData.device_type}
-              onChange={handleChange}
+              {...register("device_type")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-              required
             >
               <option value="">選択してください</option>
               <option value="NVIDIA_JETSON">NVIDIA Jetson</option>
               <option value="RASPBERRY_PI">Raspberry Pi</option>
             </select>
+            {errors.device_type && (
+              <p className="mt-1 text-xs text-red-500">{errors.device_type.message}</p>
+            )}
           </div>
 
           {/* MAC Address */}
@@ -153,12 +132,13 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             <input
               type="text"
               id="mac_address"
-              name="mac_address"
-              value={formData.mac_address}
-              onChange={handleChange}
+              {...register("mac_address")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
               placeholder="例: 00:11:22:33:44:55"
             />
+            {errors.mac_address && (
+              <p className="mt-1 text-xs text-red-500">{errors.mac_address.message}</p>
+            )}
           </div>
 
           {/* Serial Number */}
@@ -172,11 +152,12 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             <input
               type="text"
               id="serial_number"
-              name="serial_number"
-              value={formData.serial_number}
-              onChange={handleChange}
+              {...register("serial_number")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
             />
+            {errors.serial_number && (
+              <p className="mt-1 text-xs text-red-500">{errors.serial_number.message}</p>
+            )}
           </div>
 
           {/* Firmware Version */}
@@ -190,11 +171,12 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             <input
               type="text"
               id="firmware_version"
-              name="firmware_version"
-              value={formData.firmware_version}
-              onChange={handleChange}
+              {...register("firmware_version")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
             />
+            {errors.firmware_version && (
+              <p className="mt-1 text-xs text-red-500">{errors.firmware_version.message}</p>
+            )}
           </div>
 
           {/* Location */}
@@ -208,11 +190,12 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             <input
               type="text"
               id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
+              {...register("location")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
             />
+            {errors.location && (
+              <p className="mt-1 text-xs text-red-500">{errors.location.message}</p>
+            )}
           </div>
 
           {/* IP Address */}
@@ -226,12 +209,13 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             <input
               type="text"
               id="ip_address"
-              name="ip_address"
-              value={formData.ip_address}
-              onChange={handleChange}
+              {...register("ip_address")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
               placeholder="例: 192.168.1.100"
             />
+            {errors.ip_address && (
+              <p className="mt-1 text-xs text-red-500">{errors.ip_address.message}</p>
+            )}
           </div>
 
           {/* Description - Full Width */}
@@ -244,13 +228,14 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             </label>
             <textarea
               id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
+              {...register("description")}
               rows={3}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
               placeholder="デバイスの説明や用途を入力してください"
             />
+            {errors.description && (
+              <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>
+            )}
           </div>
         </div>
 

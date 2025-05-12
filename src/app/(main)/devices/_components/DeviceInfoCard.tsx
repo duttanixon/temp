@@ -1,45 +1,13 @@
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
+import { Device, DeviceStatus } from "@/types/device";
+import DeviceStatusBadge from "../_components/DeviceStatusBadge";
 
 type DeviceInfoCardProps = {
-  device: any;
+  device: Device;
 };
 
 export default function DeviceInfoCard({ device }: DeviceInfoCardProps) {
-  const getStatusBadge = (status: string, isOnline: boolean) => {
-    let bgColor = "bg-gray-500";
-
-    if (isOnline) {
-      bgColor = "bg-green-500";
-    } else {
-      switch (status) {
-        case "ACTIVE":
-          bgColor = "bg-blue-500";
-          break;
-        case "PROVISIONED":
-          bgColor = "bg-yellow-500";
-          break;
-        case "INACTIVE":
-          bgColor = "bg-gray-500";
-          break;
-        case "MAINTENANCE":
-          bgColor = "bg-orange-500";
-          break;
-        case "DECOMMISSIONED":
-          bgColor = "bg-red-500";
-          break;
-      }
-    }
-
-    return (
-      <span className="inline-flex items-center">
-        <span className={`h-2.5 w-2.5 rounded-full ${bgColor} mr-2`}></span>
-        <span>{status}</span>
-        {isOnline && <span className="ml-2 text-green-600">(オンライン)</span>}
-      </span>
-    );
-  };
-
   return (
     <div className="bg-white rounded-lg border border-[#BDC3C7] overflow-hidden">
       <div className="px-6 py-4 border-b border-[#BDC3C7]">
@@ -66,7 +34,7 @@ export default function DeviceInfoCard({ device }: DeviceInfoCardProps) {
               <div className="flex justify-between">
                 <span className="text-sm text-[#7F8C8D]">ステータス</span>
                 <span className="text-sm font-medium text-[#2C3E50]">
-                  {getStatusBadge(device.status, device.is_online)}
+                  <DeviceStatusBadge status={device.status} isOnline={device.is_online} />
                 </span>
               </div>
               <div className="flex justify-between">

@@ -115,6 +115,25 @@ def update_customer(
             detail="Customer not found",
         )
     
+    # Check if customer name is being updated
+    if customer_in.name is not None:
+        # Validate that name is not empty
+        if not customer_in.name.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Customer name cannot be empty",
+            )    
+
+        # Check for duplicate name if name is being changed
+        if customer_in.name != db_customer.name:
+            existing_customer = customer.get_by_name(db, name=customer_in.name)
+            if existing_customer:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Customer with this name already exists",
+                )
+
+
     updated_customer = customer.update(db, db_obj=db_customer, obj_in=customer_in)
     
     # Log customer update

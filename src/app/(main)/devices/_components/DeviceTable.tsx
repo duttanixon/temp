@@ -4,16 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-
-type Device = {
-  device_id: string;
-  name: string;
-  device_type: string;
-  status: string;
-  is_online: boolean;
-  last_connected?: string;
-  customer_id: string;
-};
+import { Device, DeviceStatus } from "@/types/device";
+import DeviceStatusBadge from "../_components/DeviceStatusBadge";
 
 type DeviceTableProps = {
   initialDevices: Device[];
@@ -22,25 +14,6 @@ type DeviceTableProps = {
 export default function DeviceTable({ initialDevices }: DeviceTableProps) {
   const [devices] = useState<Device[]>(initialDevices);
   const router = useRouter();
-
-  const getStatusColor = (status: string, isOnline: boolean) => {
-    if (isOnline) return "bg-green-500";
-
-    switch (status) {
-      case "ACTIVE":
-        return "bg-blue-500";
-      case "PROVISIONED":
-        return "bg-yellow-500";
-      case "INACTIVE":
-        return "bg-gray-500";
-      case "MAINTENANCE":
-        return "bg-orange-500";
-      case "DECOMMISSIONED":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
 
   const handleViewDetails = (deviceId: string) => {
     router.push(`/devices/${deviceId}`);
@@ -94,14 +67,7 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
                   {device.device_type}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center">
-                    <span
-                      className={`h-2.5 w-2.5 rounded-full ${getStatusColor(device.status, device.is_online)} mr-2`}
-                    ></span>
-                    <span className="text-sm text-[#2C3E50]">
-                      {device.status}
-                    </span>
-                  </span>
+                  <DeviceStatusBadge status={device.status} isOnline={device.is_online} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[#2C3E50]">
                   {device.last_connected

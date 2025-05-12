@@ -1,65 +1,47 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Device } from "@/types/device";
+import { deviceService } from "@/services/deviceService";
+import { DeviceUpdateFormValues, deviceUpdateSchema } from "@/schemas/deviceSchemas";
+import { isDeviceProvisioned } from "@/utils/devices/deviceHelpers";
 
 type DeviceEditFormProps = {
-  device: any;
+  device: Device;
 };
 
 export default function DeviceEditForm({ device }: DeviceEditFormProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Initialize form with current device values
-  const [formData, setFormData] = useState({
-    description: device.description || "",
-    location: device.location || "",
-    firmware_version: device.firmware_version || "",
-    // Only include IP address if user is Admin/Engineer (based on existing device data)
-    ...(device.ip_address !== undefined && {
-      ip_address: device.ip_address || "",
-    }),
-  });
 
   // Determine if device is provisioned to handle field restrictions
-  const isProvisioned = [
-    "PROVISIONED",
-    "ACTIVE",
-    "MAINTENANCE",
-    "DECOMMISSIONED",
-  ].includes(device.status);
+  const isProvisioned = isDeviceProvisioned(device);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  // Initialize React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<DeviceUpdateFormValues>({
+    resolver: zodResolver(deviceUpdateSchema),
+    defaultValues: {
+      description: device.description || "",
+      location: device.location || "",
+      firmware_version: device.firmware_version || "",
+      ip_address: device.ip_address || "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: DeviceUpdateFormValues) => {
     try {
-      const response = await fetch(`/api/devices/${device.device_id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "デバイスの更新に失敗しました");
-      }
-
+      await deviceService.updateDevice(device.device_id, data);
+      
       toast.success("デバイスが更新されました", {
         description: `デバイス「${device.name}」の情報が正常に更新されました。`,
       });
+      
       // Redirect back to device details page
       router.push(`/devices/${device.device_id}`);
       router.refresh();
@@ -71,8 +53,6 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
             ? error.message
             : "予期せぬエラーが発生しました",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -89,7 +69,7 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
         <div className="grid grid-cols-1 gap-6">
           <div>
             <label
@@ -100,12 +80,13 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
             </label>
             <textarea
               id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
+              {...register("description")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
               rows={3}
             />
+            {errors.description && (
+              <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>
+            )}
             <p className="mt-1 text-xs text-[#7F8C8D]">
               デバイスの説明や用途などを入力してください
             </p>
@@ -121,11 +102,12 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
             <input
               type="text"
               id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
+              {...register("location")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
             />
+            {errors.location && (
+              <p className="mt-1 text-xs text-red-500">{errors.location.message}</p>
+            )}
           </div>
 
           <div>
@@ -138,15 +120,16 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
             <input
               type="text"
               id="firmware_version"
-              name="firmware_version"
-              value={formData.firmware_version}
-              onChange={handleChange}
+              {...register("firmware_version")}
               className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
             />
+            {errors.firmware_version && (
+              <p className="mt-1 text-xs text-red-500">{errors.firmware_version.message}</p>
+            )}
           </div>
 
-          {/* IP Address field - only for Admin/Engineer roles */}
-          {formData.ip_address !== undefined && (
+          {/* IP Address field - only if it was in the original device data */}
+          {device.ip_address !== undefined && (
             <div>
               <label
                 htmlFor="ip_address"
@@ -157,11 +140,12 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
               <input
                 type="text"
                 id="ip_address"
-                name="ip_address"
-                value={formData.ip_address}
-                onChange={handleChange}
+                {...register("ip_address")}
                 className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
               />
+              {errors.ip_address && (
+                <p className="mt-1 text-xs text-red-500">{errors.ip_address.message}</p>
+              )}
             </div>
           )}
         </div>

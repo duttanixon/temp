@@ -29,19 +29,23 @@ async function getDevice(deviceId: string, accessToken: string) {
   }
 }
 
-export default async function EditDevicePage({
-  params,
-}: {
+// Define the page props
+type Props = {
   params: { deviceId: string };
-}) {
+};
+
+export default async function EditDevicePage(props: Props) {
+  // Handle params as a potential Promise
+  const resolvedParams = await Promise.resolve(props.params);
   const session = await auth();
   const accessToken = session?.accessToken ?? "";
+  const deviceId = resolvedParams.deviceId;
 
   if (!accessToken) {
     redirect("/login");
   }
 
-  const device = await getDevice(params.deviceId, accessToken);
+  const device = await getDevice(deviceId, accessToken);
 
   if (!device) {
     notFound();

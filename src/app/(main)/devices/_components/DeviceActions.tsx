@@ -3,9 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Device } from "@/types/device";
+import { deviceService } from "@/services/deviceService"; 
+import { 
+  canProvisionDevice, 
+  canActivateDevice, 
+  canDecommissionDevice 
+} from "@/utils/devices/deviceHelpers";
 
 type DeviceActionsProps = {
-  device: any;
+  device: Device;
 };
 
 export default function DeviceActions({ device }: DeviceActionsProps) {
@@ -13,37 +20,16 @@ export default function DeviceActions({ device }: DeviceActionsProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Determine which actions are available based on device status
-  const canProvision = device.status === "CREATED";
-  const canActivate =
-    device.status === "PROVISIONED" || device.status === "INACTIVE";
-  const canDecommission = device.status !== "DECOMMISSIONED";
+  const canProvision = canProvisionDevice(device);
+  const canActivate = canActivateDevice(device);
+  const canDecommission = canDecommissionDevice(device);
 
   const executeAction = async (action: string, displayName: string) => {
     setIsLoading(true);
 
     try {
-      const url = `/api/devices/${device.device_id}/${action}`;
-      console.log(`Sending request to: ${url}`);
-
-      const response = await fetch(
-        `/api/devices/${device.device_id}/${action}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error(`API error (${response.status}):`, errorData);
-        throw new Error(errorData.detail || `${displayName}に失敗しました`);
-      }
-
-      const data = await response.json();
-      console.log(`${action} response:`, data);
-
+      await deviceService.executeDeviceAction(device.device_id, action);   
+      
       toast.success(`${displayName}が完了しました`, {
         description: `デバイス ${device.name} の${displayName}が正常に完了しました。`,
       });

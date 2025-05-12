@@ -21,7 +21,10 @@ class CRUDCustomer(CRUDBase[Customer, CustomerCreate, CustomerUpdate]):
     
     def get_active(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Customer]:
         return db.query(Customer).filter(Customer.status == CustomerStatus.ACTIVE).offset(skip).limit(limit).all()
-    
+
+    def get_by_email(self, db: Session, *, contact_email: str) -> Optional[Customer]:
+        return db.query(Customer).filter(Customer.contact_email == contact_email).first()
+
     def create(self, db: Session, *, obj_in: CustomerCreate) -> Customer:
         db_obj = Customer(
             name=obj_in.name,

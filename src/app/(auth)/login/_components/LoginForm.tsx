@@ -42,7 +42,7 @@ export function LoginForm() {
       });
 
       // Add redirect to dashboard
-      router.push("/");
+      router.push("/users");
     } catch (error) {
       console.error("📝 LOGIN: Login error:", error);
       // エラートーストを表示

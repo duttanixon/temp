@@ -15,7 +15,7 @@ export default function LoginPage() {
   // Redirect logic
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/");
+      router.replace("/users");
     }
   }, [status, router]);
 

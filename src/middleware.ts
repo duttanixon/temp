@@ -51,7 +51,7 @@ export default auth(async function middleware(req) {
     console.log(
       "🔒 MIDDLEWARE: Redirecting to home - user already authenticated"
     );
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/users", req.url));
   }
 
   console.log("🔒 MIDDLEWARE: Access granted to:", path);

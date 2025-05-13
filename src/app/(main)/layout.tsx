@@ -1,11 +1,23 @@
+<<<<<<< HEAD
 import { Header } from "@/app/(main)/_components/Header";
 import { Sidebar } from "@/app/(main)/_components/Sidebar";
 
 export default function MainLayout({
+=======
+import { Header } from "./_components/Header";
+import { Sidebar } from "./_components/Sidebar";
+import SessionHandler from "./_components/SessionHandler";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { Toaster } from "sonner";
+
+export default async function MainLayout({
+>>>>>>> refs/remotes/origin/main
   children,
 }: {
   children: React.ReactNode;
 }) {
+<<<<<<< HEAD
   return (
     <div className="min-h-screen flex flex-col bg-slate-900">
       <Header />
@@ -16,5 +28,32 @@ export default function MainLayout({
         </main>
       </div>
     </div>
+=======
+  console.log("📂 MAIN LAYOUT: Initializing main layout (server component)");
+  // Get session from server-side auth
+  const session = await auth();
+  console.log("📂 MAIN LAYOUT: Session exists:", !!session);
+
+  // Redirect to login if not authenticated
+  if (!session) {
+    console.log("📂 MAIN LAYOUT: No session, redirecting to login");
+    redirect("/login");
+  }
+
+  console.log("📂 MAIN LAYOUT: Session valid, rendering main layout");
+  return (
+    <SessionHandler>
+      <div className="min-h-screen flex flex-col bg-slate-900">
+        <Header />
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8">
+            {children}
+            <Toaster position="bottom-left" richColors />
+          </main>
+        </div>
+      </div>
+    </SessionHandler>
+>>>>>>> refs/remotes/origin/main
   );
 }

@@ -1,18 +1,18 @@
 // components/Sidebar.tsx
-import { auth } from "@/auth"; // 新しいimport
+import { auth } from "@/auth";
 import { AdminSidebar } from "./AdminSidebar";
 import { CustomerSidebar } from "./CustomerSidebar";
 
 export const Sidebar = async () => {
-    // NextAuth v5のauth()関数を使用してセッション情報を取得
-    const session = await auth();
-    const userRole = session?.user?.role || "";
+  // NextAuth v5のauth()関数を使用してセッション情報を取得
+  const session = await auth();
+  const userRole = session?.user?.role || "";
 
-    // Customer View を表示するロール
-    const customerViewRoles = ["CUSTOMER_ADMIN", "CUSTOMER_USER"];
+  // Customer View を表示するロール
+  const customerViewRoles = ["CUSTOMER_ADMIN", "CUSTOMER_USER"];
 
-    // ユーザーロールに基づいてサイドバーを選択
-    const isCustomerView = customerViewRoles.includes(userRole);
+  // ユーザーロールに基づいてサイドバーを選択
+  const isCustomerView = customerViewRoles.includes(userRole);
 
-    return isCustomerView ? <CustomerSidebar /> : <AdminSidebar />;
+  return isCustomerView ? <CustomerSidebar /> : <AdminSidebar />;
 };

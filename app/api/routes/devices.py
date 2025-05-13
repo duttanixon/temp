@@ -470,6 +470,13 @@ def decommission_device(
             status_code=404,
             detail="Device not found"
         )
+
+    # Add validation to check if the device is in CREATED state
+    if db_device.status == DeviceStatus.CREATED:
+        raise HTTPException(
+            status_code=400,
+            detail="Device is not provisioned yet"
+        )
     
     # Mark device as decommissioned
     decommissioned_device = device.decommission(db, device_id=device_id)

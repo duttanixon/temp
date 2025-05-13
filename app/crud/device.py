@@ -63,7 +63,7 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
     
     def activate(self, db: Session, *, device_id: uuid.UUID) -> Device:
         return self.update_device_status(
-            db, device_id=device_id, status=DeviceStatus.ACTIVE
+            db, device_id=device_id, status=DeviceStatus.PROVISIONED
         )
 
     

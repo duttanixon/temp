@@ -331,7 +331,7 @@ def seed_test_data(db: Session) -> None:
         location="Pi Location",
         customer_id=active_customer.customer_id,
         ip_address="192.168.1.200",
-        status=DeviceStatus.INACTIVE,
+        status=DeviceStatus.DECOMMISSIONED,
         is_online=False
     )
     
@@ -364,7 +364,7 @@ def seed_test_data(db: Session) -> None:
         firmware_version="1.0.0",
         location="Suspended Location",
         customer_id=suspended_customer.customer_id,
-        status=DeviceStatus.INACTIVE,
+        status=DeviceStatus.DECOMMISSIONED,
         is_online=False
     )
 

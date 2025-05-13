@@ -4,7 +4,6 @@ import { cva } from "class-variance-authority";
 
 type Props = {
   errorMessage: string;
-  completedMessage: string;
   handleCancel: () => void;
   isEdit: boolean;
 };
@@ -24,7 +23,6 @@ const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
 });
 export const CustomerButton = ({
   errorMessage,
-  completedMessage,
   handleCancel,
   isEdit,
 }: Props) => {
@@ -64,9 +62,6 @@ export const CustomerButton = ({
           キャンセル
         </Button>
       </div>
-      {completedMessage && !errorMessage && (
-        <Message message={completedMessage} type="success" />
-      )}
       {errorMessage && <Message message={errorMessage} type="error" />}
     </>
   );

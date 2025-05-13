@@ -38,7 +38,8 @@ export default function LoginPage() {
       {/* 左側のサイドバー */}
       <div
         className="w-full max-w-md p-8 text-white flex flex-col"
-        style={{ backgroundColor: "#2c5d82" }}>
+        style={{ backgroundColor: "#2c5d82" }}
+      >
         <div className="flex items-center mb-8">
           <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center">
             <span className="text-3xl font-bold" style={{ color: "#3498db" }}>
@@ -63,7 +64,8 @@ export default function LoginPage() {
       {/* 右側のログインフォーム */}
       <div
         className="w-full flex items-center justify-center p-8"
-        style={{ backgroundColor: "#f5f7f9" }}>
+        style={{ backgroundColor: "#f5f7f9" }}
+      >
         <LoginForm />
       </div>
     </div>

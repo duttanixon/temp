@@ -13,7 +13,6 @@ export const useCustomerFormEdit = (
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [completedMessage, setCompletedMessage] = useState("");
 
   const router = useRouter();
 
@@ -32,13 +31,7 @@ export const useCustomerFormEdit = (
             },
           }
         );
-        console.log(
-          "URL:",
-          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers/${customerId}`
-        );
-        console.log("アクセストークン:", accessToken);
         const data = res.data;
-        console.log("data:", data);
         setCompanyName(data.name);
         setEmail(data.contact_email);
         setAddress(data.address);
@@ -65,6 +58,7 @@ export const useCustomerFormEdit = (
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (email && !emailRegex.test(email)) {
         setErrorMessage("有効なメールアドレスを入力してください");
+        return;
       }
       const payload = {
         name: companyName,
@@ -130,8 +124,6 @@ export const useCustomerFormEdit = (
     setStatus,
     errorMessage,
     setErrorMessage,
-    completedMessage,
-    setCompletedMessage,
     handleSubmit,
     handleCancel,
   };

@@ -17,7 +17,6 @@ export const useCustomerFormCreate = (token: string) => {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [completedMessage, setCompletedMessage] = useState("");
 
   const router = useRouter();
 
@@ -25,18 +24,29 @@ export const useCustomerFormCreate = (token: string) => {
   const createCustomer = async (
     token: string
   ): Promise<CustomerResponse | null> => {
-    const customerPayload = {
-      name: companyName,
-      contact_email: email,
-      address: address,
-      status: "ACTIVE",
-    };
-
-    const customerUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers`;
-
+    setErrorMessage("");
     try {
-      setCompletedMessage("");
-      setErrorMessage("");
+      if (!companyName || companyName.trim() === "") {
+        setErrorMessage("会社名は必須項目です");
+        return null;
+      }
+      if (!email || email.trim() === "") {
+        setErrorMessage("連絡先メールアドレスは必須項目です");
+        return null;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (email && !emailRegex.test(email)) {
+        setErrorMessage("有効なメールアドレスを入力してください");
+        return null;
+      }
+      const customerPayload = {
+        name: companyName,
+        contact_email: email,
+        address: address,
+        status: "ACTIVE",
+      };
+
+      const customerUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers`;
       const response = await axios.post(customerUrl, customerPayload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -46,11 +56,9 @@ export const useCustomerFormCreate = (token: string) => {
       });
       console.log("Registration complete:", response.data);
       toast.success("顧客を追加しました");
-      setCompletedMessage("登録が完了しました");
       return response.data;
     } catch (error) {
       console.error("Registration error:", error);
-      setCompletedMessage("");
       if (error instanceof AxiosError) {
         const status = error.response?.status;
         const detail = error.response?.data?.detail || "";
@@ -85,7 +93,6 @@ export const useCustomerFormCreate = (token: string) => {
   const handleCreate = async (): Promise<void> => {
     try {
       await createCustomer(token);
-      console.log(token);
     } catch (error) {
       console.error("Error:", error);
       setErrorMessage("error.message");
@@ -112,8 +119,6 @@ export const useCustomerFormCreate = (token: string) => {
     setAddress,
     errorMessage,
     setErrorMessage,
-    completedMessage,
-    setCompletedMessage,
     handleCreate,
     handleCancel,
     handleSubmit,

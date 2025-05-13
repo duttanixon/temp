@@ -14,20 +14,20 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       onSearch(query.trim(), status);
-    }, 300); // debounce
+    }, 300);
 
     return () => clearTimeout(delayDebounce);
   }, [query, status, onSearch]);
 
   return (
-    <div className="border border-gray-400 rounded-md px-4 py-3 w-2/5">
-      <div className="flex items-center gap-10">
-        {" "}
-        {/* increased gap from 4 to 10 */}
-        <label className="text-gray-800 text-sm">状態:</label>
-        <div className="relative">
+    <div className="relative border border-gray-400 rounded-md px-4 py-3 w-2/5 bg-white overflow-hidden">
+      <div className="flex items-center gap-6 flex-wrap">
+        <label className="text-gray-800 text-sm whitespace-nowrap">状態:</label>
+
+        {/* Select Box */}
+        <div className="relative w-40">
           <select
-            className="appearance-none border border-gray-400 rounded-full px-3 py-1 text-sm text-gray-700 pr-8 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="appearance-none w-full bg-white border border-gray-400 rounded-full px-3 py-1 text-sm text-gray-700 pr-10 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -35,33 +35,48 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
             <option>Active</option>
             <option>Inactive</option>
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+          {/* Right-pointing triangle icon */}
+          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
             <svg
-              className="w-4 h-4 text-gray-600"
+              className="w-5 h-5 text-gray-600"
+              viewBox="0 0 24 24"
               fill="currentColor"
-              viewBox="0 0 20 20"
             >
-              <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 0 1 1.08 1.04l-4.25 4.25a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06z" />
+              <polygon points="8,5 16,12 8,19" />
             </svg>
           </div>
         </div>
-        <div className="relative">
+
+        {/* Input Box */}
+        <div className="relative flex-grow min-w-[150px]">
           <Input
             placeholder="顧客を検索…"
-            className="w-64 border border-gray-400 rounded-full pr-10 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          {/* No entry icon — flipped line */}
           <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
             <svg
-              className="w-4 h-4 text-gray-500"
+              className="w-5 h-5 text-gray-500"
+              viewBox="0 0 24 24"
               fill="currentColor"
-              viewBox="0 0 20 20"
             >
-              <path
-                fillRule="evenodd"
-                d="M12.9 14.32a8 8 0 1 1 1.414-1.414l4.387 4.387a1 1 0 0 1-1.414 1.414l-4.387-4.387zM10 16a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"
-                clipRule="evenodd"
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                fill="#f1f1f1"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <line
+                x1="16"
+                y1="8"
+                x2="8"
+                y2="16"
+                stroke="currentColor"
+                strokeWidth="1.5"
               />
             </svg>
           </div>

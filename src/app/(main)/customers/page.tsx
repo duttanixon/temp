@@ -1,8 +1,8 @@
-// File: app/(main)/customers/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import axios from "axios";
 import CustomerTable from "./_components/CustomerTable";
 import SearchFilters from "./_components/SearchFilters";
 import StatsCard from "./_components/StatsCard";
@@ -21,28 +21,7 @@ export default function CustomersPage() {
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [page, setPage] = useState(0);
-
-  // useEffect(() => {
-  //   const fetchCustomers = async () => {
-  //     try {
-  //       const res = await fetch("/api/customers?skip=3&limit=50");
-  //       const data = await res.json();
-  //       const list = Array.isArray(data)
-  //         ? data
-  //         : Array.isArray(data.customers)
-  //           ? data.customers
-  //           : Array.isArray(data.data)
-  //             ? data.data
-  //             : [];
-
-  //       setAllCustomers(list);
-  //       setFilteredCustomers(list);
-  //     } catch (err) {
-  //       console.error("Failed to fetch customers:", err);
-  //     }
-  //   };
-  //   fetchCustomers();
-  // }, []);
+  const [totalDevices, setTotalDevices] = useState(0);
 
   useEffect(() => {
     const fetchAllCustomers = async () => {
@@ -53,8 +32,10 @@ export default function CustomersPage() {
 
       try {
         while (hasMore) {
-          const res = await fetch(`/api/customers?skip=${skip}&limit=${limit}`);
-          const data = await res.json();
+          const res = await axios.get(
+            `/api/customers?skip=${skip}&limit=${limit}`
+          );
+          const data = res.data;
 
           const list: Customer[] = Array.isArray(data)
             ? data
@@ -67,9 +48,9 @@ export default function CustomersPage() {
           allData = [...allData, ...list];
 
           if (list.length < limit) {
-            hasMore = false; // no more data to fetch
+            hasMore = false;
           } else {
-            skip += limit; // move to the next batch
+            skip += limit;
           }
         }
 
@@ -81,6 +62,27 @@ export default function CustomersPage() {
     };
 
     fetchAllCustomers();
+  }, []);
+
+  useEffect(() => {
+    const fetchDeviceCounts = async () => {
+      try {
+        const res = await axios.get("/api/customers/devices", {
+          headers: { Accept: "application/json" },
+        });
+        const data: Record<string, number> = res.data;
+
+        const total = Object.values(data).reduce(
+          (acc, count) => acc + count,
+          0
+        );
+        setTotalDevices(total);
+      } catch (error) {
+        console.error("Failed to fetch device counts:", error);
+      }
+    };
+
+    fetchDeviceCounts();
   }, []);
 
   const handleSearch = (query: string, status: string) => {
@@ -106,14 +108,14 @@ export default function CustomersPage() {
 
   const total = allCustomers.length;
   const active = allCustomers.filter((c) => c.status === "ACTIVE").length;
-  const devices = allCustomers.length;
+  const devices = totalDevices;
 
   return (
     <div className="space-y-6 px-6 pt-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">顧客管理セクション</h1>
+        <h1 className="text-2xl font-semibold">顧客管理</h1>
         <Link href="/customers/add">
-          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded">
+          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-12 py-2 rounded">
             + 顧客追加
           </button>
         </Link>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import CustomerPagination from "@/app/(main)/customers/_components/Pagination";
-// import { fetchCustomerDevices } from "@/app/api/customers/devices/route";
+import axios from "axios";
 
 interface Customer {
   customer_id: string;
@@ -34,11 +34,9 @@ export default function CustomerTable({
   useEffect(() => {
     const fetchDeviceMap = async () => {
       try {
-        const res = await fetch("/api/customers/devices", {
-          cache: "no-store",
-        });
-        const data = await res.json();
-        setDeviceCounts(data); // already a map of { customer_id: count }
+        const res = await axios.get("/api/customers/devices");
+        const data = await res.data;
+        setDeviceCounts(data);
       } catch (error) {
         console.error("Error fetching device counts:", error);
       }
@@ -54,28 +52,31 @@ export default function CustomerTable({
   const totalItems = customers.length;
 
   return (
-    <div className="space-y-4">
-      <div className="border rounded overflow-x-auto">
+    <div className="border  border-gray-400 rounded-md bg-white p-4 shadow-sm">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-left">
+          <thead className="bg-[#ECF0F1] text-left">
             <tr>
               <th className="p-2">顧客名</th>
               <th className="p-2">連絡先メール</th>
-              <th className="p-2">地球</th>
-              <th className="p-2">デバイス</th>
-              <th className="p-2">ステータス</th>
-              <th className="p-2">作成日</th>
-              <th className="p-2">アクション</th>
+              <th className="p-2 text-center">デバイス</th>
+              <th className="p-2 text-center">状態</th>
+              <th className="p-2 text-center">作成日</th>
+              <th className="p-2 text-center">アクション</th>
             </tr>
           </thead>
           <tbody>
-            {paginated.map((customer) => (
-              <tr className="border-t" key={customer.customer_id}>
+            {paginated.map((customer, index) => (
+              <tr
+                key={customer.customer_id}
+                className={`border-t ${index % 2 === 0 ? "bg-white" : "bg-[#F9F9F9]"}`}
+              >
                 <td className="p-2">{customer.name}</td>
-                <td>{customer.contact_email}</td>
-                <td>{customer.address}</td>
-                <td>{deviceCounts[customer.customer_id] ?? "0"}</td>
-                <td>
+                <td className="p-2">{customer.contact_email}</td>
+                <td className="p-2 text-center">
+                  {deviceCounts[customer.customer_id] ?? "0"}
+                </td>
+                <td className="p-2 text-center">
                   <span
                     className={`text-xs font-medium px-2 py-1 rounded-full ${
                       customer.status === "ACTIVE"
@@ -92,14 +93,14 @@ export default function CustomerTable({
                         : "一時停止中"}
                   </span>
                 </td>
-                <td>
-                  <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded-full">
-                    {new Date(customer.created_at).toLocaleDateString()}
+                <td className="p-2 text-center">
+                  <span className="  text-xs font-medium px-2 py-1 ">
+                    {new Date(customer.created_at).toISOString().split("T")[0]}
                   </span>
                 </td>
-                <td className="space-x-2">
+                <td className="space-x-2 text-center">
                   <button
-                    className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded"
+                    className="w-[55px] h-[25px] bg-[#2980B9]/20 text-[#2980B9] text-xs font-medium px-2 py-1 rounded"
                     onClick={() =>
                       router.push(
                         `/customers/customerDetails/${customer.customer_id}/edit`
@@ -109,14 +110,14 @@ export default function CustomerTable({
                     編集
                   </button>
                   <button
-                    className="bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded"
+                    className="w-[55px] h-[25px] bg-[#C0392B]/20 text-[#C0392B] text-xs font-medium px-2 py-1 rounded"
                     onClick={() =>
                       router.push(
                         `/customers/customerDetails/${customer.customer_id}`
                       )
                     }
                   >
-                    表示
+                    閲覧
                   </button>
                 </td>
               </tr>
@@ -125,12 +126,15 @@ export default function CustomerTable({
         </table>
       </div>
 
-      <CustomerPagination
-        page={page}
-        setPage={setPage}
-        totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
-      />
+      {/* Pagination wrapped in card */}
+      <div className="mt-10">
+        <CustomerPagination
+          page={page}
+          setPage={setPage}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+        />
+      </div>
     </div>
   );
 }

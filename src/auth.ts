@@ -101,6 +101,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         );
         return null;
       }
+
+      // Check if backend URL has changed
+      if (token.backendUrl && token.backendUrl !== process.env.NEXT_PUBLIC_BACKEND_API_URL) {
+        console.log("🔐 AUTH JWT: Backend URL changed, invalidating token");
+        return { ...token, error: "BackendUrlChanged" };
+      }
+
       // 初回ログイン時にユーザー情報をトークンに追加
       if (user) {
         console.log("🔐 AUTH JWT: Creating new token for user:", user.email);
@@ -110,6 +117,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         token = {
           ...token,
           ...user,
+          backendUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL,
           tokenExpires: Date.now() + expirationMinutes * 60 * 1000,
         };
         console.log(

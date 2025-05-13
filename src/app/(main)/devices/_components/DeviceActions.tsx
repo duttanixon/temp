@@ -7,7 +7,7 @@ import { Device } from "@/types/device";
 import { deviceService } from "@/services/deviceService"; 
 import { 
   canProvisionDevice, 
-  canActivateDevice, 
+  canReprovisionDevice, 
   canDecommissionDevice 
 } from "@/utils/devices/deviceHelpers";
 
@@ -21,15 +21,19 @@ export default function DeviceActions({ device }: DeviceActionsProps) {
 
   // Determine which actions are available based on device status
   const canProvision = canProvisionDevice(device);
-  const canActivate = canActivateDevice(device);
+  const canReprovision = canReprovisionDevice(device);
   const canDecommission = canDecommissionDevice(device);
 
   const executeAction = async (action: string, displayName: string) => {
     setIsLoading(true);
 
     try {
-      await deviceService.executeDeviceAction(device.device_id, action);   
+      const updatedDevice = await deviceService.executeDeviceAction(device.device_id, action);   
       
+      // Update the local state with the updated device
+      // setCurrentDevice(updatedDevice);
+      
+
       toast.success(`${displayName}が完了しました`, {
         description: `デバイス ${device.name} の${displayName}が正常に完了しました。`,
       });
@@ -37,7 +41,7 @@ export default function DeviceActions({ device }: DeviceActionsProps) {
       // Refresh the page to show updated device status
       router.refresh();
     } catch (error) {
-      console.error(`Error during ${action}:`, error);
+      console.log(`Error during ${action}:`, error);
       toast.error(`${displayName}エラー`, {
         description:
           error instanceof Error
@@ -50,7 +54,7 @@ export default function DeviceActions({ device }: DeviceActionsProps) {
   };
 
   const handleProvision = () => executeAction("provision", "プロビジョン");
-  const handleActivate = () => executeAction("activate", "アクティベーション");
+  const handleReprovision = () => executeAction("activate", "再プロビジョン");
   const handleDecommission = () => executeAction("decommission", "廃止");
 
   return (
@@ -65,11 +69,11 @@ export default function DeviceActions({ device }: DeviceActionsProps) {
         </button>
       )}
 
-      {canActivate && (
+      {canReprovision && (
         <button
-          onClick={handleActivate}
+          onClick={handleReprovision}
           disabled={isLoading}
-          className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
+          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
         >
           アクティベート
         </button>

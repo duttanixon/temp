@@ -21,6 +21,7 @@ export type DeviceStatus =
     ip_address?: string;
     location?: string;
     customer_id: string;
+    customer_name?: string;
     thing_name?: string;
     thing_arn?: string;
     certificate_id?: string;

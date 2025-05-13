@@ -5,7 +5,11 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { deviceService } from "@/services/deviceService";
-import { DeviceCreateFormValues, deviceCreateSchema } from "@/schemas/deviceSchemas";
+import {
+  DeviceCreateFormValues,
+  deviceCreateSchema,
+} from "@/schemas/deviceSchemas";
+import { FormField } from "@/components/forms/FormField";
 
 type Customer = {
   customer_id: string;
@@ -92,7 +96,9 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
               ))}
             </select>
             {errors.customer_id && (
-              <p className="mt-1 text-xs text-red-500">{errors.customer_id.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.customer_id.message}
+              </p>
             )}
             <p className="mt-1 text-xs text-[#7F8C8D]">
               顧客を選択しない場合、後で割り当てることができます
@@ -117,125 +123,67 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
               <option value="RASPBERRY_PI">Raspberry Pi</option>
             </select>
             {errors.device_type && (
-              <p className="mt-1 text-xs text-red-500">{errors.device_type.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.device_type.message}
+              </p>
             )}
           </div>
 
-          {/* MAC Address */}
-          <div>
-            <label
-              htmlFor="mac_address"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              MACアドレス
-            </label>
-            <input
-              type="text"
-              id="mac_address"
-              {...register("mac_address")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-              placeholder="例: 00:11:22:33:44:55"
-            />
-            {errors.mac_address && (
-              <p className="mt-1 text-xs text-red-500">{errors.mac_address.message}</p>
-            )}
-          </div>
+          {/* Replace repetitive form fields with our FormField component */}
+          <FormField
+            id="mac_address"
+            label="MACアドレス"
+            type="text"
+            register={register}
+            errors={errors}
+            placeholder="例: 00:11:22:33:44:55"
+          />
 
-          {/* Serial Number */}
-          <div>
-            <label
-              htmlFor="serial_number"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              シリアル番号
-            </label>
-            <input
-              type="text"
-              id="serial_number"
-              {...register("serial_number")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-            />
-            {errors.serial_number && (
-              <p className="mt-1 text-xs text-red-500">{errors.serial_number.message}</p>
-            )}
-          </div>
+          <FormField
+            id="serial_number"
+            label="シリアル番号"
+            type="text"
+            register={register}
+            errors={errors}
+          />
 
-          {/* Firmware Version */}
-          <div>
-            <label
-              htmlFor="firmware_version"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              ファームウェアバージョン
-            </label>
-            <input
-              type="text"
-              id="firmware_version"
-              {...register("firmware_version")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-            />
-            {errors.firmware_version && (
-              <p className="mt-1 text-xs text-red-500">{errors.firmware_version.message}</p>
-            )}
-          </div>
+          <FormField
+            id="firmware_version"
+            label="ファームウェアバージョン"
+            type="text"
+            register={register}
+            errors={errors}
+          />
 
-          {/* Location */}
-          <div>
-            <label
-              htmlFor="location"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              設置場所
-            </label>
-            <input
-              type="text"
-              id="location"
-              {...register("location")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-            />
-            {errors.location && (
-              <p className="mt-1 text-xs text-red-500">{errors.location.message}</p>
-            )}
-          </div>
+          <FormField
+            id="location"
+            label="設置場所"
+            type="text"
+            register={register}
+            errors={errors}
+          />
 
-          {/* IP Address */}
-          <div>
-            <label
-              htmlFor="ip_address"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              IPアドレス
-            </label>
-            <input
-              type="text"
-              id="ip_address"
-              {...register("ip_address")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-              placeholder="例: 192.168.1.100"
-            />
-            {errors.ip_address && (
-              <p className="mt-1 text-xs text-red-500">{errors.ip_address.message}</p>
-            )}
-          </div>
+          <FormField
+            id="ip_address"
+            label="IPアドレス"
+            type="text"
+            register={register}
+            errors={errors}
+            placeholder="例: 192.168.1.100"
+          />
 
           {/* Description - Full Width */}
           <div className="md:col-span-2">
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              説明
-            </label>
-            <textarea
+            <FormField
               id="description"
-              {...register("description")}
+              label="説明"
+              type="text"
+              register={register}
+              errors={errors}
+              isTextarea={true}
               rows={3}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
               placeholder="デバイスの説明や用途を入力してください"
             />
-            {errors.description && (
-              <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>
-            )}
           </div>
         </div>
 

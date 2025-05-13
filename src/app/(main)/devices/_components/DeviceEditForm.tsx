@@ -6,8 +6,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Device } from "@/types/device";
 import { deviceService } from "@/services/deviceService";
-import { DeviceUpdateFormValues, deviceUpdateSchema } from "@/schemas/deviceSchemas";
+import {
+  DeviceUpdateFormValues,
+  deviceUpdateSchema,
+} from "@/schemas/deviceSchemas";
 import { isDeviceProvisioned } from "@/utils/devices/deviceHelpers";
+import { FormField } from "@/components/forms/FormField";
 
 type DeviceEditFormProps = {
   device: Device;
@@ -37,11 +41,11 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
   const onSubmit = async (data: DeviceUpdateFormValues) => {
     try {
       await deviceService.updateDevice(device.device_id, data);
-      
+
       toast.success("デバイスが更新されました", {
         description: `デバイス「${device.name}」の情報が正常に更新されました。`,
       });
-      
+
       // Redirect back to device details page
       router.push(`/devices/${device.device_id}`);
       router.refresh();
@@ -71,82 +75,42 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
 
       <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
         <div className="grid grid-cols-1 gap-6">
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              説明
-            </label>
-            <textarea
-              id="description"
-              {...register("description")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-              rows={3}
-            />
-            {errors.description && (
-              <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>
-            )}
-            <p className="mt-1 text-xs text-[#7F8C8D]">
-              デバイスの説明や用途などを入力してください
-            </p>
-          </div>
+          <FormField
+            id="description"
+            label="説明"
+            type="text"
+            register={register}
+            errors={errors}
+            isTextarea={true}
+            rows={3}
+            placeholder="デバイスの説明や用途などを入力してください"
+          />
 
-          <div>
-            <label
-              htmlFor="location"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              設置場所
-            </label>
-            <input
-              type="text"
-              id="location"
-              {...register("location")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-            />
-            {errors.location && (
-              <p className="mt-1 text-xs text-red-500">{errors.location.message}</p>
-            )}
-          </div>
+          <FormField
+            id="location"
+            label="設置場所"
+            type="text"
+            register={register}
+            errors={errors}
+          />
 
-          <div>
-            <label
-              htmlFor="firmware_version"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              ファームウェアバージョン
-            </label>
-            <input
-              type="text"
-              id="firmware_version"
-              {...register("firmware_version")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-            />
-            {errors.firmware_version && (
-              <p className="mt-1 text-xs text-red-500">{errors.firmware_version.message}</p>
-            )}
-          </div>
+          <FormField
+            id="firmware_version"
+            label="ファームウェアバージョン"
+            type="text"
+            register={register}
+            errors={errors}
+          />
 
           {/* IP Address field - only if it was in the original device data */}
           {device.ip_address !== undefined && (
-            <div>
-              <label
-                htmlFor="ip_address"
-                className="block text-sm font-medium text-[#7F8C8D]"
-              >
-                IPアドレス
-              </label>
-              <input
-                type="text"
-                id="ip_address"
-                {...register("ip_address")}
-                className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-              />
-              {errors.ip_address && (
-                <p className="mt-1 text-xs text-red-500">{errors.ip_address.message}</p>
-              )}
-            </div>
+            <FormField
+              id="ip_address"
+              label="IPアドレス"
+              type="text"
+              register={register}
+              errors={errors}
+            />
           )}
         </div>
 

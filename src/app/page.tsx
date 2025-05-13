@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  redirect("/users");
-  return null;
+  return <div>Welcome to the home page</div>;
 }

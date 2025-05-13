@@ -43,10 +43,11 @@ export default function LoginPage() {
       </div>
 
       {/* Right side login form */}
-      <div className="w-full flex items-center justify-center p-8 bg-[#f5f7f9]">
-        <Suspense fallback={null}>
-          <LoginForm />
-        </Suspense>
+      <div
+        className="w-full flex items-center justify-center p-8"
+        style={{ backgroundColor: "#f5f7f9" }}
+      >
+        <LoginForm />
       </div>
 
       {/* Wrap the search params handling in Suspense */}

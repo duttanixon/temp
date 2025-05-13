@@ -10,7 +10,8 @@ from app.schemas.device import (
     DeviceProvisionResponse,
     DeviceUpdate,
     DeviceAdminView,
-    DeviceWithSolutionView
+    DeviceWithSolutionView,
+    DeviceWithCustomerView
 )
 from app.utils.audit import log_action
 from app.utils.aws_iot import iot_core
@@ -23,7 +24,7 @@ logger = get_logger("api.devices")
 
 router = APIRouter()
 
-@router.get("", response_model=List[DeviceSchema])
+@router.get("", response_model=List[DeviceWithCustomerView])
 def get_devices(
     db: Session = Depends(deps.get_db),
     customer_id: Optional[uuid.UUID] = None,
@@ -32,7 +33,7 @@ def get_devices(
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Retrieve devices.
+    Retrieve devices added with customer_name.
     - For admins and engineers: All devices or filtered by customer_id
     - For customers admins and users: Only their customer's devices
     """
@@ -45,9 +46,9 @@ def get_devices(
                     status_code=404,
                     detail="Customer not found"
                 )
-            return device.get_by_customer(db, customer_id=customer_id, skip=skip, limit=limit)
+            return device.get_by_customer_with_name(db, customer_id=customer_id, skip=skip, limit=limit)
         else:
-            return device.get_multi(db, skip=skip, limit=limit)
+            return device.get_with_customer_name(db, skip=skip, limit=limit)
     else:
         # Customer users can only see their own devices
         if customer_id and current_user.customer_id != customer_id:
@@ -55,7 +56,7 @@ def get_devices(
                 status_code=403,
                 detail="Not authorized"
             )
-        return device.get_by_customer(db, customer_id=current_user.customer_id, skip=skip, limit=limit)
+        return device.get_by_customer_with_name(db, customer_id=current_user.customer_id, skip=skip, limit=limit)
 
 @router.post("", response_model=DeviceSchema)
 def create_device(
@@ -207,7 +208,6 @@ def provision_device(
     4. Add the Thing to the customer's Thing Group
     5. Upload certificates to S3 for download
     """
-
     # Get the device
     db_device = device.get_by_id(db, device_id=device_id)
     if not db_device:
@@ -222,7 +222,6 @@ def provision_device(
             status_code=400,
             detail="Device is already provisioned"
         )
-
     # Get the customer
     db_customer = customer.get_by_id(db, customer_id=db_device.customer_id)
     if not db_customer or not db_customer.iot_thing_group_name:

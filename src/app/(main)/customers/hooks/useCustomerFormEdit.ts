@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-import { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export const useCustomerFormEdit = (
   accessToken: string,
@@ -83,6 +83,7 @@ export const useCustomerFormEdit = (
         }
       );
       if (res.status === 200) {
+        toast.success("編集内容を保存しました");
         router.push(`/customers/${customerId}`);
       }
     } catch (error) {

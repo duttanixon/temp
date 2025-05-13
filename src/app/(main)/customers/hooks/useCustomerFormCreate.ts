@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import axios from "axios";
-import { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 type CustomerResponse = {
   id: string;
@@ -45,6 +45,7 @@ export const useCustomerFormCreate = (token: string) => {
         },
       });
       console.log("Registration complete:", response.data);
+      toast.success("顧客を追加しました");
       setCompletedMessage("登録が完了しました");
       return response.data;
     } catch (error) {

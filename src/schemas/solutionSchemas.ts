@@ -23,3 +23,4 @@ export const solutionCreateSchema = z.object({
 });
 
 export type SolutionCreateFormValues = z.infer<typeof solutionCreateSchema>;
+export type SolutionCreateFormInput = z.input<typeof solutionCreateSchema>;

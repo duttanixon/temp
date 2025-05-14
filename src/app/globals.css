@@ -120,3 +120,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+.toggle-track {
+  @apply absolute inset-0 rounded-full cursor-pointer transition bg-[#BDC3C7];
+}
+
+input:checked + .toggle-track {
+  @apply bg-[#3498DB];
+}
+
+.toggle-track::before {
+  content: "";
+  @apply absolute left-0.5 bottom-0.5 size-5 rounded-full bg-white transition-transform;
+}
+
+input:checked + .toggle-track::before {
+  @apply translate-x-6;
+}

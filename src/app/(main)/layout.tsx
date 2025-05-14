@@ -1,9 +1,9 @@
-import { Header } from "./_components/Header";
-import { Sidebar } from "./_components/Sidebar";
-import SessionHandler from "./_components/SessionHandler";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Toaster } from "sonner";
+import { Header } from "./_components/Header";
+import SessionHandler from "./_components/SessionHandler";
+import { Sidebar } from "./_components/Sidebar";
 
 export default async function MainLayout({
   children,

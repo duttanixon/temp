@@ -45,11 +45,11 @@ def test_get_all_solutions_engineer(client: TestClient, engineer_token: str):
     assert len(data) >= 2
 
 
-def test_get_solutions_customer_user(client: TestClient, customer_user_token: str, customer_user: User):
+def test_get_solutions_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User):
     """Test customer user getting solutions assigned to their customer"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response
@@ -125,11 +125,11 @@ def test_get_solutions_admin_view(client: TestClient, admin_token: str):
     assert "name" in solution
     assert "customers_count" in solution
 
-def test_get_solutions_admin_view_no_permission(client: TestClient, customer_user_token: str):
+def test_get_solutions_admin_view_no_permission(client: TestClient, customer_admin_token: str):
     """Test customer user attempting to access admin view"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions/admin",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -139,11 +139,11 @@ def test_get_solutions_admin_view_no_permission(client: TestClient, customer_use
     assert "enough privileges" in data["detail"]
 
 # Test cases for available solutions endpoint (GET /solutions/available)
-def test_get_available_solutions(client: TestClient, customer_user_token: str, customer_user: User):
+def test_get_available_solutions(client: TestClient, customer_admin_token: str, customer_admin_user: User):
     """Test getting available solutions for the customer"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions/available",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response
@@ -155,11 +155,11 @@ def test_get_available_solutions(client: TestClient, customer_user_token: str, c
     for solution in data:
         assert solution["status"] == "ACTIVE"
 
-def test_get_available_solutions_with_device_type(client: TestClient, customer_user_token: str):
+def test_get_available_solutions_with_device_type(client: TestClient, customer_admin_token: str):
     """Test getting available solutions filtered by device type"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions/available?device_type=NVIDIA_JETSON",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response
@@ -262,7 +262,7 @@ def test_create_solution_invalid_device_type(client: TestClient, admin_token: st
     validation_errors = data["detail"]
     assert any("compatibility" in str(error).lower() for error in validation_errors)
 
-def test_create_solution_non_admin(client: TestClient, customer_user_token: str):
+def test_create_solution_non_admin(client: TestClient, customer_admin_token: str):
     """Test non-admin attempting to create solution"""
     solution_data = {
         "name": "Unauthorized Solution",
@@ -274,7 +274,7 @@ def test_create_solution_non_admin(client: TestClient, customer_user_token: str)
     
     response = client.post(
         f"{settings.API_V1_STR}/solutions",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=solution_data
     )
     
@@ -302,14 +302,14 @@ def test_get_solution_by_id_admin(client: TestClient, admin_token: str, db: Sess
     assert data["name"] == solution.name
     assert "customers_count" in data  # Admin gets count info
 
-def test_get_solution_by_id_customer_user_with_access(client: TestClient, customer_user_token: str, db: Session):
+def test_get_solution_by_id_customer_user_with_access(client: TestClient, customer_admin_token: str, db: Session):
     """Test customer user getting a solution assigned to their customer"""
     # Get a solution ID from database that is assigned to the customer
     solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
     
     response = client.get(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response
@@ -320,14 +320,14 @@ def test_get_solution_by_id_customer_user_with_access(client: TestClient, custom
     assert "customers_count" not in data  # Regular users don't get admin info
 
 
-def test_get_solution_by_id_customer_user_no_access(client: TestClient, customer_user_token: str, db: Session):
+def test_get_solution_by_id_customer_user_no_access(client: TestClient, customer_admin_token: str, db: Session):
     """Test customer user attempting to get a solution not assigned to their customer"""
     # Get a solution ID from database that is not assigned to the customer
     solution = db.query(Solution).filter(Solution.name == "Beta Solution").first()
     
     response = client.get(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -460,7 +460,7 @@ def test_update_solution_new_name_conflict(client: TestClient, admin_token: str,
     assert "already exists" in data["detail"]
 
 
-def test_update_solution_non_admin(client: TestClient, customer_user_token: str, db: Session):
+def test_update_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
     """Test non-admin attempting to update solution"""
     # Get a solution ID from database
     solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
@@ -471,7 +471,7 @@ def test_update_solution_non_admin(client: TestClient, customer_user_token: str,
     
     response = client.put(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=update_data
     )
     
@@ -511,14 +511,14 @@ def test_deprecate_solution(client: TestClient, db: Session, admin_token: str):
     assert audit_log is not None
 
 
-def test_deprecate_solution_non_admin(client: TestClient, customer_user_token: str, db: Session):
+def test_deprecate_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
     """Test non-admin attempting to deprecate a solution"""
     # Get a solution ID from database
     solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
     
     response = client.post(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}/deprecate",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -564,14 +564,14 @@ def test_activate_solution(client: TestClient, db: Session, admin_token: str):
     assert audit_log is not None
 
 
-def test_activate_solution_non_admin(client: TestClient, customer_user_token: str, db: Session):
+def test_activate_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
     """Test non-admin attempting to activate a solution"""
     # Get a solution ID from database
     solution = db.query(Solution).filter(Solution.name == "Beta Solution").first()
     
     response = client.post(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}/activate",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -598,14 +598,14 @@ def test_get_compatible_solutions_for_device_admin(client: TestClient, admin_tok
         assert device.device_type.value in solution["compatibility"]
 
 
-def test_get_compatible_solutions_for_device_customer_user(client: TestClient, customer_user_token: str, 
+def test_get_compatible_solutions_for_device_customer_user(client: TestClient, customer_admin_token: str, 
                                                           device: Device, db: Session):
     """Test customer user getting compatible solutions for their device"""
 
     ## todo - Should customer user be able to go through this endpoint??
     response = client.get(
         f"{settings.API_V1_STR}/solutions/compatibility/device/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response
@@ -632,7 +632,7 @@ def test_get_compatible_solutions_for_nonexistent_device(client: TestClient, adm
     assert "detail" in data
     assert "not found" in data["detail"]
 
-def test_get_compatible_solutions_for_device_different_customer(client: TestClient, customer_user_token: str,
+def test_get_compatible_solutions_for_device_different_customer(client: TestClient, customer_admin_token: str,
                                                                suspended_customer: Customer, admin_token: str,
                                                                db: Session):
     """Test customer user attempting to get compatible solutions for a device of different customer"""
@@ -656,7 +656,7 @@ def test_get_compatible_solutions_for_device_different_customer(client: TestClie
     # Try to get compatible solutions as customer user
     response = client.get(
         f"{settings.API_V1_STR}/solutions/compatibility/device/{created_device['device_id']}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden

@@ -105,24 +105,13 @@ def seed_test_data(db):
         status=UserStatus.ACTIVE
     )
     
-    customer_user = User(
-        user_id=uuid.uuid4(),
-        email="customeruser@example.com",
-        password_hash=get_password_hash("customeruserpassword"),
-        first_name="Customer",
-        last_name="User",
-        role=UserRole.CUSTOMER_USER,
-        customer_id=active_customer.customer_id,
-        status=UserStatus.ACTIVE
-    )
-    
     suspended_user = User(
         user_id=uuid.uuid4(),
         email="suspended@example.com",
         password_hash=get_password_hash("suspendedpassword"),
         first_name="Suspended",
         last_name="User",
-        role=UserRole.CUSTOMER_USER,
+        role=UserRole.CUSTOMER_ADMIN,
         customer_id=active_customer.customer_id,
         status=UserStatus.SUSPENDED
     )
@@ -130,7 +119,6 @@ def seed_test_data(db):
     db.add(admin_user)
     db.add(engineer_user)
     db.add(customer_admin_user)
-    db.add(customer_user)
     db.add(suspended_user)
     
     print("Added test users:")

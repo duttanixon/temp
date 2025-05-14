@@ -45,27 +45,11 @@ def test_get_devices_by_customer_admin(client: TestClient, customer_admin_token:
         assert str(device_item["customer_id"]) == str(customer.customer_id)
 
 
-def test_get_devices_by_customer_user(client: TestClient, customer_user_token: str, customer_user: User, device: Device):
-    """Test customer user getting their customer's devices"""
-    response = client.get(
-        f"{settings.API_V1_STR}/devices",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    # All returned devices should belong to the user's customer
-    for device_item in data:
-        assert str(device_item["customer_id"]) == str(customer_user.customer_id)
-
-
-def test_get_devices_customer_user_different_customer(client: TestClient, customer_user_token: str, suspended_customer: Customer):
-    """Test customer user attempting to get devices from a different customer"""
+def test_get_devices_customer_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer):
+    """Test customer admin attempting to get devices from a different customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices?customer_id={suspended_customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -143,7 +127,7 @@ def test_create_device_engineer(client: TestClient, engineer_token: str, custome
     assert data["mac_address"] == device_data["mac_address"]
 
 
-def test_create_device_customer_user(client: TestClient, customer_user_token: str, customer: Customer):
+def test_create_device_customer_user(client: TestClient, customer_admin_token: str, customer: Customer):
     """Test customer user attempting to create a device"""
     device_data = {
         "description": "A test device created by customer user",
@@ -158,7 +142,7 @@ def test_create_device_customer_user(client: TestClient, customer_user_token: st
     
     response = client.post(
         f"{settings.API_V1_STR}/devices",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=device_data
     )
     
@@ -236,11 +220,11 @@ def test_get_device_by_id_admin(client: TestClient, admin_token: str, device: De
     assert data["mac_address"] == device.mac_address
 
 
-def test_get_device_by_id_customer_user_own_customer(client: TestClient, customer_user_token: str, device: Device):
+def test_get_device_by_id_customer_user_own_customer(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user getting a device from their customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response
@@ -248,7 +232,7 @@ def test_get_device_by_id_customer_user_own_customer(client: TestClient, custome
     data = response.json()
     assert str(data["device_id"]) == str(device.device_id)
 
-def test_get_device_by_id_customer_user_different_customer(client: TestClient, customer_user_token: str, suspended_customer: Customer, admin_token: str):
+def test_get_device_by_id_customer_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer, admin_token: str):
     """Test customer user attempting to get a device from a different customer"""
     # First create a device for the suspended customer
     device_data = {
@@ -274,7 +258,7 @@ def test_get_device_by_id_customer_user_different_customer(client: TestClient, c
     # Now get the device by ID as customer user
     response = client.get(
         f"{settings.API_V1_STR}/devices/{created_device['device_id']}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -354,25 +338,6 @@ def test_update_device_customer_admin(client: TestClient, customer_admin_token: 
     assert data["firmware_version"] == update_data["firmware_version"]
     assert data["location"] == update_data["location"]
 
-def test_update_device_customer_user(client: TestClient, customer_user_token: str, device: Device):
-    """Test customer user attempting to update a device (no permission)"""
-    update_data = {
-        "description": "Unauthorized Update",
-        "location": "Unauthorized Location"
-    }
-    
-    response = client.put(
-        f"{settings.API_V1_STR}/devices/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
-        json=update_data
-    )
-    
-    # Check response - should be forbidden
-    assert response.status_code == 403
-    data = response.json()
-    assert "detail" in data
-    assert "enough privileges" in data["detail"]
-
 # Test cases for provisioning a device (POST /devices/{device_id}/provision)
 @patch('app.utils.aws_iot.iot_core.provision_device')
 @patch('app.crud.device.device.update_cloud_info')
@@ -427,11 +392,11 @@ def test_provision_device(mock_get_customer, mock_update_cloud_info, mock_provis
     mock_provision.assert_called_once()
     mock_update_cloud_info.assert_called_once()
 
-def test_provision_device_no_permission(client: TestClient, customer_user_token: str, device: Device):
+def test_provision_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to provision a device (no permission)"""
     response = client.post(
         f"{settings.API_V1_STR}/devices/{device.device_id}/provision",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -488,11 +453,11 @@ def test_decommission_device(mock_decommission, client: TestClient, db: Session,
     mock_decommission.assert_called_once()
 
 
-def test_decommission_device_no_permission(client: TestClient, customer_user_token: str, device: Device):
+def test_decommission_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to decommission a device (no permission)"""
     response = client.post(
         f"{settings.API_V1_STR}/devices/{device.device_id}/decommission",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -531,11 +496,11 @@ def test_activate_device(mock_activate, client: TestClient, db: Session, admin_t
     # Verify function was called
     mock_activate.assert_called_once()
 
-def test_activate_device_no_permission(client: TestClient, customer_user_token: str, device: Device):
+def test_activate_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to activate a device (no permission)"""
     response = client.post(
         f"{settings.API_V1_STR}/devices/{device.device_id}/activate",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -574,11 +539,11 @@ def test_delete_device(mock_remove, mock_delete_thing, client: TestClient, db: S
     # Verify functions were called
     mock_remove.assert_called_once()
 
-def test_delete_device_no_permission(client: TestClient, customer_user_token: str, device: Device):
+def test_delete_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to delete a device (no permission)"""
     response = client.delete(
         f"{settings.API_V1_STR}/devices/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -654,11 +619,11 @@ def test_get_devices_with_solutions_filtered_by_customer(client: TestClient, adm
         assert str(device_item["customer_id"]) == str(customer.customer_id)
 
 
-def test_get_devices_with_solutions_customer_user(client: TestClient, customer_user_token: str, customer_user: User):
+def test_get_devices_with_solutions_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User):
     """Test customer user getting their customer's devices with solutions"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/with-solutions",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response
@@ -668,15 +633,15 @@ def test_get_devices_with_solutions_customer_user(client: TestClient, customer_u
     
     # All returned devices should belong to the user's customer
     for device_item in data:
-        assert str(device_item["customer_id"]) == str(customer_user.customer_id)
+        assert str(device_item["customer_id"]) == str(customer_admin_user2.customer_id)
 
 def test_get_devices_with_solutions_customer_user_different_customer(
-    client: TestClient, customer_user_token: str, suspended_customer: Customer
+    client: TestClient, customer_admin_token: str, suspended_customer: Customer
 ):
     """Test customer user attempting to get devices with solutions from a different customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/with-solutions?customer_id={suspended_customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden

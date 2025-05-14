@@ -25,11 +25,11 @@ def test_get_all_customers_admin(client: TestClient, admin_token: str):
     assert isinstance(data, list)
     assert len(data) >= 2  # We created 2 test customers in our seed data
 
-def test_get_all_customers_non_admin(client: TestClient, customer_user_token: str):
+def test_get_all_customers_non_admin(client: TestClient, customer_admin_token: str):
     """Test non-admin attempting to get all customers"""
     response = client.get(
         f"{settings.API_V1_STR}/customers",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -132,7 +132,7 @@ def test_create_customer_invalid_email(client: TestClient, admin_token: str):
     data = response.json()
     assert "detail" in data
 
-def test_create_customer_non_admin(client: TestClient, customer_user_token: str):
+def test_create_customer_non_admin(client: TestClient, customer_admin_token: str):
     """Test non-admin attempting to create customer"""
     customer_data = {
         "name": "Unauthorized Customer",
@@ -142,7 +142,7 @@ def test_create_customer_non_admin(client: TestClient, customer_user_token: str)
     
     response = client.post(
         f"{settings.API_V1_STR}/customers",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=customer_data
     )
     
@@ -180,11 +180,11 @@ def test_get_customer_by_id_engineer(client: TestClient, engineer_token: str, cu
     data = response.json()
     assert str(data["customer_id"]) == str(customer.customer_id)
 
-def test_get_customer_by_id_non_admin(client: TestClient, customer_user_token: str, customer: Customer):
+def test_get_customer_by_id_non_admin(client: TestClient, customer_admin_token: str, customer: Customer):
     """Test non-admin/non-engineer attempting to get customer by ID"""
     response = client.get(
         f"{settings.API_V1_STR}/customers/{customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -260,7 +260,7 @@ def test_update_customer_nonexistent_id(client: TestClient, admin_token: str):
     assert "detail" in data
     assert "not found" in data["detail"]
 
-def test_update_customer_non_admin(client: TestClient, customer_user_token: str, customer: Customer):
+def test_update_customer_non_admin(client: TestClient, customer_admin_token: str, customer: Customer):
     """Test non-admin attempting to update customer"""
     update_data = {
         "name": "Unauthorized Update"
@@ -268,7 +268,7 @@ def test_update_customer_non_admin(client: TestClient, customer_user_token: str,
     
     response = client.put(
         f"{settings.API_V1_STR}/customers/{customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=update_data
     )
     
@@ -303,11 +303,11 @@ def test_suspend_customer(client: TestClient, db: Session, admin_token: str, cus
     ).first()
     assert audit_log is not None
 
-def test_suspend_customer_non_admin(client: TestClient, customer_user_token: str, customer: Customer):
+def test_suspend_customer_non_admin(client: TestClient, customer_admin_token: str, customer: Customer):
     """Test non-admin attempting to suspend customer"""
     response = client.post(
         f"{settings.API_V1_STR}/customers/{customer.customer_id}/suspend",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -355,11 +355,11 @@ def test_activate_customer(client: TestClient, db: Session, admin_token: str, su
     ).first()
     assert audit_log is not None
 
-def test_activate_customer_non_admin(client: TestClient, customer_user_token: str, suspended_customer: Customer):
+def test_activate_customer_non_admin(client: TestClient, customer_admin_token: str, suspended_customer: Customer):
     """Test non-admin attempting to activate customer"""
     response = client.post(
         f"{settings.API_V1_STR}/customers/{suspended_customer.customer_id}/activate",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden

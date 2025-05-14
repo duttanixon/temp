@@ -3,28 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [callbackUrl, setCallbackUrl] = useState("");
-
-  // callbackUrlを取得
-  useEffect(() => {
-    // searchParamsからcallbackUrlを取得し、デコード
-    const callback = searchParams.get("callbackUrl");
-    if (callback) {
-      setCallbackUrl(decodeURIComponent(callback));
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +41,8 @@ export function LoginForm() {
         description: "ダッシュボードにリダイレクトします",
       });
 
-      // リダイレクト先を決定（callbackUrl がある場合はそちらを優先）
-      const redirectUrl = callbackUrl || "/";
-      window.location.href = redirectUrl;
+      // Add redirect to dashboard
+      router.push("/users");
     } catch (error) {
       console.error("📝 LOGIN: Login error:", error);
       // エラートーストを表示
@@ -70,7 +58,7 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md border-2">
+    <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">
           Log in to your account
@@ -106,19 +94,21 @@ export function LoginForm() {
             <div className="text-right">
               <Link
                 href="/forgot-password"
-                className="text-sm text-blue-500 hover:text-blue-600">
-                パスワードをお忘れですか？
+                className="text-sm text-blue-500 hover:text-blue-600"
+                style={{ color: "#3498db" }}
+              >
+                Forgot password?
               </Link>
             </div>
           </div>
-          <div className="flex justify-center">
-            <Button
-              type="submit"
-              className="w-35 rounded-full cursor-pointer bg-[#2b96cc] hover:bg-[#2483b3] text-white"
-              disabled={isLoading}>
-              {isLoading ? "ログイン中..." : "ログイン"}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            className="w-full cursor-pointer"
+            style={{ backgroundColor: "#3498db", color: "white" }}
+            disabled={isLoading}
+          >
+            {isLoading ? "ログイン中..." : "Log In"}
+          </Button>
         </form>
         <div className="mt-4 text-center text-sm text-gray-500">
           {"Don't have an account? Contact your administrator."}

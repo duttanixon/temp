@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import DeviceEditForm from "../../_components/DeviceEditForm";
+import type { Metadata, ResolvingMetadata } from "next";
 
 async function getDevice(deviceId: string, accessToken: string) {
   try {
@@ -30,13 +31,21 @@ async function getDevice(deviceId: string, accessToken: string) {
 }
 
 // Define the page props
+// type Props = {
+//   params: Promise<{ deviceId: string }>;
+// };
+
 type Props = {
-  params: { deviceId: string };
+  params: Promise<{ deviceId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function EditDevicePage(props: Props) {
+export default async function EditDevicePage(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+) {
   // Handle params as a potential Promise
-  const resolvedParams = await Promise.resolve(props.params);
+  const resolvedParams = await params;
   const session = await auth();
   const accessToken = session?.accessToken ?? "";
   const deviceId = resolvedParams.deviceId;

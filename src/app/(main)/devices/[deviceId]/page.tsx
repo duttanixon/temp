@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import DeviceActions from "../_components/DeviceActions";
 import DeviceInfoCard from "../_components/DeviceInfoCard";
+import type { Metadata, ResolvingMetadata } from "next";
 
 async function getDevice(deviceId: string, accessToken: string) {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices/${deviceId}`;
@@ -31,12 +32,16 @@ async function getDevice(deviceId: string, accessToken: string) {
 
 // Define the page props
 type Props = {
-  params: { deviceId: string };
+  params: Promise<{ deviceId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function DeviceDetailsPage(props: Props) {
+export default async function DeviceDetailsPage(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+) {
   // Handle params as a potential Promise
-  const resolvedParams = await Promise.resolve(props.params);
+  const resolvedParams = await params;
   const deviceId = resolvedParams.deviceId;
 
   // Get the session

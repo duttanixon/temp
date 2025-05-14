@@ -1,34 +1,15 @@
-<<<<<<< HEAD
-import { Header } from "@/app/(main)/_components/Header";
-import { Sidebar } from "@/app/(main)/_components/Sidebar";
-
-export default function MainLayout({
-=======
-import { Header } from "./_components/Header";
-import { Sidebar } from "./_components/Sidebar";
-import SessionHandler from "./_components/SessionHandler";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Toaster } from "sonner";
+import { Header } from "./_components/Header";
+import SessionHandler from "./_components/SessionHandler";
+import { Sidebar } from "./_components/Sidebar";
 
 export default async function MainLayout({
->>>>>>> refs/remotes/origin/main
   children,
 }: {
   children: React.ReactNode;
 }) {
-<<<<<<< HEAD
-  return (
-    <div className="min-h-screen flex flex-col bg-slate-900">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8">
-          {children}
-        </main>
-      </div>
-    </div>
-=======
   console.log("📂 MAIN LAYOUT: Initializing main layout (server component)");
   // Get session from server-side auth
   const session = await auth();
@@ -54,6 +35,5 @@ export default async function MainLayout({
         </div>
       </div>
     </SessionHandler>
->>>>>>> refs/remotes/origin/main
   );
 }

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import SolutionActions from "../_components/SolutionActions";
-import SolutionInfoCard from "../_components/SolutionInfoCard";
+import SolutionInfoCard from "./_components/SolutionDetailsTabs";
 
 async function getSolution(solutionId: string, accessToken: string) {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/${solutionId}`;

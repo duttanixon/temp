@@ -113,6 +113,16 @@ def customer(db: Session) -> Customer:
     return db.query(Customer).filter(Customer.status == CustomerStatus.ACTIVE).first()
 
 @pytest.fixture
+def solution(db: Session) -> Solution:
+    """Get a solution created by the seed function"""
+    return db.query(Solution).filter(Solution.status == SolutionStatus.ACTIVE).first()
+
+@pytest.fixture
+def beta_solution(db: Session) -> Solution:
+    """Get a beta solution created by the seed function"""
+    return db.query(Solution).filter(Solution.status == SolutionStatus.BETA).first()
+
+@pytest.fixture
 def suspended_customer(db: Session) -> Customer:
     """Get the suspended customer created by the seed function"""
     return db.query(Customer).filter(Customer.status == CustomerStatus.SUSPENDED).first()

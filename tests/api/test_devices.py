@@ -8,9 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
-from app.models.device import Device, DeviceStatus, DeviceType
-from app.models.customer import Customer
-from app.models import User, Solution
+from app.models import Device, DeviceStatus, DeviceType,  Customer, User, Solution, DeviceSolution
 from app.core.config import settings
 from datetime import datetime
 
@@ -715,3 +713,104 @@ def test_get_devices_with_solutions_without_deployed_solution(
         assert device_item["current_solution_name"] is None
         assert device_item["current_solution_status"] is None
         assert device_item["deployment_id"] is None
+
+def test_get_compatible_devices_for_solution_by_customer_all(client: TestClient, admin_token: str, customer: Customer, solution: Solution):
+    """Test getting all devices compatible with a solution for a customer"""
+    # First, get a solution from the database
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{customer.customer_id}?available_only=false",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # Verify that all returned devices belong to the customer and are compatible with the solution
+    for device_item in data:
+        assert str(device_item["customer_id"]) == str(customer.customer_id)
+        # Verify device type is in solution's compatibility list
+        assert device_item["device_type"] in solution.compatibility
+
+def test_get_compatible_devices_for_solution_by_customer_available_only(client: TestClient, admin_token: str, customer: Customer, solution: Solution):
+    """Test getting only available devices compatible with a solution for a customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{customer.customer_id}?available_only=true",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # Now use a separate API call to verify these devices don't have solutions deployed
+    # This tests the endpoint's behavior rather than directly accessing the DB
+    for device_item in data:
+        device_id = device_item["device_id"]
+        device_solutions_response = client.get(
+            f"{settings.API_V1_STR}/device-solutions/device/{device_id}",
+            headers={"Authorization": f"Bearer {admin_token}"}
+        )
+        assert device_solutions_response.status_code == 200
+        device_solutions = device_solutions_response.json()
+        assert len(device_solutions) == 0
+    
+def test_get_compatible_devices_for_solution_by_customer_as_customer_admin(client: TestClient, customer_admin_token: str, customer_admin_user: User, solution: Solution):
+    """Test customer user getting devices compatible with a solution for their customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{customer_admin_user.customer_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # All devices should belong to the user's customer
+    for device_item in data:
+        assert str(device_item["customer_id"]) == str(customer_admin_user.customer_id)
+
+
+def test_get_compatible_devices_for_solution_by_customer_unauthorized(client: TestClient, customer_admin_token: str, suspended_customer: Customer, solution: Solution):
+    """Test customer user attempting to get devices for a different customer"""
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{suspended_customer.customer_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "Not authorized" in data["detail"]
+
+def test_get_compatible_devices_nonexistent_solution(client: TestClient, admin_token: str, customer: Customer):
+    """Test getting devices with non-existent solution"""
+    nonexistent_id = uuid.uuid4()
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/compatible/solution/{nonexistent_id}/customer/{customer.customer_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Solution not found" in data["detail"]
+
+def test_get_compatible_devices_nonexistent_customer(client: TestClient, admin_token: str, solution: Solution):
+    """Test getting devices with non-existent customer"""
+    nonexistent_id = uuid.uuid4()
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{nonexistent_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Customer not found" in data["detail"]

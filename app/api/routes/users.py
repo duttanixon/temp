@@ -188,10 +188,10 @@ def create_user(
             )
 
         # Customer admin can only create customer users or customer admins
-        if user_in.role not in [UserRole.CUSTOMER_USER, UserRole.CUSTOMER_ADMIN]:
+        if user_in.role not in [UserRole.CUSTOMER_ADMIN]:
             raise HTTPException(
                 status_code=403,
-                detail="Customer admins can only create customer users or customer admins",
+                detail="Customer admins can only create other customer admin",
             )
     else:
         # Other roles don't have access
@@ -344,7 +344,7 @@ def update_user(
 
         
         # Customer admins can only assign customer user or customer admin roles
-        if user_in.role and user_in.role not in [UserRole.CUSTOMER_USER, UserRole.CUSTOMER_ADMIN]:
+        if user_in.role and user_in.role not in [UserRole.CUSTOMER_ADMIN]:
             raise HTTPException(
                 status_code=403,
                 detail="Customer admins can only assign customer user or customer admin roles",

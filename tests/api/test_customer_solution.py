@@ -80,17 +80,6 @@ def test_get_customer_solutions_customer_admin(client: TestClient, customer_admi
     for cs in data:
         assert str(cs["customer_id"]) == str(customer_admin_user.customer_id)
 
-
-def test_get_customer_solutions_customer_user(client: TestClient, customer_user_token: str, customer_user: User):
-    """Test customer user getting customer solutions for their customer"""
-    response = client.get(
-        f"{settings.API_V1_STR}/customer-solutions",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 403
-
 def test_get_customer_solutions_customer_admin_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer):
     """Test customer admin attempting to get customer solutions for a different customer"""
     response = client.get(
@@ -224,7 +213,7 @@ def test_create_customer_solution_nonexistent_solution(client: TestClient, admin
     assert "Solution not found" in data["detail"]
 
 
-def test_create_customer_solution_non_admin(client: TestClient, customer_user_token: str, db: Session, customer: Customer):
+def test_create_customer_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session, customer: Customer):
     """Test non-admin attempting to create a customer solution"""
     # Get a solution
     solution = db.query(Solution).first()
@@ -238,7 +227,7 @@ def test_create_customer_solution_non_admin(client: TestClient, customer_user_to
     
     response = client.post(
         f"{settings.API_V1_STR}/customer-solutions",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=customer_solution_data
     )
     
@@ -357,7 +346,7 @@ def test_update_customer_solution_admin(client: TestClient, db: Session, admin_t
     ).first()
     assert audit_log is not None
 
-def test_update_customer_solution_non_admin(client: TestClient, customer_user_token: str, db: Session):
+def test_update_customer_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
     """Test non-admin attempting to update a customer solution"""
     # Get a customer solution ID from database
     cs = db.query(CustomerSolution).first()
@@ -368,7 +357,7 @@ def test_update_customer_solution_non_admin(client: TestClient, customer_user_to
     
     response = client.put(
         f"{settings.API_V1_STR}/customer-solutions/customer/{cs.customer_id}/solution/{cs.solution_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=update_data
     )
     
@@ -430,14 +419,14 @@ def test_suspend_customer_solution(client: TestClient, db: Session, admin_token:
     assert audit_log is not None
 
 
-def test_suspend_customer_solution_non_admin(client: TestClient, customer_user_token: str, db: Session):
+def test_suspend_customer_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
     """Test non-admin attempting to suspend a customer solution"""
     # Get a customer solution ID from database
     cs = db.query(CustomerSolution).first()
     
     response = client.post(
         f"{settings.API_V1_STR}/customer-solutions/customer/{cs.customer_id}/solution/{cs.solution_id}/suspend",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -485,14 +474,14 @@ def test_activate_customer_solution(client: TestClient, db: Session, admin_token
     assert audit_log is not None
 
 
-def test_activate_customer_solution_non_admin(client: TestClient, customer_user_token: str, db: Session):
+def test_activate_customer_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
     """Test non-admin attempting to activate a customer solution"""
     # Get a customer solution ID from database
     cs = db.query(CustomerSolution).first()
     
     response = client.post(
         f"{settings.API_V1_STR}/customer-solutions/customer/{cs.customer_id}/solution/{cs.solution_id}/activate",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden

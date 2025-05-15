@@ -26,6 +26,11 @@ class CRUDCustomerSolution(CRUDBase[CustomerSolution, CustomerSolutionCreate, Cu
             CustomerSolution.customer_id == customer_id,
             CustomerSolution.solution_id == solution_id
         ).first()
+
+        # If no customer solution record is found, return None
+        if not cs:
+            return None
+
         # Get the solution details
         sol = db.query(Solution).filter(Solution.solution_id == solution_id).first()
         

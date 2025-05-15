@@ -45,3 +45,11 @@ class CustomerAdminView(Customer):
 
     class Config:
         from_attributes = True
+
+class CustomerBasic(BaseModel):
+    """Basic customer information for list views"""
+    customer_id: UUID
+    name: str
+
+    class Config:
+        from_attributes = True

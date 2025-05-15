@@ -48,10 +48,10 @@ def test_deploy_solution_to_nonexistent_device(
 @patch('app.crud.solution.solution.get_by_id')
 def test_deploy_solution_to_device_no_access(
     mock_get_solution, mock_get_device,
-    client: TestClient, customer_user_token: str,
+    client: TestClient, customer_admin_token: str,
     device: Device
 ):
-    """Test customer user deploying a solution to a device they don't own"""
+    """Test customer admin deploying a solution to a device they don't own"""
     # Create a device with a different customer
     mock_device = MagicMock()
     mock_device.device_id = device.device_id
@@ -74,7 +74,7 @@ def test_deploy_solution_to_device_no_access(
     
     response = client.post(
         f"{settings.API_V1_STR}/device-solutions",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=solution_data
     )
     
@@ -454,9 +454,9 @@ def test_get_device_solutions_nonexistent_device(
 
 @patch('app.crud.device.device.get_by_id')
 def test_get_device_solutions_no_authorization(
-    mock_get_device, client: TestClient, customer_user_token: str, device: Device
+    mock_get_device, client: TestClient, customer_admin_token: str, device: Device
 ):
-    """Test customer user getting solutions for a device they don't own"""
+    """Test customer admin getting solutions for a device they don't own"""
     # Create a device with a different customer
     mock_device = MagicMock()
     mock_device.device_id = device.device_id
@@ -465,7 +465,7 @@ def test_get_device_solutions_no_authorization(
     
     response = client.get(
         f"{settings.API_V1_STR}/device-solutions/device/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -504,7 +504,7 @@ def test_update_device_solution_nonexistent_device(
 
 @patch('app.crud.device.device.get_by_id')
 def test_update_device_solution_no_authorization(
-    mock_get_device, client: TestClient, customer_user_token: str, device: Device
+    mock_get_device, client: TestClient, customer_admin_token: str, device: Device
 ):
     """Test customer user updating a solution for a device they don't own"""
     # Create a device with a different customer
@@ -520,7 +520,7 @@ def test_update_device_solution_no_authorization(
     
     response = client.put(
         f"{settings.API_V1_STR}/device-solutions/device/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"},
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
         json=update_data
     )
     
@@ -616,12 +616,12 @@ def test_remove_solution_no_solution_deployed(
 
 
 def test_remove_solution_customer_user(
-    client: TestClient, customer_user_token: str, device: Device
+    client: TestClient, customer_admin_token: str, device: Device
 ):
-    """Test customer user attempting to remove a solution (no permission)"""
+    """Test customer admin attempting to remove a solution (no permission)"""
     response = client.delete(
         f"{settings.API_V1_STR}/device-solutions/device/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -705,7 +705,7 @@ def test_get_current_device_solution_nonexistent_device(
 
 @patch('app.crud.device.device.get_by_id')
 def test_get_current_device_solution_no_authorization(
-    mock_get_device, client: TestClient, customer_user_token: str, device: Device
+    mock_get_device, client: TestClient, customer_admin_token: str, device: Device
 ):
     """Test customer user getting current solution for a device they don't own"""
     # Create a device with a different customer
@@ -716,7 +716,7 @@ def test_get_current_device_solution_no_authorization(
     
     response = client.get(
         f"{settings.API_V1_STR}/device-solutions/current/device/{device.device_id}",
-        headers={"Authorization": f"Bearer {customer_user_token}"}
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     
     # Check response - should be forbidden
@@ -750,6 +750,82 @@ def test_get_current_device_solution_none_deployed(
     # Check response - should be null
     assert response.status_code == 200
     assert response.json() is None
+
+def test_get_devices_by_solution_admin(client: TestClient, admin_token: str, db: Session):
+    """Test admin getting all devices using a specific solution"""
+    # Get a solution from the database
+    solution_obj = db.query(Solution).first()
+    assert solution_obj is not None
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/device-solutions/solution/{solution_obj.solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # Verify the device solution details for any returned items
+    for item in data:
+        assert "device_id" in item
+        assert "solution_id" in item
+        assert str(item["solution_id"]) == str(solution_obj.solution_id)
+        assert "solution_name" in item
+        assert item["solution_name"] == solution_obj.name
+
+
+def test_get_devices_by_solution_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User, db: Session):
+    """Test customer user getting devices using a specific solution (only from their customer)"""
+    # Get a solution from the database
+    solution_obj = db.query(Solution).first()
+    assert solution_obj is not None
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/device-solutions/solution/{solution_obj.solution_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # Verify the device solution details for any returned items
+    for item in data:
+        assert "device_id" in item
+        assert "solution_id" in item
+        assert str(item["solution_id"]) == str(solution_obj.solution_id)
+        assert "solution_name" in item
+        assert item["solution_name"] == solution_obj.name
+
+
+def test_get_devices_by_nonexistent_solution(client: TestClient, admin_token: str):
+    """Test getting devices for a non-existent solution"""
+    nonexistent_id = uuid.uuid4()
+    response = client.get(
+        f"{settings.API_V1_STR}/device-solutions/solution/{nonexistent_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "not found" in data["detail"]
+
+
+
+
+
+
+
+
+
+
+
+
 
 # # Test removing solution from device (DELETE /device-solutions/device/{device_id})
 # @patch('app.crud.device.device.get_by_id')

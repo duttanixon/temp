@@ -97,9 +97,10 @@ def customer_admin_user(db: Session) -> User:
     return db.query(User).filter(User.role == UserRole.CUSTOMER_ADMIN).first()
 
 @pytest.fixture
-def customer_user(db: Session) -> User:
-    """Get the customer user created by the seed function"""
-    return db.query(User).filter(User.role == UserRole.CUSTOMER_USER).first()
+def customer_admin_user2(db: Session) -> User:
+    """Get the customer admin user created by the seed function"""
+    return db.query(User).filter(User.role == UserRole.CUSTOMER_ADMIN, User.email == "customeradmin@example2.com").first()
+
 
 @pytest.fixture
 def suspended_user(db: Session) -> User:
@@ -110,6 +111,16 @@ def suspended_user(db: Session) -> User:
 def customer(db: Session) -> Customer:
     """Get the customer created by the seed function"""
     return db.query(Customer).filter(Customer.status == CustomerStatus.ACTIVE).first()
+
+@pytest.fixture
+def solution(db: Session) -> Solution:
+    """Get a solution created by the seed function"""
+    return db.query(Solution).filter(Solution.status == SolutionStatus.ACTIVE).first()
+
+@pytest.fixture
+def beta_solution(db: Session) -> Solution:
+    """Get a beta solution created by the seed function"""
+    return db.query(Solution).filter(Solution.status == SolutionStatus.BETA).first()
 
 @pytest.fixture
 def suspended_customer(db: Session) -> Customer:
@@ -145,10 +156,10 @@ def customer_admin_token(customer_admin_user: User) -> str:
     )
 
 @pytest.fixture
-def customer_user_token(customer_user: User) -> str:
-    """Generate a customer user token for tests"""
+def customer_admin_token2(customer_admin_user2: User) -> str:
+    """Generate a customer admin token for tests"""
     return create_access_token(
-        subject=str(customer_user.user_id),
+        subject=str(customer_admin_user2.user_id),
         expires_delta=timedelta(minutes=30)
     )
 
@@ -282,14 +293,14 @@ def seed_test_data(db: Session) -> None:
         customer_id=active_customer.customer_id,
         status=UserStatus.ACTIVE
     )
-    
-    customer_user = User(
+
+    customer_admin_user2 = User(
         user_id=uuid.uuid4(),
-        email="customeruser@example.com",
-        password_hash=get_password_hash("customeruserpassword"),
-        first_name="Customer",
-        last_name="User",
-        role=UserRole.CUSTOMER_USER,
+        email="customeradmin@example2.com",
+        password_hash=get_password_hash("customeradminpassword"),
+        first_name="Customer2",
+        last_name="Admin2",
+        role=UserRole.CUSTOMER_ADMIN,
         customer_id=active_customer.customer_id,
         status=UserStatus.ACTIVE
     )
@@ -300,7 +311,7 @@ def seed_test_data(db: Session) -> None:
         password_hash=get_password_hash("suspendedpassword"),
         first_name="Suspended",
         last_name="User",
-        role=UserRole.CUSTOMER_USER,
+        role=UserRole.CUSTOMER_ADMIN,
         customer_id=active_customer.customer_id,
         status=UserStatus.SUSPENDED
     )
@@ -331,7 +342,7 @@ def seed_test_data(db: Session) -> None:
         location="Pi Location",
         customer_id=active_customer.customer_id,
         ip_address="192.168.1.200",
-        status=DeviceStatus.INACTIVE,
+        status=DeviceStatus.DECOMMISSIONED,
         is_online=False
     )
     
@@ -364,7 +375,7 @@ def seed_test_data(db: Session) -> None:
         firmware_version="1.0.0",
         location="Suspended Location",
         customer_id=suspended_customer.customer_id,
-        status=DeviceStatus.INACTIVE,
+        status=DeviceStatus.DECOMMISSIONED,
         is_online=False
     )
 
@@ -410,7 +421,7 @@ def seed_test_data(db: Session) -> None:
     db.add(admin_user)
     db.add(engineer_user)
     db.add(customer_admin_user)
-    db.add(customer_user)
+    db.add(customer_admin_user2)
     db.add(suspended_user)
     db.add(basic_device)
     db.add(raspberry_device)

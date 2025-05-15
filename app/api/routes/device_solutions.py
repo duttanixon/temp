@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud import device_solution, device, solution, customer_solution
-from app.models.user import User, UserRole
+from app.models import User, UserRole, DeviceSolution, Device, Customer
 from app.schemas.device_solution import (
     DeviceSolution as DeviceSolutionSchema,
     DeviceSolutionCreate,
@@ -374,7 +374,7 @@ def get_devices_by_solution(
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get all devices that are using a specific solution.
+    Get all devices that are using a specific solution with joined data.
     - Admins and Engineers can see all devices
     - Customer users can only see devices from their customer
     """
@@ -386,8 +386,18 @@ def get_devices_by_solution(
             detail="Solution not found"
         )
     
-    # Get all device solutions for the solution ID
-    device_solutions = device_solution.get_by_solution(db, solution_id=solution_id)
+    # Build an efficient query with joins
+    query = (
+        db.query(
+            DeviceSolution,
+            Device.name.label("device_name"),
+            Device.customer_id,
+            Customer.name.label("customer_name"),
+        )
+        .join(Device, DeviceSolution.device_id == Device.device_id)
+        .join(Customer, Device.customer_id == Customer.customer_id)
+        .filter(DeviceSolution.solution_id == solution_id)
+    )
     
     # Filter based on user role
     if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
@@ -395,21 +405,26 @@ def get_devices_by_solution(
         if not current_user.customer_id:
             return []
         
-        # Filter device solutions to only include those for the user's customer's devices
-        filtered_device_solutions = []
-        for ds in device_solutions:
-            dev = device.get_by_id(db, device_id=ds.device_id)
-            if dev and dev.customer_id == current_user.customer_id:
-                filtered_device_solutions.append(ds)
-        device_solutions = filtered_device_solutions
+        # Add filter for customer
+        query = query.filter(Device.customer_id == current_user.customer_id)
     
-    # Enhance with solution details
-    result = []
-    for ds in device_solutions:
-        # Create a detail view with solution information
+    # Execute the query
+    results = query.all()
+    
+    # Process results into response objects
+    response_data = []
+    for result in results:
+        ds = result[0]  # DeviceSolution object
+        device_name = result[1]
+        customer_id = result[2]
+        customer_name = result[3]
+        
         detail_view = {
             "id": ds.id,
             "device_id": ds.device_id,
+            "device_name": device_name,
+            "customer_id": customer_id,
+            "customer_name": customer_name,
             "solution_id": ds.solution_id,
             "status": ds.status,
             "configuration": ds.configuration,
@@ -422,6 +437,6 @@ def get_devices_by_solution(
             "metrics": ds.metrics if hasattr(ds, "metrics") else None
         }
         
-        result.append(detail_view)
+        response_data.append(detail_view)
     
-    return result
+    return response_data

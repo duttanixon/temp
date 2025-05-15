@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Solution } from "@/types/solution";
-import SolutionStatusBadge from "./SolutionStatusBadge";
+import SolutionStatusBadge from "../../_components/SolutionStatusBadge";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
 
 type SolutionInfoCardProps = {

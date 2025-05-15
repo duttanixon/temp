@@ -751,6 +751,82 @@ def test_get_current_device_solution_none_deployed(
     assert response.status_code == 200
     assert response.json() is None
 
+def test_get_devices_by_solution_admin(client: TestClient, admin_token: str, db: Session):
+    """Test admin getting all devices using a specific solution"""
+    # Get a solution from the database
+    solution_obj = db.query(Solution).first()
+    assert solution_obj is not None
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/device-solutions/solution/{solution_obj.solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # Verify the device solution details for any returned items
+    for item in data:
+        assert "device_id" in item
+        assert "solution_id" in item
+        assert str(item["solution_id"]) == str(solution_obj.solution_id)
+        assert "solution_name" in item
+        assert item["solution_name"] == solution_obj.name
+
+
+def test_get_devices_by_solution_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User, db: Session):
+    """Test customer user getting devices using a specific solution (only from their customer)"""
+    # Get a solution from the database
+    solution_obj = db.query(Solution).first()
+    assert solution_obj is not None
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/device-solutions/solution/{solution_obj.solution_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # Verify the device solution details for any returned items
+    for item in data:
+        assert "device_id" in item
+        assert "solution_id" in item
+        assert str(item["solution_id"]) == str(solution_obj.solution_id)
+        assert "solution_name" in item
+        assert item["solution_name"] == solution_obj.name
+
+
+def test_get_devices_by_nonexistent_solution(client: TestClient, admin_token: str):
+    """Test getting devices for a non-existent solution"""
+    nonexistent_id = uuid.uuid4()
+    response = client.get(
+        f"{settings.API_V1_STR}/device-solutions/solution/{nonexistent_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "not found" in data["detail"]
+
+
+
+
+
+
+
+
+
+
+
+
+
 # # Test removing solution from device (DELETE /device-solutions/device/{device_id})
 # @patch('app.crud.device.device.get_by_id')
 # @patch('app.crud.device_solution.device_solution.get_by_device')

@@ -365,3 +365,63 @@ def get_current_device_solution(
     }
     
     return detail_view
+
+@router.get("/solution/{solution_id}", response_model=List[DeviceSolutionDetailView])
+def get_devices_by_solution(
+    *,
+    db: Session = Depends(deps.get_db),
+    solution_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get all devices that are using a specific solution.
+    - Admins and Engineers can see all devices
+    - Customer users can only see devices from their customer
+    """
+    # Check if solution exists
+    sol = solution.get_by_id(db, solution_id=solution_id)
+    if not sol:
+        raise HTTPException(
+            status_code=404,
+            detail="Solution not found"
+        )
+    
+    # Get all device solutions for the solution ID
+    device_solutions = device_solution.get_by_solution(db, solution_id=solution_id)
+    
+    # Filter based on user role
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        # Get the user's customer_id
+        if not current_user.customer_id:
+            return []
+        
+        # Filter device solutions to only include those for the user's customer's devices
+        filtered_device_solutions = []
+        for ds in device_solutions:
+            dev = device.get_by_id(db, device_id=ds.device_id)
+            if dev and dev.customer_id == current_user.customer_id:
+                filtered_device_solutions.append(ds)
+        device_solutions = filtered_device_solutions
+    
+    # Enhance with solution details
+    result = []
+    for ds in device_solutions:
+        # Create a detail view with solution information
+        detail_view = {
+            "id": ds.id,
+            "device_id": ds.device_id,
+            "solution_id": ds.solution_id,
+            "status": ds.status,
+            "configuration": ds.configuration,
+            "version_deployed": ds.version_deployed,
+            "last_update": ds.last_update,
+            "created_at": ds.created_at,
+            "updated_at": ds.updated_at,
+            "solution_name": sol.name,
+            "solution_description": sol.description,
+            "metrics": ds.metrics if hasattr(ds, "metrics") else None
+        }
+        
+        result.append(detail_view)
+    
+    return result

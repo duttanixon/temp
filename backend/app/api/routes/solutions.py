@@ -2,14 +2,15 @@ from typing import Any, List, Optional, Dict, Union
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.crud import solution, customer_solution, device, device_solution
-from app.models import User, UserRole, DeviceType, Solution, SolutionStatus
+from app.crud import solution, customer_solution, device, device_solution, customer
+from app.models import User, UserRole, DeviceType, Solution, SolutionStatus, CustomerSolution, Customer, LicenseStatus
 from app.schemas.solution import (
     Solution as SolutionSchema,
     SolutionCreate,
     SolutionUpdate,
     SolutionAdminView,
 )
+from app.schemas import CustomerBasic
 from app.utils.audit import log_action
 from app.utils.logger import get_logger
 import uuid
@@ -199,6 +200,101 @@ def create_solution(
     )
     
     return new_solution
+
+
+@router.get("/available-customers", response_model=List[CustomerBasic])
+def get_available_customers(
+    *,
+    db: Session = Depends(deps.get_db),
+    solution_id: str,
+    current_user: User = Depends(deps.get_current_admin_user),
+) -> Any:
+    """
+    Get customers that are available to be assigned a specific solution
+    (i.e., customers that do not already have this solution assigned).
+    Admin only.
+    """
+    # Check if the solution exists
+    try:
+        # Convert string to UUID object
+        solution_uuid = uuid.UUID(solution_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid solution ID format"
+        )
+    db_solution = solution.get_by_id(db, solution_id=solution_uuid)
+    if not db_solution:
+        raise HTTPException(
+            status_code=404,
+            detail="Solution not found"
+        )
+    # Get all customers
+    all_customers = customer.get_multi(db)
+
+    # Get customer IDs that already have this solution
+    assigned_customer_solutions = db.query(CustomerSolution).filter(
+        CustomerSolution.solution_id == solution_uuid
+    ).all()
+
+    assigned_customer_ids = set(cs.customer_id for cs in assigned_customer_solutions)
+
+    # Filter the customers list to exclude those that already have the solution assigned
+    available_customers = [
+        c for c in all_customers
+        if c.customer_id not in assigned_customer_ids
+    ]
+    return available_customers
+
+
+@router.get("/assigned-customers", response_model=List[CustomerBasic])
+def get_assigned_customers(
+    *,
+    db: Session = Depends(deps.get_db),
+    solution_id: str,
+    current_user: User = Depends(deps.get_current_admin_user),
+) -> Any:
+    """
+    Get customers that have already been assigned a specific solution.
+    Admin only.
+    """
+    # Check if the solution exists
+    try:
+        # Convert string to UUID object
+        solution_uuid = uuid.UUID(solution_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid solution ID format"
+        )
+    db_solution = solution.get_by_id(db, solution_id=solution_uuid)
+    if not db_solution:
+        raise HTTPException(
+            status_code=404,
+            detail="Solution not found"
+        )
+    
+    # Query the customer_solutions table to find all active customer-solution 
+    # assignments for this solution
+    customer_solutions = db.query(CustomerSolution).filter(
+        CustomerSolution.solution_id == solution_uuid,
+        CustomerSolution.license_status == LicenseStatus.ACTIVE
+    ).all()
+    
+    customer_ids = [cs.customer_id for cs in customer_solutions]
+    
+    # If there are no assigned customers, return an empty list
+    if not customer_ids:
+        return []
+
+    
+    # Join with the customers table to get the customer names
+    assigned_customers = db.query(Customer).filter(
+        Customer.customer_id.in_(customer_ids)
+    ).all()
+    
+    return assigned_customers
+
 
 @router.get("/{solution_id}", response_model=Union[SolutionSchema, SolutionAdminView])
 def get_solution(
@@ -441,3 +537,4 @@ def get_compatible_solutions_for_device(
     ).all()
     
     return compatible_solutions
+

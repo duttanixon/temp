@@ -19,8 +19,6 @@ class UserRole(str, enum.Enum):
     ENGINEER = "ENGINEER"
     AUDITOR = "AUDITOR"
     CUSTOMER_ADMIN = "CUSTOMER_ADMIN"
-    CUSTOMER_USER = "CUSTOMER_USER"
-
 
 class UserStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import SolutionInfoCard from '../_components/SolutionInfoCard';
+import SolutionInfoCard from './SolutionInfoCard';
 import CustomerAssignmentsTab from './CustomerAssignmentsTab';
 import DeviceDeploymentsTab from './DeviceDeploymentsTab';
 import { Solution } from '@/types/solution';

@@ -26,11 +26,6 @@ export default function DeviceDeploymentsTab({ solution }: DeviceDeploymentsTabP
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     const [customers, setCustomers] = useState<{customer_id: string, name: string}[]>([]);
 
-  // Check user permissions
-  const isAdmin = session?.user?.role === 'ADMIN';
-  const isEngineer = session?.user?.role === 'ENGINEER';
-  const isCustomerAdmin = session?.user?.role === 'CUSTOMER_ADMIN';
-
   // Fetch device deployments when component mounts
   useEffect(() => {
     async function fetchDeployments() {
@@ -62,6 +57,7 @@ export default function DeviceDeploymentsTab({ solution }: DeviceDeploymentsTabP
         
         fetchDeployments();
       }, [solution.solution_id]);
+
 
   // Filter deployments by selected customer
   const filteredDeployments = selectedCustomerId === 'all'

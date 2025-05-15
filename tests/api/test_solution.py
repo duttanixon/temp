@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import DeviceType, AuditLog, Solution, SolutionStatus, User, Device, Customer
+from app.models import DeviceType, AuditLog, Solution, SolutionStatus, User, Device, Customer, CustomerSolution
 from app.core.config import settings
 
 # Test cases for solution listing (GET /solutions)
@@ -664,3 +664,159 @@ def test_get_compatible_solutions_for_device_different_customer(client: TestClie
     data = response.json()
     assert "detail" in data
     assert "Not authorized" in data["detail"]
+
+def test_get_available_customers(client: TestClient, admin_token: str, customer: Customer, test_customer_solution: CustomerSolution):
+    """Test getting customers available for solution assignment"""
+    # Create a new solution that isn't assigned to any customer
+    new_solution_data = {
+        "name": "Unassigned Solution",
+        "description": "A solution not assigned to any customer",
+        "version": "1.0.0",
+        "compatibility": ["NVIDIA_JETSON", "RASPBERRY_PI"],
+        "status": "ACTIVE"
+    }
+    
+    solution_response = client.post(
+        f"{settings.API_V1_STR}/solutions",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=new_solution_data
+    )
+    
+    new_solution = solution_response.json()
+    
+    # Test getting available customers for the new solution
+    # Should return all customers since none have been assigned
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/available-customers?solution_id={new_solution['solution_id']}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1  # Should include at least our test customer
+
+    # Test getting available customers for the solution that is already assigned
+    # Should not include the customer that already has the solution
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/available-customers?solution_id={test_customer_solution.solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    
+    # The assigned customer should not be in the available list
+    assigned_customer_ids = [str(test_customer_solution.customer_id)]
+    for c in data:
+        assert c["customer_id"] not in assigned_customer_ids
+
+
+def test_get_available_customers_non_admin(client: TestClient, customer_admin_token: str, customer: Customer):
+    """Test non-admin attempting to get available customers"""
+    # Create a random solution ID
+    nonexistent_id = uuid.uuid4()
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/available-customers?solution_id={nonexistent_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "enough privileges" in data["detail"]
+
+def test_get_assigned_customers(client: TestClient, admin_token: str, customer: Customer, test_customer_solution: CustomerSolution):
+    """Test getting customers assigned to a solution"""
+    # Test getting assigned customers for the solution that is assigned to a customer
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/assigned-customers?solution_id={test_customer_solution.solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 1  # Should include only our test customer
+    assert data[0]["customer_id"] == str(test_customer_solution.customer_id)
+    
+    # Test getting assigned customers for a solution that isn't assigned to any customer
+    # Create a new solution
+    new_solution_data = {
+        "name": "Unassigned Solution 2",
+        "description": "A solution not assigned to any customer",
+        "version": "1.0.0",
+        "compatibility": ["NVIDIA_JETSON", "RASPBERRY_PI"],
+        "status": "ACTIVE"
+    }
+    
+    solution_response = client.post(
+        f"{settings.API_V1_STR}/solutions",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=new_solution_data
+    )
+    
+    new_solution = solution_response.json()
+    
+    # Test getting assigned customers for the new solution
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/assigned-customers?solution_id={new_solution['solution_id']}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be empty list
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 0  # Should be empty
+
+def test_get_assigned_customers_non_admin(client: TestClient, customer_admin_token: str):
+    """Test non-admin attempting to get assigned customers"""
+    # Create a random solution ID
+    nonexistent_id = uuid.uuid4()
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/assigned-customers?solution_id={nonexistent_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "enough privileges" in data["detail"]
+
+def test_get_invalid_solution_id(client: TestClient, admin_token: str):
+    """Test getting customers for invalid solution ID"""
+    # Create a random solution ID
+    nonexistent_id = uuid.uuid4()
+    
+    # Test available customers endpoint
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/available-customers?solution_id={nonexistent_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "not found" in data["detail"]
+    
+    # Test assigned customers endpoint
+    response = client.get(
+        f"{settings.API_V1_STR}/solutions/assigned-customers?solution_id={nonexistent_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "not found" in data["detail"]

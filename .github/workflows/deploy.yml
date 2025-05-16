@@ -41,6 +41,7 @@ jobs:
         NEXT_PUBLIC_AUTH_REDIRECT_URL=${{ secrets.NEXT_PUBLIC_AUTH_REDIRECT_URL }}
         TOKEN_EXPIRATION_TIME=${{ secrets.TOKEN_EXPIRATION_TIME }}
         TOKEN_EXPIRATION_CHECK_TIME=${{ secrets.TOKEN_EXPIRATION_CHECK_TIME }}
+        NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
         EOF
         
         # Copy the source code and .env to EC2

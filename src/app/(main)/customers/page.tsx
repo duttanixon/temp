@@ -102,7 +102,7 @@ export default function CustomersPage() {
           c.contact_email.toLowerCase().includes(q)
       );
     }
-
+    setPage(0);
     setFilteredCustomers(filtered);
   };
 
@@ -115,7 +115,7 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">顧客管理</h1>
         <Link href="/customers/add">
-          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-12 py-2 rounded">
+          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-12 py-2 rounded cursor-pointer">
             + 顧客追加
           </button>
         </Link>

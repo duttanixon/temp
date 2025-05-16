@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface SearchFiltersProps {
   onSearch: (query: string, status: string) => void;
@@ -17,7 +18,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [query, status, onSearch]);
+  }, [query, status]);
 
   return (
     <div className="relative border border-gray-400 rounded-md px-4 py-3 w-2/5 bg-white overflow-hidden">
@@ -32,8 +33,8 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
             onChange={(e) => setStatus(e.target.value)}
           >
             <option>全ての状態</option>
-            <option>Active</option>
-            <option>Inactive</option>
+            <option value={"active"}>アクティブ</option>
+            <option value={"inactive"}>非アクティブ</option>
           </select>
           {/* Right-pointing triangle icon */}
           <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
@@ -57,28 +58,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
           />
           {/* No entry icon — flipped line */}
           <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-            <svg
-              className="w-5 h-5 text-gray-500"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
-                fill="#f1f1f1"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <line
-                x1="16"
-                y1="8"
-                x2="8"
-                y2="16"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-            </svg>
+            <Search color="gray" />
           </div>
         </div>
       </div>

@@ -16,7 +16,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { deployToDeviceSchema, DeployToDeviceFormValues } from '@/schemas/deviceSolutionSchemas';
 import { toast } from 'sonner';
-import { useSession } from 'next-auth/react';
 import { Solution } from '@/types/solution';
 import { DeviceDeployment } from '@/types/deviceSolution';
 import { deviceSolutionService } from '@/services/deviceSolutionService';
@@ -43,15 +42,10 @@ export default function DeployToDeviceModal({
     onClose, 
     onComplete 
   }: DeployToDeviceModalProps) {
-    const { data: session } = useSession();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [devices, setDevices] = useState<Device[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-    
-    const isAdmin = session?.user?.role === 'ADMIN';
-    const isEngineer = session?.user?.role === 'ENGINEER';
-    const currentUserCustomerId = session?.user?.customerId;
+    const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
     // React Hook Form setup
     const { 
@@ -69,7 +63,7 @@ export default function DeployToDeviceModal({
     });
 
     // Watch the customer_id field to update devices when it changes
-    const watchedCustomerId = watch('customer_id');
+    const selectedCustomerId = watch('customer_id');
 
     // Fetch available customers for this solution
     useEffect(() => {
@@ -93,16 +87,17 @@ export default function DeployToDeviceModal({
     // Update available devices when customer changes
     useEffect(() => {
         async function fetchDevices() {
-        if (!watchedCustomerId) {
+        if (!selectedCustomerId) {
             setDevices([]);
             return;
         }
-        
+
+        setIsLoadingDevices(true);      
         try {
             // Get compatible devices for the selected customer
             const compatibleDevices = await deviceSolutionService.getCompatibleDevices(
             solution.solution_id, 
-            watchedCustomerId
+            selectedCustomerId
             );
             
             setDevices(compatibleDevices);
@@ -112,11 +107,14 @@ export default function DeployToDeviceModal({
             description: error instanceof Error ? error.message : '予期せぬエラーが発生しました',
             });
             setDevices([]);
-        }
+          } finally {
+            setIsLoadingDevices(false);
+          }
+
         }
         
         fetchDevices();
-    }, [watchedCustomerId, solution.solution_id]);
+    }, [selectedCustomerId, solution.solution_id, setValue]);
 
     const onSubmit = async (data: DeployToDeviceFormValues) => {
         setIsLoading(true);
@@ -162,7 +160,6 @@ export default function DeployToDeviceModal({
                   id="customer_id"
                   {...register('customer_id')}
                   className="w-full h-10 px-3 py-2 text-sm rounded-md border border-[#BDC3C7]"
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
                 >
                   <option value="">顧客を選択</option>
                   {customers.map((customer) => (

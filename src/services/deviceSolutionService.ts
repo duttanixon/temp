@@ -81,7 +81,7 @@ export const deviceSolutionService = {
   async getCompatibleDevices(solutionId: string, customerId: string): Promise<any[]> {
     try {
       // For solutions/compatibility/device/{deviceId} endpoint
-      const response = await apiClient.get(`/compatible/solution/${solutionId}/customer/${customerId}`);
+      const response = await apiClient.get(`devices/compatible/solution/${solutionId}/customer/${customerId}`);
       return response.data;
     } catch (error) {
       return handleApiError(error);

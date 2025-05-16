@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Solution } from '@/types/solution';
 import { DeviceDeployment } from '@/types/deviceSolution';
@@ -18,7 +17,6 @@ interface DeviceDeploymentsTabProps {
 
 
 export default function DeviceDeploymentsTab({ solution }: DeviceDeploymentsTabProps) {
-    const { data: session } = useSession();
     const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
     const [deployments, setDeployments] = useState<DeviceDeployment[]>([]);
     const [isLoading, setIsLoading] = useState(false);

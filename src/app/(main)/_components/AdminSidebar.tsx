@@ -1,80 +1,146 @@
 "use client";
 
-import {
-    AlertCircle,
-    AppWindowMacIcon,
-    ArrowRight,
-    BarChart2,
-    Building,
-    Database,
-    LayoutDashboard,
-    LightbulbIcon,
-    WrenchIcon,
-} from "lucide-react";
 import Link from "next/link";
-
-const menuItems = [
-    { name: "ダッシュボード", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "デバイス", icon: Database, href: "/devices" },
-    { name: "顧客", icon: Building, href: "/customers" },
-    { name: "ソリューション", icon: LightbulbIcon, href: "/solutions" },
-    { name: "分析", icon: BarChart2, href: "/analytics" },
-    { name: "通知", icon: AlertCircle, href: "/alerts" },
-    { name: "メンテナンス", icon: WrenchIcon, href: "/maintenance" },
-    { name: "管理", icon: AppWindowMacIcon, href: "", isDiv: true },
-];
-
-// 管理メニュー項目（サブメニュー付き）
-const adminMenuItems = [
-    { name: "ユーザー管理", icon: ArrowRight, href: "/users" },
-    { name: "システム設定", icon: ArrowRight, href: "/settings" },
-    { name: "ログ", icon: ArrowRight, href: "/logs" },
-];
+import { usePathname } from "next/navigation";
+import { useSidebarContext } from "@/lib/sidebar-context";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+import {
+  LayoutDashboard,
+  Database,
+  Building,
+  LightbulbIcon,
+  BarChart2,
+  AlertCircle,
+  WrenchIcon,
+  AppWindowMacIcon,
+  Users,
+  Settings,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function AdminSidebar() {
-    return (
-        <aside className="w-64 bg-[#34495E] text-white flex flex-col">
-            <div className="px-4 py-6">
-                <nav className="space-y-1">
-                    {menuItems.map((item) => {
-                        const Icon = item.icon;
+  const pathname = usePathname();
+  const { isCollapsed, toggleSidebar } = useSidebarContext();
 
-                        if (item.isDiv) {
-                            return (
-                                <div
-                                    key={item.name}
-                                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300">
-                                    <Icon className="h-5 w-5" />
-                                    <span>{item.name}</span>
-                                </div>
-                            );
-                        }
+  // Helper function to determine if a menu item is active
+  const isActive = (href: string) => {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
-                        return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white">
-                                <Icon className="h-5 w-5" />
-                                <span>{item.name}</span>
-                            </Link>
-                        );
-                    })}
-                    {adminMenuItems.map((item) => {
-                        const Icon = item.icon;
+  // Function to render a menu item with proper active state and styling
+  const MenuItem = ({
+    href,
+    icon: Icon,
+    label,
+    isSubmenu = false,
+  }: {
+    href: string;
+    icon: any;
+    label: string;
+    isSubmenu?: boolean;
+  }) => {
+    const active = isActive(href);
 
-                        return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className="flex items-center gap-3 pl-8 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white">
-                                <Icon className="h-5 w-5" />
-                                <span>{item.name}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
-            </div>
-        </aside>
+    const itemClasses = cn(
+      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative group",
+      isSubmenu ? "pl-9" : "",
+      active
+        ? "bg-accent text-accent-foreground"
+        : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
     );
+
+    // If collapsed, show tooltip with the label
+    if (isCollapsed) {
+      return (
+        <TooltipProvider>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Link href={href} className={itemClasses}>
+                <Icon className="h-5 w-5 shrink-0" />
+                {active && (
+                  <div className="absolute w-1 h-7 bg-primary rounded-full left-0" />
+                )}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="ml-1">
+              {label}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    // Regular item (not collapsed)
+    return (
+      <Link href={href} className={itemClasses}>
+        <Icon className="h-5 w-5 shrink-0" />
+        <span className="truncate">{label}</span>
+        {active && (
+          <div className="absolute w-1 h-7 bg-primary rounded-full left-0" />
+        )}
+      </Link>
+    );
+  };
+
+  return (
+    <aside
+      className={cn(
+        // Keep existing classes
+        "bg-card border-r border-border/40 transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
+        // Change these values:
+        "top-16", // Start below header (assuming header height is 4rem/64px)
+        "z-10", // Lower z-index than header
+        isCollapsed ? "w-16" : "w-64"
+      )}
+    >
+      <div className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
+        <div className="space-y-1">
+          <MenuItem
+            href="/dashboard"
+            icon={LayoutDashboard}
+            label="ダッシュボード"
+          />
+          <MenuItem href="/devices" icon={Database} label="デバイス" />
+          <MenuItem href="/customers" icon={Building} label="顧客" />
+          <MenuItem
+            href="/solutions"
+            icon={LightbulbIcon}
+            label="ソリューション"
+          />
+          <MenuItem href="/analytics" icon={BarChart2} label="分析" />
+          <MenuItem href="/alerts" icon={AlertCircle} label="通知" />
+          <MenuItem
+            href="/maintenance"
+            icon={WrenchIcon}
+            label="メンテナンス"
+          />
+        </div>
+
+        <Separator className="my-4" />
+
+        {!isCollapsed && (
+          <div className="text-xs font-semibold text-muted-foreground px-3 mb-2">
+            管理
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <MenuItem href="/users" icon={Users} label="ユーザー管理" />
+          <MenuItem href="/settings" icon={Settings} label="システム設定" />
+          <MenuItem href="/logs" icon={FileText} label="ログ" />
+        </div>
+      </div>
+    </aside>
+  );
 }

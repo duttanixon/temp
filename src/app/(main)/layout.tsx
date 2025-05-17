@@ -4,6 +4,7 @@ import SessionHandler from "./_components/SessionHandler";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Toaster } from "sonner";
+import { SidebarProvider } from "@/lib/sidebar-context";
 
 export default async function MainLayout({
   children,
@@ -23,17 +24,19 @@ export default async function MainLayout({
 
   console.log("📂 MAIN LAYOUT: Session valid, rendering main layout");
   return (
-    <SessionHandler>
-      <div className="min-h-screen flex flex-col bg-slate-900">
-        <Header />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8">
-            {children}
-            <Toaster position="bottom-left" richColors />
-          </main>
+    <SidebarProvider>
+      <SessionHandler>
+        <div className="min-h-screen flex flex-col bg-slate-900">
+          <Header />
+          <div className="flex flex-1">
+            <Sidebar />
+            <main className="flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8">
+              {children}
+              <Toaster position="bottom-left" richColors />
+            </main>
+          </div>
         </div>
-      </div>
-    </SessionHandler>
+      </SessionHandler>
+    </SidebarProvider>
   );
 }

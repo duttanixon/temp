@@ -9,7 +9,7 @@ export const Sidebar = async () => {
   const userRole = session?.user?.role || "";
 
   // Customer View を表示するロール
-  const customerViewRoles = ["CUSTOMER_ADMIN", "CUSTOMER_USER"];
+  const customerViewRoles = ["CUSTOMER_ADMIN"];
 
   // ユーザーロールに基づいてサイドバーを選択
   const isCustomerView = customerViewRoles.includes(userRole);

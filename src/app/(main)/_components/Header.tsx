@@ -14,7 +14,7 @@ export async function Header() {
     "";
 
   // サブヘッダーを表示するロール（変更なし）
-  const subHeaderViewRoles = ["CUSTOMER_ADMIN", "CUSTOMER_USER"];
+  const subHeaderViewRoles = ["CUSTOMER_ADMIN"];
   // ユーザーロールに基づいてサブヘッダーを選択（変更なし）
   const isSubHeaderView = subHeaderViewRoles.includes(userRole);
 

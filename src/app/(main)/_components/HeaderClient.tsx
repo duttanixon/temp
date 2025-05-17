@@ -37,14 +37,17 @@ export function HeaderClient({
 
   return (
     <div className="sticky top-0 z-20">
-      <header className="bg-[#2C3E50] text-white px-4 sm:px-8 py-3 flex items-center justify-between">
+      <header
+        className="bg-[color:var(--header-bg)] text-[color:var(--header-text)] px-4 sm:px-8 py-3 flex items-center justify-between"
+        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
+      >
         <div className="flex items-center gap-3">
           {/* Add sidebar toggle button */}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="text-white hover:bg-[#34495E] mr-2"
+            className="text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] mr-2"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle sidebar</span>
@@ -64,7 +67,7 @@ export function HeaderClient({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="flex items-center gap-2 text-white cursor-pointer"
+                  className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
                 >
                   <User className="h-5 w-5" />
                   <span>{userName || "User"} ▾</span>
@@ -86,7 +89,7 @@ export function HeaderClient({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="cursor-pointer text-red-500 hover:text-red-700"
+                  className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]"
                 >
                   Logout
                 </DropdownMenuItem>

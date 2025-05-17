@@ -51,10 +51,10 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
 
     const itemClasses = cn(
       "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative group",
-      isSubmenu ? "pl-9" : "",
-      active
-        ? "bg-[color:var(--sidebar-item-active)] text-[color:var(--sidebar-item-active-text)]"
-        : "text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]"
+      isSubmenu ? "pl-9" : ""
+      //   active
+      //     ? "bg-[color:var(--sidebar-item-active)] text-[color:var(--sidebar-item-active-text)]"
+      //     : "text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]"
     );
 
     // If collapsed, show tooltip with the label
@@ -64,7 +64,7 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Link href={href} className={itemClasses}>
-                <Icon className="h-5 w-5 shrink-0" />
+                <Icon className="h-5 w-5 shrink-1" />
                 {active && (
                   <div className="absolute w-1 h-7 bg-[color:var(--sidebar-item-active)] rounded-full left-0" />
                 )}

@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSidebarContext } from "@/lib/sidebar-context"; // Add this import
+import { useSidebarContext } from "@/lib/sidebar-context";
 import { Menu, User } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -16,18 +16,18 @@ import { useRouter } from "next/navigation";
 interface HeaderClientProps {
   userName: string;
   customerName: string;
-  isSubHeaderView: boolean;
+  showCustomerHeader: boolean;
   isAuthenticated: boolean;
 }
 
 export function HeaderClient({
   userName,
   customerName,
-  isSubHeaderView,
+  showCustomerHeader,
   isAuthenticated,
 }: HeaderClientProps) {
   const router = useRouter();
-  const { toggleSidebar } = useSidebarContext(); // Use the sidebar context
+  const { toggleSidebar } = useSidebarContext();
 
   // Logout handler
   const handleLogout = async () => {
@@ -42,7 +42,6 @@ export function HeaderClient({
         style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
       >
         <div className="flex items-center gap-3">
-          {/* Add sidebar toggle button */}
           <Button
             variant="ghost"
             size="icon"
@@ -52,52 +51,66 @@ export function HeaderClient({
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle sidebar</span>
           </Button>
-          {isSubHeaderView ? (
-            <h1 className="text-xl font-semibold">{customerName}</h1>
-          ) : (
-            <h1 className="text-xl font-semibold">
-              IoT エッジデバイス管理システム
-            </h1>
-          )}
+
+          <h1 className="text-xl font-semibold">
+            {showCustomerHeader
+              ? customerName
+              : "IoT エッジデバイス管理システム"}
+          </h1>
         </div>
 
         {isAuthenticated && (
-          <div className="flex items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
-                >
-                  <User className="h-5 w-5" />
-                  <span>{userName || "User"} ▾</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => router.push("/profile")}
-                  className="cursor-pointer"
-                >
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => router.push("/settings")}
-                  className="cursor-pointer"
-                >
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]"
-                >
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <UserMenu userName={userName} onLogout={handleLogout} />
         )}
       </header>
+    </div>
+  );
+}
+
+// User menu component extracted for better separation of concerns
+function UserMenu({
+  userName,
+  onLogout,
+}: {
+  userName: string;
+  onLogout: () => void;
+}) {
+  const router = useRouter();
+
+  return (
+    <div className="flex items-center gap-4">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
+          >
+            <User className="h-5 w-5" />
+            <span>{userName || "User"} ▾</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => router.push("/profile")}
+            className="cursor-pointer"
+          >
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push("/settings")}
+            className="cursor-pointer"
+          >
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={onLogout}
+            className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]"
+          >
+            Logout
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

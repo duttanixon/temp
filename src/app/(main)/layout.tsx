@@ -1,5 +1,6 @@
 import { Header } from "./_components/Header";
 import { Sidebar } from "./_components/Sidebar";
+import { MainContent } from "./_components/MainContent";
 import SessionHandler from "./_components/SessionHandler";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -31,7 +32,7 @@ export default async function MainLayout({
           <div className="flex flex-1">
             <Sidebar />
             <main className="flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8">
-              {children}
+              <MainContent>{children}</MainContent>
               <Toaster position="bottom-left" richColors />
             </main>
           </div>

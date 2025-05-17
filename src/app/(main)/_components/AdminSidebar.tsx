@@ -56,8 +56,8 @@ export function AdminSidebar() {
       "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative group",
       isSubmenu ? "pl-9" : "",
       active
-        ? "bg-accent text-accent-foreground"
-        : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+        ? "bg-[color:var(--sidebar-item-active)] text-[color:var(--sidebar-item-active-text)]"
+        : "text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]"
     );
 
     // If collapsed, show tooltip with the label
@@ -69,7 +69,7 @@ export function AdminSidebar() {
               <Link href={href} className={itemClasses}>
                 <Icon className="h-5 w-5 shrink-0" />
                 {active && (
-                  <div className="absolute w-1 h-7 bg-primary rounded-full left-0" />
+                  <div className="absolute w-1 h-7 bg-[color:var(--sidebar-item-active)] rounded-full left-0" />
                 )}
               </Link>
             </TooltipTrigger>
@@ -87,7 +87,7 @@ export function AdminSidebar() {
         <Icon className="h-5 w-5 shrink-0" />
         <span className="truncate">{label}</span>
         {active && (
-          <div className="absolute w-1 h-7 bg-primary rounded-full left-0" />
+          <div className="absolute w-1 h-7 bg-[color:var(--sidebar-item-active)] rounded-full left-0" />
         )}
       </Link>
     );
@@ -96,11 +96,10 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        // Keep existing classes
-        "bg-card border-r border-border/40 transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
-        // Change these values:
-        "top-16", // Start below header (assuming header height is 4rem/64px)
-        "z-10", // Lower z-index than header
+        // Updated to use CSS variables
+        "bg-[color:var(--sidebar-bg)] border-r border-[color:var(--sidebar-border)] transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
+        "top-16",
+        "z-10",
         isCollapsed ? "w-16" : "w-64"
       )}
     >
@@ -130,7 +129,7 @@ export function AdminSidebar() {
         <Separator className="my-4" />
 
         {!isCollapsed && (
-          <div className="text-xs font-semibold text-muted-foreground px-3 mb-2">
+          <div className="text-xs font-semibold text-[color:var(--sidebar-heading-text)] px-3 mb-2">
             管理
           </div>
         )}

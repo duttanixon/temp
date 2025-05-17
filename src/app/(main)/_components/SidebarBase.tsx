@@ -50,7 +50,7 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
     const active = isActive(href);
 
     const itemClasses = cn(
-      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative group",
+      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative group text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]",
       isSubmenu ? "pl-9" : ""
       //   active
       //     ? "bg-[color:var(--sidebar-item-active)] text-[color:var(--sidebar-item-active-text)]"

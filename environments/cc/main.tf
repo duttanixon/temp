@@ -29,6 +29,11 @@ module "lambdas" {
     environment = var.environment
     instance_id = module.ec2.instance_id
     database_url = var.database_url
+    iot_devices_metrics_log_group = module.metrics.iot_devices_metrics_log_group
+    iot_devices_metrics_log_group_arn = module.metrics.iot_devices_metrics_log_group_arn
+    timestream_database_name = module.metrics.timestream_database_name
+    timestream_raw_table_name = module.metrics.timestream_raw_table_name
+
 }
 
 module "ec2" {
@@ -50,7 +55,17 @@ module "metrics" {
     source =  "../../modules/metrics"
 
     # Pass ant required variables to the module
-    aws_region = var.aws_region
-    environment = var.environment
-    iot_device_metrics_user_name = module.common.device_service_user_name
+    aws_region                          = var.aws_region
+    environment                         = var.environment
+    iot_device_metrics_user_name        = module.common.device_service_user_name
+    edge_device_metrics_database_name   = "edge-metrics"
+    raw_table_name                      = "raw_metrics"
+    hourly_table_name                   = "hourly_metrics"
+    daily_table_name                    = "daily_metrics"
+    raw_memory_retention_hours          = 2 
+    raw_magnetic_retention_days         = 14   # 14 days
+    hourly_memory_retention_hours       = 2   
+    hourly_magnetic_retention_days      = 90   # 90 days
+    daily_memory_retention_hours        = 2  
+    daily_magnetic_retention_days       = 400  # ~13 months
 }

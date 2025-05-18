@@ -119,3 +119,44 @@ resource "aws_iam_role_policy_attachment" "ec2_control" {
   role       = aws_iam_role.ec2_scheduler_role.name
   policy_arn = aws_iam_policy.ec2_control_policy.arn
 }
+
+# IAM policy for Timestream access
+resource "aws_iam_policy" "lambda_timestream_policy" {
+  name        = "${var.environment}-lambda-timestream-policy"
+  description = "IAM policy for Lambda to access Timestream"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "timestream:WriteRecords",
+          "timestream:DescribeTable",
+          "timestream:ListTables",
+          "timestream:DescribeDatabase",
+          "timestream:ListDatabases",
+          "timestream:Select",
+          "timestream:Query"
+        ]
+        Resource = [
+          "arn:aws:timestream:${var.aws_region}:${data.aws_caller_identity.current.account_id}:database/${var.timestream_database_name}",
+          "arn:aws:timestream:${var.aws_region}:${data.aws_caller_identity.current.account_id}:database/${var.timestream_database_name}/table/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "timestream:DescribeEndpoints"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach Timestream policy to Lambda execution role
+resource "aws_iam_role_policy_attachment" "lambda_timestream" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_timestream_policy.arn
+}

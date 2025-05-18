@@ -34,8 +34,8 @@ resource "aws_iam_policy" "cloudwatch_iot_device_policy" {
         ]
         Effect   = "Allow"
         Resource = [
-                "arn:aws:logs:*:*:log-group:/iot-device/metrics:*",
-                "arn:aws:logs:*:*:log-group:/iot-device/metrics:*:log-stream:*"
+                "arn:aws:logs:*:*:log-group:/iot-devices/metrics:*",
+                "arn:aws:logs:*:*:log-group:/iot-devices/metrics:*:log-stream:*"
             ]
       }
     ]

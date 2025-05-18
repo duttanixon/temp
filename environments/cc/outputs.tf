@@ -58,3 +58,23 @@ output "iot_device_cloudwatch_role_arn" {
   description = "ARN of the IAM role for Iot devices to access CloudWatch"
   value       = module.metrics.iot_device_cloudwatch_role_arn
 }
+
+output "timestream_database_name" {
+  description = "Name of the Timestream database for metrics"
+  value       = module.metrics.timestream_database_name
+}
+
+output "timestream_raw_table_name" {
+  description = "Name of the Timestream raw metrics table"
+  value       = module.metrics.timestream_raw_table_name
+}
+
+output "timestream_hourly_table_name" {
+  description = "Name of the Timestream hourly metrics table"
+  value       = module.metrics.timestream_hourly_table_name
+}
+
+output "timestream_daily_table_name" {
+  description = "Name of the Timestream daily metrics table"
+  value       = module.metrics.timestream_daily_table_name
+}

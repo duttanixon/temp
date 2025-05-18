@@ -54,6 +54,40 @@ data "archive_file" "lambda_archives" {
     depends_on  = [local_file.lambda_sources_files] 
 }
 
+# Archive files for Iot devices metrics Lambda functions
+data "archive_file" "iot_devices_metrics_processor_lambda" {
+  type        = "zip"
+  output_path = "${path.module}/build/iot_devices_metrics_processor.zip"
+  source {
+    content  = file("${path.module}/files/iot_devices_metrics_processor.py")
+    filename = "iot_devices_metrics_processor.py"
+  }
+  depends_on = [null_resource.create_build_dir]
+}
+
+data "archive_file" "hourly_metrics_aggregator_lambda" {
+  type        = "zip"
+  output_path = "${path.module}/build/hourly_metrics_aggregator.zip"
+  source {
+    content  = file("${path.module}/files/hourly_metrics_aggregator.py")
+    filename = "hourly_metrics_aggregator.py"
+  }
+  depends_on = [null_resource.create_build_dir]
+}
+
+data "archive_file" "daily_metrics_aggregator_lambda" {
+  type        = "zip"
+  output_path = "${path.module}/build/daily_metrics_aggregator.zip"
+  source {
+    content  = file("${path.module}/files/daily_metrics_aggregator.py")
+    filename = "daily_metrics_aggregator.py"
+  }
+  depends_on = [null_resource.create_build_dir]
+}
+
+
+  
+
 data "archive_file" "ec2_scheduler_lambda" {
   type        = "zip"
   output_path = "${path.module}/build/ec2_scheduler_lambda.zip"

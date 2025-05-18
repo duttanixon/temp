@@ -45,3 +45,12 @@ module "common" {
     # Pass ant required variables to the module
     environment = var.environment
 }
+
+module "metrics" {
+    source =  "../../modules/metrics"
+
+    # Pass ant required variables to the module
+    aws_region = var.aws_region
+    environment = var.environment
+    iot_device_metrics_user_name = module.common.device_service_user_name
+}

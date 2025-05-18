@@ -14,6 +14,18 @@ output "backend_service_secret_access_key" {
     sensitive   = true
 }
 
+output "device_service_access_key_id" {
+    description = "Name of the device service user"
+    value       = module.common.device_service_access_key_id
+}
+
+output "device_service_secret_access_key" {
+    description = "Name of the device service user"
+    value       = module.common.device_service_secret_access_key
+    sensitive   = true
+}
+
+
 
 output "account_id" {
     description = "Account ID"
@@ -39,4 +51,10 @@ output "ec2_instance_ip_address" {
 output "certificate_bucket_name" {
   description = "Name of the S3 bucket used for storing IoT certificates"
   value       = module.iot.certificate_bucket_name
+}
+
+
+output "iot_device_cloudwatch_role_arn" {
+  description = "ARN of the IAM role for Iot devices to access CloudWatch"
+  value       = module.metrics.iot_device_cloudwatch_role_arn
 }

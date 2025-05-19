@@ -10,7 +10,7 @@ interface SearchFiltersProps {
 
 export default function SearchFilters({ onSearch }: SearchFiltersProps) {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("全ての状態");
+  const [status, setStatus] = useState("すべて");
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -32,7 +32,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
-            <option>全ての状態</option>
+            <option>すべて</option>
             <option value={"active"}>アクティブ</option>
             <option value={"inactive"}>非アクティブ</option>
           </select>

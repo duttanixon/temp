@@ -89,7 +89,7 @@ export default function CustomersPage() {
     (query: string, status: string) => {
       let filtered = allCustomers;
 
-      if (status !== "全ての状態") {
+      if (status !== "すべて") {
         filtered = filtered.filter(
           (c) => c.status.toLowerCase() === status.toLowerCase()
         );
@@ -110,27 +110,6 @@ export default function CustomersPage() {
     [allCustomers]
   );
 
-  // const handleSearch = (query: string, status: string) => {
-  //   let filtered = allCustomers;
-
-  //   if (status !== "全ての状態") {
-  //     filtered = filtered.filter(
-  //       (c) => c.status.toLowerCase() === status.toLowerCase()
-  //     );
-  //   }
-
-  //   if (query) {
-  //     const q = query.toLowerCase();
-  //     filtered = filtered.filter(
-  //       (c) =>
-  //         c.name.toLowerCase().includes(q) ||
-  //         c.contact_email.toLowerCase().includes(q)
-  //     );
-  //   }
-  //   setPage(0);
-  //   setFilteredCustomers(filtered);
-  // };
-
   const total = allCustomers.length;
   const active = allCustomers.filter((c) => c.status === "ACTIVE").length;
   const devices = totalDevices;
@@ -146,8 +125,6 @@ export default function CustomersPage() {
         </Link>
       </div>
 
-      <SearchFilters onSearch={handleSearch} />
-
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatsCard title="すべての顧客" value={total} />
         <StatsCard
@@ -161,6 +138,8 @@ export default function CustomersPage() {
           colorClass="text-blue-600"
         />
       </div>
+
+      <SearchFilters onSearch={handleSearch} />
 
       <CustomerTable
         customers={filteredCustomers}

@@ -60,7 +60,7 @@ export default function CustomerTable({
           <thead className="bg-[#ECF0F1] text-center">
             <tr>
               <th className="p-2">顧客名</th>
-              <th className="p-2">連絡先メール</th>
+              <th className="p-2">メールアドレス</th>
               <th className="p-2">デバイス</th>
               <th className="p-2">状態</th>
               <th className="p-2">作成日</th>

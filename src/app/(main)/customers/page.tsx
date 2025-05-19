@@ -136,7 +136,7 @@ export default function CustomersPage() {
   const devices = totalDevices;
 
   return (
-    <div className="space-y-6 px-6 pt-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">顧客管理</h1>
         <Link href="/customers/add">

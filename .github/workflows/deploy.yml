@@ -33,11 +33,22 @@ jobs:
         # Create a tar of the source code
         git archive --format=tar HEAD | gzip > app-source.tar.gz
 
-        # Copy the source code to EC2
-        scp app-source.tar.gz ubuntu@${{ secrets.EC2_HOST }}:~/frontend-app/
+        # Create .env file locally
+        cat > .env << EOF
+        AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+        NEXT_PUBLIC_BACKEND_API_URL=${{ secrets.NEXT_PUBLIC_BACKEND_API_URL }}
+        NEXT_PUBLIC_BACKEND_API_VERSION=${{ secrets.NEXT_PUBLIC_BACKEND_API_VERSION }}
+        NEXT_PUBLIC_AUTH_REDIRECT_URL=${{ secrets.NEXT_PUBLIC_AUTH_REDIRECT_URL }}
+        TOKEN_EXPIRATION_TIME=${{ secrets.TOKEN_EXPIRATION_TIME }}
+        TOKEN_EXPIRATION_CHECK_TIME=${{ secrets.TOKEN_EXPIRATION_CHECK_TIME }}
+        NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+        EOF
+        
+        # Copy the source code and .env to EC2
+        scp app-source.tar.gz .env ubuntu@${{ secrets.EC2_HOST }}:~/frontend-app/
 
         # SSH into EC2 and deploy
-        ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+        ssh ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
           cd ~/frontend-app
           
           # Extract the source code
@@ -50,9 +61,12 @@ jobs:
           docker stop platform-frontend-container || true
           docker rm platform-frontend-container || true
 
-          # Run the new container
-          docker run -d --name platform-frontend-container -p 3000:3000 platform-frontend:latest
+          # Run the new container with environment variables
+          docker run -d --name platform-frontend-container \
+            -p 3000:3000 \
+            --env-file .env \
+            platform-frontend:latest
 
           # Clean up
           rm app-source.tar.gz
-        EOF
+        ENDSSH

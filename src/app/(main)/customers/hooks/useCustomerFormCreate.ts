@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import axios from "axios";
-import { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 type CustomerResponse = {
   id: string;
@@ -12,52 +12,41 @@ type CustomerResponse = {
   status: string;
 };
 
-export const useCustomerFormBasic = (token: string) => {
+export const useCustomerFormCreate = (token: string) => {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [completedMessage, setCompletedMessage] = useState("");
 
   const router = useRouter();
-
-  // フォームのリセットを行う関数
-  const resetFormAfterDelay = ({
-    clearName = false,
-    clearEmail = false,
-    clearAddress = false,
-    clearCompletedMessage = false,
-    clearErrorMessage = false,
-  }: {
-    clearName?: boolean;
-    clearEmail?: boolean;
-    clearAddress?: boolean;
-    clearCompletedMessage?: boolean;
-    clearErrorMessage?: boolean;
-  }) => {
-    if (clearName) setCompanyName("");
-    if (clearEmail) setEmail("");
-    if (clearAddress) setAddress("");
-    setTimeout(() => {
-      if (clearCompletedMessage) setCompletedMessage("");
-      if (clearErrorMessage) setErrorMessage("");
-    }, 5000);
-  };
 
   // 顧客データ作成APIを呼び出す関数
   const createCustomer = async (
     token: string
   ): Promise<CustomerResponse | null> => {
-    const customerPayload = {
-      name: companyName,
-      contact_email: email,
-      address: address,
-      status: "ACTIVE",
-    };
-
-    const customerUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers`;
-
+    setErrorMessage("");
     try {
+      if (!companyName || companyName.trim() === "") {
+        setErrorMessage("会社名は必須項目です");
+        return null;
+      }
+      if (!email || email.trim() === "") {
+        setErrorMessage("連絡先メールアドレスは必須項目です");
+        return null;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (email && !emailRegex.test(email)) {
+        setErrorMessage("有効なメールアドレスを入力してください");
+        return null;
+      }
+      const customerPayload = {
+        name: companyName,
+        contact_email: email,
+        address: address,
+        status: "ACTIVE",
+      };
+
+      const customerUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/customers`;
       const response = await axios.post(customerUrl, customerPayload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -66,18 +55,10 @@ export const useCustomerFormBasic = (token: string) => {
         },
       });
       console.log("Registration complete:", response.data);
-      setCompletedMessage("登録が完了しました");
-      resetFormAfterDelay({
-        clearName: true,
-        clearEmail: true,
-        clearAddress: true,
-        clearCompletedMessage: true,
-        clearErrorMessage: true,
-      });
+      toast.success("顧客を追加しました");
       return response.data;
     } catch (error) {
       console.error("Registration error:", error);
-      setCompletedMessage("");
       if (error instanceof AxiosError) {
         const status = error.response?.status;
         const detail = error.response?.data?.detail || "";
@@ -85,9 +66,16 @@ export const useCustomerFormBasic = (token: string) => {
 
         setErrorMessage(
           status === 400
-            ? typeof detail === "string" && detail.includes("already exists")
-              ? "既に登録されています"
-              : "不正なリクエストです (Bad Request) "
+            ? typeof detail === "string" &&
+              detail.includes("Customer already exists")
+              ? "会社名が既に登録されています"
+              : typeof detail === "string" &&
+                  detail.includes("Customer with this email already exists")
+                ? "連絡先メールアドレスが既に登録されています"
+                : typeof detail === "string" &&
+                    detail.includes("already exists")
+                  ? "既に登録されています"
+                  : "不正なリクエストです (Bad Request)"
             : status === 403
               ? "権限がありません (Forbidden)"
               : status === 422
@@ -95,19 +83,16 @@ export const useCustomerFormBasic = (token: string) => {
                 : "顧客データの作成に失敗しました"
         );
         if (status === 403) {
-          signOut({ callbackUrl: "/login" }); // ✅ 自動ログアウト
+          signOut({ callbackUrl: "/login" }); // 自動ログアウト
         }
       }
-      resetFormAfterDelay({ clearErrorMessage: true });
       return null;
     }
   };
 
-  // 作成ボタン押下時の処理
   const handleCreate = async (): Promise<void> => {
     try {
       await createCustomer(token);
-      console.log(token);
     } catch (error) {
       console.error("Error:", error);
       setErrorMessage("error.message");
@@ -119,6 +104,7 @@ export const useCustomerFormBasic = (token: string) => {
     router.push("/customers");
   };
 
+  // 作成ボタン押下時の処理
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     handleCreate();
@@ -133,8 +119,6 @@ export const useCustomerFormBasic = (token: string) => {
     setAddress,
     errorMessage,
     setErrorMessage,
-    completedMessage,
-    setCompletedMessage,
     handleCreate,
     handleCancel,
     handleSubmit,

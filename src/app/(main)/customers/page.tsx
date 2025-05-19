@@ -1,8 +1,7 @@
 "use client";
-
+import axios from "axios";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import axios from "axios";
 import CustomerTable from "./_components/CustomerTable";
 import SearchFilters from "./_components/SearchFilters";
 import StatsCard from "./_components/StatsCard";

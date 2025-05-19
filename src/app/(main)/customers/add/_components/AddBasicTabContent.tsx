@@ -60,7 +60,7 @@ export const formVariants = cva("", {
   },
 });
 
-export const BasicTabContent = ({
+export const AddBasicTabContent = ({
   companyName,
   setCompanyName,
   email,

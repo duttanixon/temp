@@ -35,7 +35,7 @@ export const UserFormField: FC<FormFieldProps> = ({
   onChange,
   required = false,
   inputVariant = "input",
-  placeholder = "選択",
+  placeholder = "選択してください",
   options = [],
 }) => (
   <div className="flex flex-col gap-1">
@@ -64,8 +64,8 @@ export const formVariants = cva("", {
   variants: {
     variant: {
       label: "text-sm font-normal text-[#7F8C8D]",
-      inputName: "w-75 h-10 border border-[#BDC3C7]",
-      input: "w-155 h-10 border border-[#BDC3C7]",
+      inputName: "w-75 h-10 border border-[#BDC3C7] rounded-md",
+      input: "w-155 h-10 border border-[#BDC3C7] rounded-md",
       userInfo: "text-lg font-bold text-[#2C3E50]",
     },
   },
@@ -83,7 +83,7 @@ export const AdminFormContent = ({
   const { customers } = useCustomerAccess(accessToken);
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center gap-x-16 border-b-2 border-[#ECF0F1] pb-5">
+      <div className="flex items-center gap-x-16 pb-5">
         <h2 className={formVariants({ variant: "userInfo" })}>アクセス制御</h2>
         <span className="text-sm font-normal text-[#7F8C8D]">
           <span className="text-[#FF0000]">*</span> 必須項目
@@ -100,7 +100,7 @@ export const AdminFormContent = ({
             onChange={(e) => setRole(e.target.value)}
             required
             inputVariant="inputName"
-            placeholder="権限選択"
+            placeholder="選択してください"
             options={[
               { label: "システム管理者", value: "ADMIN" },
               { label: "エンジニア", value: "ENGINEER" },
@@ -115,7 +115,7 @@ export const AdminFormContent = ({
             value={customer}
             onChange={(e) => setCustomer(e.target.value)}
             inputVariant="inputName"
-            placeholder="顧客選択(該当する場合)"
+            placeholder="選択してください(任意)"
             options={[
               { label: "選択しない", value: "none" },
               ...customers.map((customer) => ({

@@ -82,8 +82,8 @@ export const formVariants = cva("", {
   variants: {
     variant: {
       label: "text-sm font-normal text-[#7F8C8D]",
-      inputName: "w-75 h-10 border border-[#BDC3C7]",
-      input: "w-155 h-10 border border-[#BDC3C7]",
+      inputName: "w-75 h-10 border border-[#BDC3C7] rounded-md",
+      input: "w-155 h-10 border border-[#BDC3C7] rounded-md",
       userInfo: "text-lg font-bold text-[#2C3E50]",
     },
   },
@@ -106,7 +106,7 @@ export const CommonFormContent = ({
   return (
     <>
       <div className="flex flex-col gap-4 p-4">
-        <div className="flex items-center gap-x-16 border-b-2 border-[#ECF0F1] pb-5">
+        <div className="flex items-center gap-x-16 pb-5">
           <h2 className={formVariants({ variant: "userInfo" })}>
             ユーザー情報
           </h2>

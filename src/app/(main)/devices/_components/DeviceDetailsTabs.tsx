@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from 'react';
-import UpdatesTab from './device-tabs/UpdatesTab';
-import PackagesTab from './device-tabs/PackagesTab';
-import MetricsTab from './device-tabs/MetricsTab';
-import FleetsTab from './device-tabs/FleetsTab';
-import RemoteAccessTab from './device-tabs/RemoteAccessTab';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import UpdatesTab from "./device-tabs/UpdatesTab";
+import PackagesTab from "./device-tabs/PackagesTab";
+import MetricsTab from "./device-tabs/MetricsTab";
+import FleetsTab from "./device-tabs/FleetsTab";
+import RemoteAccessTab from "./device-tabs/RemoteAccessTab";
+import { cn } from "@/lib/utils";
 
 export default function DeviceDetailsTabs() {
-  const [activeTab, setActiveTab] = useState('updates');
+  const [activeTab, setActiveTab] = useState("metrics");
 
   const tabs = [
-    { id: 'updates', label: 'Updates' },
-    { id: 'packages', label: 'Packages' },
-    { id: 'metrics', label: 'Metrics' },
-    { id: 'fleets', label: 'Fleets' },
-    { id: 'remoteAccess', label: 'Remote Access' },
+    { id: "metrics", label: "Metrics" },
+    { id: "updates", label: "Updates" },
+    { id: "packages", label: "Packages" },
+    { id: "fleets", label: "Fleets" },
+    { id: "remoteAccess", label: "Remote Access" },
   ];
 
   return (
@@ -39,11 +39,11 @@ export default function DeviceDetailsTabs() {
       </div>
 
       <div>
-        {activeTab === 'updates' && <UpdatesTab />}
-        {activeTab === 'packages' && <PackagesTab />}
-        {activeTab === 'metrics' && <MetricsTab />}
-        {activeTab === 'fleets' && <FleetsTab />}
-        {activeTab === 'remoteAccess' && <RemoteAccessTab />}
+        {activeTab === "metrics" && <MetricsTab />}
+        {activeTab === "updates" && <UpdatesTab />}
+        {activeTab === "packages" && <PackagesTab />}
+        {activeTab === "fleets" && <FleetsTab />}
+        {activeTab === "remoteAccess" && <RemoteAccessTab />}
       </div>
     </div>
   );

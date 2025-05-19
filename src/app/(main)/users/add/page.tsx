@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
-import AddAdminUserForm from "@/app/(main)/users/add/_components/AddAdminUserForm";
-import AddCustomerAdminUserForm from "@/app/(main)/users/add/_components/AddCustomerAdminUserForm";
+import AddAdminUserForm from "@/app/(main)/users/add/_components/UserAddForm";
+// import AddCustomerAdminUserForm from "@/app/(main)/users/add/_components/AddCustomerAdminUserForm";
 
 export default async function AddUserPage() {
   // サーバーサイドでセッションを取得
@@ -12,15 +12,13 @@ export default async function AddUserPage() {
   console.log("accessToken keys:", Object.keys(accessToken));
 
   console.log(" ADD USER PAGE: Session data:", session);
+  if (role !== "ADMIN" && role !== "CUSTOMER_ADMIN") {
+    return <div className="text-red-500">権限がありません</div>;
+  }
+
   return (
     <div className="flex flex-col">
-      {role === "ADMIN" && <AddAdminUserForm accessToken={accessToken} />}
-      {role === "CUSTOMER_ADMIN" && (
-        <AddCustomerAdminUserForm accessToken={accessToken} />
-      )}
-      {role !== "ADMIN" && role !== "CUSTOMER_ADMIN" && (
-        <div className="text-red-500">権限がありません</div>
-      )}
+      <AddAdminUserForm accessToken={accessToken} role={role} />
     </div>
   );
 }

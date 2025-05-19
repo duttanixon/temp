@@ -73,7 +73,7 @@ export const formVariants = cva("", {
     variant: "userInfo",
   },
 });
-export const AddAdminAccessContent = ({
+export const AdminFormContent = ({
   role,
   customer,
   setRole,
@@ -93,14 +93,14 @@ export const AddAdminAccessContent = ({
         <div className="flex gap-5">
           <UserFormField
             id="status"
-            label="役割"
+            label="権限"
             type="select"
             name="status"
             value={role}
             onChange={(e) => setRole(e.target.value)}
             required
             inputVariant="inputName"
-            placeholder="役割選択"
+            placeholder="権限選択"
             options={[
               { label: "システム管理者", value: "ADMIN" },
               { label: "エンジニア", value: "ENGINEER" },

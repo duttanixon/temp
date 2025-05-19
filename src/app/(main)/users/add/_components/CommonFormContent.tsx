@@ -91,7 +91,7 @@ export const formVariants = cva("", {
     variant: "userInfo",
   },
 });
-export const AddAdminUserContent = ({
+export const CommonFormContent = ({
   firstName,
   setFirstName,
   lastName,

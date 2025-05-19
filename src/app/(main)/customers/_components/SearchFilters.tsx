@@ -18,7 +18,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [query, status]);
+  }, [onSearch, query, status]);
 
   return (
     <div className="relative border border-gray-400 rounded-md px-4 py-3 w-2/5 bg-white overflow-hidden">
@@ -28,7 +28,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
         {/* Select Box */}
         <div className="relative w-40">
           <select
-            className="appearance-none w-full bg-white border border-gray-400 rounded-full px-3 py-1 text-sm text-gray-700 pr-10 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="appearance-none w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 pr-10 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >

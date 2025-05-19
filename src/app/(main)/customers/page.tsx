@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import CustomerTable from "./_components/CustomerTable";
 import SearchFilters from "./_components/SearchFilters";
@@ -85,26 +85,51 @@ export default function CustomersPage() {
     fetchDeviceCounts();
   }, []);
 
-  const handleSearch = (query: string, status: string) => {
-    let filtered = allCustomers;
+  const handleSearch = useCallback(
+    (query: string, status: string) => {
+      let filtered = allCustomers;
 
-    if (status !== "全ての状態") {
-      filtered = filtered.filter(
-        (c) => c.status.toLowerCase() === status.toLowerCase()
-      );
-    }
+      if (status !== "全ての状態") {
+        filtered = filtered.filter(
+          (c) => c.status.toLowerCase() === status.toLowerCase()
+        );
+      }
 
-    if (query) {
-      const q = query.toLowerCase();
-      filtered = filtered.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.contact_email.toLowerCase().includes(q)
-      );
-    }
-    setPage(0);
-    setFilteredCustomers(filtered);
-  };
+      if (query) {
+        const q = query.toLowerCase();
+        filtered = filtered.filter(
+          (c) =>
+            c.name.toLowerCase().includes(q) ||
+            c.contact_email.toLowerCase().includes(q)
+        );
+      }
+
+      setPage(0);
+      setFilteredCustomers(filtered);
+    },
+    [allCustomers]
+  );
+
+  // const handleSearch = (query: string, status: string) => {
+  //   let filtered = allCustomers;
+
+  //   if (status !== "全ての状態") {
+  //     filtered = filtered.filter(
+  //       (c) => c.status.toLowerCase() === status.toLowerCase()
+  //     );
+  //   }
+
+  //   if (query) {
+  //     const q = query.toLowerCase();
+  //     filtered = filtered.filter(
+  //       (c) =>
+  //         c.name.toLowerCase().includes(q) ||
+  //         c.contact_email.toLowerCase().includes(q)
+  //     );
+  //   }
+  //   setPage(0);
+  //   setFilteredCustomers(filtered);
+  // };
 
   const total = allCustomers.length;
   const active = allCustomers.filter((c) => c.status === "ACTIVE").length;

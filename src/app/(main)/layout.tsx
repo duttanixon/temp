@@ -31,7 +31,7 @@ export default async function MainLayout({
           <Header />
           <div className="flex flex-1">
             <Sidebar />
-            <main className="flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8">
+            <main className="flex-1 bg-[#ECF0F1] overflow-auto px-1 py-1">
               <MainContent>{children}</MainContent>
               <Toaster position="bottom-left" richColors />
             </main>

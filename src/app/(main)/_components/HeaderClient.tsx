@@ -38,7 +38,7 @@ export function HeaderClient({
   return (
     <div className="sticky top-0 z-20">
       <header
-        className="bg-[color:var(--header-bg)] text-[color:var(--header-text)] px-4 sm:px-8 py-3 flex items-center justify-between"
+        className="bg-[color:var(--header-bg)] text-[color:var(--header-text)] px-4 sm:px-4 py-2 flex items-center justify-between "
         style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
       >
         <div className="flex items-center gap-3">
@@ -46,7 +46,7 @@ export function HeaderClient({
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] mr-2"
+            className="text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] mr-1"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle sidebar</span>

@@ -9,7 +9,12 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Initialize Timestream client
-timestream_query = boto3.client('timestream-query')
+timestream_query = boto3.client(
+    'timestream-query',
+    region_name = settings.AWS_REGION,
+    aws_access_key_id = settings.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key = settings.AWS_SECRET_ACCESS_KEY    
+    )
 
 # Get database and table names from environment variables
 DATABASE_NAME = settings.TIMESTREAM_DATABASE

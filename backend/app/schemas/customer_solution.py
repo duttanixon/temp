@@ -40,6 +40,9 @@ class CustomerSolutionAdminView(CustomerSolution):
     solution_version: Optional[str] = None
     # Count of devices using this solution
     devices_count: Optional[int] = None
+
+    # Add customer name field
+    customer_name: Optional[str] = None
     
     class Config:
         from_attributes = True

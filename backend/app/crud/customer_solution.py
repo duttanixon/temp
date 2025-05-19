@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Union, List
 from sqlalchemy.orm import Session
 from app.crud.base import CRUDBase
-from app.models import CustomerSolution, LicenseStatus, DeviceSolution, Device, Solution
+from app.models import CustomerSolution, LicenseStatus, DeviceSolution, Device, Solution, Customer
 from app.schemas.customer_solution import CustomerSolutionCreate, CustomerSolutionUpdate
 import uuid
 from datetime import date
@@ -169,6 +169,78 @@ class CRUDCustomerSolution(CRUDBase[CustomerSolution, CustomerSolutionCreate, Cu
             enhanced_results.append(enhanced_cs)
     
         return enhanced_results
+
+    def get_customer_solutions_with_details(
+        self, 
+        db: Session, 
+        *, 
+        customer_id: Optional[uuid.UUID] = None,
+        solution_id: Optional[uuid.UUID] = None,
+        skip: int = 0, 
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """
+        Get customer solutions with customer and solution details using efficient joins.
+        Can filter by customer_id, solution_id, or both.
+        Returns all data needed for CustomerSolutionAdminView.
+        """
+        # Start with a query that joins all three tables
+        query = (
+            db.query(
+                CustomerSolution,
+                Customer.name.label("customer_name"),
+                Solution.name.label("solution_name"),
+                Solution.version.label("solution_version")
+            )
+            .join(Customer, CustomerSolution.customer_id == Customer.customer_id)
+            .join(Solution, CustomerSolution.solution_id == Solution.solution_id)
+        )
+        
+        # Apply filters if provided
+        if customer_id:
+            query = query.filter(CustomerSolution.customer_id == customer_id)
+        
+        if solution_id:
+            query = query.filter(CustomerSolution.solution_id == solution_id)
+        
+        # Apply pagination
+        query = query.offset(skip).limit(limit)
+        
+        # Execute the query
+        results = query.all()
+        
+        # Process results into the expected format
+        processed_results = []
+        for result in results:
+            cs, customer_name, solution_name, solution_version = result
+            
+            # Count devices for this customer-solution pair
+            devices_count = self.count_deployed_devices(
+                db, 
+                customer_id=cs.customer_id, 
+                solution_id=cs.solution_id
+            )
+            
+            # Build the result dictionary
+            cs_dict = {
+                "id": cs.id,
+                "customer_id": cs.customer_id,
+                "solution_id": cs.solution_id,
+                "license_status": cs.license_status,
+                "max_devices": cs.max_devices,
+                "expiration_date": cs.expiration_date,
+                "configuration_template": cs.configuration_template,
+                "created_at": cs.created_at,
+                "updated_at": cs.updated_at,
+                "customer_name": customer_name,
+                "solution_name": solution_name,
+                "solution_version": solution_version,
+                "devices_count": devices_count
+            }
+            
+            processed_results.append(cs_dict)
+        
+        return processed_results
 
 
 customer_solution = CRUDCustomerSolution(CustomerSolution)

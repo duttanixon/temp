@@ -18,6 +18,9 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
     def get_by_thing_name(self, db: Session, *, thing_name: str) -> Optional[Device]:
         return db.query(Device).filter(Device.thing_name == thing_name).first()
 
+    def get_by_device_name(self, db: Session, *, device_name: str) -> Optional[Device]:
+        return db.query(Device).filter(Device.name == device_name).first()
+
     def get_by_customer(
         self, db: Session, *, customer_id: uuid.UUID, skip: int = 0, limit: int = 100
     ) -> List[Device]:

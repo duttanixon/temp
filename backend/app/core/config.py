@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     # S3 Settings
     S3_BUCKET_NAME: Optional[str] = None
     S3_CERTIFICATES_PATH: Optional[str] = None
+    TIMESTREAM_DATABASE: Optional[str] = None
+    TIMESTREAM_RAW_TABLE: Optional[str] = None
 
 
     class Config:

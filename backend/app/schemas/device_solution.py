@@ -44,6 +44,10 @@ class DeviceSolution(DeviceSolutionBase):
 class DeviceSolutionDetailView(DeviceSolution):
     metrics: Optional[Dict[str, Any]] = None
     solution_name: str
+    solution_description: Optional[str] = None
+    device_name: Optional[str] = None
+    customer_id: Optional[UUID] = None  
+    customer_name: Optional[str] = None 
     
     class Config:
         from_attributes = True

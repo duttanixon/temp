@@ -19,6 +19,7 @@ logger = get_logger("api.customer_solutions")
 
 router = APIRouter()
 
+
 @router.get("", response_model=List[CustomerSolutionAdminView])
 def get_customer_solutions(
     db: Session = Depends(deps.get_db),
@@ -32,29 +33,34 @@ def get_customer_solutions(
     Get all customer solutions (admin only).
     Filter by customer_id or solution_id if provided.
     """
+    # If customer_id is provided, check if customer exists
     if customer_id:
-        # Check if customer exists
         customer_obj = customer.get_by_id(db, customer_id=customer_id)
         if not customer_obj:
             raise HTTPException(
                 status_code=404,
                 detail="Customer not found"
             )
-        return customer_solution.get_enhanced_by_customer(db, customer_id=customer_id, skip=skip, limit=limit)
-
-    elif solution_id:
-        # Check if solution exists
+    
+    # If solution_id is provided, check if solution exists
+    if solution_id:
         solution_obj = solution.get_by_id(db, solution_id=solution_id)
         if not solution_obj:
             raise HTTPException(
                 status_code=404,
                 detail="Solution not found"
             )
-
-        return customer_solution.get_enhanced_by_solution(db, solution_id=solution_id, skip=skip, limit=limit)
-
-    else:
-        return customer_solution.get_enhanced_multi(db, skip=skip, limit=limit)
+    
+    # Use the new efficient function to get results with a single query
+    results = customer_solution.get_customer_solutions_with_details(
+        db, 
+        customer_id=customer_id,
+        solution_id=solution_id,
+        skip=skip, 
+        limit=limit
+    )
+    
+    return results
 
     
 

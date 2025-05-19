@@ -19,6 +19,7 @@ boto3 = "*"
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
+ruff = "*"
 
 [requires]
 python_version = "3.12.2"

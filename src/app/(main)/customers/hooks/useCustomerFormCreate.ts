@@ -56,6 +56,7 @@ export const useCustomerFormCreate = (token: string) => {
       });
       console.log("Registration complete:", response.data);
       toast.success("顧客を追加しました");
+      router.push(`/customers`);
       return response.data;
     } catch (error) {
       console.error("Registration error:", error);

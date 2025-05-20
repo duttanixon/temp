@@ -5,7 +5,7 @@ platform:
     postprocess_dir: /usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/
     source_type: file
     detection_model_path: /opt/models/detection/yolov8m.hef
-    attribute_model_path: /opt/models/classification/person_attr_resnet_v1_18.hef
+    attribute_model_path: /opt/models/classification/person_attr_resnet_v1_18_2.hef
     postprocess_so_path: /usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/libyolo_hailortpp_postprocess.so
     postprocess_function_name: filter_letterbox
     labels_json: ""
@@ -46,6 +46,7 @@ solution:
         # file_path: rpi
         type: file
         file_path: resources/data/verification-ch01_00000000396000000.mp4
+        # file_path: resources/data/9001.mp4
     output:
         type: default
         streaming: true

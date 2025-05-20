@@ -2,130 +2,149 @@
     {
         "content": [
             {
-                "x": 605.0,
-                "y": 317.0
+                "x": 291.5,
+                "y": 142
             },
             {
-                "x": 921.0,
-                "y": 116.0
+                "x": 168.5,
+                "y": 227
             },
             {
-                "x": 507.0,
-                "y": 133.0
+                "x": 850.5,
+                "y": 143
             },
             {
-                "x": 123.0,
-                "y": 155.0
+                "x": 631.5,
+                "y": 107
             }
         ],
+        "rectMask": {
+            "xMin": 168.5,
+            "yMin": 107,
+            "width": 682,
+            "height": 120
+        },
         "labels": {
-            "labelName": "0",
+            "labelName": "unnamed",
             "labelColor": "red",
             "labelColorRGB": "255,0,0",
             "visibility": false
         },
         "labelLocation": {
-            "start_latitude": 509.5,
-            "start_longitude": 167,
-            "end_latitude": 509.5,
-            "end_longitude": 167
-        }
+            "x": 509.5,
+            "y": 167
+        },
+        "contentType": "polygon"
     },
     {
         "content": [
             {
-                "x": 108.0,
-                "y": 175.0
+                "x": 130.5,
+                "y": 194
             },
             {
-                "x": 123.0,
-                "y": 379.0
+                "x": 54.5,
+                "y": 209
             },
             {
-                "x": 153.0,
-                "y": 710.0
+                "x": 64.5,
+                "y": 720
             },
             {
-                "x": 576.0,
-                "y": 333.0
+                "x": 236.5,
+                "y": 720
             }
         ],
+        "rectMask": {
+            "xMin": 0,
+            "yMin": 239,
+            "width": 241.5,
+            "height": 391
+        },
         "labels": {
-            "labelName": "1",
+            "labelName": "unnamed",
             "labelColor": "red",
             "labelColorRGB": "255,0,0",
             "visibility": false
         },
         "labelLocation": {
-            "start_latitude": 509.5,
-            "start_longitude": 167,
-            "end_latitude": 509.5,
-            "end_longitude": 167
-        }
-
+            "x": 120.75,
+            "y": 434.5
+        },
+        "contentType": "polygon"
     },
     {
         "content": [
             {
-                "x": 615.0,
-                "y": 344.0
+                "x": 388.5,
+                "y": 707
             },
             {
-                "x": 1270.0,
-                "y": 390.0
+                "x": 1159.5,
+                "y": 343
             },
             {
-                "x": 828.0,
-                "y": 535.0
+                "x": 1280,
+                "y": 409
             },
             {
-                "x": 194.0,
-                "y": 711.0
+                "x": 920.5,
+                "y": 718
             }
         ],
+        "rectMask": {
+            "xMin": 388.5,
+            "yMin": 343,
+            "width": 891.5,
+            "height": 375
+        },
         "labels": {
-            "labelName": "2",
+            "labelName": "unnamed",
             "labelColor": "red",
             "labelColorRGB": "255,0,0",
             "visibility": false
         },
         "labelLocation": {
-            "start_latitude": 509.5,
-            "start_longitude": 167,
-            "end_latitude": 509.5,
-            "end_longitude": 167
-        }
+            "x": 834.25,
+            "y": 530.5
+        },
+        "contentType": "polygon"
     },
     {
         "content": [
             {
-                "x": 641.0,
-                "y": 322.0
+                "x": 862.5,
+                "y": 142
             },
             {
-                "x": 953.0,
-                "y": 127.0
+                "x": 1010.5,
+                "y": 141
             },
             {
-                "x": 1112.0,
-                "y": 243.0
+                "x": 1171.5,
+                "y": 203
             },
             {
-                "x": 1239.0,
-                "y": 356.0
+                "x": 1202.5,
+                "y": 295
             }
         ],
+        "rectMask": {
+            "xMin": 862.5,
+            "yMin": 141,
+            "width": 340,
+            "height": 154
+        },
         "labels": {
-            "labelName": "3",
+            "labelName": "unnamed",
             "labelColor": "red",
             "labelColorRGB": "255,0,0",
             "visibility": false
         },
         "labelLocation": {
-            "start_latitude": 509.5,
-            "start_longitude": 167,
-            "end_latitude": 509.5,
-            "end_longitude": 167
-        }
+            "x": 1032.5,
+            "y": 218
+        },
+        "contentType": "polygon"
     }
 ]

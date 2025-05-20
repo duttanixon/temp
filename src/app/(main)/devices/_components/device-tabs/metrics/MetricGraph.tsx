@@ -8,6 +8,10 @@ interface MetricGraphProps {
   seriesNames: string[];
   unit: string;
   isLoading: boolean;
+  // Add new props
+  domain?: [number, number];
+  tickFormatter?: (value: number) => string;
+  axisFontSize?: number;
 }
 
 export default function MetricGraph({
@@ -16,6 +20,9 @@ export default function MetricGraph({
   seriesNames,
   unit,
   isLoading,
+  domain,
+  tickFormatter,
+  axisFontSize = 12, // Default font size
 }: MetricGraphProps) {
     return (
         <div className="bg-white p-4 rounded-lg shadow flex-1">
@@ -40,20 +47,23 @@ export default function MetricGraph({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="timestamp"
-                    tick={{ fill: "var(--text-secondary)" }}
+                    tick={{ fill: "var(--text-secondary)", fontSize: axisFontSize }}
                     tickLine={{ stroke: "var(--border)" }}
                   />
                   <YAxis
+                    domain={domain || ['auto', 'auto']}
                     unit={unit}
-                    tick={{ fill: "var(--text-secondary)" }}
+                    tickFormatter={tickFormatter}
+                    tick={{ fill: "var(--text-secondary)", fontSize: axisFontSize  }}
                     tickLine={{ stroke: "var(--border)" }}
                   />
                   <Tooltip
-                    formatter={(value) => [`${value} ${unit}`, ""]}
+                    formatter={(value) => [`${tickFormatter ? tickFormatter(value as number) : value} ${unit}`, ""]}
                     contentStyle={{
                       backgroundColor: "var(--background)",
                       borderColor: "var(--border)",
                       color: "var(--text-primary)",
+                      fontSize: axisFontSize,
                     }}
                   />
                   <Legend />

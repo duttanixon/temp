@@ -56,6 +56,7 @@ export const useCustomerFormCreate = (token: string) => {
       });
       console.log("Registration complete:", response.data);
       toast.success("顧客を追加しました");
+      router.push(`/customers`);
       return response.data;
     } catch (error) {
       console.error("Registration error:", error);
@@ -63,25 +64,7 @@ export const useCustomerFormCreate = (token: string) => {
         const status = error.response?.status;
         const detail = error.response?.data?.detail || "";
         console.error("登録エラー詳細:", error.response?.data);
-
-        setErrorMessage(
-          status === 400
-            ? typeof detail === "string" &&
-              detail.includes("Customer already exists")
-              ? "会社名が既に登録されています"
-              : typeof detail === "string" &&
-                  detail.includes("Customer with this email already exists")
-                ? "連絡先メールアドレスが既に登録されています"
-                : typeof detail === "string" &&
-                    detail.includes("already exists")
-                  ? "既に登録されています"
-                  : "不正なリクエストです (Bad Request)"
-            : status === 403
-              ? "権限がありません (Forbidden)"
-              : status === 422
-                ? "入力値が正しくありません (Validation Error) "
-                : "顧客データの作成に失敗しました"
-        );
+        setErrorMessage(detail);
         if (status === 403) {
           signOut({ callbackUrl: "/login" }); // 自動ログアウト
         }

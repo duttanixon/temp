@@ -4,7 +4,12 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { MetricsResponse } from "@/types/metrics";
 import { metricsService } from "@/services/metricsService";
-import { transformMetricData, getSeriesNames } from "@/utils/metrics/metricsHelpers";
+import { 
+  transformMetricData, 
+  getSeriesNames,
+  kiloBytesToMB,
+  kiloBytesToGB
+} from "@/utils/metrics/metricsHelpers";
 import MetricGraph from "./metrics/MetricGraph";
 import MetricsControls from "./metrics/MetricsControls";
 
@@ -76,6 +81,11 @@ export default function MetricsTab() {
     }
   };
 
+  // Custom formatters for different units
+  const memoryFormatter = (value: number) => `${value.toFixed(0)}`;
+  const cpuFormatter = (value: number) => `${value.toFixed(0)}`;
+  const diskFormatter = (value: number) => `${value.toFixed(1)}`;
+
   return (
     <div className="space-y-4 p-3">
       {/* Controls */}
@@ -98,10 +108,14 @@ export default function MetricsTab() {
       <div className="flex flex-col lg:flex-row gap-4">
         <MetricGraph
           title="メモリ使用率"
-          data={transformMetricData(memoryMetrics)}
+          data={transformMetricData(memoryMetrics, kiloBytesToMB)}
           seriesNames={getSeriesNames(memoryMetrics)}
           unit="MB"
           isLoading={isLoading}
+          domain={[0, 8000]} // Start from 0, auto-scale the max
+          tickFormatter={memoryFormatter}
+          axisFontSize={10}
+
         />
         <MetricGraph
           title="CPU 使用率"
@@ -109,13 +123,19 @@ export default function MetricsTab() {
           seriesNames={getSeriesNames(cpuMetrics)}
           unit="%"
           isLoading={isLoading}
+          domain={[0, 100]} // CPU percentage: 0-100%
+          tickFormatter={cpuFormatter}
+          axisFontSize={11}          
         />
         <MetricGraph
           title="ディスク使用率"
-          data={transformMetricData(diskMetrics)}
+          data={transformMetricData(diskMetrics, kiloBytesToGB)}
           seriesNames={getSeriesNames(diskMetrics)}
-          unit="GB"
+          unit="MB"
           isLoading={isLoading}
+          domain={[0, 256]} // Start from 0, auto-scale the max
+          tickFormatter={diskFormatter}
+          axisFontSize={11}
         />
       </div>
     </div>

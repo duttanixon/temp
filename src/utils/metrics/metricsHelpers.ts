@@ -1,7 +1,8 @@
 import { MetricsResponse, TransformedMetricData } from "@/types/metrics";
 
 export function transformMetricData(
-  metricsResponse: MetricsResponse | null
+  metricsResponse: MetricsResponse | null,
+  unitConverter?: (value: number) => number
 ): TransformedMetricData[] {
   if (!metricsResponse) return [];
 
@@ -15,9 +16,15 @@ export function transformMetricData(
       if (!dataMap.has(timestamp)) {
         dataMap.set(timestamp, { timestamp });
       }
+  
+      // Convert value if converter is provided
+      let value = parseFloat(point.value.toFixed(2));
+      if (unitConverter) {
+        value = parseFloat(unitConverter(value).toFixed(2));
+      }
 
       // Add this series' value to the data point
-      dataMap.get(timestamp)[series.name] = parseFloat(point.value.toFixed(2));
+      dataMap.get(timestamp)[series.name] = value;
     });
   });
 
@@ -47,3 +54,12 @@ export const LINE_COLORS = [
   "var(--chart-4)",
   "var(--chart-5)",
 ];
+
+
+export function kiloBytesToMB(kilobytes: number): number {
+  return kilobytes / 1024;
+}
+
+export function kiloBytesToGB(kilobytes: number): number {
+  return kilobytes / 1024 / 1024;
+}

@@ -20,6 +20,7 @@ export default function MetricsTab() {
   // State variables
   const [deviceName, setDeviceName] = useState<string>("");
   const [timeRange, setTimeRange] = useState<string>("1h");
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [memoryMetrics, setMemoryMetrics] = useState<MetricsResponse | null>(null);
   const [cpuMetrics, setCpuMetrics] = useState<MetricsResponse | null>(null);
   const [diskMetrics, setDiskMetrics] = useState<MetricsResponse | null>(null);
@@ -66,7 +67,7 @@ export default function MetricsTab() {
     }
 
     fetchMetrics();
-  }, [deviceName, timeRange]);
+  }, [deviceName, timeRange, refreshTrigger]);
 
   // Refresh handler
   const handleRefresh = () => {
@@ -77,7 +78,7 @@ export default function MetricsTab() {
       setIsLoading(true);
       
       // The useEffect will trigger a refetch when isLoading changes
-      setTimeRange(timeRange); // Trigger the useEffect without changing the value
+      setRefreshTrigger(prev => prev + 1) // Trigger the useEffect without changing the value
     }
   };
 
@@ -133,7 +134,7 @@ export default function MetricsTab() {
           seriesNames={getSeriesNames(diskMetrics)}
           unit="MB"
           isLoading={isLoading}
-          domain={[0, 256]} // Start from 0, auto-scale the max
+          domain={[0, 1000]} // Start from 0, auto-scale the max
           tickFormatter={diskFormatter}
           axisFontSize={11}
         />

@@ -78,30 +78,9 @@ export const useUserFormCreate = (accessToken: string, initialRole: string) => {
     } catch (error) {
       if (error instanceof AxiosError) {
         console.error("Axios エラー:", error.response?.data);
-        const status = error.response?.status;
         const detail = error.response?.data?.detail || "";
         console.error("登録エラー詳細:", error.response?.data);
-
-        setErrorMessage(
-          status === 400
-            ? typeof detail === "string" &&
-              detail.includes("User already exists")
-              ? "ユーザーが既に登録されています"
-              : typeof detail === "string" &&
-                  detail.includes(
-                    "The user with this email already exists in the system"
-                  )
-                ? "メールアドレスが既に登録されています"
-                : typeof detail === "string" &&
-                    detail.includes("already exists")
-                  ? "既に登録されています"
-                  : "登録中にエラーが発生しました"
-            : status === 403
-              ? "権限がありません (Forbidden)"
-              : status === 422
-                ? "入力値が正しくありません (Validation Error)"
-                : "ユーザーデータの作成に失敗しました"
-        );
+        setErrorMessage(detail);
       }
       return null;
     }

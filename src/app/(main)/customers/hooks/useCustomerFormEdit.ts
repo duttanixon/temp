@@ -90,17 +90,7 @@ export const useCustomerFormEdit = (
         if (status === 400) {
           const detail = error.response?.data?.detail;
           console.error(detail);
-          setErrorMessage(
-            status === 400
-              ? typeof detail === "string" &&
-                detail.includes("name already exists")
-                ? "会社名が既に登録されています"
-                : typeof detail === "string" &&
-                    detail.includes("email already exists")
-                  ? "連絡先メールアドレスが既に登録されています"
-                  : "重複しています"
-              : ""
-          );
+          setErrorMessage(detail);
         }
       }
     }

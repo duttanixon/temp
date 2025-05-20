@@ -1,6 +1,7 @@
 from typing import Any, Dict
 import time
 import cv2
+import numpy as np
 import threading
 from flask import Flask, Response, render_template_string
 from core.interfaces.io.output_handler import IOutputHandler
@@ -164,6 +165,19 @@ class DefaultOutputHandler(IOutputHandler):
                 b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
             )
 
+    def draw_label(self, frame, text, pos, bg_color=(0,0,0), text_color=(255,255,255)):
+        """Draw semi-transparent background label on the image."""
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.5
+        thickness = 1
+        text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
+        x, y = pos
+        # Draw rectangle background
+        cv2.rectangle(frame, (x, y-text_size[1]), (x+text_size[0], y+4), bg_color, -1)
+        # Draw text
+        cv2.putText(frame, text, (x, y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+        return frame
+
     def _streamer_update_frame(self, frame, object_meta):
         """
         Update the latest frame with optional bouding boxes.
@@ -179,27 +193,31 @@ class DefaultOutputHandler(IOutputHandler):
         if time_since_update >= 1.0 / self._stream_fps:
             try:
                 # Make a copy of the frame to avoid race condition
-                display_frame = frame.copy()
-
+                display_frame = cv2.cvtColor(frame.copy(), cv2.COLOR_RGB2BGR)
+                age_groups = {"less_than_18":"<18", "18_to_29":"18-29", "30_to_49":"30-49", "50_to_64":"50-64", "65_plus":"65+"}
+                gender_groups = {"female":"f","male":"m"}
                 # Draw objects if available
                 if object_meta:
                     for detection in object_meta:
                         try:
-                            label = f"{detection.track_id} -{detection.label}: {detection.confidence: .2f}"
+                            if detection.label != "person":
+                                label = f"{detection.track_id} -{detection.label}: {detection.confidence: .2f}"
+                            else:
+                                if detection.classifications:
+                                    gender, gender_conf = detection.classifications[0]
+                                    age, age_conf = detection.classifications[1]
+                                    if age in age_groups:
+                                        age = age_groups[age]
+                                    if gender in gender_groups:
+                                        gender = gender_groups[gender]
+                                    label = f"{detection.track_id}:{gender}:{age}"
+                                else:
+                                    label = f"{detection.track_id} - {detection.label}: {detection.confidence:.2f}"
                             x1, y1, x2, y2 = detection.bbox
-                            # gender_age = f"{detection.classifications[0][0]} - {detection.classifications[0][1]}"
-
-                            cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                            if label:
-                                cv2.putText(
-                                    display_frame,
-                                    label,
-                                    (x1, y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX,
-                                    0.5,
-                                    (0, 255, 0),
-                                    2,
-                                )
+                            color = (0, 0, 255) if detection.label == "person" else (255, 0, 0)
+                            cv2.rectangle(display_frame, (x1, y1), (x2, y2), color, 2)
+                            y_offset = y1 - 10 if y1 - 10 > 10 else y1 + 20
+                            self.draw_label(display_frame, label, (x1, y_offset), bg_color=color)
                         except Exception as e:
                             logger.error(
                                 "Error drawing detection",

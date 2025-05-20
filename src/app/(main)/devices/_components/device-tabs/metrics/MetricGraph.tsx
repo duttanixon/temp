@@ -26,7 +26,7 @@ export default function MetricGraph({
 }: MetricGraphProps) {
     return (
         <div className="bg-white p-4 rounded-lg shadow flex-1">
-          <h2 className="text-lg font-semibold mb-2 text-[var(--text-primary)]">
+          <h2 className="text-base font-semibold mb-2 text-[var(--text-primary)]">
             {title}
           </h2>
           {isLoading ? (

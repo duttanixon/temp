@@ -4,7 +4,6 @@ import { useState } from "react";
 import UpdatesTab from "./device-tabs/UpdatesTab";
 import PackagesTab from "./device-tabs/PackagesTab";
 import MetricsTab from "./device-tabs/MetricsTab";
-import FleetsTab from "./device-tabs/FleetsTab";
 import RemoteAccessTab from "./device-tabs/RemoteAccessTab";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +14,6 @@ export default function DeviceDetailsTabs() {
     { id: "metrics", label: "Metrics" },
     { id: "updates", label: "Updates" },
     { id: "packages", label: "Packages" },
-    { id: "fleets", label: "Fleets" },
     { id: "remoteAccess", label: "Remote Access" },
   ];
 
@@ -42,7 +40,6 @@ export default function DeviceDetailsTabs() {
         {activeTab === "metrics" && <MetricsTab />}
         {activeTab === "updates" && <UpdatesTab />}
         {activeTab === "packages" && <PackagesTab />}
-        {activeTab === "fleets" && <FleetsTab />}
         {activeTab === "remoteAccess" && <RemoteAccessTab />}
       </div>
     </div>

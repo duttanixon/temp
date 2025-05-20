@@ -271,7 +271,7 @@ def main():
     #     generate_plot_report(db_manager, args.output_dir, args.video)
     
     # Print statistics
-    stats = get_test_statistics(db_manager)
+    stats = get_test_statistics(db_manager, args.video)
     
     print("\n== CityEye Test Statistics ==")
     print(f"Total videos processed: {stats['total_videos']}")

@@ -114,7 +114,7 @@ def export_test_results_csv(db_manager: DatabaseManager, output_path: str) -> st
         ) from e
 
 @handle_errors(component="TestUtils")
-def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
+def get_test_statistics(db_manager: DatabaseManager, video_file_name: Optional[str] = None) -> Dict[str, Any]:
     """
     Get aggregate statistics from test results.
     
@@ -129,7 +129,7 @@ def get_test_statistics(db_manager: DatabaseManager) -> Dict[str, Any]:
     """
     try:
         # Get all test results
-        results = get_test_results(db_manager)
+        results = get_test_results(db_manager, video_file_name)
         
         if not results:
             return {

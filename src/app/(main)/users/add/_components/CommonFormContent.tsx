@@ -1,7 +1,5 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cva } from "class-variance-authority";
-import { FC } from "react";
+import { UserFormField } from "@/app/(main)/users/_components/UserFormField";
 
 type Props = {
   firstName: string;
@@ -15,68 +13,6 @@ type Props = {
   setPassword: (val: string) => void;
   setVerifyPassword: (val: string) => void;
 };
-type FormFieldProps = {
-  id: string;
-  label: string;
-  type: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => void;
-  required?: boolean;
-  inputVariant?: VariantType;
-  options?: { label: string; value: string }[];
-  placeholder?: string;
-};
-
-type VariantType = "input" | "label" | "inputName" | "userInfo";
-
-export const UserFormField: FC<FormFieldProps> = ({
-  id,
-  label,
-  type,
-  name,
-  value,
-  onChange,
-  required = false,
-  inputVariant = "input",
-  placeholder = "選択",
-  options = [],
-}) => (
-  <div className="flex flex-col gap-1">
-    <Label htmlFor={id} className={formVariants({ variant: "label" })}>
-      {label} {required && <span className="text-[#FF0000]">*</span>}
-    </Label>
-    {type === "select" ? (
-      <select
-        className={formVariants({ variant: inputVariant })}
-        id={id}
-        name={name}
-        value={value}
-        onChange={onChange}
-        required={required}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    ) : (
-      <Input
-        className={formVariants({ variant: inputVariant })}
-        id={id}
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        required={required}
-      />
-    )}
-  </div>
-);
 
 export const formVariants = cva("", {
   variants: {
@@ -124,7 +60,8 @@ export const CommonFormContent = ({
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
-              inputVariant="inputName"
+              labelClassName={formVariants({ variant: "label" })}
+              inputClassName={formVariants({ variant: "inputName" })}
             />
             <UserFormField
               id="firstName"
@@ -134,7 +71,8 @@ export const CommonFormContent = ({
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
-              inputVariant="inputName"
+              labelClassName={formVariants({ variant: "label" })}
+              inputClassName={formVariants({ variant: "inputName" })}
             />
           </div>
           <UserFormField
@@ -145,7 +83,8 @@ export const CommonFormContent = ({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            inputVariant="input"
+            labelClassName={formVariants({ variant: "label" })}
+            inputClassName={formVariants({ variant: "input" })}
           />
           <UserFormField
             id="password"
@@ -155,7 +94,8 @@ export const CommonFormContent = ({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            inputVariant="input"
+            labelClassName={formVariants({ variant: "label" })}
+            inputClassName={formVariants({ variant: "input" })}
           />
           <UserFormField
             id="password"
@@ -165,7 +105,8 @@ export const CommonFormContent = ({
             value={verifyPassword}
             onChange={(e) => setVerifyPassword(e.target.value)}
             required
-            inputVariant="input"
+            labelClassName={formVariants({ variant: "label" })}
+            inputClassName={formVariants({ variant: "input" })}
           />
         </div>
       </div>

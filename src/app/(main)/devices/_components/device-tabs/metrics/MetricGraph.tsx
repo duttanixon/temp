@@ -53,6 +53,7 @@ export default function MetricGraph({
                     dataKey="timestamp"
                     tick={{ fill: "var(--text-secondary)", fontSize: axisFontSize }}
                     tickLine={{ stroke: "var(--border)" }}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     domain={domain || ['auto', 'auto']}
@@ -60,6 +61,7 @@ export default function MetricGraph({
                     tickFormatter={tickFormatter}
                     tick={{ fill: "var(--text-secondary)", fontSize: axisFontSize  }}
                     tickLine={{ stroke: "var(--border)" }}
+                    minTickGap={10}
                   />
                   <Tooltip
                   labelFormatter={(label) => getLabelContent(label)}

@@ -14,7 +14,7 @@ export function MainContent({ children }: MainContentProps) {
   return (
     <main
       className={cn(
-        "flex-1 bg-[#ECF0F1] overflow-auto px-16 py-8 transition-all duration-300",
+        "flex-1 bg-[#ECF0F1] overflow-auto px-6 py-6 transition-all duration-300",
         isCollapsed ? "ml-16" : "ml-64"
       )}
     >

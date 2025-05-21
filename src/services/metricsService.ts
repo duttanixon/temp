@@ -58,27 +58,36 @@ export const metricsService = {
   async getMetrics(
     deviceName: string,
     metricType: "memory" | "cpu" | "disk",
-    timeRange: string
+    timeRange: string,
+    startTime?: string,
+    endTime?: string,
+    interval?: number
   ): Promise<MetricsResponse> {
     try {
-      // Calculate time range
-      const endTime = new Date().toISOString();
-      const hoursToSubtract = parseInt(timeRange.replace("h", ""));
-      const startTime = new Date(
-        Date.now() - hoursToSubtract * 60 * 60 * 1000
-      ).toISOString();
-
+      let params: any = {
+        device_name: deviceName,
+      };
+      
+      if (timeRange === "custom" && startTime && endTime) {
+        // Use custom date range
+        params.start_time = startTime;
+        params.end_time = endTime;
+        if (interval) params.interval = interval;
+      } else {
+        // Calculate time range based on predefined values
+        const hoursToSubtract = parseInt(timeRange.replace("h", ""));
+        params.start_time = new Date(
+          Date.now() - hoursToSubtract * 60 * 60 * 1000
+        ).toISOString();
+        params.end_time = new Date().toISOString();
+      }
+      console.log(`params : ${params.start_time}`)
+  
       const response = await apiClient.get<MetricsResponse>(
         `/device-metrics/${metricType}`,
-        {
-          params: {
-            device_name: deviceName,
-            start_time: startTime,
-            end_time: endTime,
-          },
-        }
+        { params }
       );
-
+  
       return response.data;
     } catch (error) {
       return handleApiError(error);

@@ -23,5 +23,6 @@ export type TimeRange = {
 
 export type TransformedMetricData = {
   timestamp: string;
+  fullTimestamp: string; // New field for tooltip display
   [key: string]: any;
 };

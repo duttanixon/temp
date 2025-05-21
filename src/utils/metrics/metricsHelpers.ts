@@ -20,11 +20,20 @@ export function transformMetricData(
         hour: '2-digit',
         minute: '2-digit',
       });
+
+      // Store the formatted date for the tooltip (DD/MM/YYYY format)
+      const formattedDate = originalTimestamp.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+
       
       // Use the formatted timestamp as the key
       if (!dataMap.has(displayTimestamp)) {
         dataMap.set(displayTimestamp, { 
           timestamp: displayTimestamp,
+          fullTimestamp: `${formattedDate} ${displayTimestamp}`,
           // Store the original timestamp for sorting
           _originalTimestamp: originalTimestamp.getTime() 
         });

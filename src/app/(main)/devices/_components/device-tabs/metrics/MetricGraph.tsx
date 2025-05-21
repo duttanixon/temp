@@ -8,7 +8,6 @@ interface MetricGraphProps {
   seriesNames: string[];
   unit: string;
   isLoading: boolean;
-  // Add new props
   domain?: [number, number];
   tickFormatter?: (value: number) => string;
   axisFontSize?: number;
@@ -22,8 +21,13 @@ export default function MetricGraph({
   isLoading,
   domain,
   tickFormatter,
-  axisFontSize = 12, // Default font size
+  axisFontSize = 12,
 }: MetricGraphProps) {
+  const getLabelContent = (label: string) => {
+    const dataPoint = data.find((d) => d.timestamp === label);
+    return dataPoint?.fullTimestamp || label;
+  };
+  
     return (
         <div className="bg-white p-4 rounded-lg shadow flex-1">
           <h2 className="text-base font-semibold mb-2 text-[var(--text-primary)]">
@@ -58,6 +62,7 @@ export default function MetricGraph({
                     tickLine={{ stroke: "var(--border)" }}
                   />
                   <Tooltip
+                  labelFormatter={(label) => getLabelContent(label)}
                     formatter={(value) => [`${tickFormatter ? tickFormatter(value as number) : value} ${unit}`, ""]}
                     contentStyle={{
                       backgroundColor: "var(--background)",

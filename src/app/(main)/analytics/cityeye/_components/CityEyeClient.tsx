@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import AnalyticsCard from "./AnalyticsCard";
+import { FilterGroup } from "./filters/FilterGroup"; 
 
 export default function CityEyeClient() {
   const [verticalTab, setVerticalTab] = useState("overview");
@@ -20,13 +21,18 @@ export default function CityEyeClient() {
   ];
 
     // Determine if vertical tabs should be visible
-    const showVerticalTabs = horizontalTab === "people" || horizontalTab === "traffic";
+    const showVerticalTabsAndFilters = horizontalTab === "people" || horizontalTab === "traffic";
+
+  // Placeholder for customerId and solutionId, replace with actual values if available
+  const customerId = "your-customer-id"; // Example: replace with actual customerId
+  const solutionId = "cityeye-solution-id"; // Example: replace with actual solutionId for CityEye
+
 
   return (
     <div className="flex flex-col md:flex-row h-full gap-4">
       {/*tabs on left side - Conditionally rendered */}
-      {showVerticalTabs && (
-      <div className="w-full md:w-64 border-b md:border-b-0 md:border-r bg-[#F8F9FA]">
+      {showVerticalTabsAndFilters && (
+        <div className="w-full md:w-90 border-b md:border-b-0 md:border-r bg-[#F8F9FA] flex flex-col"> {/* Increased width for filters */}
         <Tabs
           value={verticalTab}
           onValueChange={setVerticalTab}
@@ -53,6 +59,15 @@ export default function CityEyeClient() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+          {/* Filter Group */}
+          <div className="flex-grow overflow-y-auto px-2"> {/* Added px-2 for padding around filters */}
+            <FilterGroup
+              verticalTab={verticalTab}
+              horizontalTab={horizontalTab}
+              customerId={customerId}
+              solutionId={solutionId}
+            />
+          </div>
       </div>
       )}
 
@@ -93,10 +108,11 @@ export default function CityEyeClient() {
         </Tabs>
         
         {/* Content based on the selected horizontal and vertical tabs */}
-        {showVerticalTabs ? (
+        {showVerticalTabsAndFilters ? (
           <>
           {verticalTab === "overview" && (
-            <div className="grid grid-cols-1 py-20 md:grid-cols-2 gap-x-1 gap-y-2 md:py-6">
+            // <div className="grid grid-cols-1 py-20 md:grid-cols-2 gap-x-1 gap-y-2 md:py-6">
+            <div className="grid grid-cols-1 py-4 md:grid-cols-2 gap-x-1 gap-y-2"> {/* Reduced py */}
               {cardTitles.map((title, index) => (
                 <AnalyticsCard key={index} title={title} />
               ))}
@@ -104,9 +120,10 @@ export default function CityEyeClient() {
           )}
 
           {verticalTab === "comparison" && ( // Changed to "comparison"
-          <div className="p-6 bg-slate-40 rounded-lg shadow-md mt-8"> {/* Slightly off-white background for the whole area */}
+          <div className="p-4 bg-slate-50 rounded-lg shadow-xl mt-4"> {/* Reduced padding/margin */}
+          {/* <div className="p-6 bg-slate-40 rounded-lg shadow-md mt-8"> */}
             <h2 className="text-xl font-semibold mb-4 text-center">比較表示エリア</h2>
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4 shadow-2xl">
               {/* Column 1 */}
               <div className="flex-1 space-y-2 bg-white p-4 rounded-md"> {/* White background for column 1 cards */}
                 <div className="text-center font-semibold mb-2">データセット1 (例: 昨日)</div>

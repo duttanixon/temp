@@ -10,7 +10,7 @@ const ALL_TRAFFIC = [
     { id: "Large", label: "大型" },
     { id: "Car", label: "車" },
     { id: "Bike", label: "二輪車" },
-    { id: "Bike", label: "自転車" },
+    { id: "Bicycle", label: "自転車" },
   ];
 
   interface TrafficFilterProps {

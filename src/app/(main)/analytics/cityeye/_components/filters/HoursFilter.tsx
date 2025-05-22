@@ -57,7 +57,7 @@ export function HoursFilter({ initialSelectedHours, onSelectionChange }: HoursFi
           </Label>
         </div>
         <ScrollArea className="h-32">
-          <div className="grid grid-cols-3 gap-x-2 gap-y-1 pr-3">
+          <div className="grid grid-cols-2 gap-y-1 pr-3">
             {ALL_HOURS.map((hour) => (
               <div key={hour.id} className="flex items-center space-x-2">
                 <Checkbox

@@ -1,4 +1,3 @@
-// src/app/(main)/analytics/cityeye/_components/filters/DevicesFilter.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,54 +5,63 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FilterCard } from "./FilterCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { deviceService } from "@/services/deviceService"; // Assuming you have this service
-import { Device } from "@/types/device"; // Assuming you have this type
+import { deviceSolutionService } from "@/services/deviceSolutionService";
+import { DeviceDeployment } from "@/types/deviceSolution";
 
 interface DevicesFilterProps {
   initialSelectedDevices?: string[];
   onSelectionChange?: (selectedDevices: string[]) => void;
-  // customerId and solutionId might be needed to fetch relevant devices
-  customerId?: string;
-  solutionId?: string;
+  customerId?: string; // Kept for potential future use, but not directly used in API call for this specific task
+  solutionId?: string; // Made solutionId mandatory as it's key for this filter
 }
 
 export function DevicesFilter({
   initialSelectedDevices,
   onSelectionChange,
-  customerId,
+  customerId, // customerId is available if needed by other logic, but getDevicesBySolution filters by current user's customer if not admin
   solutionId,
 }: DevicesFilterProps) {
-  const [availableDevices, setAvailableDevices] = useState<Device[]>([]);
-  const [selectedDevices, setSelectedDevices] = useState<string[]>(initialSelectedDevices || []);
+  const [availableDevices, setAvailableDevices] = useState<
+    Pick<DeviceDeployment, "device_id" | "device_name" | "device_location">[]
+  >([]);
+  const [selectedDevices, setSelectedDevices] = useState<string[]>(
+    initialSelectedDevices || []
+  );
   const [isAllSelected, setIsAllSelected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch devices (this is a placeholder, implement actual fetching logic)
-    const fetchDevices = async () => {
+    const fetchDevicesForSolution = async () => {
+      if (!solutionId) {
+        setIsLoading(false);
+        setAvailableDevices([]);
+        return;
+      }
       setIsLoading(true);
       try {
-        // Replace with your actual API call
-        // Example: const devices = await deviceService.getDevicesForCustomerSolution(customerId, solutionId);
-        // For now, using placeholder data
-        const mockDevices: Device[] = [
-          { device_id: "device1", name: "Camera 101", device_type: "NVIDIA_JETSON", status: "ACTIVE", is_online: true, customer_id: "cust1", created_at: new Date().toISOString() },
-          { device_id: "device2", name: "Sensor Alpha", device_type: "RASPBERRY_PI", status: "ACTIVE", is_online: false, customer_id: "cust1", created_at: new Date().toISOString() },
-          { device_id: "device3", name: "Gateway 7", device_type: "NVIDIA_JETSON", status: "INACTIVE", is_online: true, customer_id: "cust1", created_at: new Date().toISOString() },
-        ];
-        setAvailableDevices(mockDevices);
+        const devices =
+          await deviceSolutionService.getDevicesBySolution(solutionId);
+        console.log("Fetched devices:", devices);
+        setAvailableDevices(
+          devices.map((d) => ({
+            device_id: d.device_id,
+            device_name: d.device_name,
+            device_location: d.device_location,
+          }))
+        );
         if (!initialSelectedDevices) {
-          setSelectedDevices(mockDevices.map(d => d.device_id));
+          setSelectedDevices(devices.map((d) => d.device_id));
         }
       } catch (error) {
-        console.error("Failed to fetch devices:", error);
-        // Handle error appropriately
+        console.error("Failed to fetch devices for solution:", error);
+        setAvailableDevices([]);
+        // Handle error appropriately in UI if needed, e.g., toast notification
       } finally {
         setIsLoading(false);
       }
     };
-    fetchDevices();
-  }, [customerId, solutionId, initialSelectedDevices]);
+    fetchDevicesForSolution();
+  }, [solutionId, initialSelectedDevices]);
 
   useEffect(() => {
     if (availableDevices.length > 0) {
@@ -78,7 +86,7 @@ export function DevicesFilter({
     if (isAllSelected) {
       setSelectedDevices([]);
     } else {
-      setSelectedDevices(availableDevices.map(d => d.device_id));
+      setSelectedDevices(availableDevices.map((d) => d.device_id));
     }
   };
 
@@ -92,10 +100,12 @@ export function DevicesFilter({
 
   if (availableDevices.length === 0) {
     return (
-       <FilterCard title="デバイス">
-        <div className="text-sm text-gray-500">利用可能なデバイスがありません。</div>
+      <FilterCard title="デバイス">
+        <div className="text-sm text-gray-500">
+          利用可能なデバイスがありません。
+        </div>
       </FilterCard>
-    )
+    );
   }
 
   return (
@@ -115,14 +125,20 @@ export function DevicesFilter({
         <ScrollArea className="h-32">
           <div className="space-y-1 pr-3">
             {availableDevices.map((device) => (
-              <div key={device.device_id} className="flex items-center space-x-2">
+              <div
+                key={device.device_id}
+                className="flex items-center space-x-2"
+              >
                 <Checkbox
                   id={device.device_id}
                   checked={selectedDevices.includes(device.device_id)}
                   onCheckedChange={() => handleDeviceToggle(device.device_id)}
                 />
-                <Label htmlFor={device.device_id} className="text-sm font-normal">
-                  {device.name}
+                <Label
+                  htmlFor={device.device_id}
+                  className="text-sm font-normal"
+                >
+                  {device.device_location + "_" + device.device_name}
                 </Label>
               </div>
             ))}

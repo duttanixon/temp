@@ -1,5 +1,12 @@
 import { auth } from "@/auth";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart3, LineChart, AreaChart } from "lucide-react";
 
@@ -31,7 +38,7 @@ function getSolutionIcon(index: number) {
   const icons = [
     <BarChart3 key="bar" className="h-8 w-8 text-primary" />,
     <LineChart key="line" className="h-8 w-8 text-primary" />,
-    <AreaChart key="area" className="h-8 w-8 text-primary" />
+    <AreaChart key="area" className="h-8 w-8 text-primary" />,
   ];
   return icons[index % icons.length];
 }
@@ -50,7 +57,10 @@ export default async function AnalysisPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {solutions.length > 0 ? (
           solutions.map((solution: any, index: number) => (
-            <Card key={solution.solution_id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <Card
+              key={solution.solution_id}
+              className="overflow-hidden hover:shadow-md transition-shadow"
+            >
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
@@ -64,15 +74,21 @@ export default async function AnalysisPage() {
               </CardHeader>
               <CardContent>
                 <div className="h-28 bg-gray-50 rounded-md flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">分析データをロードするにはクリックしてください</p>
+                  <p className="text-sm text-muted-foreground">
+                    分析データをロードするにはクリックしてください
+                  </p>
                 </div>
               </CardContent>
               <CardFooter className="border-t bg-gray-50/50 px-6 py-3">
-                <Button 
+                <Button
                   className="w-full bg-primary hover:bg-primary/90"
                   asChild
                 >
-                  <a href={`/analytics/${solution.name.replace(/\s+/g, '').toLowerCase()}`}>分析を表示</a>
+                  <a
+                    href={`/analytics/${solution.name.replace(/\s+/g, "").toLowerCase()}/${solution.solution_id}`}
+                  >
+                    分析を表示
+                  </a>
                 </Button>
               </CardFooter>
             </Card>
@@ -83,7 +99,9 @@ export default async function AnalysisPage() {
             <div className="p-4 mb-4 bg-gray-100 rounded-full">
               <BarChart3 className="h-8 w-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900">利用可能な分析ソリューションがありません</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              利用可能な分析ソリューションがありません
+            </h3>
             <p className="mt-2 text-sm text-gray-500">
               ソリューションが追加されると、ここに表示されます
             </p>

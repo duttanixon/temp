@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 import AnalyticsCard from "./AnalyticsCard";
 
 export default function CityEyeClient() {
-  const [verticalTab, setVerticalTab] = useState("分析表示");
-  const [horizontalTab, setHorizontalTab] = useState("分析(人流)");
+  const [verticalTab, setVerticalTab] = useState("overview");
+  const [horizontalTab, setHorizontalTab] = useState("people");
 
   // Titles for the six cards
   const cardTitles = [
@@ -19,9 +19,13 @@ export default function CityEyeClient() {
     "期間内イベント一覧",
   ];
 
+    // Determine if vertical tabs should be visible
+    const showVerticalTabs = horizontalTab === "people" || horizontalTab === "traffic";
+
   return (
     <div className="flex flex-col md:flex-row h-full gap-4">
-      {/*tabs on left side */}
+      {/*tabs on left side - Conditionally rendered */}
+      {showVerticalTabs && (
       <div className="w-full md:w-64 border-b md:border-b-0 md:border-r bg-[#F8F9FA]">
         <Tabs
           value={verticalTab}
@@ -50,6 +54,7 @@ export default function CityEyeClient() {
           </TabsList>
         </Tabs>
       </div>
+      )}
 
       {/* Main content area */}
       <div className="flex-1">
@@ -61,13 +66,13 @@ export default function CityEyeClient() {
         >
           <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 gap-1">
             <TabsTrigger
-              value="daily"
+              value="people"
               className="text-xs md:text-sm py-2 px-3 data-[state=active]:bg-[#3498DB] data-[state=active]:text-white"
             >
               人流
             </TabsTrigger>
             <TabsTrigger
-              value="weekly"
+              value="traffic"
               className="text-xs md:text-sm py-2 px-3 data-[state=active]:bg-[#3498DB] data-[state=active]:text-white"
             >
               交通量
@@ -86,36 +91,46 @@ export default function CityEyeClient() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        {/* Content based on the selected vertical tab */}
-        {verticalTab === "overview" && (
-          <div className="grid grid-cols-1 py-20 md:grid-cols-2 gap-x-1 gap-y-2 md:py-6">
-            {cardTitles.map((title, index) => (
-              <AnalyticsCard key={index} title={title} />
-            ))}
-          </div>
-        )}
+        
+        {/* Content based on the selected horizontal and vertical tabs */}
+        {showVerticalTabs ? (
+          <>
+          {verticalTab === "overview" && (
+            <div className="grid grid-cols-1 py-20 md:grid-cols-2 gap-x-1 gap-y-2 md:py-6">
+              {cardTitles.map((title, index) => (
+                <AnalyticsCard key={index} title={title} />
+              ))}
+            </div>
+          )}
 
-        {verticalTab === "comparison" && ( // Changed to "comparison"
-        <div className="p-6 bg-slate-40 rounded-lg shadow-md mt-8"> {/* Slightly off-white background for the whole area */}
-          <h2 className="text-xl font-semibold mb-4 text-center">比較表示エリア</h2>
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Column 1 */}
-            <div className="flex-1 space-y-2 bg-white p-4 rounded-md"> {/* White background for column 1 cards */}
-              <div className="text-center font-semibold mb-2">データセット1 (例: 昨日)</div>
-              {cardTitles.map((title, index) => (
-                <AnalyticsCard key={`comparison-col1-${index}`} title={title} />
-              ))}
-            </div>
-            {/* Column 2 */}
-            <div className="flex-1 space-y-2 bg-white p-4 rounded-md"> {/* White background for column 2 cards */}
-              <div className="text-center font-semibold mb-2">データセット2 (例: 今日)</div>
-              {cardTitles.map((title, index) => (
-                <AnalyticsCard key={`comparison-col2-${index}`} title={title} />
-              ))}
+          {verticalTab === "comparison" && ( // Changed to "comparison"
+          <div className="p-6 bg-slate-40 rounded-lg shadow-md mt-8"> {/* Slightly off-white background for the whole area */}
+            <h2 className="text-xl font-semibold mb-4 text-center">比較表示エリア</h2>
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Column 1 */}
+              <div className="flex-1 space-y-2 bg-white p-4 rounded-md"> {/* White background for column 1 cards */}
+                <div className="text-center font-semibold mb-2">データセット1 (例: 昨日)</div>
+                {cardTitles.map((title, index) => (
+                  <AnalyticsCard key={`comparison-col1-${index}`} title={title} />
+                ))}
+              </div>
+              {/* Column 2 */}
+              <div className="flex-1 space-y-2 bg-white p-4 rounded-md"> {/* White background for column 2 cards */}
+                <div className="text-center font-semibold mb-2">データセット2 (例: 今日)</div>
+                {cardTitles.map((title, index) => (
+                  <AnalyticsCard key={`comparison-col2-${index}`} title={title} />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-        )}
+          )}
+          </>
+        ) : (
+          // Content for when vertical tabs are hidden (monthly/quarterly horizontal tabs are active)
+          <div className="p-6 mt-8 flex items-center justify-center h-[calc(100%-var(--tabs-list-height,40px))]"> {/* Adjust height if needed */}
+            <p className="text-gray-500 text-lg">no data available</p>
+          </div>   
+        )}     
       </div>
     </div>
   );

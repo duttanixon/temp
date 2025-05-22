@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { cva } from "class-variance-authority";
 
 type Props = {
-  errorMessage: string;
   handleCancel: () => void;
   mainUnit?: string;
   subUnit?: string;
@@ -23,14 +22,10 @@ const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
 });
 
 export const UserCustomButton = ({
-  errorMessage,
   handleCancel,
   mainUnit,
   subUnit,
 }: Props) => {
-  const Message = ({ message }: { message: string }) => {
-    return <div className="text-sm text-red-500">{message}</div>;
-  };
   return (
     <>
       <div className="flex gap-2">
@@ -48,7 +43,6 @@ export const UserCustomButton = ({
           {subUnit}
         </Button>
       </div>
-      {errorMessage && <Message message={errorMessage} />}
     </>
   );
 };

@@ -1,6 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export const useUserFormEdit = (
   accessToken: string,
@@ -41,12 +41,29 @@ export const useUserFormEdit = (
         setStatus(data.status);
       } catch (err) {
         console.log(err);
+        const axiosError = err as AxiosError;
+        if (axiosError.isAxiosError && axiosError.response) {
+          const status = axiosError.response.status;
+          if (status === 404 || status === 422) {
+            setErrorMessage(
+              `指定されたユーザー (ID: ${userId}) は存在しません。`
+            );
+          } else if (status === 403) {
+            setErrorMessage(
+              `このユーザーを編集する権限がありません。ステータス: ${axiosError.response.status}`
+            );
+          } else {
+            setErrorMessage(
+              `ユーザー情報の取得に失敗しました。ステータス: ${axiosError.response.status}`
+            );
+          }
+        }
       }
     };
     if (accessToken && userId) fetchUser();
   }, [accessToken, userId]);
 
-  const handleUpdate = async (): Promise<void> => {
+  const handleUpdate = useCallback(async (): Promise<void> => {
     setErrorMessage("");
     try {
       if (!firstName || firstName.trim() === "") {
@@ -96,16 +113,30 @@ export const useUserFormEdit = (
         setErrorMessage(detail);
       }
     }
-  };
+  }, [
+    firstName,
+    lastName,
+    email,
+    role,
+    status,
+    customer,
+    accessToken,
+    userId,
+    router,
+    setErrorMessage,
+  ]);
 
-  const handleCancel = (): void => {
+  const handleCancel = useCallback((): void => {
     router.push(`/users/${userId}`);
-  };
+  }, [router, userId]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    handleUpdate();
-  };
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      handleUpdate();
+    },
+    [handleUpdate]
+  );
   return {
     firstName,
     setFirstName,

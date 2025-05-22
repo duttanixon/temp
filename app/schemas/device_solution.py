@@ -46,6 +46,7 @@ class DeviceSolutionDetailView(DeviceSolution):
     solution_name: str
     solution_description: Optional[str] = None
     device_name: Optional[str] = None
+    device_location: Optional[str] = None
     customer_id: Optional[UUID] = None  
     customer_name: Optional[str] = None 
     

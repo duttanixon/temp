@@ -1,76 +1,44 @@
-import axios, { AxiosError } from 'axios';
-import { getSession } from 'next-auth/react';
-import { DeviceDeployment, DeviceDeploymentData } from '@/types/deviceSolution';
-
-// Create an axios instance
-const apiClient = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}`
-});
-
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.accessToken}`;
-  }
-  return config;
-});
-
-// Helper for consistent error handling
-function handleApiError(error: any): never {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>;
-    let message: string;
-    
-    if (axiosError.response?.data?.detail) {
-      message = axiosError.response.data.detail;
-    } else if (axiosError.message) {
-      message = axiosError.message;
-    } else {
-      message = 'An unexpected error occurred';
-    }
-    
-    console.error('API Error:', message);
-    throw new Error(message);
-  }
-  
-  // For non-axios errors
-  if (error instanceof Error) {
-    throw error;
-  }
-  
-  throw new Error('An unexpected error occurred');
-}
+import { apiClient, handleApiError, cleanData } from "./baseApiClient";
+import { DeviceDeployment, DeviceDeploymentData } from "@/types/deviceSolution";
+import { Device } from "@/types/device";
+import { cp } from "fs";
 
 export const deviceSolutionService = {
-    // Get devices using a solution deployed
-    async getDeviceDeployments(solutionId: string): Promise<DeviceDeployment[]> {
-      try {
-        const response = await apiClient.get<DeviceDeployment[]>(`/device-solutions/solution/${solutionId}`);
-        return response.data;
-      } catch (error) {
-        return handleApiError(error);
-        }
-    },
-
-  // Deploy a solution to a device
-  async deployToDevice(data: DeviceDeploymentData): Promise<DeviceDeployment> {
+  // Get devices using a solution deployed
+  async getDeviceDeployments(solutionId: string): Promise<DeviceDeployment[]> {
     try {
-      const response = await apiClient.post<DeviceDeployment>('/device-solutions', data);
+      const response = await apiClient.get<DeviceDeployment[]>(
+        `/device-solutions/solution/${solutionId}`
+      );
       return response.data;
     } catch (error) {
       return handleApiError(error);
     }
   },
 
+  // Deploy a solution to a device
+  async deployToDevice(data: DeviceDeploymentData): Promise<DeviceDeployment> {
+    try {
+      const response = await apiClient.post<DeviceDeployment>(
+        "/device-solutions",
+        data
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
 
   // Update a device's deployment
   async updateDeviceDeployment(
-    deviceId: string, 
+    deviceId: string,
     data: Partial<DeviceDeploymentData>
   ): Promise<DeviceDeployment> {
     try {
-      const response = await apiClient.put<DeviceDeployment>(`/device-solutions/device/${deviceId}`, data);
+      const response = await apiClient.put<DeviceDeployment>(
+        `/device-solutions/device/${deviceId}`,
+        data
+      );
       return response.data;
     } catch (error) {
       return handleApiError(error);
@@ -78,10 +46,15 @@ export const deviceSolutionService = {
   },
 
   // Get devices that are compatible with a solution for a customer
-  async getCompatibleDevices(solutionId: string, customerId: string): Promise<any[]> {
+  async getCompatibleDevices(
+    solutionId: string,
+    customerId: string
+  ): Promise<any[]> {
     try {
       // For solutions/compatibility/device/{deviceId} endpoint
-      const response = await apiClient.get(`devices/compatible/solution/${solutionId}/customer/${customerId}`);
+      const response = await apiClient.get(
+        `devices/compatible/solution/${solutionId}/customer/${customerId}`
+      );
       return response.data;
     } catch (error) {
       return handleApiError(error);
@@ -97,14 +70,39 @@ export const deviceSolutionService = {
   },
 
   // Get customers that have access to a solution
-  async getCustomersWithSolutionAccess(solutionId: string): Promise<{ customer_id: string, name: string }[]> {
+  async getCustomersWithSolutionAccess(
+    solutionId: string
+  ): Promise<{ customer_id: string; name: string }[]> {
     try {
       // This endpoint returns customers that have this solution assigned
-      const response = await apiClient.get<{ customer_id: string, name: string }[]>(
-        '/solutions/assigned-customers',
-        { params: { solution_id: solutionId } }
-      );
+      const response = await apiClient.get<
+        { customer_id: string; name: string }[]
+      >("/solutions/assigned-customers", {
+        params: { solution_id: solutionId },
+      });
       return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  async getDevicesBySolution(
+    solutionId: string
+  ): Promise<
+    Pick<DeviceDeployment, "device_id" | "device_name" | "device_location">[]
+  > {
+    try {
+      const response = await apiClient.get<DeviceDeployment[]>(
+        `/device-solutions/solution/${solutionId}`
+      );
+      console.log("Devices by solution response:", response.data);
+      // Map the response to the structure needed for the DevicesFilter
+      // DeviceDeployment already has device_id and device_name
+      return response.data.map((deployment) => ({
+        device_id: deployment.device_id,
+        device_name: deployment.device_name,
+        device_location: deployment.device_location,
+      }));
     } catch (error) {
       return handleApiError(error);
     }

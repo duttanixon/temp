@@ -7,7 +7,7 @@ interface AnalyticsCardProps {
 
 export default function AnalyticsCard({ title, children }: AnalyticsCardProps) {
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
       <CardHeader>
         <CardTitle className="text-lg font-semibold text-gray-700">
           {title}

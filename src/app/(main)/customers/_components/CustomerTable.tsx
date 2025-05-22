@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import CustomerPagination from "@/app/(main)/customers/_components/Pagination";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 interface Customer {
   customer_id: string;
@@ -28,8 +28,9 @@ export default function CustomerTable({
   setPage,
   itemsPerPage,
 }: CustomerTableProps) {
-  const router = useRouter();
   const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>({});
+
+  const router = useRouter();
 
   useEffect(() => {
     const fetchDeviceMap = async () => {
@@ -64,14 +65,21 @@ export default function CustomerTable({
               <th className="p-2">デバイス</th>
               <th className="p-2">状態</th>
               <th className="p-2">作成日</th>
-              <th className="p-2">アクション</th>
+              {/* <th className="p-2">アクション</th> */}
             </tr>
           </thead>
           <tbody>
             {paginated.map((customer, index) => (
               <tr
                 key={customer.customer_id}
-                className={`border-t ${index % 2 === 0 ? "bg-white" : "bg-[#F9F9F9]"}`}
+                onClick={() =>
+                  router.push(
+                    `/customers/customerDetails/${customer.customer_id}`
+                  )
+                }
+                className={`border-t cursor-pointer hover:bg-blue-50 transition-colors duration-150 ${
+                  index % 2 === 0 ? "bg-white" : "bg-[#F9F9F9]"
+                }`}
               >
                 <td className="p-2">{customer.name}</td>
                 <td className="p-2">{customer.contact_email}</td>
@@ -100,7 +108,7 @@ export default function CustomerTable({
                     {new Date(customer.created_at).toISOString().split("T")[0]}
                   </span>
                 </td>
-                <td className="space-x-2 text-center">
+                {/* <td className="space-x-2 text-center">
                   <button
                     className="w-[55px] h-[25px] bg-[#2980B9]/20 text-[#2980B9] text-xs font-medium px-2 py-1 rounded cursor-pointer"
                     onClick={() =>
@@ -121,7 +129,7 @@ export default function CustomerTable({
                   >
                     閲覧
                   </button>
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>

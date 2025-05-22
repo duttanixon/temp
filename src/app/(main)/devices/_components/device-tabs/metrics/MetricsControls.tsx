@@ -30,12 +30,6 @@ export default function MetricsControls({
   });
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Custom handler for date range changes
-  const handleDateChange = (newRange: DateRange | undefined) => {
-    setDateRange(newRange);
-    setHasChanges(true);
-  };
-
   // Apply button handler
   const handleApplyDateRange = () => {
       if (dateRange?.from && dateRange?.to && onDateRangeChange) {

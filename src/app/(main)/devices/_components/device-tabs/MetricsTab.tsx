@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from "date-fns";
+import { format, isSameDay, startOfDay, endOfDay } from "date-fns";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { MetricsResponse } from "@/types/metrics";
@@ -76,9 +76,7 @@ export default function MetricsTab() {
       setCpuMetrics(null);
       setDiskMetrics(null);
       setIsLoading(true);
-      
-      // The useEffect will trigger a refetch when isLoading changes
-      setRefreshTrigger(prev => prev + 1) // Trigger the useEffect without changing the value
+      setRefreshTrigger(prev => prev + 1);
     }
   };
 
@@ -90,12 +88,17 @@ export default function MetricsTab() {
     setError(null);
     
     try {
+      const adjustedFrom = startOfDay(from);
+      const adjustedTo = endOfDay(to);
+
       // Format dates for API
-      const startTime = format(from, "yyyy-MM-dd'T'HH:mm:ss");
-      const endTime = format(to, "yyyy-MM-dd'T'HH:mm:ss");
+      // Using "yyyy-MM-dd'T'HH:mm:ssXXX" includes the timezone offset, e.g., +09:00
+      // The backend (timestream.py) converts these to UTC.
+      const startTime = format(adjustedFrom, "yyyy-MM-dd'T'HH:mm:ssXXX");
+      const endTime = format(adjustedTo, "yyyy-MM-dd'T'HH:mm:ssXXX");
       
       // Calculate appropriate interval based on date range (in minutes)
-      const diffHours = (to.getTime() - from.getTime()) / (1000 * 60 * 60);
+      const diffHours = (adjustedTo.getTime() - adjustedFrom.getTime()) / (1000 * 60 * 60);
       let interval = 5; // default 5 minutes
       
       if (diffHours > 72) interval = 60; // 1 hour intervals for > 3 days
@@ -117,8 +120,6 @@ export default function MetricsTab() {
       setIsLoading(false);
     }
   };
-
-
 
   // Custom formatters for different units
   const memoryFormatter = (value: number) => `${value.toFixed(0)}`;

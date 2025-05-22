@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import CustomerTable from "./_components/CustomerTable";
 import SearchFilters from "./_components/SearchFilters";
 import StatsCard from "./_components/StatsCard";
+import CustomerPagination from "@/app/(main)/customers/_components/Pagination";
 
 interface Customer {
   customer_id: string;
@@ -112,6 +113,8 @@ export default function CustomersPage() {
   const total = allCustomers.length;
   const active = allCustomers.filter((c) => c.status === "ACTIVE").length;
   const devices = totalDevices;
+  const itemsPerPage = 10;
+  const totalItems = filteredCustomers.length;
 
   return (
     <div className="space-y-6">
@@ -146,6 +149,15 @@ export default function CustomersPage() {
         setPage={setPage}
         itemsPerPage={10}
       />
+
+      <div className="">
+        <CustomerPagination
+          page={page}
+          setPage={setPage}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+        />
+      </div>
     </div>
   );
 }

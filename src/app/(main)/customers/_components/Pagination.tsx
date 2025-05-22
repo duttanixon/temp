@@ -21,12 +21,12 @@ export default function CustomerPagination({
   const hasNextPage = page < totalPages - 1;
 
   return (
-    <div className="flex justify-center items-center mt-4 gap-2">
+    <div className="flex justify-center items-center gap-2">
       {/* Back button with arrow icon */}
       <button
         onClick={() => setPage(page - 1)}
         disabled={page === 0}
-        className="px-3 py-1 border rounded disabled:opacity-50 flex items-center justify-center"
+        className="px-3 py-1 border rounded disabled:opacity-50 flex items-center justify-center cursor-pointer"
       >
         <svg
           className="w-4 h-4 text-gray-700"
@@ -47,7 +47,7 @@ export default function CustomerPagination({
         <button
           key={p}
           onClick={() => setPage(p)}
-          className={`px-3 py-1 border rounded ${p === page ? "bg-gray-200 font-bold" : ""}`}
+          className={`px-3 py-1 border rounded cursor-pointer ${p === page ? "bg-gray-200 font-bold" : ""}`}
         >
           {p + 1}
         </button>
@@ -57,7 +57,7 @@ export default function CustomerPagination({
       <button
         onClick={() => setPage(page + 1)}
         disabled={!hasNextPage}
-        className="px-3 py-1 border rounded disabled:opacity-50 flex items-center justify-center"
+        className="px-3 py-1 border rounded disabled:opacity-50 flex items-center justify-center cursor-pointer"
       >
         <svg
           className="w-4 h-4 text-gray-700"

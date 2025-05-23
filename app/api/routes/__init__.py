@@ -6,3 +6,4 @@ from app.api.routes.solutions import router as solutions_router
 from app.api.routes.device_solutions import router as device_solutions_router
 from app.api.routes.customer_solutions import router as customer_solutions_router
 from app.api.routes.device_metrics import router as device_metrics_router
+from app.api.routes.services.city_eye_analytics import router as city_eye_analytics_router

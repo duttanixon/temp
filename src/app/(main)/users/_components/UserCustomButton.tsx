@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { cva } from "class-variance-authority";
 
 type Props = {
-  errorMessage: string;
   handleCancel: () => void;
+  mainUnit?: string;
+  subUnit?: string;
 };
 
 const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
@@ -20,10 +21,11 @@ const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
   },
 });
 
-export const AddUserButton = ({ errorMessage, handleCancel }: Props) => {
-  const Message = ({ message }: { message: string }) => {
-    return <div className="text-sm text-red-500">{message}</div>;
-  };
+export const UserCustomButton = ({
+  handleCancel,
+  mainUnit,
+  subUnit,
+}: Props) => {
   return (
     <>
       <div className="flex gap-2">
@@ -31,17 +33,16 @@ export const AddUserButton = ({ errorMessage, handleCancel }: Props) => {
           className={buttonVariants({ variant: "default" })}
           type="submit"
         >
-          作成
+          {mainUnit}
         </Button>
         <Button
           className={buttonVariants({ variant: "cancel" })}
           type="button"
           onClick={handleCancel}
         >
-          キャンセル
+          {subUnit}
         </Button>
       </div>
-      {errorMessage && <Message message={errorMessage} />}
     </>
   );
 };

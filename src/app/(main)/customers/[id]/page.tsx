@@ -1,19 +1,22 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 
 export default function CustomerOverviewPage() {
   const [customerId, setCustomerId] = useState("");
   const [error, setError] = useState("");
 
-  const handleNavigate = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!customerId.trim()) {
-      e.preventDefault();
-      setError("CustomerIDを入力してください");
-    } else {
-      setError("");
-    }
-  };
+  const handleNavigate = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!customerId.trim()) {
+        e.preventDefault();
+        setError("CustomerIDを入力してください");
+      } else {
+        setError("");
+      }
+    },
+    [customerId]
+  );
 
   return (
     <div>

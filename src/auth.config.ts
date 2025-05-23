@@ -5,5 +5,6 @@ export const authConfig = {
     signIn: "/login",
   },
   providers: [],
+  secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
 } satisfies NextAuthConfig;

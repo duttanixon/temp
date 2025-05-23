@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface SearchFiltersProps {
   onSearch: (query: string, status: string) => void;
@@ -30,8 +30,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
           <select
             className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
+            onChange={(e) => setStatus(e.target.value)}>
             <option>すべて</option>
             <option value={"active"}>アクティブ</option>
             <option value={"inactive"}>非アクティブ</option>

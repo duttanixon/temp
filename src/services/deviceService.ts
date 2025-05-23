@@ -90,7 +90,6 @@ export const deviceService = {
   // Update an existing device
   async updateDevice(id: string, data: DeviceUpdateData): Promise<Device> {
     try {
-      const session = await getSession();
       const response = await apiClient.put<Device>(`/devices/${id}`, data);
       return response.data;
     } catch (error) {

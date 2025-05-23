@@ -14,8 +14,8 @@ export default async function page() {
         </Link>{" "}
         &gt;
       </h2>
-      <h1 className="text-3xl font-bold underline">Users</h1>
-      <div className="flex flex-col text-blue-600 underline hover:text-blue-800">
+      <h1 className="text-2xl font-bold">ユーザー管理</h1>
+      <div className="text-blue-600 underline hover:text-blue-800">
         <Link href={"/users/add"}>作成</Link>
       </div>
       <UserEditSearch />

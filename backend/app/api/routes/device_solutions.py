@@ -391,6 +391,7 @@ def get_devices_by_solution(
         db.query(
             DeviceSolution,
             Device.name.label("device_name"),
+            Device.location.label("device_location"),
             Device.customer_id,
             Customer.name.label("customer_name"),
         )
@@ -416,13 +417,15 @@ def get_devices_by_solution(
     for result in results:
         ds = result[0]  # DeviceSolution object
         device_name = result[1]
-        customer_id = result[2]
-        customer_name = result[3]
+        device_location = result[2]
+        customer_id = result[3]
+        customer_name = result[4]
         
         detail_view = {
             "id": ds.id,
             "device_id": ds.device_id,
             "device_name": device_name,
+            "device_location": device_location,
             "customer_id": customer_id,
             "customer_name": customer_name,
             "solution_id": ds.solution_id,

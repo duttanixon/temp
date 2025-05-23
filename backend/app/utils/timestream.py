@@ -62,7 +62,23 @@ def query_memory_metrics(
         
         for row in response['Rows']:
             if len(row['Data']) >= 3:
-                timestamp = row['Data'][0]['ScalarValue']
+                # Parse the UTC timestamp
+                timestamp_str = row['Data'][0]['ScalarValue']
+                # Convert to datetime (assuming it's in UTC)
+                try:
+                    # Format without timezone, assume UTC
+                    timestamp_dt = datetime.fromisoformat(timestamp_str)
+                    timestamp_dt = timestamp_dt.replace(tzinfo=ZoneInfo("UTC"))
+                
+                    # Convert to JST
+                    timestamp_jst = timestamp_dt.astimezone(ZoneInfo("Asia/Tokyo"))
+                    # Format with timezone info
+                    timestamp = timestamp_jst.isoformat()
+                except ValueError:
+                    # If parsing fails, keep the original timestamp but log warning
+                    logger.warning(f"Could not parse timestamp: {timestamp_str}")
+                    timestamp = timestamp_str
+
                 measure_name = row['Data'][1]['ScalarValue']
                 value = float(row['Data'][2]['ScalarValue'])
                 
@@ -128,7 +144,22 @@ def query_cpu_metrics(
         
         for row in response['Rows']:
             if len(row['Data']) >= 3:
-                timestamp = row['Data'][0]['ScalarValue']
+                # Parse the UTC timestamp
+                timestamp_str = row['Data'][0]['ScalarValue']
+                # Convert to datetime (assuming it's in UTC)
+                try:
+                    # Format without timezone, assume UTC
+                    timestamp_dt = datetime.fromisoformat(timestamp_str)
+                    timestamp_dt = timestamp_dt.replace(tzinfo=ZoneInfo("UTC"))
+                
+                    # Convert to JST
+                    timestamp_jst = timestamp_dt.astimezone(ZoneInfo("Asia/Tokyo"))
+                    # Format with timezone info
+                    timestamp = timestamp_jst.isoformat()
+                except ValueError:
+                    # If parsing fails, keep the original timestamp but log warning
+                    logger.warning(f"Could not parse timestamp: {timestamp_str}")
+                    timestamp = timestamp_str
                 metric_name = row['Data'][1]['ScalarValue']
                 value = float(row['Data'][2]['ScalarValue'])
                 
@@ -193,7 +224,23 @@ def query_disk_metrics(
         
         for row in response['Rows']:
             if len(row['Data']) >= 3:
-                timestamp = row['Data'][0]['ScalarValue']
+                # Parse the UTC timestamp
+                timestamp_str = row['Data'][0]['ScalarValue']
+                # Convert to datetime (assuming it's in UTC)
+                try:
+                    # Format without timezone, assume UTC
+                    timestamp_dt = datetime.fromisoformat(timestamp_str)
+                    timestamp_dt = timestamp_dt.replace(tzinfo=ZoneInfo("UTC"))
+                
+                    # Convert to JST
+                    timestamp_jst = timestamp_dt.astimezone(ZoneInfo("Asia/Tokyo"))
+                    # Format with timezone info
+                    timestamp = timestamp_jst.isoformat()
+                except ValueError:
+                    # If parsing fails, keep the original timestamp but log warning
+                    logger.warning(f"Could not parse timestamp: {timestamp_str}")
+                    timestamp = timestamp_str
+                    
                 measure_name = row['Data'][1]['ScalarValue']
                 value = float(row['Data'][2]['ScalarValue'])
                 

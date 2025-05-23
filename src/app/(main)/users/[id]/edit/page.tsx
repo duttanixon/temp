@@ -1,10 +1,10 @@
-import { auth } from "@/auth";
 import UserEditForm from "@/app/(main)/users/[id]/edit/_components/UserEditForm";
+import { auth } from "@/auth";
 
 type Props = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 export default async function UserEditPage(props: Props) {
   const params = await props.params;

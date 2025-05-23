@@ -1,6 +1,5 @@
 "use client";
 
-import { Toaster } from "@/components/ui/sonner";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
@@ -45,8 +44,7 @@ export default function LoginPage() {
       {/* Right side login form */}
       <div
         className="w-full flex items-center justify-center p-8"
-        style={{ backgroundColor: "#f5f7f9" }}
-      >
+        style={{ backgroundColor: "#f5f7f9" }}>
         <LoginForm />
       </div>
 
@@ -54,8 +52,6 @@ export default function LoginPage() {
       <Suspense fallback={null}>
         <ErrorMessage />
       </Suspense>
-
-      <Toaster richColors closeButton position="bottom-left" />
     </div>
   );
 }

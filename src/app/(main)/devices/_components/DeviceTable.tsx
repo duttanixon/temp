@@ -40,6 +40,12 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
               scope="col"
               className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50]"
             >
+             顧客名
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50]"
+            >
               ステータス
             </th>
             <th
@@ -66,6 +72,9 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[#2C3E50]">
                   {device.device_type}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#2C3E50]">
+                  {device.customer_name || "-"}
+                </td>                
                 <td className="px-6 py-4 whitespace-nowrap">
                   <DeviceStatusBadge status={device.status} isOnline={device.is_online} />
                 </td>

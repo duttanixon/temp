@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export const useCustomerFormEdit = (
@@ -37,14 +37,30 @@ export const useCustomerFormEdit = (
         setAddress(data.address);
         setStatus(data.status);
       } catch (err) {
-        setErrorMessage("顧客情報の取得に失敗しました");
         console.log(err);
+        const axiosError = err as AxiosError;
+        if (axiosError.isAxiosError && axiosError.response) {
+          const status = axiosError.response.status;
+          if (status === 404 || status === 422) {
+            setErrorMessage(
+              `指定された顧客 (ID: ${customerId}) は存在しません。`
+            );
+          } else if (status === 403) {
+            setErrorMessage(
+              `この顧客を編集する権限がありません。ステータス: ${axiosError.response.status}`
+            );
+          } else {
+            setErrorMessage(
+              `顧客情報の取得に失敗しました。ステータス: ${axiosError.response.status}`
+            );
+          }
+        }
       }
     };
     if (accessToken && customerId) fetchCustomer();
   }, [accessToken, customerId]);
 
-  const handleUpdate = async (): Promise<void> => {
+  const handleUpdate = useCallback(async (): Promise<void> => {
     setErrorMessage("");
     try {
       if (!companyName || companyName.trim() === "") {
@@ -94,15 +110,18 @@ export const useCustomerFormEdit = (
         }
       }
     }
-  };
+  }, [companyName, email, address, status, accessToken, customerId, router]);
 
-  const handleCancel = (): void => {
+  const handleCancel = useCallback((): void => {
     router.push(`/customers/${customerId}`);
-  };
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    handleUpdate();
-  };
+  }, [customerId, router]);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      handleUpdate();
+    },
+    [handleUpdate]
+  );
   return {
     companyName,
     setCompanyName,

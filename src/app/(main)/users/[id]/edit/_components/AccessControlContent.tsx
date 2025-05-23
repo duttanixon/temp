@@ -23,7 +23,7 @@ export const formVariants = cva("", {
     variant: "userInfo",
   },
 });
-export const AdminFormContent = ({
+export const AccessControlContent = ({
   role,
   customer,
   setRole,
@@ -32,12 +32,10 @@ export const AdminFormContent = ({
 }: Props) => {
   const { customers } = useCustomerAccess(accessToken);
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center gap-x-16 pb-5">
+    <>
+      <div className="flex items-center gap-x-16">
         <h2 className={formVariants({ variant: "userInfo" })}>アクセス制御</h2>
-        <span className="text-sm font-normal text-[#7F8C8D]">
-          <span className="text-[#FF0000]">*</span> 必須項目
-        </span>
+        <span className="text-sm font-normal text-[#7F8C8D]"></span>
       </div>
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-5">
@@ -78,6 +76,6 @@ export const AdminFormContent = ({
           />
         </div>
       </div>
-    </div>
+    </>
   );
 };

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useUserFormCreate } from "@/app/(main)/users/hooks/useUserFormCreate";
 import { CommonFormContent } from "@/app/(main)/users/add/_components/CommonFormContent";
 import { AdminFormContent } from "@/app/(main)/users/add/_components/AdminFormContent";
-import { AddUserButton } from "@/app/(main)/users/add/_components/AddUserButton";
+import { UserCustomButton } from "@/app/(main)/users/_components/UserCustomButton";
 type Props = {
   accessToken: string;
   role: string;
@@ -33,7 +33,7 @@ export default function UserAddForm({ accessToken, role, customer }: Props) {
               <AdminFormContent {...form} accessToken={accessToken} />
             )}
           </div>
-          <AddUserButton {...form} />
+          <UserCustomButton {...form} mainUnit="作成" subUnit="キャンセル" />
         </form>
       </div>
     </div>

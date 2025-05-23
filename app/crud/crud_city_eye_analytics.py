@@ -2,8 +2,8 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Integer, Date, Time, case, and_
 from sqlalchemy.dialects.postgresql import INTERVAL
-from app.models.solutions.city_eye.human_table import City_Eye_human_table
-from app.schemas.solutions.city_eye_analytics import AnalyticsFilters
+from app.models.services.city_eye.human_table import City_Eye_human_table
+from app.schemas.services.city_eye_analytics import AnalyticsFilters
 
 class CRUDCityEyeAnalytics:
 
@@ -156,7 +156,10 @@ class CRUDCityEyeAnalytics:
 
         # Group by hour: Truncate timestamp to the hour
         # This assumes the `timestamp` column is of a type that supports date_trunc
-        time_bucket = func.date_trunc('hour', City_Eye_human_table.timestamp).label("time_bucket")
+        if db.bind.dialect.name == 'sqlite':
+            time_bucket = func.strftime('%Y-%m-%d %H:00:00', City_Eye_human_table.timestamp).label("time_bucket")
+        else:
+            time_bucket = func.date_trunc('hour', City_Eye_human_table.timestamp).label("time_bucket")
 
 
         query = db.query(

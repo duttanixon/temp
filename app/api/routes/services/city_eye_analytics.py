@@ -10,7 +10,7 @@ from app.crud import (
     crud_city_eye_analytics,
     device_solution,
 )
-from app.schemas.solutions.city_eye_analytics import (
+from app.schemas.services.city_eye_analytics import (
     CityEyeAnalyticsResponse,
     AnalyticsFilters,
     TotalCount,

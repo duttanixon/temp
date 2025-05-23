@@ -18,7 +18,12 @@ from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from app.db.session import Base, get_db
 from app.main import app
-from app.models import User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, LicenseStatus, SolutionStatus
+from app.models import (
+    User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, 
+    DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, 
+    LicenseStatus, SolutionStatus
+)
+from app.models.services.city_eye.human_table import City_Eye_human_table
 # Test database URL - use SQLite for tests 
 TEST_DATABASE_URL = f"sqlite:///./test.db"
 
@@ -200,7 +205,6 @@ def active_device(db: Session, customer: Customer) -> Device:
     return db.query(Device).filter(Device.status == DeviceStatus.ACTIVE).first()
 
 
-
 @pytest.fixture
 def test_customer_solution(db: Session, customer: Customer) -> CustomerSolution:
     """Get a customer solution created by the seed function"""
@@ -235,6 +239,124 @@ def suspended_customer_solution(db: Session, suspended_customer: Customer, admin
     db.refresh(new_cs)
     
     return new_cs
+
+# City Eye specific fixtures
+@pytest.fixture
+def city_eye_solution(db: Session) -> Solution:
+    """Get or create City Eye solution for testing"""
+    city_eye = db.query(Solution).filter(Solution.name == "City Eye").first()
+    if not city_eye:
+        city_eye = Solution(
+            solution_id=uuid.uuid4(),
+            name="City Eye",
+            description="City Eye human flow analytics solution",
+            version="1.0.0",
+            compatibility=["NVIDIA_JETSON", "RASPBERRY_PI"],
+            status=SolutionStatus.ACTIVE
+        )
+        db.add(city_eye)
+        db.commit()
+        db.refresh(city_eye)
+    return city_eye
+
+@pytest.fixture
+def city_eye_customer_solution(db: Session, customer: Customer, city_eye_solution: Solution) -> CustomerSolution:
+    """Create customer solution access for City Eye"""
+    existing = db.query(CustomerSolution).filter(
+        CustomerSolution.customer_id == customer.customer_id,
+        CustomerSolution.solution_id == city_eye_solution.solution_id
+    ).first()
+    
+    if existing:
+        return existing
+    
+    customer_solution = CustomerSolution(
+        id=uuid.uuid4(),
+        customer_id=customer.customer_id,
+        solution_id=city_eye_solution.solution_id,
+        license_status=LicenseStatus.ACTIVE,
+        max_devices=10
+    )
+    db.add(customer_solution)
+    db.commit()
+    db.refresh(customer_solution)
+    return customer_solution
+
+
+@pytest.fixture
+def city_eye_device_solution(db: Session, device: Device, city_eye_solution: Solution) -> DeviceSolution:
+    """Create device solution deployment for City Eye"""
+    existing = db.query(DeviceSolution).filter(
+        DeviceSolution.device_id == device.device_id,
+        DeviceSolution.solution_id == city_eye_solution.solution_id
+    ).first()
+    
+    if existing:
+        return existing
+    
+    device_solution = DeviceSolution(
+        id=uuid.uuid4(),
+        device_id=device.device_id,
+        solution_id=city_eye_solution.solution_id,
+        status=DeviceSolutionStatus.ACTIVE,
+        version_deployed="1.0.0",
+        configuration={"param1": "value1"}
+    )
+    db.add(device_solution)
+    db.commit()
+    db.refresh(device_solution)
+    return device_solution
+
+@pytest.fixture
+def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+    """Create test analytics data for City Eye"""
+    base_time = datetime.now()
+    
+    # Create sample human flow data
+    test_data = [
+        City_Eye_human_table(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=base_time,
+            polygon_id_in="entrance_1",
+            polygon_id_out="exit_1",
+            male_less_than_18=5,
+            female_less_than_18=3,
+            male_18_to_29=10,
+            female_18_to_29=8,
+            male_30_to_49=15,
+            female_30_to_49=12,
+            male_50_to_64=7,
+            female_50_to_64=6,
+            male_65_plus=2,
+            female_65_plus=4
+        ),
+        City_Eye_human_table(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=base_time + timedelta(hours=1),
+            polygon_id_in="entrance_2",
+            polygon_id_out="exit_2",
+            male_less_than_18=3,
+            female_less_than_18=4,
+            male_18_to_29=12,
+            female_18_to_29=9,
+            male_30_to_49=18,
+            female_30_to_49=14,
+            male_50_to_64=8,
+            female_50_to_64=7,
+            male_65_plus=3,
+            female_65_plus=5
+        )
+    ]
+    
+    for data in test_data:
+        db.add(data)
+    db.commit()
+    
+    return test_data
 
 
 def seed_test_data(db: Session) -> None:

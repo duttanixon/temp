@@ -5,3 +5,4 @@ from app.crud.device import device
 from app.crud.solution import solution
 from app.crud.customer_solution import customer_solution
 from app.crud.device_solution import device_solution
+from app.crud.crud_city_eye_analytics import crud_city_eye_analytics

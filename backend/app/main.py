@@ -9,6 +9,7 @@ from app.api.routes import (
     device_solutions_router,
     customer_solutions_router,
     device_metrics_router,
+    city_eye_analytics_router
 )
 from app.core.config import settings
 from app.api import deps
@@ -65,6 +66,12 @@ app.include_router(
     device_metrics_router,
     prefix=f"{settings.API_V1_STR}/device-metrics",
     tags=["device-metrics"],
+)
+
+app.include_router(
+    city_eye_analytics_router,
+    prefix=f"{settings.API_V1_STR}/analytics/city-eye",
+    tags=["analytics-city-eye"],
 )
 
 

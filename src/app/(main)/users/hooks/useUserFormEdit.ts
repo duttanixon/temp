@@ -103,7 +103,7 @@ export const useUserFormEdit = (
       );
       if (res.status === 200) {
         console.log("ユーザー情報が更新されました");
-        router.push(`/users/${userId}`);
+        router.push(`/users/`);
       }
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -127,8 +127,8 @@ export const useUserFormEdit = (
   ]);
 
   const handleCancel = useCallback((): void => {
-    router.push(`/users/${userId}`);
-  }, [router, userId]);
+    router.push(`/users/`);
+  }, [router]);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {

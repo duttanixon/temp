@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import UserEditSearch from "@/app/(main)/users/_components/UserEditSearch";
 
 export default async function page() {
   // サーバーサイドでセッションを取得
@@ -7,11 +8,17 @@ export default async function page() {
   console.log("👥 USERS PAGE: Session data:", session);
   return (
     <div className="flex flex-col gap-2">
+      <h2 className="text-sm text-[#7F8C8D]">
+        <Link href="/users" className="hover:underline">
+          ユーザー管理
+        </Link>{" "}
+        &gt;
+      </h2>
       <h1 className="text-3xl font-bold underline">Users</h1>
       <div className="flex flex-col text-blue-600 underline hover:text-blue-800">
         <Link href={"/users/add"}>作成</Link>
-        <Link href={"users/${user.id}"}>編集</Link>
       </div>
+      <UserEditSearch />
     </div>
   );
 }

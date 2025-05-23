@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useUserFormEdit } from "@/app/(main)/users/hooks/useUserFormEdit";
 import { CommonFormContent } from "@/app/(main)/users/[id]/edit/_components/CommonFormContent";
-import { AccountControlContent } from "@/app/(main)/users/[id]/edit/_components/AccountControlContent";
 import { AccessControlContent } from "@/app/(main)/users/[id]/edit/_components/AccessControlContent";
+import { AccountControlContent } from "@/app/(main)/users/[id]/edit/_components/AccountControlContent";
 import { UserCustomButton } from "@/app/(main)/users/_components/UserCustomButton";
 
 type Props = {
@@ -48,9 +48,9 @@ export default function UserEditForm({ accessToken, role, userId }: Props) {
             <div className="flex flex-col gap-4">
               <CommonFormContent {...form} />
               {role === "ADMIN" && (
-                <AccountControlContent {...form} accessToken={accessToken} />
+                <AccessControlContent {...form} accessToken={accessToken} />
               )}
-              <AccessControlContent {...form} />
+              <AccountControlContent {...form} />
             </div>
           </div>
           <UserCustomButton {...form} mainUnit="保存" subUnit="キャンセル" />

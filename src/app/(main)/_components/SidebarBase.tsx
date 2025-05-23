@@ -94,7 +94,7 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
     <aside
       className={cn(
         "bg-[color:var(--sidebar-bg)] border-r border-[color:var(--sidebar-border)] transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
-        "top-16",
+        "top-12",
         "z-10",
         isCollapsed ? "w-16" : "w-64"
       )}

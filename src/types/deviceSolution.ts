@@ -13,6 +13,7 @@ export interface DeviceDeployment {
   last_update?: string;
   created_at: string;
   updated_at?: string;
+  device_location?: string;
 }
 
 export type DeviceDeploymentData = {

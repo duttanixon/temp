@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import DeviceActions from "../_components/DeviceActions";
 import DeviceInfoCard from "../_components/DeviceInfoCard";
+import DeviceDetailsTabs from "../_components/DeviceDetailsTabs";
 import type { Metadata, ResolvingMetadata } from "next";
 
 async function getDevice(deviceId: string, accessToken: string) {
@@ -59,15 +60,21 @@ export default async function DeviceDetailsPage(
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <a href="/devices" className="text-sm text-[#7F8C8D] hover:underline">
-            デバイス管理
-          </a>
-          <h1 className="text-2xl font-bold text-[#2C3E50]">{device.name}</h1>
+          <a href="/devices" className="text-sm text-[#7F8C8D] hover:underline"> デバイス管理 </a>
+          <h2 className="text-lg font-bold text-[#2C3E50]">
+            {device.name}
+            {device.isOnline ? (
+              <span className="ml-8 text-green-600 text-lg">オンライン</span>
+            ) : (
+              <span className="ml-8 text-red-600 text-lg">オフライン</span>
+            )}
+          </h2>
         </div>
         <DeviceActions device={device} />
       </div>
 
       <DeviceInfoCard device={device} />
+      <DeviceDetailsTabs />
     </div>
   );
 }

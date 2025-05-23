@@ -1,82 +1,116 @@
 "use client";
 
-// HeaderClient.tsx
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User } from "lucide-react";
+import { useSidebarContext } from "@/lib/sidebar-context";
+import { Menu, User } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 interface HeaderClientProps {
-    userName: string;
-    customerName: string;
-    isSubHeaderView: boolean;
-    isAuthenticated: boolean;
+  userName: string;
+  customerName: string;
+  showCustomerHeader: boolean;
+  isAuthenticated: boolean;
 }
 
 export function HeaderClient({
-    userName,
-    customerName,
-    isSubHeaderView,
-    isAuthenticated,
+  userName,
+  customerName,
+  showCustomerHeader,
+  isAuthenticated,
 }: HeaderClientProps) {
-    const router = useRouter();
+  const router = useRouter();
+  const { toggleSidebar } = useSidebarContext();
 
-    // ログアウト処理
-    const handleLogout = async () => {
-        await signOut({ redirect: false });
-        router.push("/login");
-    };
+  // Logout handler
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
 
-    return (
-        <div>
-            <header className="bg-[#2C3E50] text-white px-8 py-2 flex items-center justify-between">
-                <h1 className="text-xl font-semibold">
-                    IoT エッジデバイス管理サービス(仮)
-                </h1>
-                {isAuthenticated && (
-                    <div className="flex items-center gap-4">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    className="flex items-center gap-2 text-white cursor-pointer">
-                                    <User className="h-5 w-5" />
-                                    <span>{userName || "User"} ▾</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/profile")}
-                                    className="cursor-pointer">
-                                    Profile
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => router.push("/settings")}
-                                    className="cursor-pointer">
-                                    Settings
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={handleLogout}
-                                    className="cursor-pointer text-red-500 hover:text-red-700">
-                                    Logout
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                )}
-            </header>
-            {/* サブヘッダー - 顧客ユーザー向け */}
-            {isSubHeaderView && (
-                <div className="bg-[#34495E] text-white px-8 py-2 border-t border-gray-700">
-                    <h2 className="text-lg font-medium">{customerName}</h2>
-                </div>
-            )}
+  return (
+    <div className="sticky top-0 z-20">
+      <header
+        className="bg-[color:var(--header-bg)] text-[color:var(--header-text)] px-4 sm:px-4 py-2 flex items-center justify-between "
+        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
+      >
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] mr-1"
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle sidebar</span>
+          </Button>
+
+          <h1 className="text-xl font-semibold">
+            {showCustomerHeader
+              ? customerName
+              : "IoT エッジデバイス管理システム"}
+          </h1>
         </div>
-    );
+
+        {isAuthenticated && (
+          <UserMenu userName={userName} onLogout={handleLogout} />
+        )}
+      </header>
+    </div>
+  );
+}
+
+// User menu component extracted for better separation of concerns
+function UserMenu({
+  userName,
+  onLogout,
+}: {
+  userName: string;
+  onLogout: () => void;
+}) {
+  const router = useRouter();
+
+  return (
+    <div className="flex items-center gap-4">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
+          >
+            <User className="h-5 w-5" />
+            <span>{userName || "User"} ▾</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => router.push("/profile")}
+            className="cursor-pointer"
+          >
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push("/settings")}
+            className="cursor-pointer"
+          >
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={onLogout}
+            className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]"
+          >
+            Logout
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 }

@@ -44,11 +44,12 @@ class AnalyticsFilters(BaseModel):
     device_ids: Optional[List[uuid.UUID]] = None
     start_time: datetime
     end_time: datetime
+    days: Optional[List[str]] = None  # e.g., ["sunday", "monday"]
+    hours: Optional[List[str]] = None  # e.g., ["10:00", "14:00"]
     polygon_ids_in: Optional[List[str]] = None
     polygon_ids_out: Optional[List[str]] = None
     genders: Optional[List[str]] = None # ["male", "female"]
     age_groups: Optional[List[str]] = None # ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"]
-
 
 class PerDeviceAnalyticsData(BaseModel):
     total_count: Optional[TotalCount] = None

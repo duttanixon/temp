@@ -49,10 +49,21 @@ class AnalyticsFilters(BaseModel):
     genders: Optional[List[str]] = None # ["male", "female"]
     age_groups: Optional[List[str]] = None # ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"]
 
-class CityEyeAnalyticsResponse(BaseModel):
+
+class PerDeviceAnalyticsData(BaseModel):
     total_count: Optional[TotalCount] = None
     age_distribution: Optional[AgeDistribution] = None
     gender_distribution: Optional[GenderDistribution] = None
     age_gender_distribution: Optional[AgeGenderDistribution] = None
     hourly_distribution: Optional[List[HourlyCount]] = None
     time_series_data: Optional[List[TimeSeriesData]] = None
+
+class DeviceAnalyticsItem(BaseModel):
+    device_id: uuid.UUID
+    device_name: Optional[str] = None # Helpful for the frontend
+    device_location: Optional[str] = None # Optional location info for the device
+    analytics_data: PerDeviceAnalyticsData
+    error: Optional[str] = None # In case processing for this device fails
+
+# --- MODIFIED: The main response is now a list of DeviceAnalyticsItem ---
+CityEyeAnalyticsPerDeviceResponse = List[DeviceAnalyticsItem]

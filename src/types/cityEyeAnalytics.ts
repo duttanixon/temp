@@ -27,13 +27,22 @@ export interface FrontendAgeDistribution {
   over_64: number; // Matches backend schema (maps to 65_plus on backend)
 }
 
+export interface FrontendGenderDistribution {
+  male: number;
+  female: number;
+}
+
+export interface FrontendHourlyCount {
+  hour: number;
+  count: number;
+}
+
 export interface FrontendPerDeviceAnalyticsData {
   total_count?: FrontendTotalCount;
   age_distribution?: FrontendAgeDistribution;
+  gender_distribution?: FrontendGenderDistribution;
+  hourly_distribution?: FrontendHourlyCount[];
   // Add other distributions if needed by other cards later
-  // gender_distribution?: GenderDistribution;
-  // age_gender_distribution?: AgeGenderDistribution;
-  // hourly_distribution?: HourlyCount[];
   // time_series_data?: TimeSeriesData[];
 }
 
@@ -85,11 +94,49 @@ export interface ProcessedAgeDistributionData {
   >;
 }
 
+// Processed data for Gender Distribution Card
+export interface ProcessedGenderSegment {
+  name: string; // e.g., "男性", "女性"
+  value: number;
+  configKey: string; // e.g., "male", "female"
+}
+
+export interface ProcessedGenderDistributionData {
+  overallGenderDistribution: ProcessedGenderSegment[] | null; // Made nullable
+  perDeviceGenderDistribution: Array<
+    DeviceCountData & {
+      // Reusing DeviceCountData for device info and total count for that gender category on that device (if needed, or simply use overall gender count per device)
+      genderDistribution: ProcessedGenderSegment[] | null; // Or simplify if pie chart per device is not needed
+      error?: string;
+    }
+  >;
+}
+
+// Processed data for Hourly Distribution Card
+export interface ProcessedHourlyDataPoint {
+  hour: string; // Formatted hour e.g., "09:00"
+  count: number;
+  fullTimestamp?: string; // For tooltip, similar to metrics chart
+}
+
+export interface ProcessedHourlyDistributionData {
+  overallHourlyDistribution: ProcessedHourlyDataPoint[] | null; // Made nullable
+  perDeviceHourlyDistribution: Array<{
+    deviceId: string;
+    deviceName?: string;
+    deviceLocation?: string;
+    hourlyData: ProcessedHourlyDataPoint[] | null;
+    error?: string;
+  }>;
+}
+
 // Combined processed data type (can be expanded)
 export interface ProcessedAnalyticsData {
   totalPeople: {
     totalCount: number;
     perDeviceCounts: DeviceCountData[];
   } | null;
-  ageDistribution: ProcessedAgeDistributionData | null; // Added field
+  ageDistribution: ProcessedAgeDistributionData | null;
+  genderDistribution: ProcessedGenderDistributionData | null;
+  hourlyDistribution: ProcessedHourlyDistributionData | null;
 }

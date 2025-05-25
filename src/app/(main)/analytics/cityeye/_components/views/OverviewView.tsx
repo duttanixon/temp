@@ -2,12 +2,14 @@
 
 import React from "react";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
-import AgeDistributionCard from "../cards/AgeDistributionCard"; // Import new card
-import AnalyticsCard from "../cards/AnalyticsCard";
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics"; // Use combined type
+import AgeDistributionCard from "../cards/AgeDistributionCard";
+import GenderDistributionCard from "../cards/GenderDistributionCard"; // Added
+import HourlyDistributionCard from "../cards/HourlyDistributionCard"; // Added
+import AnalyticsCard from "../cards/AnalyticsCard"; // Keep for other placeholders
+import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 
 interface OverviewViewProps {
-  processedData: ProcessedAnalyticsData | null; // Use combined processed data
+  processedData: ProcessedAnalyticsData | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -16,8 +18,6 @@ interface OverviewViewProps {
 // Update card titles to reflect the new card
 const placeholderCardTitles = [
   "カメラマップ",
-  // "属性別分析", // This will be replaced by AgeDistributionCard
-  "時系列分析",
   "人流構成",
   "期間内イベント一覧",
 ];
@@ -47,6 +47,25 @@ export default function OverviewView({
           processedData?.ageDistribution?.overallAgeDistribution ?? null
         }
       />
+      <GenderDistributionCard // Added
+        title="性別分析"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        genderDistributionData={
+          processedData?.genderDistribution?.overallGenderDistribution ?? null
+        }
+      />
+      <HourlyDistributionCard // Added
+        title="時間別分析"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        hourlyDistributionData={
+          processedData?.hourlyDistribution?.overallHourlyDistribution ?? null
+        }
+      />
+      {/* Render remaining placeholder cards if any */}
       {placeholderCardTitles.map((title, index) => (
         <AnalyticsCard key={index} title={title}>
           <div className="flex flex-col items-center justify-center h-full">

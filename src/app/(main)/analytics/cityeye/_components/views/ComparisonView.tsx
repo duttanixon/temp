@@ -1,21 +1,22 @@
-// src/app/(main)/analytics/cityeye/_components/views/ComparisonView.tsx
 "use client";
 
 import React from "react";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
-import AgeDistributionCard from "../cards/AgeDistributionCard"; // Import new card
+import AgeDistributionCard from "../cards/AgeDistributionCard";
+import GenderDistributionCard from "../cards/GenderDistributionCard"; // Added
+import HourlyDistributionCard from "../cards/HourlyDistributionCard"; // Added
 // import AnalyticsCard from "../cards/AnalyticsCard"; // If other placeholders are needed
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics"; // Use combined type
+import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 
 interface ComparisonViewProps {
-  mainPeriodProcessedData: ProcessedAnalyticsData | null; // Use combined data
+  mainPeriodProcessedData: ProcessedAnalyticsData | null;
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;
 
-  comparisonPeriodProcessedData: ProcessedAnalyticsData | null; // Use combined data
+  comparisonPeriodProcessedData: ProcessedAnalyticsData | null;
   isLoadingComparison: boolean;
   errorComparison: string | null;
   hasAttemptedFetchComparison: boolean;
@@ -31,8 +32,6 @@ const formatDateRange = (dateRange?: DateRange): string => {
   const toDate = formatISO(dateRange.to, { representation: "date" });
   return `${fromDate} - ${toDate}`;
 };
-
-// const otherCardTitles = [ /* ... if you have other placeholders */ ];
 
 export default function ComparisonView({
   mainPeriodProcessedData,
@@ -79,7 +78,26 @@ export default function ComparisonView({
                 ?.overallAgeDistribution ?? null
             }
           />
-          {/* Placeholder for other main period cards */}
+          <GenderDistributionCard // Added
+            title="性別分析 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            genderDistributionData={
+              mainPeriodProcessedData?.genderDistribution
+                ?.overallGenderDistribution ?? null
+            }
+          />
+          <HourlyDistributionCard // Added
+            title="時間別分析 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            hourlyDistributionData={
+              mainPeriodProcessedData?.hourlyDistribution
+                ?.overallHourlyDistribution ?? null
+            }
+          />
         </div>
 
         {/* Comparison Period Section */}
@@ -112,7 +130,26 @@ export default function ComparisonView({
                 ?.overallAgeDistribution ?? null
             }
           />
-          {/* Placeholder for other comparison period cards */}
+          <GenderDistributionCard // Added
+            title="性別分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            genderDistributionData={
+              comparisonPeriodProcessedData?.genderDistribution
+                ?.overallGenderDistribution ?? null
+            }
+          />
+          <HourlyDistributionCard // Added
+            title="時間別分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            hourlyDistributionData={
+              comparisonPeriodProcessedData?.hourlyDistribution
+                ?.overallHourlyDistribution ?? null
+            }
+          />
         </div>
       </div>
       {errorMain && hasAttemptedFetchMain && (

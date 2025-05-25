@@ -1,7 +1,7 @@
 // src/app/(main)/analytics/cityeye/_components/CityEyeClient.tsx
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react"; // Added useMemo
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,9 @@ import {
 import { useAnalyticsData } from "@/hooks/analytics/city_eye/useAnalyticsData";
 
 import { processAnalyticsDataForTotalPeople } from "@/utils/analytics/city_eye/totalCountUtils";
-import { processAnalyticsDataForAgeDistribution } from "@/utils/analytics/city_eye/ageDistributionUtils"; // Added
+import { processAnalyticsDataForAgeDistribution } from "@/utils/analytics/city_eye/ageDistributionUtils";
+import { processAnalyticsDataForGenderDistribution } from "@/utils/analytics/city_eye/genderDistributionUtils"; // Added
+import { processAnalyticsDataForHourlyDistribution } from "@/utils/analytics/city_eye/hourlyDistributionUtils"; // Added
 
 import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import TrafficTabContent from "./tabs/TrafficTabContent";
@@ -46,13 +48,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   const [activeComparisonApiFilters, setActiveComparisonApiFilters] =
     useState<FrontendAnalyticsFilters | null>(null);
 
-  // Define query parameters based on the active tab
   const mainQueryParams = useMemo(() => {
     const params: Record<string, boolean> = {};
     if (horizontalTab === "people") {
       params.include_total_count = true;
-      params.include_age_distribution = true; // Request age distribution
-      // Add other params like gender, etc. when those cards are implemented
+      params.include_age_distribution = true;
+      params.include_gender_distribution = true; // Added
+      params.include_hourly_distribution = true; // Added
     } else if (horizontalTab === "traffic") {
       // params.include_traffic_data = true; // Example for traffic
     }
@@ -61,7 +63,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
   const comparisonQueryParams = useMemo(() => {
     if (verticalTab !== "comparison") return {};
-    return mainQueryParams; // Comparison usually needs the same data types
+    return mainQueryParams;
   }, [verticalTab, mainQueryParams]);
 
   const {
@@ -87,6 +89,10 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     return {
       totalPeople: processAnalyticsDataForTotalPeople(mainRawData),
       ageDistribution: processAnalyticsDataForAgeDistribution(mainRawData),
+      genderDistribution:
+        processAnalyticsDataForGenderDistribution(mainRawData), // Added
+      hourlyDistribution:
+        processAnalyticsDataForHourlyDistribution(mainRawData), // Added
     };
   }, [mainRawData]);
 
@@ -96,6 +102,10 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       totalPeople: processAnalyticsDataForTotalPeople(comparisonRawData),
       ageDistribution:
         processAnalyticsDataForAgeDistribution(comparisonRawData),
+      genderDistribution:
+        processAnalyticsDataForGenderDistribution(comparisonRawData), // Added
+      hourlyDistribution:
+        processAnalyticsDataForHourlyDistribution(comparisonRawData), // Added
     };
   }, [comparisonRawData]);
 
@@ -161,14 +171,14 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       return (
         <PeopleFlowTabContent
           verticalTab={verticalTab}
-          mainProcessedData={processedMainData} // Pass combined processed data
+          mainProcessedData={processedMainData}
           isLoadingMain={isLoadingMain}
           errorMain={errorMain}
           hasAttemptedFetchMain={
             !!activeMainApiFilters && Object.keys(mainQueryParams).length > 0
           }
           mainPeriodDateRange={filters.analysisPeriod}
-          comparisonProcessedData={processedComparisonData} // Pass combined processed data
+          comparisonProcessedData={processedComparisonData}
           isLoadingComparison={isLoadingComparison}
           errorComparison={errorComparison}
           hasAttemptedFetchComparison={
@@ -179,7 +189,6 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         />
       );
     }
-    // ... other horizontal tab renderings
     if (horizontalTab === "traffic") {
       return <TrafficTabContent verticalTab={verticalTab} />;
     }

@@ -1,4 +1,3 @@
-// src/app/(main)/analytics/cityeye/_components/tabs/PeopleFlowTabContent.tsx
 "use client";
 
 import React from "react";
@@ -6,65 +5,73 @@ import OverviewView from "../views/OverviewView";
 import ComparisonView from "../views/ComparisonView";
 import {
   ProcessedTotalPeopleData,
-  CityEyeFilterState,
-  FrontendAnalyticsFilters,
+  // CityEyeFilterState, // No longer directly needed here if passing date ranges
+  // FrontendAnalyticsFilters, // No longer directly needed here
 } from "@/types/cityEyeAnalytics";
+import { DateRange } from "react-day-picker";
 
 interface PeopleFlowTabContentProps {
   verticalTab: string; // "overview" or "comparison"
-  // Props for OverviewView
-  analyticsData: ProcessedTotalPeopleData | null;
-  isLoading: boolean;
-  error: string | null;
-  hasAttemptedFetch: boolean;
-  // Props for ComparisonView (some might be placeholders or need separate fetching state)
-  // For now, ComparisonView is a placeholder, so complex props are not strictly needed yet
-  solutionId: string;
-  currentFilterState: CityEyeFilterState; // Needed for date display in ComparisonView placeholder
-  activeApiFilters: FrontendAnalyticsFilters | null;
+
+  // Props for OverviewView & Main Period of ComparisonView
+  mainPeriodData: ProcessedTotalPeopleData | null;
+  isLoadingMain: boolean;
+  errorMain: string | null;
+  hasAttemptedFetchMain: boolean;
+  mainPeriodDateRange?: DateRange; // Added for ComparisonView display
+
+  // Props for Comparison Period of ComparisonView
+  comparisonPeriodData?: ProcessedTotalPeopleData | null;
+  isLoadingComparison?: boolean;
+  errorComparison?: string | null;
+  hasAttemptedFetchComparison?: boolean;
+  comparisonPeriodDateRange?: DateRange; // Added for ComparisonView display
+
+  // solutionId: string; // No longer seems directly needed by these child views
+  // currentFilterState: CityEyeFilterState; // Replaced by specific date ranges
+  // activeApiFilters: FrontendAnalyticsFilters | null; // No longer directly needed
 }
 
 export default function PeopleFlowTabContent({
   verticalTab,
-  analyticsData,
-  isLoading,
-  error,
-  hasAttemptedFetch,
-  solutionId, // Pass down if ComparisonView needs it for its TotalPeopleCard
-  currentFilterState, // Pass down for date display
-  activeApiFilters, // Pass down
+  mainPeriodData,
+  isLoadingMain,
+  errorMain,
+  hasAttemptedFetchMain,
+  mainPeriodDateRange,
+  comparisonPeriodData,
+  isLoadingComparison,
+  errorComparison,
+  hasAttemptedFetchComparison,
+  comparisonPeriodDateRange,
 }: PeopleFlowTabContentProps) {
   if (verticalTab === "overview") {
     return (
       <OverviewView
-        totalPeopleData={analyticsData}
-        isLoading={isLoading}
-        error={error}
-        hasAttemptedFetch={hasAttemptedFetch}
+        totalPeopleData={mainPeriodData}
+        isLoading={isLoadingMain}
+        error={errorMain}
+        hasAttemptedFetch={hasAttemptedFetchMain}
       />
     );
   }
 
   if (verticalTab === "comparison") {
-    // Since ComparisonView is a placeholder, we don't pass complex data yet.
-    // When implemented, it would need its own data fetching logic or props for comparison data.
     return (
       <ComparisonView
-      // mainPeriodData={analyticsData}
-      // isLoadingMain={isLoading}
-      // errorMain={error}
-      // hasAttemptedFetch={hasAttemptedFetch}
-      // // These would require specific handling for comparison period data
-      // comparisonPeriodData={null} // Placeholder
-      // isLoadingComparison={false} // Placeholder
-      // errorComparison={null}      // Placeholder
-      // mainFilters={activeApiFilters}
-      // comparisonFilters={null} // Placeholder: derive from currentFilterState.comparisonPeriod
-      // solutionId={solutionId}
-      // currentFilterState={currentFilterState}
+        mainPeriodData={mainPeriodData}
+        isLoadingMain={isLoadingMain}
+        errorMain={errorMain}
+        hasAttemptedFetchMain={hasAttemptedFetchMain}
+        mainPeriodDateRange={mainPeriodDateRange}
+        comparisonPeriodData={comparisonPeriodData || null}
+        isLoadingComparison={isLoadingComparison || false}
+        errorComparison={errorComparison || null}
+        hasAttemptedFetchComparison={hasAttemptedFetchComparison || false}
+        comparisonPeriodDateRange={comparisonPeriodDateRange}
       />
     );
   }
 
-  return null; // Should not happen if verticalTab is always "overview" or "comparison"
+  return null;
 }

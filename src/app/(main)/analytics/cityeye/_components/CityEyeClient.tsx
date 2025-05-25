@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FilterGroup } from "./filters/FilterGroup";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 // Custom Hooks
 import {
@@ -22,6 +23,7 @@ import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import TrafficTabContent from "./tabs/TrafficTabContent";
 import MonthlyTabContent from "./tabs/MonthlyTabContent";
 import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
+import { FrontendAnalyticsFilters } from "@/types/cityEyeAnalytics"; // Ensure this is imported
 
 interface CityEyeClientProps {
   solutionId: string;
@@ -32,53 +34,119 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   const [horizontalTab, setHorizontalTab] = useState("people");
 
   const {
-    filters,
-    activeApiFilters,
-    setActiveApiFilters,
+    filters, // Contains both analysisPeriod and comparisonPeriod
+    activeApiFilters: activeMainApiFilters, // Renaming for clarity
+    setActiveApiFilters: setActiveMainApiFilters, // Renaming for clarity
     handleFilterChange,
     validateAndPrepareApiFilters,
   } = useAnalyticsFilters(initialFilterStateValues);
 
-  const {
-    rawData,
-    isLoading: isLoadingAnalytics,
-    error: analyticsError,
-    fetchData: refetchAnalyticsData, // Potentially use for a manual refresh button later
-  } = useAnalyticsData({ activeApiFilters });
+  // State for comparison period's active API filters
+  const [activeComparisonApiFilters, setActiveComparisonApiFilters] =
+    useState<FrontendAnalyticsFilters | null>(null);
 
-  const totalPeopleOverviewData = processAnalyticsDataForTotalPeople(rawData);
+  // useAnalyticsData for main analysis period
+  const {
+    rawData: mainRawData,
+    isLoading: isLoadingMain,
+    error: errorMain,
+  } = useAnalyticsData({ activeApiFilters: activeMainApiFilters });
+
+  // useAnalyticsData for comparison period
+  const {
+    rawData: comparisonRawData,
+    isLoading: isLoadingComparison,
+    error: errorComparison,
+  } = useAnalyticsData({ activeApiFilters: activeComparisonApiFilters });
+
+  const mainProcessedData = processAnalyticsDataForTotalPeople(mainRawData);
+  const comparisonProcessedData =
+    processAnalyticsDataForTotalPeople(comparisonRawData);
 
   const handleApplyFiltersClick = useCallback(() => {
-    const apiFilters = validateAndPrepareApiFilters(filters, horizontalTab);
-    if (apiFilters) {
-      setActiveApiFilters(apiFilters); // This will trigger data fetching in useAnalyticsData
+    const mainApiFilters = validateAndPrepareApiFilters(
+      filters,
+      horizontalTab,
+      "analysisPeriod" // Specify which period this is for
+    );
+
+    if (mainApiFilters) {
+      setActiveMainApiFilters(mainApiFilters);
+    } else {
+      // If main filters are invalid, don't proceed to comparison
+      setActiveMainApiFilters(null); // Clear any existing main data
+      setActiveComparisonApiFilters(null); // Clear any existing comparison data
+      return;
+    }
+
+    if (verticalTab === "comparison") {
+      if (!filters.comparisonPeriod?.from || !filters.comparisonPeriod?.to) {
+        toast.error("比較対象期間を選択してください。");
+        setActiveComparisonApiFilters(null); // Clear comparison data if period is invalid
+        return;
+      }
+      const comparisonApiFilters = validateAndPrepareApiFilters(
+        filters,
+        horizontalTab,
+        "comparisonPeriod" // Specify which period this is for
+      );
+      if (comparisonApiFilters) {
+        setActiveComparisonApiFilters(comparisonApiFilters);
+      } else {
+        setActiveComparisonApiFilters(null); // Clear comparison data if filters are invalid
+      }
+    } else {
+      // If not in comparison view, clear comparison filters and data
+      setActiveComparisonApiFilters(null);
     }
   }, [
     filters,
     horizontalTab,
+    verticalTab,
     validateAndPrepareApiFilters,
-    setActiveApiFilters,
+    setActiveMainApiFilters,
+    setActiveComparisonApiFilters,
   ]);
 
   const showVerticalTabsAndFilters =
     horizontalTab === "people" || horizontalTab === "traffic";
 
+  // Reset active API filters when the main horizontal tab changes
+  // or when switching away from comparison view for the vertical tab.
+  useEffect(() => {
+    setActiveMainApiFilters(null);
+    setActiveComparisonApiFilters(null);
+  }, [horizontalTab, setActiveMainApiFilters, setActiveComparisonApiFilters]);
+
+  useEffect(() => {
+    if (verticalTab !== "comparison") {
+      setActiveComparisonApiFilters(null);
+    }
+  }, [verticalTab, setActiveComparisonApiFilters]);
+
   const renderMainContent = () => {
+    const isLoading =
+      isLoadingMain || (verticalTab === "comparison" && isLoadingComparison);
+
     if (horizontalTab === "people") {
       return (
         <PeopleFlowTabContent
           verticalTab={verticalTab}
-          analyticsData={totalPeopleOverviewData}
-          isLoading={isLoadingAnalytics}
-          error={analyticsError}
-          hasAttemptedFetch={!!activeApiFilters}
-          solutionId={solutionId}
-          currentFilterState={filters}
-          activeApiFilters={activeApiFilters}
+          mainPeriodData={mainProcessedData}
+          isLoadingMain={isLoadingMain}
+          errorMain={errorMain}
+          hasAttemptedFetchMain={!!activeMainApiFilters}
+          mainPeriodDateRange={filters.analysisPeriod}
+          comparisonPeriodData={comparisonProcessedData}
+          isLoadingComparison={isLoadingComparison}
+          errorComparison={errorComparison}
+          hasAttemptedFetchComparison={!!activeComparisonApiFilters}
+          comparisonPeriodDateRange={filters.comparisonPeriod}
         />
       );
     }
     if (horizontalTab === "traffic") {
+      // Traffic tab will need similar data handling logic for comparison
       return <TrafficTabContent verticalTab={verticalTab} />;
     }
     if (horizontalTab === "monthly") {
@@ -95,6 +163,8 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       </div>
     );
   };
+
+  const isAnyDataLoading = isLoadingMain || isLoadingComparison;
 
   return (
     <div className="flex flex-col md:flex-row h-full gap-4">
@@ -138,9 +208,9 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           <Button
             onClick={handleApplyFiltersClick}
             className="mt-3 w-full bg-primary hover:bg-primary/90"
-            disabled={isLoadingAnalytics}
+            disabled={isAnyDataLoading}
           >
-            {isLoadingAnalytics && (
+            {isAnyDataLoading && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             フィルター適用
@@ -153,7 +223,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           value={horizontalTab}
           onValueChange={(newTab) => {
             setHorizontalTab(newTab);
-            setActiveApiFilters(null); // Reset active filters when changing main tab
+            // Active filters are reset via useEffect watching horizontalTab
           }}
           className="w-full mb-3"
         >

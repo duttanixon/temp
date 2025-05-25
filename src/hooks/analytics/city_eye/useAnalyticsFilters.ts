@@ -3,6 +3,7 @@ import {
   CityEyeFilterState,
   FrontendAnalyticsFilters,
 } from "@/types/cityEyeAnalytics";
+import { DateRange } from "react-day-picker"; // Added for explicit type
 import { formatISO, startOfDay, endOfDay, subDays } from "date-fns";
 import { toast } from "sonner";
 
@@ -31,7 +32,7 @@ export const initialFilterStateValues: CityEyeFilterState = {
   selectedDevices: [],
   selectedAges: ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"],
   selectedGenders: ["male", "female"],
-  selectedTrafficTypes: ["Large", "Car", "Bike", "Bicycle"],
+  selectedTrafficTypes: ["Large", "Car", "Bike", "Bicycle"], // Assuming these match backend IDs if traffic implemented
 };
 
 export function useAnalyticsFilters(
@@ -55,14 +56,16 @@ export function useAnalyticsFilters(
   const validateAndPrepareApiFilters = useCallback(
     (
       currentFilters: CityEyeFilterState,
-      horizontalTab: string
+      horizontalTab: string,
+      periodType: "analysisPeriod" | "comparisonPeriod" // Added to specify which period
     ): FrontendAnalyticsFilters | null => {
-      if (
-        !currentFilters.analysisPeriod?.from ||
-        !currentFilters.analysisPeriod?.to
-      ) {
-        toast.error("分析期間を選択してください。");
-        return null;
+      const datePeriodToUse: DateRange | undefined = currentFilters[periodType];
+
+      if (!datePeriodToUse?.from || !datePeriodToUse?.to) {
+        // This validation might be better handled in CityEyeClient before calling this
+        // For now, let it pass if date is missing, CityEyeClient can toast
+        // toast.error(`${periodType === "analysisPeriod" ? "分析" : "比較"}期間を選択してください。`);
+        // return null;
       }
       if (
         currentFilters.selectedDevices.length === 0 &&
@@ -72,10 +75,23 @@ export function useAnalyticsFilters(
         return null;
       }
 
+      // Ensure dates are properly formatted even if only one part of the range is initially set
+      const startTime = datePeriodToUse?.from
+        ? formatISO(startOfDay(datePeriodToUse.from))
+        : undefined;
+      const endTime = datePeriodToUse?.to
+        ? formatISO(endOfDay(datePeriodToUse.to))
+        : undefined;
+
+      if (!startTime || !endTime) {
+        // Let CityEyeClient handle this toast if period is mandatory for the call
+        return null;
+      }
+
       return {
         device_ids: currentFilters.selectedDevices,
-        start_time: formatISO(startOfDay(currentFilters.analysisPeriod.from)),
-        end_time: formatISO(endOfDay(currentFilters.analysisPeriod.to)),
+        start_time: startTime,
+        end_time: endTime,
         days: currentFilters.selectedDays,
         hours: currentFilters.selectedHours,
         genders:
@@ -84,9 +100,7 @@ export function useAnalyticsFilters(
             : undefined,
         age_groups:
           horizontalTab === "people" ? currentFilters.selectedAges : undefined,
-        // Add polygon_ids_in and polygon_ids_out if/when traffic tab is implemented
-        // polygon_ids_in: horizontalTab === "traffic" ? currentFilters.selectedPolygonsIn : undefined,
-        // polygon_ids_out: horizontalTab === "traffic" ? currentFilters.selectedPolygonsOut : undefined,
+        // polygon_ids_in and polygon_ids_out will be needed for traffic tab
       };
     },
     []
@@ -94,8 +108,8 @@ export function useAnalyticsFilters(
 
   return {
     filters,
-    setFilters, // Expose setFilters if direct manipulation is needed, e.g., for resetting
-    activeApiFilters,
+    setFilters,
+    activeApiFilters, // This will now primarily be for the "main" analysis data
     setActiveApiFilters,
     handleFilterChange,
     validateAndPrepareApiFilters,

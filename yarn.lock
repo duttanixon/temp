@@ -3032,7 +3032,7 @@ __metadata:
     eslint-plugin-import: "npm:^2.31.0"
     eslint-plugin-react-hooks: "npm:^5.2.0"
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
-    lucide-react: "npm:^0.501.0"
+    lucide-react: "npm:^0.511.0"
     next: "npm:15.3.0"
     next-auth: "npm:^5.0.0-beta.27"
     next-themes: "npm:^0.4.6"
@@ -5137,12 +5137,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.501.0":
-  version: 0.501.0
-  resolution: "lucide-react@npm:0.501.0"
+"lucide-react@npm:^0.511.0":
+  version: 0.511.0
+  resolution: "lucide-react@npm:0.511.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/c684c81bba746c4371ff1758c9d7dcff75809bf35c8a7ec6e07fb2cf429f3bf212adab06630904b67b0f7fe2254b2cee58354ef71f62ea5139b63fdecb45f9a8
+  checksum: 10c0/bf09dd73cf2233abea90506ad31a91739555d761062722acbe045cb73e274f035b196472de0971a8a8f0645b2b54e3f21b8c1980fe87c909ca93171a9c28428a
   languageName: node
   linkType: hard
 

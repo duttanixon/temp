@@ -1,18 +1,21 @@
+// src/app/(main)/analytics/cityeye/_components/views/ComparisonView.tsx
 "use client";
 
 import React from "react";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
-import { ProcessedTotalPeopleData } from "@/types/cityEyeAnalytics";
+import AgeDistributionCard from "../cards/AgeDistributionCard"; // Import new card
+// import AnalyticsCard from "../cards/AnalyticsCard"; // If other placeholders are needed
+import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics"; // Use combined type
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 
 interface ComparisonViewProps {
-  mainPeriodData: ProcessedTotalPeopleData | null;
+  mainPeriodProcessedData: ProcessedAnalyticsData | null; // Use combined data
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;
 
-  comparisonPeriodData: ProcessedTotalPeopleData | null;
+  comparisonPeriodProcessedData: ProcessedAnalyticsData | null; // Use combined data
   isLoadingComparison: boolean;
   errorComparison: string | null;
   hasAttemptedFetchComparison: boolean;
@@ -29,26 +32,20 @@ const formatDateRange = (dateRange?: DateRange): string => {
   return `${fromDate} - ${toDate}`;
 };
 
+// const otherCardTitles = [ /* ... if you have other placeholders */ ];
+
 export default function ComparisonView({
-  mainPeriodData,
+  mainPeriodProcessedData,
   isLoadingMain,
   errorMain,
   hasAttemptedFetchMain,
-  comparisonPeriodData,
+  comparisonPeriodProcessedData,
   isLoadingComparison,
   errorComparison,
   hasAttemptedFetchComparison,
   mainPeriodDateRange,
   comparisonPeriodDateRange,
 }: ComparisonViewProps) {
-  const otherCardTitles = [
-    "カメラマップ",
-    "属性別分析",
-    "時系列分析",
-    "人流構成",
-    "期間内イベント一覧",
-  ];
-
   return (
     <div className="p-1 bg-slate-50 rounded-lg shadow-inner mt-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -65,19 +62,24 @@ export default function ComparisonView({
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
-            totalCountData={mainPeriodData?.totalCount ?? null}
-            perDeviceCountsData={mainPeriodData?.perDeviceCounts ?? []}
+            totalCountData={
+              mainPeriodProcessedData?.totalPeople?.totalCount ?? null
+            }
+            perDeviceCountsData={
+              mainPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
+            }
           />
-          {/* Placeholder for other main period cards if needed later */}
-          {/* {otherCardTitles.map((title, index) => (
-            <AnalyticsCard key={`main-${index}`} title={`${title} (分析期間)`}>
-              <div className="flex flex-col items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground p-4 text-center">
-                  {hasAttemptedFetchMain ? `データ表示エリア (${title})` : "フィルターを適用してください。"}
-                </p>
-              </div>
-            </AnalyticsCard>
-          ))} */}
+          <AgeDistributionCard
+            title="年齢層別分析 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            ageDistributionData={
+              mainPeriodProcessedData?.ageDistribution
+                ?.overallAgeDistribution ?? null
+            }
+          />
+          {/* Placeholder for other main period cards */}
         </div>
 
         {/* Comparison Period Section */}
@@ -93,19 +95,24 @@ export default function ComparisonView({
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
-            totalCountData={comparisonPeriodData?.totalCount ?? null}
-            perDeviceCountsData={comparisonPeriodData?.perDeviceCounts ?? []}
+            totalCountData={
+              comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
+            }
+            perDeviceCountsData={
+              comparisonPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
+            }
           />
-          {/* Placeholder for other comparison period cards if needed later */}
-          {/* {otherCardTitles.map((title, index) => (
-            <AnalyticsCard key={`comp-${index}`} title={`${title} (比較期間)`}>
-                 <div className="flex flex-col items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground p-4 text-center">
-                  {hasAttemptedFetchComparison ? `データ表示エリア (${title})` : "フィルターを適用してください。"}
-                </p>
-              </div>
-            </AnalyticsCard>
-          ))} */}
+          <AgeDistributionCard
+            title="年齢層別分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            ageDistributionData={
+              comparisonPeriodProcessedData?.ageDistribution
+                ?.overallAgeDistribution ?? null
+            }
+          />
+          {/* Placeholder for other comparison period cards */}
         </div>
       </div>
       {errorMain && hasAttemptedFetchMain && (

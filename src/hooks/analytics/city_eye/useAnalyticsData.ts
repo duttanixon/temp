@@ -8,10 +8,14 @@ import { toast } from "sonner";
 
 interface UseAnalyticsDataProps {
   activeApiFilters: FrontendAnalyticsFilters | null;
-  // horizontalTab: string; // To potentially adjust queryParams based on tab
+  queryParams?: Record<string, boolean>; // Make queryParams dynamic
 }
 
-export function useAnalyticsData({ activeApiFilters }: UseAnalyticsDataProps) {
+export function useAnalyticsData({
+  activeApiFilters,
+  queryParams = {},
+}: UseAnalyticsDataProps) {
+  // Added queryParams
   const [rawData, setRawData] =
     useState<FrontendCityEyeAnalyticsPerDeviceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,14 +28,16 @@ export function useAnalyticsData({ activeApiFilters }: UseAnalyticsDataProps) {
       setRawData(null);
 
       try {
-        // TODO: Adjust queryParams based on horizontalTab if different data points are needed per tab
-        const queryParams = { include_total_count: true };
+        // Use the passed queryParams
         const response = await analyticsService.getHumanFlowAnalytics(
           filtersToUse,
-          queryParams
+          queryParams // Use dynamic queryParams
         );
         setRawData(response);
-        toast.success("分析データ取得完了");
+        if (Object.keys(queryParams).length > 0) {
+          // Only toast if actual data was requested
+          toast.success("分析データ取得完了");
+        }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "分析データの取得に失敗しました";
@@ -41,24 +47,24 @@ export function useAnalyticsData({ activeApiFilters }: UseAnalyticsDataProps) {
         setIsLoading(false);
       }
     },
-    []
+    [queryParams] // Add queryParams to dependency array
   );
 
   useEffect(() => {
-    if (activeApiFilters) {
+    if (activeApiFilters && Object.keys(queryParams).length > 0) {
+      // Also check if queryParams are meaningful
       fetchData(activeApiFilters);
     } else {
-      // If activeApiFilters is null, it means filters changed but not applied yet, or initial state
       setRawData(null);
       setError(null);
       setIsLoading(false);
     }
-  }, [activeApiFilters, fetchData]);
+  }, [activeApiFilters, fetchData, queryParams]);
 
   return {
     rawData,
     isLoading,
     error,
-    fetchData, // Expose if manual refetch with same filters is needed
+    fetchData,
   };
 }

@@ -50,3 +50,16 @@ export interface CityEyeFilterState {
   selectedGenders: string[];
   selectedTrafficTypes: string[]; // For traffic tab
 }
+
+export interface ProcessedTotalPeopleData {
+  totalCount: number;
+  perDeviceCounts: DeviceCountData[];
+}
+
+export interface DeviceCountData {
+  deviceId: string;
+  deviceName?: string;
+  deviceLocation?: string;
+  count: number;
+  error?: string; // To display device-specific errors if any
+}

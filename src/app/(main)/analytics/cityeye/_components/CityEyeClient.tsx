@@ -10,9 +10,15 @@ import AnalyticsCard from "./AnalyticsCard"; // Keep for other placeholder cards
 import {
   FrontendAnalyticsFilters,
   CityEyeFilterState,
+  FrontendCityEyeAnalyticsPerDeviceResponse,
+  FrontendDeviceAnalyticsItem,
+  DeviceCountData,
+  ProcessedTotalPeopleData,
 } from "@/types/cityEyeAnalytics";
+import { analyticsService } from "@/services/cityEyeAnalyticsService";
 import { formatISO, subDays, startOfDay, endOfDay } from "date-fns"; // For date formatting
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react"; // For loading indicator
 
 interface CityEyeClientProps {
   solutionId: string;
@@ -59,8 +65,20 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     useState<CityEyeFilterState>(initialFilterState);
   const [activeApiFilters, setActiveApiFilters] =
     useState<FrontendAnalyticsFilters | null>(null);
+  const [allAnalyticsData, setAllAnalyticsData] =
+    useState<FrontendCityEyeAnalyticsPerDeviceResponse | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
-  // Titles for the other cards (excluding "総人数")
+  // State for comparison period data
+  const [allComparisonAnalyticsData, setAllComparisonAnalyticsData] =
+    useState<FrontendCityEyeAnalyticsPerDeviceResponse | null>(null);
+  const [isLoadingComparisonAnalytics, setIsLoadingComparisonAnalytics] =
+    useState(false);
+  const [comparisonAnalyticsError, setComparisonAnalyticsError] = useState<
+    string | null
+  >(null);
+
   const otherCardTitles = [
     "カメラマップ", // This might need special handling or be a static image
     "属性別分析",
@@ -81,11 +99,15 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       // Setting activeApiFilters to null here means filters changed but not yet applied
       // This prevents cards from automatically re-fetching with possibly incomplete intermediate filter states
       setActiveApiFilters(null);
+      setAllAnalyticsData(null);
+      setAllComparisonAnalyticsData(null);
+      setAnalyticsError(null);
+      setComparisonAnalyticsError(null);
     },
     []
   );
 
-  const handleApplyFilters = () => {
+  const handleApplyFilters = async () => {
     if (!filters.analysisPeriod?.from || !filters.analysisPeriod?.to) {
       toast.error("分析期間を選択してください。");
       return;
@@ -98,37 +120,79 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       return;
     }
 
-    const apiFilters: FrontendAnalyticsFilters = {
+    const currentApiFilters: FrontendAnalyticsFilters = {
       device_ids: filters.selectedDevices,
-      // Ensure dates are formatted correctly as ISO strings
       start_time: formatISO(startOfDay(filters.analysisPeriod.from)),
       end_time: formatISO(endOfDay(filters.analysisPeriod.to)),
       days: filters.selectedDays,
       hours: filters.selectedHours,
       genders: horizontalTab === "people" ? filters.selectedGenders : undefined,
       age_groups: horizontalTab === "people" ? filters.selectedAges : undefined,
-      // polygon_ids_in and polygon_ids_out can be added later if needed
     };
-    setActiveApiFilters(apiFilters);
-    toast.success("フィルター適用完了", {
-      description: "各カードのデータが更新されます。",
-    });
+    setActiveApiFilters(currentApiFilters);
+    // --- Fetch Main Analysis Period Data ---
+    setIsLoadingAnalytics(true);
+    setAnalyticsError(null);
+    setAllAnalyticsData(null);
+
+    try {
+      const queryParams = {
+        // Request all data types you might need
+        include_total_count: true,
+        // include_age_distribution: true, // Uncomment if you have cards for this
+        // include_gender_distribution: true,
+        // include_hourly_distribution: true,
+        // include_time_series: true,
+      };
+      const response = await analyticsService.getHumanFlowAnalytics(
+        currentApiFilters,
+        queryParams
+      );
+      setAllAnalyticsData(response);
+      toast.success("分析データ取得完了");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "分析データの取得に失敗しました";
+      setAnalyticsError(errorMessage);
+      toast.error("分析データ取得エラー", { description: errorMessage });
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
   };
 
-  // Effect to set initial activeApiFilters once default filters are ready and valid
-  useEffect(() => {
-    if (
-      filters.analysisPeriod?.from &&
-      filters.analysisPeriod?.to &&
-      filters.selectedDevices.length > 0
-    ) {
-      // This could trigger an initial fetch if cards are set up to listen to activeApiFilters immediately
-      // For now, we let the "Apply Filters" button be the explicit trigger for the first load too.
-      // To auto-load on first render with default filters:
-      // handleApplyFilters(); // Uncomment this if you want initial auto-load
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount to potentially set initial active filters based on defaults
+  // Process data for TotalPeopleCard for the main analysis period
+  const processAnalyticsDataForTotalPeople = (
+    data: FrontendCityEyeAnalyticsPerDeviceResponse | null
+  ): ProcessedTotalPeopleData | null => {
+    if (!data) return null;
+    let overallTotal = 0;
+    const deviceCountsArray: DeviceCountData[] = [];
+    data.forEach((item) => {
+      if (item.error) {
+        deviceCountsArray.push({
+          deviceId: item.device_id,
+          deviceName: item.device_name,
+          deviceLocation: item.device_location,
+          count: 0,
+          error: item.error,
+        });
+        return;
+      }
+      const count = item.analytics_data.total_count?.total_count ?? 0;
+      overallTotal += count;
+      deviceCountsArray.push({
+        deviceId: item.device_id,
+        deviceName: item.device_name,
+        deviceLocation: item.device_location,
+        count: count,
+      });
+    });
+    return { totalCount: overallTotal, perDeviceCounts: deviceCountsArray };
+  };
+
+  const totalPeopleData = processAnalyticsDataForTotalPeople(allAnalyticsData);
 
   return (
     <div className="flex flex-col md:flex-row h-full gap-4">
@@ -172,7 +236,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           <Button
             onClick={handleApplyFilters}
             className="mt-3 w-full bg-primary hover:bg-primary/90"
+            disabled={isLoadingAnalytics || isLoadingComparisonAnalytics}
           >
+            {(isLoadingAnalytics || isLoadingComparisonAnalytics) && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
             フィルター適用
           </Button>
         </div>
@@ -183,7 +251,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           value={horizontalTab}
           onValueChange={(newTab) => {
             setHorizontalTab(newTab);
-            setActiveApiFilters(null); // Reset active filters when changing main tab
+            setActiveApiFilters(null);
+            setAllAnalyticsData(null);
+            setAllComparisonAnalyticsData(null);
+            setAnalyticsError(null);
+            setComparisonAnalyticsError(null);
           }}
           className="w-full mb-3"
         >
@@ -209,8 +281,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-2 gap-3">
                 <TotalPeopleCard
                   title="総人数"
-                  solutionId={solutionId}
-                  activeFilters={activeApiFilters} // Pass the centrally managed active filters
+                  isLoading={isLoadingAnalytics}
+                  error={analyticsError}
+                  hasAttemptedFetch={!!activeApiFilters} // True if filters have been applied at least once
+                  totalCountData={totalPeopleData?.totalCount ?? null}
+                  perDeviceCountsData={totalPeopleData?.perDeviceCounts ?? []}
                 />
                 {otherCardTitles.map((title, index) => (
                   <AnalyticsCard key={index} title={title}>
@@ -253,8 +328,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
                     </div>
                     <TotalPeopleCard
                       title="総人数 (分析期間)"
-                      solutionId={solutionId}
-                      activeFilters={activeApiFilters}
+                      isLoading={isLoadingAnalytics}
+                      error={analyticsError}
+                      hasAttemptedFetch={!!activeApiFilters}
+                      totalCountData={totalPeopleData?.totalCount ?? null}
+                      perDeviceCountsData={
+                        totalPeopleData?.perDeviceCounts ?? []
+                      }
                     />
                     {otherCardTitles.map((title, index) => (
                       <AnalyticsCard

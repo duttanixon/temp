@@ -1,60 +1,52 @@
-export interface AnalyticsFilters {
-    device_ids?: string[];
-    start_time: string;
-    end_time: string;
-    polygon_ids_in?: string[];
-    polygon_ids_out?: string[];
-    genders?: string[]; // e.g., ["male", "female"]
-    age_groups?: string[]; // e.g., ["under_18", "18_to_29"]
-  }
+import { DateRange } from "react-day-picker";
 
-export interface TotalCount {
-    total_count: number;
-  }
+// Based on backend/app/schemas/services/city_eye_analytics.py
 
-export interface AgeDistribution {
-    under_18: number;
-    age_18_to_29: number;
-    age_30_to_49: number;
-    age_50_to_64: number;
-    over_64: number;
+export interface FrontendAnalyticsFilters {
+  device_ids?: string[]; // UUIDs as strings
+  start_time?: string; // ISO datetime string
+  end_time?: string; // ISO datetime string
+  days?: string[]; // e.g., ["sunday", "monday"]
+  hours?: string[]; // e.g., ["10:00", "14:00"]
+  polygon_ids_in?: string[];
+  polygon_ids_out?: string[];
+  genders?: string[]; // ["male", "female"]
+  age_groups?: string[]; // ["under_18", "18_to_29", ...]
 }
 
-export interface GenderDistribution {
-    male: number;
-    female: number;
+export interface FrontendTotalCount {
+  total_count: number;
 }
 
-export interface AgeGenderDistribution {
-    male_under_18: number;
-    female_under_18: number;
-    male_18_to_29: number;
-    female_18_to_29: number;
-    male_30_to_49: number;
-    female_30_to_49: number;
-    male_50_to_64: number;
-    female_50_to_64: number;
-    male_65_plus: number;
-    female_65_plus: number;
+export interface FrontendPerDeviceAnalyticsData {
+  total_count?: FrontendTotalCount;
+  // Add other distributions if needed by other cards later
+  // age_distribution?: AgeDistribution;
+  // gender_distribution?: GenderDistribution;
+  // age_gender_distribution?: AgeGenderDistribution;
+  // hourly_distribution?: HourlyCount[];
+  // time_series_data?: TimeSeriesData[];
 }
 
-export interface HourlyCount {
-    hour: number;
-    count: number;
+export interface FrontendDeviceAnalyticsItem {
+  device_id: string; // UUID as string
+  device_name?: string;
+  device_location?: string;
+  analytics_data: FrontendPerDeviceAnalyticsData;
+  error?: string;
 }
 
-export interface TimeSeriesData {
-    timestamp: string; // ISO 8601 format
-    count: number;
-}
+export type FrontendCityEyeAnalyticsPerDeviceResponse =
+  FrontendDeviceAnalyticsItem[];
 
-export interface CityEyeAnalyticsData {
-    total_count?: TotalCount;
-    age_distribution?: AgeDistribution;
-    gender_distribution?: GenderDistribution;
-    age_gender_distribution?: AgeGenderDistribution;
-    hourly_distribution?: HourlyCount[];
-    time_series_data?: TimeSeriesData[];
+// For managing filter state within CityEyeClient
+export interface CityEyeFilterState {
+  analysisPeriod?: DateRange;
+  comparisonPeriod?: DateRange; // For comparison view
+  selectedDays: string[];
+  selectedHours: string[];
+  selectedDevices: string[];
+  selectedAges: string[];
+  selectedGenders: string[];
+  selectedTrafficTypes: string[]; // For traffic tab
 }
-
-export type CityEyeAnalyticsResponse = CityEyeAnalyticsData;

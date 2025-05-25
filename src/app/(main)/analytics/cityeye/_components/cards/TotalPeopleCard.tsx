@@ -3,20 +3,16 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertTriangle } from "lucide-react";
-import {
-  FrontendAnalyticsFilters,
-  FrontendDeviceAnalyticsItem,
-  DeviceCountData,
-} from "@/types/cityEyeAnalytics";
+import { DeviceCountData } from "@/types/cityEyeAnalytics";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TotalPeopleCardProps {
   title: string;
   totalCountData: number | null;
   perDeviceCountsData: DeviceCountData[];
-  isLoading: boolean; // Loading state from parent
-  error: string | null; // Error state from parent
-  hasAttemptedFetch: boolean; // True if parent attempted to fetch data
+  isLoading: boolean;
+  error: string | null;
+  hasAttemptedFetch: boolean;
 }
 
 export default function TotalPeopleCard({
@@ -37,7 +33,6 @@ export default function TotalPeopleCard({
       );
     }
 
-    // Show error if a fetch was attempted and an error occurred
     if (error && hasAttemptedFetch) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-destructive">
@@ -48,7 +43,6 @@ export default function TotalPeopleCard({
       );
     }
 
-    // Show initial message if no fetch has been attempted yet
     if (!hasAttemptedFetch) {
       return (
         <div className="flex flex-col items-center justify-center h-full">
@@ -59,7 +53,6 @@ export default function TotalPeopleCard({
       );
     }
 
-    // Show "no data" if fetch was attempted, no error, but no data
     if (
       hasAttemptedFetch &&
       !error &&
@@ -76,7 +69,6 @@ export default function TotalPeopleCard({
       );
     }
 
-    // If we have data (or at least an attempt was made and no critical error)
     if (hasAttemptedFetch && !error) {
       return (
         <div className="h-full flex flex-col">
@@ -131,7 +123,6 @@ export default function TotalPeopleCard({
       );
     }
 
-    // Fallback message if none of the above conditions are met (should ideally not be reached if logic is sound)
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <p className="text-sm text-muted-foreground p-4 text-center">
@@ -151,7 +142,6 @@ export default function TotalPeopleCard({
       <CardContent className="flex-grow min-h-[150px] p-3">
         {renderContent()}
       </CardContent>
-      {/* Footer with refresh button is removed as data is driven by parent */}
     </Card>
   );
 }

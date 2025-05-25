@@ -133,7 +133,7 @@ export default function TotalPeopleCard({
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-full">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
       <CardHeader className="pb-2 pt-3 px-4 flex-row items-center justify-between">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}

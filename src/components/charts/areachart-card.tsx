@@ -21,7 +21,7 @@ import {
 import { Loader2, AlertTriangle, Info, TrendingUp } from "lucide-react";
 
 interface AreaChartDataItem {
-  [key: string]: string | number; // Category key (e.g. "hour") must be string for XAxis
+  [key: string]: string | number | undefined; // Allow undefined for property values
 }
 
 interface ShadcnAreaChartCardProps {

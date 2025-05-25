@@ -2,26 +2,28 @@
 
 import React from "react";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
+import AgeDistributionCard from "../cards/AgeDistributionCard"; // Import new card
 import AnalyticsCard from "../cards/AnalyticsCard";
-import { ProcessedTotalPeopleData } from "@/types/cityEyeAnalytics";
+import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics"; // Use combined type
 
 interface OverviewViewProps {
-  totalPeopleData: ProcessedTotalPeopleData | null;
+  processedData: ProcessedAnalyticsData | null; // Use combined processed data
   isLoading: boolean;
   error: string | null;
-  hasAttemptedFetch: boolean; // To know if cards should show initial message or no data
+  hasAttemptedFetch: boolean;
 }
 
-const otherCardTitles = [
+// Update card titles to reflect the new card
+const placeholderCardTitles = [
   "カメラマップ",
-  "属性別分析",
+  // "属性別分析", // This will be replaced by AgeDistributionCard
   "時系列分析",
   "人流構成",
   "期間内イベント一覧",
 ];
 
 export default function OverviewView({
-  totalPeopleData,
+  processedData,
   isLoading,
   error,
   hasAttemptedFetch,
@@ -33,10 +35,19 @@ export default function OverviewView({
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
-        totalCountData={totalPeopleData?.totalCount ?? null}
-        perDeviceCountsData={totalPeopleData?.perDeviceCounts ?? []}
+        totalCountData={processedData?.totalPeople?.totalCount ?? null}
+        perDeviceCountsData={processedData?.totalPeople?.perDeviceCounts ?? []}
       />
-      {otherCardTitles.map((title, index) => (
+      <AgeDistributionCard
+        title="年齢層別分析"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        ageDistributionData={
+          processedData?.ageDistribution?.overallAgeDistribution ?? null
+        }
+      />
+      {placeholderCardTitles.map((title, index) => (
         <AnalyticsCard key={index} title={title}>
           <div className="flex flex-col items-center justify-center h-full">
             <p className="text-sm text-muted-foreground p-4 text-center">

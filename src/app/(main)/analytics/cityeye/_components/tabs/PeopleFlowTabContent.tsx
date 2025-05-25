@@ -1,45 +1,38 @@
+// src/app/(main)/analytics/cityeye/_components/tabs/PeopleFlowTabContent.tsx
 "use client";
 
 import React from "react";
 import OverviewView from "../views/OverviewView";
 import ComparisonView from "../views/ComparisonView";
 import {
-  ProcessedTotalPeopleData,
-  // CityEyeFilterState, // No longer directly needed here if passing date ranges
-  // FrontendAnalyticsFilters, // No longer directly needed here
+  ProcessedAnalyticsData, // Changed from ProcessedTotalPeopleData
 } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 
 interface PeopleFlowTabContentProps {
-  verticalTab: string; // "overview" or "comparison"
+  verticalTab: string;
 
-  // Props for OverviewView & Main Period of ComparisonView
-  mainPeriodData: ProcessedTotalPeopleData | null;
+  mainProcessedData: ProcessedAnalyticsData | null; // Changed prop name and type
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;
-  mainPeriodDateRange?: DateRange; // Added for ComparisonView display
+  mainPeriodDateRange?: DateRange;
 
-  // Props for Comparison Period of ComparisonView
-  comparisonPeriodData?: ProcessedTotalPeopleData | null;
+  comparisonProcessedData?: ProcessedAnalyticsData | null; // Changed prop name and type
   isLoadingComparison?: boolean;
   errorComparison?: string | null;
   hasAttemptedFetchComparison?: boolean;
-  comparisonPeriodDateRange?: DateRange; // Added for ComparisonView display
-
-  // solutionId: string; // No longer seems directly needed by these child views
-  // currentFilterState: CityEyeFilterState; // Replaced by specific date ranges
-  // activeApiFilters: FrontendAnalyticsFilters | null; // No longer directly needed
+  comparisonPeriodDateRange?: DateRange;
 }
 
 export default function PeopleFlowTabContent({
   verticalTab,
-  mainPeriodData,
+  mainProcessedData,
   isLoadingMain,
   errorMain,
   hasAttemptedFetchMain,
   mainPeriodDateRange,
-  comparisonPeriodData,
+  comparisonProcessedData,
   isLoadingComparison,
   errorComparison,
   hasAttemptedFetchComparison,
@@ -48,7 +41,7 @@ export default function PeopleFlowTabContent({
   if (verticalTab === "overview") {
     return (
       <OverviewView
-        totalPeopleData={mainPeriodData}
+        processedData={mainProcessedData} // Pass the combined processed data
         isLoading={isLoadingMain}
         error={errorMain}
         hasAttemptedFetch={hasAttemptedFetchMain}
@@ -59,12 +52,12 @@ export default function PeopleFlowTabContent({
   if (verticalTab === "comparison") {
     return (
       <ComparisonView
-        mainPeriodData={mainPeriodData}
+        mainPeriodProcessedData={mainProcessedData} // Pass combined data
         isLoadingMain={isLoadingMain}
         errorMain={errorMain}
         hasAttemptedFetchMain={hasAttemptedFetchMain}
         mainPeriodDateRange={mainPeriodDateRange}
-        comparisonPeriodData={comparisonPeriodData || null}
+        comparisonPeriodProcessedData={comparisonProcessedData || null} // Pass combined data
         isLoadingComparison={isLoadingComparison || false}
         errorComparison={errorComparison || null}
         hasAttemptedFetchComparison={hasAttemptedFetchComparison || false}

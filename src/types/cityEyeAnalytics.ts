@@ -18,10 +18,19 @@ export interface FrontendTotalCount {
   total_count: number;
 }
 
+// Added for Age Distribution
+export interface FrontendAgeDistribution {
+  under_18: number;
+  age_18_to_29: number; // Matches backend schema which uses age_18_to_29
+  age_30_to_49: number;
+  age_50_to_64: number;
+  over_64: number; // Matches backend schema (maps to 65_plus on backend)
+}
+
 export interface FrontendPerDeviceAnalyticsData {
   total_count?: FrontendTotalCount;
+  age_distribution?: FrontendAgeDistribution;
   // Add other distributions if needed by other cards later
-  // age_distribution?: AgeDistribution;
   // gender_distribution?: GenderDistribution;
   // age_gender_distribution?: AgeGenderDistribution;
   // hourly_distribution?: HourlyCount[];
@@ -51,15 +60,36 @@ export interface CityEyeFilterState {
   selectedTrafficTypes: string[]; // For traffic tab
 }
 
-export interface ProcessedTotalPeopleData {
-  totalCount: number;
-  perDeviceCounts: DeviceCountData[];
-}
-
 export interface DeviceCountData {
   deviceId: string;
   deviceName?: string;
   deviceLocation?: string;
   count: number;
   error?: string; // To display device-specific errors if any
+}
+
+// Processed data for Age Distribution Card
+export interface ProcessedAgeGroup {
+  name: string; // e.g., "<18", "18-29"
+  value: number;
+  configKey: string; // color for the pie chart segment
+}
+
+export interface ProcessedAgeDistributionData {
+  overallAgeDistribution: ProcessedAgeGroup[];
+  perDeviceAgeDistribution: Array<
+    DeviceCountData & {
+      ageDistribution: ProcessedAgeGroup[] | null;
+      error?: string;
+    }
+  >;
+}
+
+// Combined processed data type (can be expanded)
+export interface ProcessedAnalyticsData {
+  totalPeople: {
+    totalCount: number;
+    perDeviceCounts: DeviceCountData[];
+  } | null;
+  ageDistribution: ProcessedAgeDistributionData | null; // Added field
 }

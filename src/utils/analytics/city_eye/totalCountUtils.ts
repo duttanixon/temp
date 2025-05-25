@@ -1,27 +1,31 @@
 import {
   FrontendCityEyeAnalyticsPerDeviceResponse,
-  ProcessedTotalPeopleData,
+  ProcessedAnalyticsData, // Changed from ProcessedTotalPeopleData
   DeviceCountData,
 } from "@/types/cityEyeAnalytics";
 
 export const processAnalyticsDataForTotalPeople = (
+  // Renaming to reflect its specific purpose
   data: FrontendCityEyeAnalyticsPerDeviceResponse | null
-): ProcessedTotalPeopleData | null => {
+): ProcessedAnalyticsData["totalPeople"] | null => {
+  // Return type changed
   if (!data) return null;
   let overallTotal = 0;
   const deviceCountsArray: DeviceCountData[] = [];
+  let hasAnyData = false;
 
   data.forEach((item) => {
-    if (item.error) {
+    if (item.error || !item.analytics_data?.total_count) {
       deviceCountsArray.push({
         deviceId: item.device_id,
         deviceName: item.device_name,
         deviceLocation: item.device_location,
         count: 0,
-        error: item.error,
+        error: item.error || "総人数データがありません",
       });
-      return; // Skip to the next item if there's an error for this device
+      return;
     }
+    hasAnyData = true;
     const count = item.analytics_data.total_count?.total_count ?? 0;
     overallTotal += count;
     deviceCountsArray.push({
@@ -31,6 +35,10 @@ export const processAnalyticsDataForTotalPeople = (
       count: count,
     });
   });
+
+  if (!hasAnyData && deviceCountsArray.every((d) => d.error)) {
+    return { totalCount: 0, perDeviceCounts: deviceCountsArray };
+  }
 
   return { totalCount: overallTotal, perDeviceCounts: deviceCountsArray };
 };

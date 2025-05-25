@@ -21,8 +21,7 @@ import {
 import { Loader2, AlertTriangle, Info, TrendingUp } from "lucide-react";
 
 interface AreaChartDataItem {
-  [categoryKey: string]: string | number; // e.g., { hour: "00:00", count: 120 }
-  [dataKey: string]: string | number; // Category key (e.g. "hour") must be string for XAxis
+  [key: string]: string | number; // Category key (e.g. "hour") must be string for XAxis
 }
 
 interface ShadcnAreaChartCardProps {
@@ -46,7 +45,7 @@ interface ShadcnAreaChartCardProps {
   showTrending?: boolean;
   yAxisWidth?: number;
   yAxisDomain?: [number | string, number | string];
-  xAxisTickFormatter?: (value: string) => string;
+  xAxisTickFormatter?: (value: string, index: number) => string;
   yAxisTickFormatter?: (value: number) => string;
 }
 

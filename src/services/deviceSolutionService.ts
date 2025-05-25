@@ -1,7 +1,5 @@
 import { apiClient, handleApiError, cleanData } from "./baseApiClient";
 import { DeviceDeployment, DeviceDeploymentData } from "@/types/deviceSolution";
-import { Device } from "@/types/device";
-import { cp } from "fs";
 
 export const deviceSolutionService = {
   // Get devices using a solution deployed

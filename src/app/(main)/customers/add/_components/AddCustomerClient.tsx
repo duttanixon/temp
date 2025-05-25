@@ -1,20 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-// import { useSession } from "next-auth/react";
-import { CustomerForm } from "../_components/CustomerForm";
-import { TabsNav } from "../_components/TabsNav";
+import { CustomerForm } from "@/app/(main)/customers/_components/CustomerForm";
 
 type Props = {
   accessToken: string;
 };
 
 export default function AddCustomerClient({ accessToken }: Props) {
-  const [activeTab, setActiveTab] = useState("basic");
-  // const { data: session } = useSession();
-
-  // const accessToken = session?.accessToken ?? "";
   return (
     <div>
       <h2 className="text-sm text-[#7F8C8D]">
@@ -26,10 +19,7 @@ export default function AddCustomerClient({ accessToken }: Props) {
       <div className="flex flex-col gap-8 text-2xl font-bold text-[#2C3E50]">
         新規顧客追加
         <section className="flex flex-col gap-4">
-          <div className="inline-flex w-fit border border-[#BDC3C7] rounded bg-[#FFFFFF] overflow-hidden">
-            <TabsNav activeTab={activeTab} onChange={setActiveTab} />
-          </div>
-          <CustomerForm accessToken={accessToken} activeTab={activeTab} />
+          <CustomerForm accessToken={accessToken} />
         </section>
       </div>
     </div>

@@ -1,48 +1,42 @@
-// src/app/(main)/analytics/cityeye/_components/filters/AgesFilter.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react"; // Removed useState, useEffect as isAllSelected is derived
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FilterCard } from "./FilterCard";
 
 const ALL_AGES = [
-  { id: "under18", label: "<18" },
-  { id: "18-29", label: "18-29" },
-  { id: "30-49", label: "30-49" },
-  { id: "50-64", label: "50-64" },
-  { id: "over64", label: ">64" },
+  { id: "under_18", label: "<18" }, // Matched to backend AnalyticsFilters
+  { id: "18_to_29", label: "18-29" },
+  { id: "30_to_49", label: "30-49" },
+  { id: "50_to_64", label: "50-64" },
+  { id: "over_64", label: ">64" }, // Matched to backend AnalyticsFilters (maps to 65_plus on backend)
 ];
 
 interface AgesFilterProps {
-  initialSelectedAges?: string[];
-  onSelectionChange?: (selectedAges: string[]) => void;
+  selectedAges: string[];
+  onSelectionChange: (selectedAges: string[]) => void;
 }
 
-export function AgesFilter({ initialSelectedAges, onSelectionChange }: AgesFilterProps) {
-  const [selectedAges, setSelectedAges] = useState<string[]>(initialSelectedAges || ALL_AGES.map(a => a.id));
-  const [isAllSelected, setIsAllSelected] = useState(selectedAges.length === ALL_AGES.length);
-
-  useEffect(() => {
-    setIsAllSelected(selectedAges.length === ALL_AGES.length);
-    if (onSelectionChange) {
-      onSelectionChange(selectedAges);
-    }
-  }, [selectedAges, onSelectionChange]);
+export function AgesFilter({
+  selectedAges,
+  onSelectionChange,
+}: AgesFilterProps) {
+  const isAllSelected =
+    ALL_AGES.length > 0 && selectedAges.length === ALL_AGES.length;
 
   const handleAgeToggle = (ageId: string) => {
-    setSelectedAges((prevSelected) =>
-      prevSelected.includes(ageId)
-        ? prevSelected.filter((a) => a !== ageId)
-        : [...prevSelected, ageId]
-    );
+    const newSelectedAges = selectedAges.includes(ageId)
+      ? selectedAges.filter((a) => a !== ageId)
+      : [...selectedAges, ageId];
+    onSelectionChange(newSelectedAges);
   };
 
   const handleSelectAllToggle = () => {
     if (isAllSelected) {
-      setSelectedAges([]);
+      onSelectionChange([]);
     } else {
-      setSelectedAges(ALL_AGES.map(a => a.id));
+      onSelectionChange(ALL_AGES.map((a) => a.id));
     }
   };
 
@@ -63,11 +57,14 @@ export function AgesFilter({ initialSelectedAges, onSelectionChange }: AgesFilte
           {ALL_AGES.map((age) => (
             <div key={age.id} className="flex items-center space-x-2">
               <Checkbox
-                id={age.id}
+                id={`age-${age.id}`}
                 checked={selectedAges.includes(age.id)}
                 onCheckedChange={() => handleAgeToggle(age.id)}
               />
-              <Label htmlFor={age.id} className="text-sm font-normal whitespace-nowrap">
+              <Label
+                htmlFor={`age-${age.id}`}
+                className="text-sm font-normal whitespace-nowrap"
+              >
                 {age.label}
               </Label>
             </div>

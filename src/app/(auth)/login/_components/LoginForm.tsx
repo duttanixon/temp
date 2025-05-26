@@ -60,15 +60,15 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">
-          Log in to your account
+        <CardTitle className="text-2xl font-bold text-[#2C3E50]">
+          ログイン
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 text-[#7C8C8D]">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
+            <label htmlFor="email" className="text-sm">
+              連絡先メール
             </label>
             <Input
               id="email"
@@ -80,8 +80,8 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
+              <label htmlFor="password" className="text-sm">
+                パスワード
               </label>
             </div>
             <Input
@@ -97,7 +97,7 @@ export function LoginForm() {
                 className="text-sm text-blue-500 hover:text-blue-600"
                 style={{ color: "#3498db" }}
               >
-                Forgot password?
+                パスワードをお忘れですか？
               </Link>
             </div>
           </div>
@@ -107,11 +107,12 @@ export function LoginForm() {
             style={{ backgroundColor: "#3498db", color: "white" }}
             disabled={isLoading}
           >
-            {isLoading ? "ログイン中..." : "Log In"}
+            {isLoading ? "ログイン中..." : "ログイン"}
           </Button>
         </form>
-        <div className="mt-4 text-center text-sm text-gray-500">
-          {"Don't have an account? Contact your administrator."}
+        <div className="mt-4 text-center text-sm text-[#7C8C8D]">
+          <p>{"アカウントをお持ちではありませんか？"}</p>
+          <p>{"管理者にお問い合わせください。"}</p>
         </div>
       </CardContent>
     </Card>

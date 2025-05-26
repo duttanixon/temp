@@ -77,6 +77,9 @@ function UserMenu({
 }) {
   const router = useRouter();
 
+  const userNameDisplay =
+    userName === "Admin User" ? "管理者ユーザー" : "ユーザー";
+
   return (
     <div className="flex items-center gap-4">
       <DropdownMenu>
@@ -86,7 +89,7 @@ function UserMenu({
             className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
           >
             <User className="h-5 w-5" />
-            <span>{userName || "User"} ▾</span>
+            <span className="text-sm">{userNameDisplay} ▾</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -94,20 +97,20 @@ function UserMenu({
             onClick={() => router.push("/profile")}
             className="cursor-pointer"
           >
-            Profile
+            プロフィール
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => router.push("/settings")}
             className="cursor-pointer"
           >
-            Settings
+            設定
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={onLogout}
             className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]"
           >
-            Logout
+            ログアウト
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebarContext } from "@/lib/sidebar-context";
 import { cn } from "@/lib/utils";
@@ -34,6 +36,11 @@ interface SidebarBaseProps {
 export function SidebarBase({ sections }: SidebarBaseProps) {
   const pathname = usePathname();
   const { isCollapsed } = useSidebarContext();
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+
+  const isSectionActive = (items: MenuItem[]) => {
+    return items.some((item) => isActive(item.href));
+  };
 
   // Helper function to determine if a menu item is active
   const isActive = (href: string) => {
@@ -50,11 +57,11 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
     const active = isActive(href);
 
     const itemClasses = cn(
-      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative group text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]",
-      isSubmenu ? "pl-9" : ""
-      //   active
-      //     ? "bg-[color:var(--sidebar-item-active)] text-[color:var(--sidebar-item-active-text)]"
-      //     : "text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]"
+      "flex items-center gap-3 px-3 py-2 mb-2 rounded-md transition-colors relative group",
+      isSubmenu ? "pl-9" : "",
+      active
+        ? "bg-[#3498DB] text-[#FFFFFF]"
+        : "text-[#FFFFFF] hover:bg-[#3498DB] opacity-50"
     );
 
     // If collapsed, show tooltip with the label
@@ -83,9 +90,9 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
       <Link key={href} href={href} className={itemClasses}>
         <Icon className="h-5 w-5 shrink-0" />
         <span className="truncate">{label}</span>
-        {active && (
+        {/* {active && (
           <div className="absolute w-1 h-7 bg-[color:var(--sidebar-item-active)] rounded-full left-0" />
-        )}
+        )} */}
       </Link>
     );
   };
@@ -93,8 +100,8 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
   return (
     <aside
       className={cn(
-        "bg-[color:var(--sidebar-bg)] border-r border-[color:var(--sidebar-border)] transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
-        "top-16",
+        "bg-[#34495E] border-r border-[color:var(--sidebar-border)] transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
+        "top-13",
         "z-10",
         isCollapsed ? "w-16" : "w-64"
       )}
@@ -102,16 +109,38 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
       <div className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
         {sections.map((section, index) => (
           <div key={index}>
-            {index > 0 && <Separator className="my-4" />}
+            {/* {index > 0 && <Separator className="my-4" />} */}
 
             {!isCollapsed && section.title && (
-              <div className="text-xs font-semibold text-[color:var(--sidebar-heading-text)] px-3 mb-2">
-                {section.title}
+              <div
+                className={cn(
+                  "flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#FFFFFF] cursor-pointer select-none",
+                  section.title === "管理" && isSectionActive(section.items)
+                    ? "bg-[#3498DB]/70"
+                    : "opacity-50"
+                )}
+                onClick={() => {
+                  if (section.title === "管理") {
+                    setIsAdminOpen((prev) => !prev);
+                  }
+                }}
+              >
+                <span>{section.title}</span>
+                {section.title === "管理" && (
+                  <span className="ml-2">
+                    {isAdminOpen ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </span>
+                )}
               </div>
             )}
 
             <div className="space-y-1">
-              {section.items.map((item) => renderMenuItem(item))}
+              {(section.title !== "管理" || isAdminOpen) &&
+                section.items.map((item) => renderMenuItem(item))}
             </div>
           </div>
         ))}

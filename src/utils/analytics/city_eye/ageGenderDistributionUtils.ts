@@ -4,25 +4,23 @@ import {
   ProcessedAgeGenderDistributionData,
   ButterflyChartDataPoint,
 } from "@/types/cityEyeAnalytics";
-import { AGE_GROUP_LABELS } from "./ageDistributionUtils"; // Reuse age group labels
+import {
+  AGE_GROUP_LABELS,
+  AGE_GROUP_CONFIG_KEYS,
+} from "./ageDistributionUtils"; // Reuse age group labels and config keys
 
 // Define the order and mapping for age groups.
-// Backend keys map to frontend display labels via AGE_GROUP_LABELS.
-const ageGroupOrder: (keyof FrontendAgeGenderDistribution)[] = [
-  "male_under_18",
-  "female_under_18",
-  "male_18_to_29",
-  "female_18_to_29",
-  "male_30_to_49",
-  "female_30_to_49",
-  "male_50_to_64",
-  "female_50_to_64",
-  "male_65_plus",
-  "female_65_plus",
+// These are the frontend-defined, consistent age group keys.
+const ALL_AGE_GROUP_KEYS_ORDERED = [
+  AGE_GROUP_CONFIG_KEYS.under_18, // 'under18'
+  AGE_GROUP_CONFIG_KEYS.age_18_to_29, // 'age18to29'
+  AGE_GROUP_CONFIG_KEYS.age_30_to_49, // 'age30to49'
+  AGE_GROUP_CONFIG_KEYS.age_50_to_64, // 'age50to64'
+  AGE_GROUP_CONFIG_KEYS.over_64, // 'over64'
 ];
 
-// Maps backend age group keys (part of age_gender_distribution) to the keys used in AGE_GROUP_LABELS
-const backendAgeKeyToFrontendMap: Record<
+// Maps the part of the backend key (e.g., 'under_18') to our frontend config keys
+const backendAgeSegmentToFrontendKey: Record<
   string,
   keyof typeof AGE_GROUP_LABELS
 > = {
@@ -30,7 +28,17 @@ const backendAgeKeyToFrontendMap: Record<
   "18_to_29": "age18to29",
   "30_to_49": "age30to49",
   "50_to_64": "age50to64",
-  "65_plus": "over64", // Backend uses 65_plus, frontend AGE_GROUP_LABELS uses over64
+  "65_plus": "over64", // Backend uses 65_plus for the 'over_64' frontend concept
+};
+
+// Helper to get the backend-style age segment from our frontend key
+const frontendKeyToBackendAgeSegment = (frontendKey: string): string => {
+  for (const bk of Object.keys(backendAgeSegmentToFrontendKey)) {
+    if (backendAgeSegmentToFrontendKey[bk] === frontendKey) {
+      return bk;
+    }
+  }
+  return frontendKey; // fallback, though should not happen if mapped correctly
 };
 
 export const processAnalyticsDataForAgeGenderDistribution = (
@@ -38,7 +46,6 @@ export const processAnalyticsDataForAgeGenderDistribution = (
 ): ProcessedAgeGenderDistributionData | null => {
   if (!data) return null;
 
-  // Aggregate data from all devices for the overall view
   const overallDistributionSum: FrontendAgeGenderDistribution = {
     male_under_18: 0,
     female_under_18: 0,
@@ -57,12 +64,9 @@ export const processAnalyticsDataForAgeGenderDistribution = (
 
   data.forEach((item) => {
     if (item.error || !item.analytics_data?.age_gender_distribution) {
-      // If any device has an error, we might want to flag it,
-      // but for overall, we sum what we have.
       if (item.error) hasDeviceSpecificError = true;
       return;
     }
-
     hasAnyData = true;
     const deviceData = item.analytics_data.age_gender_distribution;
     (
@@ -73,61 +77,40 @@ export const processAnalyticsDataForAgeGenderDistribution = (
   });
 
   if (!hasAnyData && hasDeviceSpecificError) {
-    // If all devices had errors, return an error state for the chart
     return {
       groupALabel: "男性",
       groupBLabel: "女性",
-      groupAData: [],
-      groupBData: [],
+      groupAData: ALL_AGE_GROUP_KEYS_ORDERED.map((key) => ({
+        category: AGE_GROUP_LABELS[key],
+        value: 0,
+      })),
+      groupBData: ALL_AGE_GROUP_KEYS_ORDERED.map((key) => ({
+        category: AGE_GROUP_LABELS[key],
+        value: 0,
+      })),
       error: "すべてのデバイスで年齢性別データの取得に失敗しました。",
-    };
-  }
-  if (!hasAnyData && !hasDeviceSpecificError) {
-    // No data and no errors means filters might have resulted in empty data
-    return {
-      groupALabel: "男性",
-      groupBLabel: "女性",
-      groupAData: [],
-      groupBData: [],
-      error: null, // No specific error, just no data
     };
   }
 
   const maleData: ButterflyChartDataPoint[] = [];
   const femaleData: ButterflyChartDataPoint[] = [];
 
-  // Iterate in the desired display order of age groups
-  const uniqueAgeCategories = [
-    "under_18",
-    "18_to_29",
-    "30_to_49",
-    "50_to_64",
-    "65_plus",
-  ];
-
-  uniqueAgeCategories.forEach((ageKey) => {
-    const frontendAgeKey = backendAgeKeyToFrontendMap[ageKey];
-    const categoryLabel = AGE_GROUP_LABELS[frontendAgeKey] || ageKey; // Get display label
+  // Iterate over our defined frontend age group keys to ensure order and completeness
+  ALL_AGE_GROUP_KEYS_ORDERED.forEach((frontendAgeKey) => {
+    const categoryLabel = AGE_GROUP_LABELS[frontendAgeKey];
+    const backendAgeSegment = frontendKeyToBackendAgeSegment(frontendAgeKey); // e.g., 'under_18', '65_plus'
 
     const maleCount =
       overallDistributionSum[
-        `male_${ageKey}` as keyof FrontendAgeGenderDistribution
+        `male_${backendAgeSegment}` as keyof FrontendAgeGenderDistribution
       ] || 0;
     const femaleCount =
       overallDistributionSum[
-        `female_${ageKey}` as keyof FrontendAgeGenderDistribution
+        `female_${backendAgeSegment}` as keyof FrontendAgeGenderDistribution
       ] || 0;
 
-    if (maleCount > 0) {
-      // Only add if there's data, or always add to maintain order
-      maleData.push({ category: categoryLabel, value: maleCount });
-    }
-    if (femaleCount > 0) {
-      femaleData.push({ category: categoryLabel, value: femaleCount });
-    }
-    // To ensure all categories appear even with 0 count for one gender group,
-    // you might want to push with value 0 if one gender has data and the other doesn't for that category.
-    // The ButterflyChart's normalizeData function already handles aligning categories.
+    maleData.push({ category: categoryLabel, value: maleCount });
+    femaleData.push({ category: categoryLabel, value: femaleCount });
   });
 
   return {
@@ -135,6 +118,9 @@ export const processAnalyticsDataForAgeGenderDistribution = (
     groupBLabel: "女性", // Female
     groupAData: maleData,
     groupBData: femaleData,
-    error: null,
+    error:
+      !hasAnyData && !hasDeviceSpecificError
+        ? "該当するデータがありません。"
+        : null, // Set error if no data and no device errors
   };
 };

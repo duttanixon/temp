@@ -22,6 +22,7 @@ export default function GenderDistributionCard({
   return (
     <ShadcnPieChartDonutCard
       title={title}
+      fontSize={14}
       description=""
       data={genderDistributionData} // This now matches ChartDataItem expected by ShadcnPieChartDonutCard
       isLoading={isLoading}

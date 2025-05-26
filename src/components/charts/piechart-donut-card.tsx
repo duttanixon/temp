@@ -36,6 +36,7 @@ interface ChartDataItem {
 
 interface ShadcnPieChartDonutCardProps {
   title: string;
+  fontSize: number;
   description?: string;
   data: ChartDataItem[] | null;
   isLoading: boolean;
@@ -50,16 +51,17 @@ interface ShadcnPieChartDonutCardProps {
 }
 
 const DEFAULT_CHART_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
   "var(--chart-3)",
+  "var(--chart-1)",
   "var(--chart-4)",
-  "var(--chart-5)",
+  "var(--chart-2)",
   "var(--chart-6)",
+  "var(--chart-5)",
 ];
 
 export default function ShadcnPieChartDonutCard({
   title,
+  fontSize,
   description,
   data,
   isLoading,
@@ -128,7 +130,7 @@ export default function ShadcnPieChartDonutCard({
               dataKey="configKey"
               className="fill-background dark:fill-foreground"
               stroke="none"
-              fontSize={10}
+              fontSize={fontSize}
               formatter={(configKeyValue: string) => chartConfig[configKeyValue]?.label || configKeyValue}
               // position="inside" // Consider "outside" or "center" based on design
             />

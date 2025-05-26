@@ -117,6 +117,7 @@ export interface ProcessedHourlyDataPoint {
   hour: string; // Formatted hour e.g., "09:00"
   count: number;
   fullTimestamp?: string; // For tooltip, similar to metrics chart
+  [key: string]: string | number | undefined; // Add this index signature
 }
 
 export interface ProcessedHourlyDistributionData {

@@ -21,7 +21,7 @@ import {
 import { Loader2, AlertTriangle, Info, TrendingUp } from "lucide-react";
 
 interface AreaChartDataItem {
-  [key: string]: string | number; // Category key (e.g. "hour") must be string for XAxis
+  [key: string]: string | number | undefined; // Allow undefined for property values
 }
 
 interface ShadcnAreaChartCardProps {
@@ -141,7 +141,7 @@ export default function ShadcnAreaChartCard({
     return (
       <ChartContainer
         config={chartConfig}
-        className="mx-auto aspect-video"
+        className="mx-auto"
         style={{ height: `${chartHeight}px` }}
       >
         <AreaChart

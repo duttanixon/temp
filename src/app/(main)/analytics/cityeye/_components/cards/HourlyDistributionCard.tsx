@@ -46,7 +46,7 @@ export default function HourlyDistributionCard({
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
-      chartHeight={200}
+      // chartHeight={200}
       emptyDataMessage="時間別データがありません。"
       categoryKey="hour" // X-axis: formatted hour string
       dataKeys={areaChartDataKeys} // Y-axis: count

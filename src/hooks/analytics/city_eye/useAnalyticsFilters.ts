@@ -4,7 +4,7 @@ import {
   FrontendAnalyticsFilters,
 } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker"; // Added for explicit type
-import { formatISO, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfDay, endOfDay, subDays } from "date-fns";
 import { toast } from "sonner";
 
 const initialAnalysisDateFrom = startOfDay(subDays(new Date(), 6));
@@ -77,10 +77,10 @@ export function useAnalyticsFilters(
 
       // Ensure dates are properly formatted even if only one part of the range is initially set
       const startTime = datePeriodToUse?.from
-        ? formatISO(startOfDay(datePeriodToUse.from))
+        ? format(startOfDay(datePeriodToUse.from), "yyyy-MM-dd'T'HH:mm:ss")
         : undefined;
-      const endTime = datePeriodToUse?.to
-        ? formatISO(endOfDay(datePeriodToUse.to))
+        const endTime = datePeriodToUse?.to
+        ? format(endOfDay(datePeriodToUse.to), "yyyy-MM-dd'T'HH:mm:ss")
         : undefined;
 
       if (!startTime || !endTime) {

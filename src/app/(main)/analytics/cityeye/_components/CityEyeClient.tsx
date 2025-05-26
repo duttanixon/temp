@@ -19,6 +19,7 @@ import { processAnalyticsDataForTotalPeople } from "@/utils/analytics/city_eye/t
 import { processAnalyticsDataForAgeDistribution } from "@/utils/analytics/city_eye/ageDistributionUtils";
 import { processAnalyticsDataForGenderDistribution } from "@/utils/analytics/city_eye/genderDistributionUtils"; // Added
 import { processAnalyticsDataForHourlyDistribution } from "@/utils/analytics/city_eye/hourlyDistributionUtils"; // Added
+import { processAnalyticsDataForAgeGenderDistribution } from "@/utils/analytics/city_eye/ageGenderDistributionUtils";
 
 import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import TrafficTabContent from "./tabs/TrafficTabContent";
@@ -55,6 +56,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       params.include_age_distribution = true;
       params.include_gender_distribution = true; // Added
       params.include_hourly_distribution = true; // Added
+      params.include_age_gender_distribution = true;
     } else if (horizontalTab === "traffic") {
       // params.include_traffic_data = true; // Example for traffic
     }
@@ -90,9 +92,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       totalPeople: processAnalyticsDataForTotalPeople(mainRawData),
       ageDistribution: processAnalyticsDataForAgeDistribution(mainRawData),
       genderDistribution:
-        processAnalyticsDataForGenderDistribution(mainRawData), // Added
+        processAnalyticsDataForGenderDistribution(mainRawData),
       hourlyDistribution:
-        processAnalyticsDataForHourlyDistribution(mainRawData), // Added
+        processAnalyticsDataForHourlyDistribution(mainRawData),
+      ageGenderDistribution:
+        processAnalyticsDataForAgeGenderDistribution(mainRawData),
     };
   }, [mainRawData]);
 
@@ -103,9 +107,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       ageDistribution:
         processAnalyticsDataForAgeDistribution(comparisonRawData),
       genderDistribution:
-        processAnalyticsDataForGenderDistribution(comparisonRawData), // Added
+        processAnalyticsDataForGenderDistribution(comparisonRawData),
       hourlyDistribution:
-        processAnalyticsDataForHourlyDistribution(comparisonRawData), // Added
+        processAnalyticsDataForHourlyDistribution(comparisonRawData),
+      ageGenderDistribution:
+        processAnalyticsDataForAgeGenderDistribution(comparisonRawData),
     };
   }, [comparisonRawData]);
 

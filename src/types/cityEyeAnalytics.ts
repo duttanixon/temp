@@ -27,6 +27,19 @@ export interface FrontendAgeDistribution {
   over_64: number; // Matches backend schema (maps to 65_plus on backend)
 }
 
+export interface FrontendAgeGenderDistribution {
+  male_under_18: number;
+  female_under_18: number;
+  male_18_to_29: number;
+  female_18_to_29: number;
+  male_30_to_49: number;
+  female_30_to_49: number;
+  male_50_to_64: number;
+  female_50_to_64: number;
+  male_65_plus: number; // Corresponds to 'over_64' in frontend age group keys
+  female_65_plus: number; // Corresponds to 'over_64' in frontend age group keys
+}
+
 export interface FrontendGenderDistribution {
   male: number;
   female: number;
@@ -41,7 +54,9 @@ export interface FrontendPerDeviceAnalyticsData {
   total_count?: FrontendTotalCount;
   age_distribution?: FrontendAgeDistribution;
   gender_distribution?: FrontendGenderDistribution;
+  age_gender_distribution?: FrontendAgeGenderDistribution;
   hourly_distribution?: FrontendHourlyCount[];
+
   // Add other distributions if needed by other cards later
   // time_series_data?: TimeSeriesData[];
 }
@@ -131,6 +146,20 @@ export interface ProcessedHourlyDistributionData {
   }>;
 }
 
+export interface ButterflyChartDataPoint {
+  category: string;
+  value: number;
+}
+
+export interface ProcessedAgeGenderDistributionData {
+  groupALabel: string; // e.g., "男性" (Male)
+  groupBLabel: string; // e.g., "女性" (Female)
+  groupAData: ButterflyChartDataPoint[];
+  groupBData: ButterflyChartDataPoint[];
+  error?: string | null; // To store any processing errors for this specific data
+  // perDevice data can be added here if needed for detailed views later
+}
+
 // Combined processed data type (can be expanded)
 export interface ProcessedAnalyticsData {
   totalPeople: {
@@ -140,4 +169,5 @@ export interface ProcessedAnalyticsData {
   ageDistribution: ProcessedAgeDistributionData | null;
   genderDistribution: ProcessedGenderDistributionData | null;
   hourlyDistribution: ProcessedHourlyDistributionData | null;
+  ageGenderDistribution: ProcessedAgeGenderDistributionData | null;
 }

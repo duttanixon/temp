@@ -3,8 +3,9 @@
 import React from "react";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
-import GenderDistributionCard from "../cards/GenderDistributionCard"; // Added
-import HourlyDistributionCard from "../cards/HourlyDistributionCard"; // Added
+import GenderDistributionCard from "../cards/GenderDistributionCard";
+import HourlyDistributionCard from "../cards/HourlyDistributionCard";
+import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
 // import AnalyticsCard from "../cards/AnalyticsCard"; // If other placeholders are needed
 import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
@@ -78,7 +79,7 @@ export default function ComparisonView({
                 ?.overallAgeDistribution ?? null
             }
           />
-          <GenderDistributionCard // Added
+          <GenderDistributionCard
             title="性別分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
@@ -88,7 +89,7 @@ export default function ComparisonView({
                 ?.overallGenderDistribution ?? null
             }
           />
-          <HourlyDistributionCard // Added
+          <HourlyDistributionCard
             title="時間別分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
@@ -97,6 +98,13 @@ export default function ComparisonView({
               mainPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
+          />
+          <AgeGenderButterflyChartCard
+            title="年齢層・性別構成 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            data={mainPeriodProcessedData?.ageGenderDistribution ?? null}
           />
         </div>
 
@@ -149,6 +157,13 @@ export default function ComparisonView({
               comparisonPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
+          />
+          <AgeGenderButterflyChartCard
+            title="年齢層・性別構成 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            data={comparisonPeriodProcessedData?.ageGenderDistribution ?? null}
           />
         </div>
       </div>

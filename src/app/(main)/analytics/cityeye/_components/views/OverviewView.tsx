@@ -3,9 +3,10 @@
 import React from "react";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
-import GenderDistributionCard from "../cards/GenderDistributionCard"; // Added
-import HourlyDistributionCard from "../cards/HourlyDistributionCard"; // Added
-import AnalyticsCard from "../cards/AnalyticsCard"; // Keep for other placeholders
+import GenderDistributionCard from "../cards/GenderDistributionCard";
+import HourlyDistributionCard from "../cards/HourlyDistributionCard";
+import AnalyticsCard from "../cards/AnalyticsCard";
+import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
 import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 
 interface OverviewViewProps {
@@ -16,11 +17,7 @@ interface OverviewViewProps {
 }
 
 // Update card titles to reflect the new card
-const placeholderCardTitles = [
-  "カメラマップ",
-  "人流構成",
-  "期間内イベント一覧",
-];
+const placeholderCardTitles = ["カメラマップ", "期間内イベント一覧"];
 
 export default function OverviewView({
   processedData,
@@ -64,6 +61,14 @@ export default function OverviewView({
         hourlyDistributionData={
           processedData?.hourlyDistribution?.overallHourlyDistribution ?? null
         }
+      />
+      <AgeGenderButterflyChartCard
+        title="年齢層・性別構成"
+        description="指定期間内の年齢層別・性別の人数構成"
+        isLoading={isLoading}
+        error={error} // This error is general for the API call
+        hasAttemptedFetch={hasAttemptedFetch}
+        data={processedData?.ageGenderDistribution ?? null}
       />
       {/* Render remaining placeholder cards if any */}
       {placeholderCardTitles.map((title, index) => (

@@ -22,12 +22,12 @@ export default function GenderDistributionCard({
   return (
     <ShadcnPieChartDonutCard
       title={title}
-      description="全体の性別割合"
+      description=""
       data={genderDistributionData} // This now matches ChartDataItem expected by ShadcnPieChartDonutCard
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
-      chartHeight={200}
+      // chartHeight={300}
       emptyDataMessage="性別データがありません。"
       dataKey="value" // Key in ProcessedGenderSegment that holds the count
       nameKey="name" // Key in ProcessedGenderSegment that holds the display label (e.g., "男性")

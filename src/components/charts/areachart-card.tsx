@@ -141,7 +141,7 @@ export default function ShadcnAreaChartCard({
     return (
       <ChartContainer
         config={chartConfig}
-        className="mx-auto aspect-video"
+        className="mx-auto"
         style={{ height: `${chartHeight}px` }}
       >
         <AreaChart

@@ -153,7 +153,7 @@ export default function ShadcnPieChartDonutCard({
         // Apply similar styling as the example for label visibility if needed.
         // The example uses [&_.recharts-text]:fill-background on ChartContainer
         // and fill-background directly on LabelList.
-        className="mx-auto aspect-square"
+        className="mx-auto"
         style={{ height: `${chartHeight}px` }}
       >
         <RechartsPieChart>

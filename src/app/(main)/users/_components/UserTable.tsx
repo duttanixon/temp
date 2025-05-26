@@ -121,7 +121,7 @@ export default function UserTable({
             ) : (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={5}
                   className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
                   ユーザーが見つかりません
                 </td>
@@ -134,7 +134,7 @@ export default function UserTable({
   }
   return (
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
-      <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
+      <table className="w-full min-w-[800px]">
         <colgroup>
           <col className="w-1/5" /> {/* ユーザー名 */}
           <col className="w-1/5" /> {/* メールアドレス */}
@@ -144,7 +144,7 @@ export default function UserTable({
           <col className="w-1/10" /> {/* 最終ログイン */}
           <col className="w-1/10" /> {/* アクション */}
         </colgroup>
-        <thead className="bg-[#ECF0F1]">
+        <thead className="bg-[#ECF0F1] border-b border-[#BDC3C7]">
           <tr>
             <th
               scope="col"
@@ -183,7 +183,7 @@ export default function UserTable({
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white">
+        <tbody className="bg-white divide-y divide-[#BDC3C7]">
           {paginated.length > 0 ? (
             paginated.map((user) => (
               <tr

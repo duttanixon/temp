@@ -11,6 +11,9 @@ export interface CustomerAssignment {
   expiration_date?: string;
   created_at: string;
   updated_at?: string;
+  solution_name: string;
+  solution_version: string;
+  compatibility: string[];
 }
 
 export type CustomerAssignmentData = {
@@ -20,4 +23,3 @@ export type CustomerAssignmentData = {
   max_devices: number;
   expiration_date?: string;
 };
-

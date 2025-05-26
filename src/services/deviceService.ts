@@ -1,10 +1,10 @@
-import axios, { AxiosError } from 'axios';
-import { getSession } from 'next-auth/react';
-import { Device, DeviceCreateData, DeviceUpdateData } from '@/types/device';
+import { Device, DeviceCreateData, DeviceUpdateData } from "@/types/device";
+import axios, { AxiosError } from "axios";
+import { getSession } from "next-auth/react";
 
 // Create an axios instance
 const apiClient = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}`
+  baseURL: `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}`,
 });
 
 // Request interceptor to add auth token
@@ -21,42 +21,45 @@ function handleApiError(error: any): never {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<any>;
     let message: string;
-    
+
     if (axiosError?.message) {
       message = axiosError.message;
     } else {
-      message = 'An unexpected error occurred';
+      message = "An unexpected error occurred";
     }
-    
-    console.log('API Error:', message);
+
+    console.log("API Error:", message);
     throw new Error(message);
   }
-  
+
   // For non-axios errors
   if (error instanceof Error) {
     throw error;
   }
-  
-  throw new Error('An unexpected error occurred');
+
+  throw new Error("An unexpected error occurred");
 }
 
 // Helper to clean empty fields
 function cleanEmptyFields<T extends Record<string, any>>(data: T): T {
   const cleanData = { ...data };
   Object.keys(cleanData).forEach((key) => {
-    if (cleanData[key] === '') {
+    if (cleanData[key] === "") {
       delete cleanData[key];
     }
   });
   return cleanData;
 }
 
-
 export const deviceService = {
   // Get all devices
-  async getDevices(): Promise<Device[]> {
+  async getDevices(customerId?: string): Promise<Device[]> {
     try {
-      const response = await apiClient.get<Device[]>('/devices');
+      const params: Record<string, any> = {};
+      if (customerId) {
+        params.customer_id = customerId;
+      }
+      const response = await apiClient.get<Device[]>("/devices", { params });
       return response.data;
     } catch (error) {
       return handleApiError(error);
@@ -75,18 +78,18 @@ export const deviceService = {
       return handleApiError(error);
     }
   },
-  
+
   // Create a new device
   async createDevice(data: DeviceCreateData): Promise<Device> {
     try {
       const cleanData = cleanEmptyFields(data);
-      const response = await apiClient.post<Device>('/devices', cleanData);
+      const response = await apiClient.post<Device>("/devices", cleanData);
       return response.data;
     } catch (error) {
       return handleApiError(error);
     }
   },
-  
+
   // Update an existing device
   async updateDevice(id: string, data: DeviceUpdateData): Promise<Device> {
     try {
@@ -105,5 +108,5 @@ export const deviceService = {
     } catch (error) {
       return handleApiError(error);
     }
-  }
+  },
 };

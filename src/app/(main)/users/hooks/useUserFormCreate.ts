@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
 type UserResponse = {
   id: string;
@@ -73,7 +74,9 @@ export const useUserFormCreate = (accessToken: string, initialRole: string) => {
             Accept: "application/json",
           },
         });
-        console.log("登録完了:", response.data);
+        toast.success("作成完了", {
+          description: "新しいユーザーが正常に作成されました。",
+        });
         router.push(`/users`);
         return response.data;
       } catch (error) {

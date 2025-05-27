@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export const useUserFormEdit = (
   accessToken: string,
@@ -102,7 +103,9 @@ export const useUserFormEdit = (
         }
       );
       if (res.status === 200) {
-        console.log("ユーザー情報が更新されました");
+        toast.success("更新完了", {
+          description: "ユーザー情報が更新されました。",
+        });
         router.push(`/users/`);
       }
     } catch (error) {

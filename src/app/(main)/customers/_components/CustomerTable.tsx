@@ -98,54 +98,59 @@ export default function CustomerTable({
             </th>
           </tr>
         </thead>
-        <tbody>
-          {paginated.map((customer) => (
-            // <tr
-            //   key={customer.customer_id}
-            //   onClick={() => router.push(`/customers/${customer.customer_id}`)}
-            //   className={`border-t cursor-pointer hover:bg-blue-50 transition-colors duration-150 ${
-            //     index % 2 === 0 ? "bg-white" : "bg-[#F9F9F9]"
-            //   }`}
-            // >
-            <tr
-              key={customer.customer_id}
-              onClick={() => router.push(`/customers/${customer.customer_id}`)}
-              className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white">
-              <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
-                <div className="truncate">{customer.name}</div>
-              </td>
-              <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] max-w-0">
-                <div className="truncate">{customer.contact_email}</div>
-              </td>
-              <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
-                {deviceCounts[customer.customer_id] ?? "0"}
-              </td>
-              <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
-                <span
-                  className={`px-2 py-1 rounded-full ${
-                    customer.status === "ACTIVE"
-                      ? "bg-green-100 text-green-700"
+        <tbody className="bg-white">
+          {paginated.length > 0 ? (
+            paginated.map((customer) => (
+              <tr
+                key={customer.customer_id}
+                onClick={() =>
+                  router.push(`/customers/${customer.customer_id}`)
+                }
+                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white">
+                <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
+                  <div className="truncate">{customer.name}</div>
+                </td>
+                <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] max-w-0">
+                  <div className="truncate">{customer.contact_email}</div>
+                </td>
+                <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
+                  {deviceCounts[customer.customer_id] ?? "0"}
+                </td>
+                <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
+                  <span
+                    className={`px-2 py-1 rounded-full ${
+                      customer.status === "ACTIVE"
+                        ? "bg-green-100 text-green-700"
+                        : customer.status === "INACTIVE"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-gray-100 text-gray-700"
+                    }`}>
+                    {customer.status === "ACTIVE"
+                      ? "アクティブ"
                       : customer.status === "INACTIVE"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-700"
-                  }`}>
-                  {customer.status === "ACTIVE"
-                    ? "アクティブ"
-                    : customer.status === "INACTIVE"
-                      ? "非アクティブ"
-                      : "一時停止中"}
-                </span>
-              </td>
-              <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
-                <span className="px-2 py-1 ">
-                  {new Date(customer.created_at).toISOString().split("T")[0]}
-                </span>
-              </td>
-              <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
-                <span className="px-2 py-1 ">-</span>
+                        ? "非アクティブ"
+                        : "一時停止中"}
+                  </span>
+                </td>
+                <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
+                  <span className="px-2 py-1 ">
+                    {new Date(customer.created_at).toISOString().split("T")[0]}
+                  </span>
+                </td>
+                <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
+                  <span className="px-2 py-1 ">-</span>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td
+                colSpan={6}
+                className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                顧客が見つかりません
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>

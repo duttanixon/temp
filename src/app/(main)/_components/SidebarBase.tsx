@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebarContext } from "@/lib/sidebar-context";
 import { cn } from "@/lib/utils";
@@ -36,11 +34,6 @@ interface SidebarBaseProps {
 export function SidebarBase({ sections }: SidebarBaseProps) {
   const pathname = usePathname();
   const { isCollapsed } = useSidebarContext();
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-
-  const isSectionActive = (items: MenuItem[]) => {
-    return items.some((item) => isActive(item.href));
-  };
 
   // Helper function to determine if a menu item is active
   const isActive = (href: string) => {
@@ -60,8 +53,8 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
       "flex items-center gap-3 px-3 py-2 mb-2 rounded-md transition-colors relative group",
       isSubmenu ? "pl-9" : "",
       active
-        ? "bg-[#3498DB] text-[#FFFFFF]"
-        : "text-[#FFFFFF] hover:bg-[#3498DB] opacity-50"
+        ? "bg-[#437A9E] text-[#FFFFFF]"
+        : "text-[#FFFFFF] hover:bg-[#437A9E] opacity-50"
     );
 
     // If collapsed, show tooltip with the label
@@ -109,38 +102,16 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
       <div className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
         {sections.map((section, index) => (
           <div key={index}>
-            {/* {index > 0 && <Separator className="my-4" />} */}
+            {index > 0 && <Separator className="my-4" />}
 
             {!isCollapsed && section.title && (
-              <div
-                className={cn(
-                  "flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#FFFFFF] cursor-pointer select-none",
-                  section.title === "管理" && isSectionActive(section.items)
-                    ? "bg-[#3498DB]/70"
-                    : "opacity-50"
-                )}
-                onClick={() => {
-                  if (section.title === "管理") {
-                    setIsAdminOpen((prev) => !prev);
-                  }
-                }}
-              >
-                <span>{section.title}</span>
-                {section.title === "管理" && (
-                  <span className="ml-2">
-                    {isAdminOpen ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </span>
-                )}
+              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#FFFFFF] cursor-pointer select-none">
+                {section.title}
               </div>
             )}
 
             <div className="space-y-1">
-              {(section.title !== "管理" || isAdminOpen) &&
-                section.items.map((item) => renderMenuItem(item))}
+              {section.items.map((item) => renderMenuItem(item))}
             </div>
           </div>
         ))}

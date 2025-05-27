@@ -68,13 +68,14 @@ export function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-4 text-[#7C8C8D]">
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm">
-              連絡先メール
+              メールアドレス
             </label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="text-[#2C3E50]"
               required
             />
           </div>
@@ -89,6 +90,7 @@ export function LoginForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="text-[#2C3E50]"
               required
             />
             <div className="text-right">

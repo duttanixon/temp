@@ -54,7 +54,7 @@ export function HeaderClient({
 
           <h1 className="text-xl font-semibold">
             {showCustomerHeader
-              ? customerName
+              ? `IoT エッジデバイス管理システム - ${customerName}`
               : "IoT エッジデバイス管理システム"}
           </h1>
         </div>
@@ -77,9 +77,6 @@ function UserMenu({
 }) {
   const router = useRouter();
 
-  const userNameDisplay =
-    userName === "Admin User" ? "管理者ユーザー" : "ユーザー";
-
   return (
     <div className="flex items-center gap-4">
       <DropdownMenu>
@@ -89,7 +86,7 @@ function UserMenu({
             className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
           >
             <User className="h-5 w-5" />
-            <span className="text-sm">{userNameDisplay} ▾</span>
+            <span className="text-sm">{userName} ▾</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

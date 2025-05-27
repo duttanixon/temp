@@ -1,4 +1,3 @@
-// src/app/(main)/analytics/cityeye/_components/CityEyeClient.tsx
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
@@ -17,8 +16,8 @@ import { useAnalyticsData } from "@/hooks/analytics/city_eye/useAnalyticsData";
 
 import { processAnalyticsDataForTotalPeople } from "@/utils/analytics/city_eye/totalCountUtils";
 import { processAnalyticsDataForAgeDistribution } from "@/utils/analytics/city_eye/ageDistributionUtils";
-import { processAnalyticsDataForGenderDistribution } from "@/utils/analytics/city_eye/genderDistributionUtils"; // Added
-import { processAnalyticsDataForHourlyDistribution } from "@/utils/analytics/city_eye/hourlyDistributionUtils"; // Added
+import { processAnalyticsDataForGenderDistribution } from "@/utils/analytics/city_eye/genderDistributionUtils"; 
+import { processAnalyticsDataForHourlyDistribution } from "@/utils/analytics/city_eye/hourlyDistributionUtils";
 import { processAnalyticsDataForAgeGenderDistribution } from "@/utils/analytics/city_eye/ageGenderDistributionUtils";
 
 import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
@@ -37,16 +36,18 @@ interface CityEyeClientProps {
 export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   const [verticalTab, setVerticalTab] = useState("overview");
   const [horizontalTab, setHorizontalTab] = useState("people");
+  const [initialOverviewFiltersApplied, setInitialOverviewFiltersApplied] = useState(false);
+  const [initialComparisonFiltersApplied, setInitialComparisonFiltersApplied] = useState(false);
 
   const {
     filters,
-    activeApiFilters: activeMainApiFilters,
-    setActiveApiFilters: setActiveMainApiFilters,
     handleFilterChange,
     validateAndPrepareApiFilters,
   } = useAnalyticsFilters(initialFilterStateValues);
 
-  const [activeComparisonApiFilters, setActiveComparisonApiFilters] =
+  const [currentActiveMainApiFilters, setCurrentActiveMainApiFilters] =
+  useState<FrontendAnalyticsFilters | null>(null);
+  const [currentActiveComparisonApiFilters, setCurrentActiveComparisonApiFilters] =
     useState<FrontendAnalyticsFilters | null>(null);
 
   const mainQueryParams = useMemo(() => {
@@ -73,7 +74,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     isLoading: isLoadingMain,
     error: errorMain,
   } = useAnalyticsData({
-    activeApiFilters: activeMainApiFilters,
+    activeApiFilters: currentActiveMainApiFilters,
     queryParams: mainQueryParams,
   });
 
@@ -82,7 +83,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     isLoading: isLoadingComparison,
     error: errorComparison,
   } = useAnalyticsData({
-    activeApiFilters: activeComparisonApiFilters,
+    activeApiFilters: currentActiveComparisonApiFilters,
     queryParams: comparisonQueryParams,
   });
 
@@ -123,17 +124,19 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     );
 
     if (mainApiFilters) {
-      setActiveMainApiFilters(mainApiFilters);
+      setCurrentActiveMainApiFilters(mainApiFilters);
     } else {
-      setActiveMainApiFilters(null);
-      setActiveComparisonApiFilters(null);
+      setCurrentActiveMainApiFilters(null); // Clear if validation fails
+      setCurrentActiveComparisonApiFilters(null);// Also clear comparison if main fails
       return;
     }
 
+
+    // Only proceed to set comparison filters if main filters were successfully set
     if (verticalTab === "comparison") {
       if (!filters.comparisonPeriod?.from || !filters.comparisonPeriod?.to) {
         toast.error("比較対象期間を選択してください。");
-        setActiveComparisonApiFilters(null);
+        setCurrentActiveComparisonApiFilters(null);
         return;
       }
       const comparisonApiFilters = validateAndPrepareApiFilters(
@@ -142,35 +145,89 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         "comparisonPeriod"
       );
       if (comparisonApiFilters) {
-        setActiveComparisonApiFilters(comparisonApiFilters);
+        setCurrentActiveComparisonApiFilters(comparisonApiFilters);
       } else {
-        setActiveComparisonApiFilters(null);
+        setCurrentActiveComparisonApiFilters(null);
       }
     } else {
-      setActiveComparisonApiFilters(null);
+      setCurrentActiveComparisonApiFilters(null);
     }
   }, [
     filters,
     horizontalTab,
     verticalTab,
     validateAndPrepareApiFilters,
-    setActiveMainApiFilters,
-    setActiveComparisonApiFilters,
+    // setCurrentActiveMainApiFilters,
+    // setCurrentActiveComparisonApiFilters,
+    // setCurrentActiveMainApiFilters and setCurrentActiveComparisonApiFilters are setters, not needed in useCallback deps if function identity is stable
   ]);
 
   const showVerticalTabsAndFilters =
     horizontalTab === "people" || horizontalTab === "traffic";
 
+  // Reset active filters when horizontal tab changes to ensure fresh data fetch on apply
   useEffect(() => {
-    setActiveMainApiFilters(null);
-    setActiveComparisonApiFilters(null);
-  }, [horizontalTab, setActiveMainApiFilters, setActiveComparisonApiFilters]);
+    console.log("CityEyeClient: Horizontal tab changed, clearing active API filters and initial applied flag.");
+    setCurrentActiveMainApiFilters(null);
+    setCurrentActiveComparisonApiFilters(null);
+    setInitialOverviewFiltersApplied(false);  // Reset for the new tab context
+    setInitialComparisonFiltersApplied(false);
+  }, [horizontalTab]);
 
+  // Reset comparison filters if not in comparison view
+  // and to reset comparison auto-apply flag when switching away from comparison tab.
   useEffect(() => {
     if (verticalTab !== "comparison") {
-      setActiveComparisonApiFilters(null);
+      setCurrentActiveComparisonApiFilters(null);
+      setInitialComparisonFiltersApplied(false); 
+    } else {
+      // If switching TO comparison, and overview was already applied,
+      // we might want to trigger comparison apply immediately.
+      // This is handled by the main auto-apply effect now.
     }
-  }, [verticalTab, setActiveComparisonApiFilters]);
+  }, [verticalTab]);
+
+  // Unified Effect to auto-apply filters for Overview OR Comparison Tab
+  useEffect(() => {
+    // Ensure devices are selected and solutionId is present
+    // Common prerequisites for any auto-apply
+    if (!solutionId || filters.selectedDevices.length === 0 || isLoadingMain || isLoadingComparison) {
+      return;
+    }
+
+    if (verticalTab === "overview" && !initialOverviewFiltersApplied && !currentActiveMainApiFilters) {
+      console.log("CityEyeClient: Auto-applying initial filters for Overview tab.");
+      handleApplyFiltersClick();
+      setInitialOverviewFiltersApplied(true);
+    } else if (verticalTab === "comparison" && !initialComparisonFiltersApplied && !currentActiveComparisonApiFilters) {
+      // For comparison, also ensure comparison period is valid (it has defaults)
+      if (filters.analysisPeriod?.from && filters.analysisPeriod?.to && filters.comparisonPeriod?.from && filters.comparisonPeriod?.to) {
+        console.log("CityEyeClient: Auto-applying initial filters for Comparison tab.");
+        handleApplyFiltersClick();
+        setInitialComparisonFiltersApplied(true);
+        // If main overview wasn't applied before, it would be now. Mark it too if it wasn't.
+        if (!initialOverviewFiltersApplied) {
+          setInitialOverviewFiltersApplied(true);
+      }
+    }
+  // Listen to filters.selectedDevices to react to its change by DevicesFilter
+  // Listen to currentActiveMainApiFilters to ensure we don't override a manual click that already set it
+  // Listen to isLoadingMain to avoid triggering apply while previous one is still processing
+}
+  }, [
+    solutionId,
+    filters.selectedDevices,
+    filters.analysisPeriod, // Add date periods to dependencies
+    filters.comparisonPeriod, // Add date periods to dependencies
+    verticalTab,
+    initialOverviewFiltersApplied,
+    initialComparisonFiltersApplied,
+    handleApplyFiltersClick,
+    currentActiveMainApiFilters,
+    currentActiveComparisonApiFilters,
+    isLoadingMain, // Prevent applying if already loading
+    isLoadingComparison // Prevent applying if already loading
+  ]);
 
   const renderMainContent = () => {
     if (horizontalTab === "people") {
@@ -181,14 +238,14 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           isLoadingMain={isLoadingMain}
           errorMain={errorMain}
           hasAttemptedFetchMain={
-            !!activeMainApiFilters && Object.keys(mainQueryParams).length > 0
+            !!currentActiveMainApiFilters && Object.keys(mainQueryParams).length > 0
           }
           mainPeriodDateRange={filters.analysisPeriod}
           comparisonProcessedData={processedComparisonData}
           isLoadingComparison={isLoadingComparison}
           errorComparison={errorComparison}
           hasAttemptedFetchComparison={
-            !!activeComparisonApiFilters &&
+            !!currentActiveComparisonApiFilters &&
             Object.keys(comparisonQueryParams).length > 0
           }
           comparisonPeriodDateRange={filters.comparisonPeriod}
@@ -222,7 +279,16 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         <div className="w-full md:w-[360px] border-b md:border-b-0 md:border-r bg-[#F8F9FA] flex flex-col p-2 rounded-lg shadow-sm">
           <Tabs
             value={verticalTab}
-            onValueChange={setVerticalTab}
+            onValueChange={(newVerticalTab) => {
+              setVerticalTab(newVerticalTab);
+              // When switching vertical tabs, we might want to reset the 'applied' flag for the new tab
+              // to allow auto-apply if conditions are met.
+              if (newVerticalTab === "overview") {
+                setInitialComparisonFiltersApplied(false); // Reset other tab's flag
+              } else if (newVerticalTab === "comparison") {
+                setInitialOverviewFiltersApplied(false); // Reset other tab's flag
+              }
+            }}
             className="w-full"
           >
             <TabsList className="h-auto grid grid-cols-2 gap-1 rounded-md bg-muted p-0.5 w-full">
@@ -273,6 +339,9 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           value={horizontalTab}
           onValueChange={(newTab) => {
             setHorizontalTab(newTab);
+            // Switching horizontal tab should also reset auto-apply flags for both vertical views
+            setInitialOverviewFiltersApplied(false);
+            setInitialComparisonFiltersApplied(false);
           }}
           className="w-full mb-3"
         >

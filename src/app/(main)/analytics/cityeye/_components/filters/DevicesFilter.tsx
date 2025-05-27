@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { FilterCard } from "./FilterCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { deviceSolutionService } from "@/services/deviceSolutionService";
-import { DeviceDeployment } from "@/types/deviceSolution"; // Assuming this type has device_id, device_name, device_location
 
 interface DeviceInfo {
   // Local type for fetched devices
@@ -19,7 +18,6 @@ interface DevicesFilterProps {
   solutionId: string; // solutionId is crucial for fetching relevant devices
   selectedDevices: string[];
   onSelectionChange: (selectedDevices: string[]) => void;
-  // customerId prop can be removed if solutionId is the primary way to fetch devices
 }
 
 export function DevicesFilter({
@@ -41,25 +39,39 @@ export function DevicesFilter({
         setAvailableDevices([]);
         // If solutionId is not yet available, do not clear selected devices from parent
         // onSelectionChange([]); // Potentially clears selection if solutionId briefly becomes null
+        // Do not clear selectedDevices here, parent (CityEyeClient) will manage reset on solutionId change
         return;
       }
       setIsLoading(true);
       try {
-        // Assuming getDevicesBySolution is the correct service call.
-        // It should ideally return a list of devices relevant to the solution.
+        // getDevicesBySolution return a list of devices relevant to the solution.
         const devicesData =
           await deviceSolutionService.getDevicesBySolution(solutionId);
-        setAvailableDevices(
-          devicesData.map((d) => ({
-            // Ensure mapping matches DeviceInfo
-            device_id: d.device_id,
-            device_name: d.device_name,
-            device_location: d.device_location,
-          }))
-        );
+        const mappedDevicesData = devicesData.map((d) => ({
+          device_id: d.device_id,
+          device_name: d.device_name,
+          device_location: d.device_location,
+        }));
+        setAvailableDevices(mappedDevicesData);
+
+        // If devices were fetched and no devices are currently selected from parent state,
+        // auto-select all fetched devices.
+        if (mappedDevicesData.length > 0 && selectedDevices.length === 0) {
+          console.log("DevicesFilter: Auto-selecting all available devices.");
+          onSelectionChange(mappedDevicesData.map((d) => d.device_id));
+        } else if (mappedDevicesData.length === 0 && selectedDevices.length > 0) {
+          // If no devices are available for the new solutionId, clear any existing selection.
+          console.log("DevicesFilter: No devices available for this solution, clearing selection.");
+          onSelectionChange([]);
+        }
+
+
       } catch (error) {
         console.error("Failed to fetch devices for solution:", error);
         setAvailableDevices([]);
+        if (selectedDevices.length > 0) { // Clear selection if fetch fails
+           onSelectionChange([]);
+        }
       } finally {
         setIsLoading(false);
       }

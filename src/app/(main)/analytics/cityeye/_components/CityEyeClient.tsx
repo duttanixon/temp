@@ -291,7 +291,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             }}
             className="w-full"
           >
-            <TabsList className="h-auto grid grid-cols-2 gap-1 rounded-md bg-muted p-0.5 w-full">
+            <TabsList className="h-auto grid grid-cols-2 gap-2 rounded-xl bg-white/80 backdrop-blur-sm p-1 w-full shadow-sm border border-gray-200/50">
               <TabsTrigger
                 value="overview"
                 className={cn(

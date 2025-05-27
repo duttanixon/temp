@@ -21,6 +21,9 @@ interface CustomerTableProps {
   itemsPerPage: number;
 }
 
+type SortKey = "name" | "contact_email" | "device" | "status" | "created_at";
+type SortOrder = "asc" | "desc";
+
 export default function CustomerTable({
   customers,
   page,
@@ -28,6 +31,8 @@ export default function CustomerTable({
   itemsPerPage,
 }: CustomerTableProps) {
   const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>({});
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
   const router = useRouter();
 
@@ -45,55 +50,101 @@ export default function CustomerTable({
     fetchDeviceMap();
   }, []);
 
-  const paginated = [...customers]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-    .slice(page * itemsPerPage, (page + 1) * itemsPerPage);
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
+    }
+    // setPage(0);
+  };
+
+  const getSortedCustomers = () => {
+    return [...customers].sort((a, b) => {
+      let aVal: string | Date | number = a[sortKey];
+      let bVal: string | Date | number = b[sortKey];
+
+      // Handle device count
+      if (sortKey === "device") {
+        aVal = deviceCounts[a.customer_id] ?? 0;
+        bVal = deviceCounts[b.customer_id] ?? 0;
+      }
+
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const paginated = getSortedCustomers().slice(
+    page * itemsPerPage,
+    (page + 1) * itemsPerPage
+  );
   // const totalItems = customers.length;
+
+  const sortIcon = (key: SortKey) => {
+    return sortKey === key ? (sortOrder === "asc" ? "▲" : "▼") : "";
+  };
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
       <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
         <colgroup>
-          <col className="w-1/5" /> {/* 顧客名: 25% */}
-          <col className="w-1/4" /> {/* メールアドレス: 40% */}
-          <col className="w-1/10" /> {/* デバイス: 8% */}
-          <col className="w-[15%]" /> {/* 状態: 15% */}
-          <col className="w-[15%]" /> {/* 作成日: 10% */}
-          <col className="w-[15%]" /> {/* アクション: 2% */}
+          <col className="w-1/5" />
+          {/* 顧客名: 25% */}
+          <col className="w-1/4" />
+          {/* メールアドレス: 40% */}
+          <col className="w-1/10" />
+          {/* デバイス: 8% */}
+          <col className="w-[15%]" />
+          {/* 状態: 15% */}
+          <col className="w-[15%]" />
+          {/* 作成日: 10% */}
+          <col className="w-[15%]" />
+          {/* アクション: 2% */}
         </colgroup>
         <thead className="bg-[#ECF0F1]">
           <tr>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              顧客名
+              onClick={() => handleSort("name")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              顧客名 {sortIcon("name")}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              メールアドレス
+              onClick={() => handleSort("contact_email")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              メールアドレス {sortIcon("contact_email")}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              デバイス
+              onClick={() => handleSort("device")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              デバイス {sortIcon("device")}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              状態
+              onClick={() => handleSort("status")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              状態 {sortIcon("status")}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              作成日
+              onClick={() => handleSort("created_at")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              作成日 {sortIcon("created_at")}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               アクション
             </th>
           </tr>
@@ -106,7 +157,8 @@ export default function CustomerTable({
                 onClick={() =>
                   router.push(`/customers/${customer.customer_id}`)
                 }
-                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white">
+                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
+              >
                 <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
                   <div className="truncate">{customer.name}</div>
                 </td>
@@ -124,7 +176,8 @@ export default function CustomerTable({
                         : customer.status === "INACTIVE"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-gray-100 text-gray-700"
-                    }`}>
+                    }`}
+                  >
                     {customer.status === "ACTIVE"
                       ? "アクティブ"
                       : customer.status === "INACTIVE"
@@ -146,7 +199,8 @@ export default function CustomerTable({
             <tr>
               <td
                 colSpan={6}
-                className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
+              >
                 顧客が見つかりません
               </td>
             </tr>

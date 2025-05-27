@@ -28,13 +28,11 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <h1 className="text-4xl font-bold mb-4">
-          Edge Device Management System
-        </h1>
-        <p className="text-lg">
-          Centralized control for all your IoT devices and AI solutions across
-          multiple clients.
-        </p>
+        <h1 className="text-4xl font-bold mb-4">エッジデバイス管理システム</h1>
+        <div className="text-lg">
+          <p>複数のクライアントにわたる</p>
+          <p>すべてのIoTデバイスとAIソリューションを一元管理</p>
+        </div>
 
         <div className="mt-auto">
           <p className="text-xs text-right mt-8">v1.0.0</p>
@@ -44,7 +42,8 @@ export default function LoginPage() {
       {/* Right side login form */}
       <div
         className="w-full flex items-center justify-center p-8"
-        style={{ backgroundColor: "#f5f7f9" }}>
+        style={{ backgroundColor: "#f5f7f9" }}
+      >
         <LoginForm />
       </div>
 

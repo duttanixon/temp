@@ -38,7 +38,7 @@ export const AccessFormField: FC<FormFieldProps> = ({
       className={cn(inputClassName)}
       id={id}
       name={name}
-      value={value}
+      value={value ?? ""}
       onChange={onChange}
       required={required}
     >

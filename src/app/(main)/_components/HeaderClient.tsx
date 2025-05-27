@@ -46,7 +46,7 @@ export function HeaderClient({
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] mr-1"
+            className="mr-1 text-[color:var(--header-text)] hover:text-[#FFFFFF] hover:bg-[#437A9E] hover:cursor-pointer"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle sidebar</span>
@@ -54,7 +54,7 @@ export function HeaderClient({
 
           <h1 className="text-xl font-semibold">
             {showCustomerHeader
-              ? customerName
+              ? `IoT エッジデバイス管理システム - ${customerName}`
               : "IoT エッジデバイス管理システム"}
           </h1>
         </div>
@@ -86,7 +86,7 @@ function UserMenu({
             className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
           >
             <User className="h-5 w-5" />
-            <span>{userName || "User"} ▾</span>
+            <span className="text-sm">{userName} ▾</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -94,20 +94,20 @@ function UserMenu({
             onClick={() => router.push("/profile")}
             className="cursor-pointer"
           >
-            Profile
+            プロフィール
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => router.push("/settings")}
             className="cursor-pointer"
           >
-            Settings
+            設定
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={onLogout}
             className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]"
           >
-            Logout
+            ログアウト
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

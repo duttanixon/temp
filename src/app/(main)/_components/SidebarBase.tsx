@@ -50,7 +50,7 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
     const active = isActive(href);
 
     const itemClasses = cn(
-      "flex items-center gap-3 px-3 py-2 mb-2 rounded-md transition-colors relative group",
+      "flex items-center gap-3 px-3 py-2 mb-2 rounded-md transition-colors relative group hover:cursor-pointer",
       isSubmenu ? "pl-9" : "",
       active
         ? "bg-[#437A9E] text-[#FFFFFF]"
@@ -65,9 +65,9 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
             <TooltipTrigger asChild>
               <Link href={href} className={itemClasses}>
                 <Icon className="h-5 w-5 shrink-1" />
-                {active && (
+                {/* {active && (
                   <div className="absolute w-1 h-7 bg-[color:var(--sidebar-item-active)] rounded-full left-0" />
-                )}
+                )} */}
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right" className="ml-1">
@@ -102,10 +102,12 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
       <div className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
         {sections.map((section, index) => (
           <div key={index}>
-            {index > 0 && <Separator className="my-4" />}
+            {index > 0 && (
+              <Separator className="my-4 bg-[#FFFFFF] opacity-20" />
+            )}
 
             {!isCollapsed && section.title && (
-              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#FFFFFF] cursor-pointer select-none">
+              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#CBD5E2] cursor-pointer select-none">
                 {section.title}
               </div>
             )}

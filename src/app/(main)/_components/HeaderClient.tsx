@@ -46,7 +46,7 @@ export function HeaderClient({
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] mr-1"
+            className="mr-1 text-[color:var(--header-text)] hover:text-[#FFFFFF] hover:bg-[#437A9E] hover:cursor-pointer"
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle sidebar</span>

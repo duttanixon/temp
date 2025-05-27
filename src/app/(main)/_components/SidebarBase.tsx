@@ -107,7 +107,7 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
             )}
 
             {!isCollapsed && section.title && (
-              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#CBD5E2] cursor-pointer select-none">
+              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#CBD5E2] select-none">
                 {section.title}
               </div>
             )}

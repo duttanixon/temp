@@ -24,14 +24,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8 text-white flex flex-col bg-[#2c5d82]">
         <div className="flex items-center mb-8">
           <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center">
-            <span className="text-3xl font-bold text-[#3498db]">EM</span>
+            <span className="text-3xl font-bold text-[#3498db]">CP</span>
           </div>
         </div>
 
-        <h1 className="text-4xl font-bold mb-4">エッジデバイス管理システム</h1>
+        <h1 className="text-4xl font-bold mb-4">Cybercore Platform</h1>
         <div className="text-lg">
-          <p>複数のクライアントにわたる</p>
-          <p>すべてのIoTデバイスとAIソリューションを一元管理</p>
+          Centralized control for all your IoT devices and AI solutions across
+          multiple clients.
         </div>
 
         <div className="mt-auto">
@@ -42,8 +42,7 @@ export default function LoginPage() {
       {/* Right side login form */}
       <div
         className="w-full flex items-center justify-center p-8"
-        style={{ backgroundColor: "#f5f7f9" }}
-      >
+        style={{ backgroundColor: "#f5f7f9" }}>
         <LoginForm />
       </div>
 

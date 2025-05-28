@@ -15,14 +15,17 @@ export function CustomerSidebar() {
     {
       items: [
         { href: "/dashboard", icon: LayoutDashboard, label: "ダッシュボード" },
-        { href: "/devices", icon: Database, label: "デバイス" },
         { href: "/analytics", icon: BarChart2, label: "分析" },
         { href: "/alerts", icon: AlertCircle, label: "通知" },
         { href: "/support", icon: HeadphonesIcon, label: "サポート" },
       ],
     },
     {
-      items: [{ href: "/users", icon: Users, label: "ユーザー管理" }],
+      title: "管理",
+      items: [
+        { href: "/devices", icon: Database, label: "デバイス" },
+        { href: "/users", icon: Users, label: "ユーザー" },
+      ],
     },
   ];
 

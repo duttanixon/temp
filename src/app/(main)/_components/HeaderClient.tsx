@@ -39,23 +39,21 @@ export function HeaderClient({
     <div className="sticky top-0 z-20">
       <header
         className="bg-[color:var(--header-bg)] text-[color:var(--header-text)] px-4 sm:px-4 py-2 flex items-center justify-between "
-        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
-      >
+        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="mr-1 text-[color:var(--header-text)] hover:text-[#FFFFFF] hover:bg-[#437A9E] hover:cursor-pointer"
-          >
+            className="mr-1 text-[color:var(--header-text)] hover:text-[#FFFFFF] hover:bg-[#437A9E] hover:cursor-pointer">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle sidebar</span>
           </Button>
 
           <h1 className="text-xl font-semibold">
             {showCustomerHeader
-              ? `IoT エッジデバイス管理システム - ${customerName}`
-              : "IoT エッジデバイス管理システム"}
+              ? `Cybercore Platform - ${customerName}`
+              : "Cybercore Platform"}
           </h1>
         </div>
 
@@ -83,8 +81,7 @@ function UserMenu({
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer"
-          >
+            className="flex items-center gap-2 text-[color:var(--header-text)] hover:bg-[color:var(--header-hover)] cursor-pointer">
             <User className="h-5 w-5" />
             <span className="text-sm">{userName} ▾</span>
           </Button>
@@ -92,21 +89,18 @@ function UserMenu({
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             onClick={() => router.push("/profile")}
-            className="cursor-pointer"
-          >
+            className="cursor-pointer">
             プロフィール
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => router.push("/settings")}
-            className="cursor-pointer"
-          >
+            className="cursor-pointer">
             設定
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={onLogout}
-            className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]"
-          >
+            className="cursor-pointer text-[color:var(--danger-500)] hover:text-[color:var(--danger-600)]">
             ログアウト
           </DropdownMenuItem>
         </DropdownMenuContent>

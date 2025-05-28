@@ -50,11 +50,11 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
     const active = isActive(href);
 
     const itemClasses = cn(
-      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative group text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]",
-      isSubmenu ? "pl-9" : ""
-      //   active
-      //     ? "bg-[color:var(--sidebar-item-active)] text-[color:var(--sidebar-item-active-text)]"
-      //     : "text-[color:var(--sidebar-text)] hover:bg-[color:var(--sidebar-item-hover)]"
+      "flex items-center gap-3 px-3 py-2 mb-2 rounded-md transition-colors relative group hover:cursor-pointer",
+      isSubmenu ? "pl-9" : "",
+      active
+        ? "bg-[#437A9E] text-[#FFFFFF]"
+        : "text-[#FFFFFF] hover:bg-[#437A9E] opacity-50"
     );
 
     // If collapsed, show tooltip with the label
@@ -65,9 +65,9 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
             <TooltipTrigger asChild>
               <Link href={href} className={itemClasses}>
                 <Icon className="h-5 w-5 shrink-1" />
-                {active && (
+                {/* {active && (
                   <div className="absolute w-1 h-7 bg-[color:var(--sidebar-item-active)] rounded-full left-0" />
-                )}
+                )} */}
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right" className="ml-1">
@@ -83,9 +83,9 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
       <Link key={href} href={href} className={itemClasses}>
         <Icon className="h-5 w-5 shrink-0" />
         <span className="truncate">{label}</span>
-        {active && (
+        {/* {active && (
           <div className="absolute w-1 h-7 bg-[color:var(--sidebar-item-active)] rounded-full left-0" />
-        )}
+        )} */}
       </Link>
     );
   };
@@ -93,8 +93,8 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
   return (
     <aside
       className={cn(
-        "bg-[color:var(--sidebar-bg)] border-r border-[color:var(--sidebar-border)] transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
-        "top-16",
+        "bg-[#34495E] border-r border-[color:var(--sidebar-border)] transition-all duration-300 fixed inset-y-0 left-0 flex flex-col",
+        "top-13",
         "z-10",
         isCollapsed ? "w-16" : "w-64"
       )}
@@ -102,10 +102,12 @@ export function SidebarBase({ sections }: SidebarBaseProps) {
       <div className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
         {sections.map((section, index) => (
           <div key={index}>
-            {index > 0 && <Separator className="my-4" />}
+            {index > 0 && (
+              <Separator className="my-4 bg-[#FFFFFF] opacity-20" />
+            )}
 
             {!isCollapsed && section.title && (
-              <div className="text-xs font-semibold text-[color:var(--sidebar-heading-text)] px-3 mb-2">
+              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-md text-normal font-bold text-[#CBD5E2] select-none">
                 {section.title}
               </div>
             )}

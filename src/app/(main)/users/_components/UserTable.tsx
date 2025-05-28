@@ -38,11 +38,11 @@ export default function UserTable({
       <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
         <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
           <colgroup>
-            <col className="w-1/5" /> {/* ユーザー名 */}
-            <col className="w-1/5" /> {/* メールアドレス */}
-            <col className="w-1/5" /> {/* 状態 */}
-            <col className="w-1/5" /> {/* 最終ログイン */}
-            <col className="w-1/5" /> {/* アクション */}
+            <col className="w-1/5" />
+            <col className="w-1/5" />
+            <col className="w-1/5" /> 
+            <col className="w-1/5" />
+            <col className="w-1/5" />
           </colgroup>
           <thead className="bg-[#ECF0F1]">
             <tr>
@@ -136,13 +136,13 @@ export default function UserTable({
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
       <table className="w-full min-w-[800px]">
         <colgroup>
-          <col className="w-1/5" /> {/* ユーザー名 */}
-          <col className="w-1/5" /> {/* メールアドレス */}
-          <col className="w-1/10" /> {/* 権限 */}
-          <col className="w-1/5" /> {/* 顧客名 */}
-          <col className="w-1/10" /> {/* 状態 */}
-          <col className="w-1/10" /> {/* 最終ログイン */}
-          <col className="w-1/10" /> {/* アクション */}
+          <col className="w-1/5" />
+          <col className="w-1/5" />
+          <col className="w-1/10" />
+          <col className="w-1/5" />
+          <col className="w-1/10" />
+          <col className="w-1/10" />
+          <col className="w-1/10" />
         </colgroup>
         <thead className="bg-[#ECF0F1] border-b border-[#BDC3C7]">
           <tr>

@@ -1,6 +1,7 @@
 "use client";
 
 import axios from "axios";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -84,7 +85,15 @@ export default function CustomerTable({
   // const totalItems = customers.length;
 
   const sortIcon = (key: SortKey) => {
-    return sortKey === key ? (sortOrder === "asc" ? "▲" : "▼") : "";
+    return sortKey === key ? (
+      sortOrder === "asc" ? (
+        <ChevronUp />
+      ) : (
+        <ChevronDown />
+      )
+    ) : (
+      ""
+    );
   };
 
   return (
@@ -111,35 +120,50 @@ export default function CustomerTable({
               onClick={() => handleSort("name")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              顧客名 {sortIcon("name")}
+              <div className="flex justify-center items-center select-none gap-1">
+                <span>顧客名</span>
+                {sortIcon("name")}
+              </div>
             </th>
             <th
               scope="col"
               onClick={() => handleSort("contact_email")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              メールアドレス {sortIcon("contact_email")}
+              <div className="flex justify-center items-center select-none">
+                <span>メールアドレス</span>
+                {sortIcon("contact_email")}
+              </div>
             </th>
             <th
               scope="col"
               onClick={() => handleSort("device")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              デバイス {sortIcon("device")}
+              <div className="flex justify-center items-center select-none gap-1">
+                <span>デバイス</span>
+                {sortIcon("device")}
+              </div>
             </th>
             <th
               scope="col"
               onClick={() => handleSort("status")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              状態 {sortIcon("status")}
+              <div className="flex justify-center items-center select-none gap-1">
+                <span>状態</span>
+                {sortIcon("status")}
+              </div>
             </th>
             <th
               scope="col"
               onClick={() => handleSort("created_at")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              作成日 {sortIcon("created_at")}
+              <div className="flex justify-center items-center select-none gap-1">
+                <span>作成日</span>
+                {sortIcon("created_at")}
+              </div>
             </th>
             <th
               scope="col"

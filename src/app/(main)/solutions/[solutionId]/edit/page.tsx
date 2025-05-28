@@ -2,6 +2,13 @@
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import SolutionEditForm from "../../_components/SolutionEditForm";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 async function getSolution(solutionId: string, accessToken: string) {
   try {
@@ -54,17 +61,26 @@ export default async function EditSolutionPage({ params }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <a href="/solutions" className="text-sm text-[#7F8C8D] hover:underline">
-          ソリューション管理
-        </a>
-        {" > "}
-        <a
-          href={`/solutions/${solution.solution_id}`}
-          className="text-sm text-[#7F8C8D] hover:underline"
-        >
-          {solution.name}
-        </a>
-        <h1 className="text-2xl font-bold text-[#2C3E50]">ソリューション編集</h1>
+        <Breadcrumb className="text-sm text-[#7F8C8D]">
+          <BreadcrumbList>
+            <BreadcrumbItem className="hover:underline">
+              <BreadcrumbLink href="/solutions">
+                ソリューション管理
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#7F8C8D]" />
+            <BreadcrumbItem className="hover:underline">
+              <BreadcrumbLink href={`/solutions/${solutionId}`}>
+                {solution.name}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#7F8C8D]" />
+            <BreadcrumbItem>編集</BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">
+          ソリューション編集
+        </h1>
       </div>
 
       <SolutionEditForm solution={solution} />

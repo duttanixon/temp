@@ -2,6 +2,13 @@ import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import DeviceEditForm from "../../_components/DeviceEditForm";
 import type { Metadata, ResolvingMetadata } from "next";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 async function getDevice(deviceId: string, accessToken: string) {
   try {
@@ -63,16 +70,21 @@ export default async function EditDevicePage(
   return (
     <div className="space-y-6">
       <div>
-        <a href="/devices" className="text-sm text-[#7F8C8D] hover:underline">
-          デバイス管理
-        </a>
-        {" > "}
-        <a
-          href={`/devices/${device.device_id}`}
-          className="text-sm text-[#7F8C8D] hover:underline"
-        >
-          {device.name}
-        </a>
+        <Breadcrumb className="text-sm text-[#7F8C8D]">
+          <BreadcrumbList>
+            <BreadcrumbItem className="hover:underline">
+              <BreadcrumbLink href="/devices">デバイス管理</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#7F8C8D]" />
+            <BreadcrumbItem className="hover:underline">
+              <BreadcrumbLink href={`/devices/${deviceId}`}>
+                {device.name}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#7F8C8D]" />
+            <BreadcrumbItem>編集</BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス編集</h1>
       </div>
 

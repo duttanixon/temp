@@ -1,20 +1,29 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { TabsNav } from "../_components/TabsNav";
 import CustomerCreateForm from "./_components/CustomerCreateForm";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default function AddCustomerPage() {
   const [activeTab, setActiveTab] = useState("basic");
   return (
     <div>
-      <h2 className="text-sm text-[#7F8C8D]">
-        <Link href="/customers" className="hover:underline">
-          顧客管理
-        </Link>{" "}
-        &gt; 新規顧客追加
-      </h2>
+      <Breadcrumb className="text-sm text-[#7F8C8D]">
+        <BreadcrumbList>
+          <BreadcrumbItem className=" hover:underline">
+            <BreadcrumbLink href="/customers">顧客管理</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator className="text-[#7F8C8D]" />
+          <BreadcrumbItem>新規顧客追加</BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       <div className="flex flex-col gap-8 text-2xl font-bold text-[#2C3E50]">
         新規顧客追加
         <section className="flex flex-col gap-4">

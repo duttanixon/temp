@@ -45,8 +45,7 @@ solution:
         # type: rpi
         # file_path: rpi
         type: file
-        file_path: resources/data/verification-ch01_00000000396000000.mp4
-        # file_path: resources/data/9001.mp4
+        file_path: resources/data/cam9001_20241029_09.mp4
     output:
         type: default
         streaming: true

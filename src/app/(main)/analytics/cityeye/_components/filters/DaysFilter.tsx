@@ -1,13 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FilterCard } from "./FilterCard";
@@ -23,34 +16,29 @@ const ALL_DAYS = [
 ];
 
 interface DaysFilterProps {
-  initialSelectedDays?: string[];
-  onSelectionChange?: (selectedDays: string[]) => void;
+  selectedDays: string[]; // Receives current selection
+  onSelectionChange: (selectedDays: string[]) => void; // Callback to update parent state
 }
 
-export function DaysFilter({ initialSelectedDays, onSelectionChange }: DaysFilterProps) {
-  const [selectedDays, setSelectedDays] = useState<string[]>(initialSelectedDays || ALL_DAYS.map(d => d.id));
-  const [isAllSelected, setIsAllSelected] = useState(selectedDays.length === ALL_DAYS.length);
-
-  useEffect(() => {
-    setIsAllSelected(selectedDays.length === ALL_DAYS.length);
-    if (onSelectionChange) {
-      onSelectionChange(selectedDays);
-    }
-  }, [selectedDays, onSelectionChange]);
+export function DaysFilter({
+  selectedDays,
+  onSelectionChange,
+}: DaysFilterProps) {
+  // isAllSelected can be derived or be local UI state for convenience
+  const isAllSelected = ALL_DAYS.length === selectedDays.length;
 
   const handleDayToggle = (dayId: string) => {
-    setSelectedDays((prevSelected) =>
-      prevSelected.includes(dayId)
-        ? prevSelected.filter((d) => d !== dayId)
-        : [...prevSelected, dayId]
-    );
+    const newSelectedDays = selectedDays.includes(dayId)
+      ? selectedDays.filter((d) => d !== dayId)
+      : [...selectedDays, dayId];
+    onSelectionChange(newSelectedDays);
   };
 
   const handleSelectAllToggle = () => {
     if (isAllSelected) {
-      setSelectedDays([]);
+      onSelectionChange([]);
     } else {
-      setSelectedDays(ALL_DAYS.map(d => d.id));
+      onSelectionChange(ALL_DAYS.map((d) => d.id));
     }
   };
 

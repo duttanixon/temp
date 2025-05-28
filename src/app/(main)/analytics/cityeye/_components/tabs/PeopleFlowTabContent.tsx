@@ -1,0 +1,70 @@
+// src/app/(main)/analytics/cityeye/_components/tabs/PeopleFlowTabContent.tsx
+"use client";
+
+import React from "react";
+import OverviewView from "../views/OverviewView";
+import ComparisonView from "../views/ComparisonView";
+import {
+  ProcessedAnalyticsData, // Changed from ProcessedTotalPeopleData
+} from "@/types/cityEyeAnalytics";
+import { DateRange } from "react-day-picker";
+
+interface PeopleFlowTabContentProps {
+  verticalTab: string;
+
+  mainProcessedData: ProcessedAnalyticsData | null; // Changed prop name and type
+  isLoadingMain: boolean;
+  errorMain: string | null;
+  hasAttemptedFetchMain: boolean;
+  mainPeriodDateRange?: DateRange;
+
+  comparisonProcessedData?: ProcessedAnalyticsData | null; // Changed prop name and type
+  isLoadingComparison?: boolean;
+  errorComparison?: string | null;
+  hasAttemptedFetchComparison?: boolean;
+  comparisonPeriodDateRange?: DateRange;
+}
+
+export default function PeopleFlowTabContent({
+  verticalTab,
+  mainProcessedData,
+  isLoadingMain,
+  errorMain,
+  hasAttemptedFetchMain,
+  mainPeriodDateRange,
+  comparisonProcessedData,
+  isLoadingComparison,
+  errorComparison,
+  hasAttemptedFetchComparison,
+  comparisonPeriodDateRange,
+}: PeopleFlowTabContentProps) {
+  if (verticalTab === "overview") {
+    return (
+      <OverviewView
+        processedData={mainProcessedData} // Pass the combined processed data
+        isLoading={isLoadingMain}
+        error={errorMain}
+        hasAttemptedFetch={hasAttemptedFetchMain}
+      />
+    );
+  }
+
+  if (verticalTab === "comparison") {
+    return (
+      <ComparisonView
+        mainPeriodProcessedData={mainProcessedData} // Pass combined data
+        isLoadingMain={isLoadingMain}
+        errorMain={errorMain}
+        hasAttemptedFetchMain={hasAttemptedFetchMain}
+        mainPeriodDateRange={mainPeriodDateRange}
+        comparisonPeriodProcessedData={comparisonProcessedData || null} // Pass combined data
+        isLoadingComparison={isLoadingComparison || false}
+        errorComparison={errorComparison || null}
+        hasAttemptedFetchComparison={hasAttemptedFetchComparison || false}
+        comparisonPeriodDateRange={comparisonPeriodDateRange}
+      />
+    );
+  }
+
+  return null;
+}

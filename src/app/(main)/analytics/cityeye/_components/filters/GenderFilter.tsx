@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react"; // Removed useState, useEffect
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FilterCard } from "./FilterCard";
@@ -11,34 +11,29 @@ const ALL_GENDERS = [
 ];
 
 interface GenderFilterProps {
-  initialSelectedGenders?: string[];
-  onSelectionChange?: (selectedGenders: string[]) => void;
+  selectedGenders: string[];
+  onSelectionChange: (selectedGenders: string[]) => void;
 }
 
-export function GenderFilter({ initialSelectedGenders, onSelectionChange }: GenderFilterProps) {
-  const [selectedGenders, setSelectedGenders] = useState<string[]>(initialSelectedGenders || ALL_GENDERS.map(g => g.id));
-  const [isAllSelected, setIsAllSelected] = useState(selectedGenders.length === ALL_GENDERS.length);
-
-  useEffect(() => {
-    setIsAllSelected(selectedGenders.length === ALL_GENDERS.length);
-    if (onSelectionChange) {
-      onSelectionChange(selectedGenders);
-    }
-  }, [selectedGenders, onSelectionChange]);
+export function GenderFilter({
+  selectedGenders,
+  onSelectionChange,
+}: GenderFilterProps) {
+  const isAllSelected =
+    ALL_GENDERS.length > 0 && selectedGenders.length === ALL_GENDERS.length;
 
   const handleGenderToggle = (genderId: string) => {
-    setSelectedGenders((prevSelected) =>
-      prevSelected.includes(genderId)
-        ? prevSelected.filter((g) => g !== genderId)
-        : [...prevSelected, genderId]
-    );
+    const newSelectedGenders = selectedGenders.includes(genderId)
+      ? selectedGenders.filter((g) => g !== genderId)
+      : [...selectedGenders, genderId];
+    onSelectionChange(newSelectedGenders);
   };
 
   const handleSelectAllToggle = () => {
     if (isAllSelected) {
-      setSelectedGenders([]);
+      onSelectionChange([]);
     } else {
-      setSelectedGenders(ALL_GENDERS.map(g => g.id));
+      onSelectionChange(ALL_GENDERS.map((g) => g.id));
     }
   };
 
@@ -58,11 +53,14 @@ export function GenderFilter({ initialSelectedGenders, onSelectionChange }: Gend
         {ALL_GENDERS.map((gender) => (
           <div key={gender.id} className="flex items-center space-x-2">
             <Checkbox
-              id={gender.id}
+              id={`gender-${gender.id}`}
               checked={selectedGenders.includes(gender.id)}
               onCheckedChange={() => handleGenderToggle(gender.id)}
             />
-            <Label htmlFor={gender.id} className="text-sm font-normal">
+            <Label
+              htmlFor={`gender-${gender.id}`}
+              className="text-sm font-normal"
+            >
               {gender.label}
             </Label>
           </div>

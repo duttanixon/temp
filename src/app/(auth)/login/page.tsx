@@ -24,17 +24,15 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8 text-white flex flex-col bg-[#2c5d82]">
         <div className="flex items-center mb-8">
           <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center">
-            <span className="text-3xl font-bold text-[#3498db]">EM</span>
+            <span className="text-3xl font-bold text-[#3498db]">CP</span>
           </div>
         </div>
 
-        <h1 className="text-4xl font-bold mb-4">
-          Edge Device Management System
-        </h1>
-        <p className="text-lg">
+        <h1 className="text-4xl font-bold mb-4">Cybercore Platform</h1>
+        <div className="text-lg">
           Centralized control for all your IoT devices and AI solutions across
           multiple clients.
-        </p>
+        </div>
 
         <div className="mt-auto">
           <p className="text-xs text-right mt-8">v1.0.0</p>

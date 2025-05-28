@@ -42,7 +42,8 @@ export function LoginForm() {
       });
 
       // Add redirect to dashboard
-      router.push("/users");
+      // router.push("/users");
+      window.location.href = "/users";
     } catch (error) {
       console.error("📝 LOGIN: Login error:", error);
       // エラートーストを表示

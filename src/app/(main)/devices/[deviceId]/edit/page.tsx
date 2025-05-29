@@ -73,7 +73,7 @@ export default async function EditDevicePage(
         <Breadcrumb className="text-sm text-[#7F8C8D]">
           <BreadcrumbList>
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href="/devices">デバイス管理</BreadcrumbLink>
+              <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem className="hover:underline">

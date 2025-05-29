@@ -29,10 +29,10 @@ export default async function AddUserPage() {
       <Breadcrumb className="text-sm text-[#7F8C8D]">
         <BreadcrumbList>
           <BreadcrumbItem className=" hover:underline">
-            <BreadcrumbLink href="/users">ユーザー管理</BreadcrumbLink>
+            <BreadcrumbLink href="/users">ユーザー</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator className="text-[#7F8C8D]" />
-          <BreadcrumbItem>新規ユーザー追加</BreadcrumbItem>
+          <BreadcrumbItem>ユーザーの作成</BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       <UserAddForm accessToken={accessToken} role={role} customer={customer} />

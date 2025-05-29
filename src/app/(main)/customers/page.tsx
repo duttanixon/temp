@@ -6,6 +6,7 @@ import CustomerTable from "./_components/CustomerTable";
 import SearchFilters from "./_components/SearchFilters";
 import StatsCard from "./_components/StatsCard";
 import CustomerPagination from "@/app/(main)/customers/_components/Pagination";
+import { Plus } from "lucide-react";
 
 interface Customer {
   customer_id: string;
@@ -119,10 +120,13 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">顧客管理</h1>
+        <h1 className="text-2xl font-semibold">顧客</h1>
         <Link href="/customers/add">
-          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-12 py-2 rounded cursor-pointer">
-            + 顧客追加
+          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded cursor-pointer">
+            <div className="flex justify-center items-center gap-1">
+              <Plus size={20} />
+              顧客の作成
+            </div>
           </button>
         </Link>
       </div>

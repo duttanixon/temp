@@ -50,13 +50,13 @@ export default async function AddDevicePage() {
         <Breadcrumb className="text-sm text-[#7F8C8D]">
           <BreadcrumbList>
             <BreadcrumbItem className=" hover:underline">
-              <BreadcrumbLink href="/devices">デバイス管理</BreadcrumbLink>
+              <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
-            <BreadcrumbItem>新規デバイス追加</BreadcrumbItem>
+            <BreadcrumbItem>デバイスの作成</BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="text-2xl font-bold text-[#2C3E50]">新規デバイス追加</h1>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイスの作成</h1>
       </div>
 
       <DeviceCreateForm customers={customers} />

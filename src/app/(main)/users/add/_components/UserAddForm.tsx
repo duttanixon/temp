@@ -17,7 +17,7 @@ export default function UserAddForm({ accessToken, role, customer }: Props) {
     <div>
       <div className="flex flex-col gap-8">
         <h1 className="text-2xl font-bold text-[#2C3E50]">
-          新規ユーザー追加{customerLabel}
+          ユーザーの作成{customerLabel}
         </h1>
         <form onSubmit={form.handleSubmit} className="flex flex-col gap-4">
           <div className="w-170 h-145 border border-[#BDC3C7] rounded bg-[#FFFFFF]">

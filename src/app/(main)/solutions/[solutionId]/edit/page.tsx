@@ -64,9 +64,7 @@ export default async function EditSolutionPage({ params }: Props) {
         <Breadcrumb className="text-sm text-[#7F8C8D]">
           <BreadcrumbList>
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href="/solutions">
-                ソリューション管理
-              </BreadcrumbLink>
+              <BreadcrumbLink href="/solutions">ソリューション</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem className="hover:underline">

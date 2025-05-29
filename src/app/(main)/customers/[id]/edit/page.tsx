@@ -59,7 +59,7 @@ export default function AddCustomerPage() {
       <Breadcrumb className="text-sm text-[#7F8C8D]">
         <BreadcrumbList>
           <BreadcrumbItem className="hover:underline">
-            <BreadcrumbLink href="/customers">顧客管理</BreadcrumbLink>
+            <BreadcrumbLink href="/customers">顧客</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator className="text-[#7F8C8D]" />
           <BreadcrumbItem className="hover:underline">

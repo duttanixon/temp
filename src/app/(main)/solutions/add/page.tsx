@@ -24,16 +24,14 @@ export default async function AddSolutionPage() {
         <Breadcrumb className="text-sm text-[#7F8C8D]">
           <BreadcrumbList>
             <BreadcrumbItem className=" hover:underline">
-              <BreadcrumbLink href="/solutions">
-                ソリューション管理
-              </BreadcrumbLink>
+              <BreadcrumbLink href="/solutions">ソリューション</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
-            <BreadcrumbItem>新規ソリューション追加</BreadcrumbItem>
+            <BreadcrumbItem>ソリューションの作成</BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="text-2xl font-bold text-[#2C3E50]">
-          新規ソリューション追加
+          ソリューションの作成
         </h1>
       </div>
 

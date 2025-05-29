@@ -63,7 +63,7 @@ export default async function UserEditPage({ params }: Props) {
       <Breadcrumb className="text-sm text-[#7F8C8D]">
         <BreadcrumbList>
           <BreadcrumbItem className=" hover:underline">
-            <BreadcrumbLink href="/users">ユーザー管理</BreadcrumbLink>
+            <BreadcrumbLink href="/users">ユーザー</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator className="text-[#7F8C8D]" />
           <BreadcrumbItem>{`${user.last_name} ${user.first_name}`}</BreadcrumbItem>

@@ -173,19 +173,19 @@ export default function CustomerCreateForm() {
           </TabsContent>
           <div className="flex gap-2">
             <Button
-              className="w-35 bg-[#27AE60] text-[#FFFFFF] hover:bg-[#219653] active:bg-[#27AE60] focus:bg-[#219653] hover:cursor-pointer"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "作成中..." : "作成"}
-            </Button>
-            <Button
               className="w-35 bg-white border border-[#BDC3C7] text-[#7F8C8D] hover:bg-[#ECF0F1] active:bg-[#BDC3C7] hover:cursor-pointer"
               type="button"
               onClick={() => router.push("/customers")}
               disabled={isSubmitting}
             >
               キャンセル
+            </Button>
+            <Button
+              className="w-35 bg-[#27AE60] text-[#FFFFFF] hover:bg-[#219653] active:bg-[#27AE60] focus:bg-[#219653] hover:cursor-pointer"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "作成中..." : "作成"}
             </Button>
           </div>
         </form>

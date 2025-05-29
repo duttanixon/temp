@@ -196,19 +196,19 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
           </TabsContent>
           <div className="flex gap-2">
             <Button
-              className={buttonVariants({ variant: "default" })}
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "保存中..." : "保存"}
-            </Button>
-            <Button
               className={buttonVariants({ variant: "cancel" })}
               type="button"
               onClick={() => router.push(`/customers/${customerId}`)}
               disabled={isSubmitting}
             >
               キャンセル
+            </Button>
+            <Button
+              className={buttonVariants({ variant: "default" })}
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "保存中..." : "保存"}
             </Button>
           </div>
         </form>

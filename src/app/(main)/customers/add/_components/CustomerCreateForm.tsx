@@ -171,7 +171,7 @@ export default function CustomerCreateForm() {
               </div>
             </div>
           </TabsContent>
-          <div className="flex gap-2">
+          <div className="flex justify-end w-full md:w-230 gap-2">
             <Button
               className="w-35 bg-white border border-[#BDC3C7] text-[#7F8C8D] hover:bg-[#ECF0F1] active:bg-[#BDC3C7] hover:cursor-pointer"
               type="button"

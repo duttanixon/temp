@@ -194,7 +194,7 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
               </div>
             </div>
           </TabsContent>
-          <div className="flex gap-2">
+          <div className="flex justify-end w-full md:w-230 gap-2">
             <Button
               className={buttonVariants({ variant: "cancel" })}
               type="button"

@@ -2,16 +2,84 @@
 
 import { CustomerAssignment } from "@/types/customerSolution";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 type CustomerSolutionTableProps = {
   initialSolutions: CustomerAssignment[];
 };
 
+type SortKey =
+  | "solution_name"
+  | "solution_version"
+  | "license_status"
+  | "compatibility"
+  | "devices_count";
+type SortDirection = "asc" | "desc";
+
 export default function CustomerSolutionTable({
   initialSolutions,
 }: CustomerSolutionTableProps) {
-  const [solutions] = useState<CustomerAssignment[]>(initialSolutions);
+  // const [solutions] = useState<CustomerAssignment[]>(initialSolutions);
+  const [sortKey, setSortKey] = useState<SortKey>("solution_name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedSolutions = useMemo(() => {
+    return [...initialSolutions].sort((a, b) => {
+      let valA: string | number = "";
+      let valB: string | number = "";
+
+      switch (sortKey) {
+        case "solution_name":
+          valA = a.solution_name || "";
+          valB = b.solution_name || "";
+          break;
+        case "solution_version":
+          valA = a.solution_version || "";
+          valB = b.solution_version || "";
+          break;
+        case "license_status":
+          valA = a.license_status || "";
+          valB = b.license_status || "";
+          break;
+        case "compatibility":
+          valA = a.compatibility?.map(formatDeviceType).join(", ") || "";
+          valB = b.compatibility?.map(formatDeviceType).join(", ") || "";
+          break;
+        case "devices_count":
+          valA = a.devices_count || 0;
+          valB = b.devices_count || 0;
+          break;
+      }
+
+      if (typeof valA === "string") {
+        valA = valA.toLowerCase();
+        valB = (valB as string).toLowerCase();
+      }
+
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [initialSolutions, sortKey, sortDirection]);
+
+  const renderSortIcon = (key: SortKey) => {
+    if (key !== sortKey) return null;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="w-4 h-4 ml-1 inline" />
+    ) : (
+      <ChevronDown className="w-4 h-4 ml-1 inline" />
+    );
+  };
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
@@ -27,40 +95,53 @@ export default function CustomerSolutionTable({
         <thead className="bg-[#ECF0F1] border-b border-[#BDC3C7]">
           <tr>
             <th
-              scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              名前
+              onClick={() => handleSort("solution_name")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+            >
+              <div className="flex items-center justify-center">
+                名前{renderSortIcon("solution_name")}
+              </div>
             </th>
             <th
-              scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              バージョン
+              onClick={() => handleSort("solution_version")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+            >
+              <div className="flex items-center justify-center">
+                バージョン{renderSortIcon("solution_version")}
+              </div>
             </th>
             <th
-              scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              互換デバイス
+              onClick={() => handleSort("compatibility")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+            >
+              <div className="flex items-center justify-center">
+                互換デバイス{renderSortIcon("compatibility")}
+              </div>
             </th>
             <th
-              scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              ステータス
+              onClick={() => handleSort("license_status")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+            >
+              <div className="flex items-center justify-center">
+                ステータス{renderSortIcon("license_status")}
+              </div>
             </th>
             <th
-              scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              導入数
+              onClick={() => handleSort("devices_count")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+            >
+              <div className="flex items-center justify-center">
+                導入数{renderSortIcon("devices_count")}
+              </div>
             </th>
-            <th
-              scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+            <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
               アクション
             </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-[#BDC3C7]">
-          {solutions.length > 0 ? (
-            solutions.map((solution) => (
+          {sortedSolutions.length > 0 ? (
+            sortedSolutions.map((solution) => (
               <tr key={solution.solution_id} className="hover:bg-[#F8F9FA]">
                 {/* 名前 */}
                 <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
@@ -89,7 +170,8 @@ export default function CustomerSolutionTable({
                         : solution.license_status === "SUSPENDED"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-gray-100 text-gray-700"
-                    }`}>
+                    }`}
+                  >
                     {solution.license_status === "ACTIVE"
                       ? "アクティブ"
                       : solution.license_status === "SUSPENDED"
@@ -113,7 +195,8 @@ export default function CustomerSolutionTable({
             <tr>
               <td
                 colSpan={6}
-                className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
+              >
                 ソリューションが見つかりません
               </td>
             </tr>

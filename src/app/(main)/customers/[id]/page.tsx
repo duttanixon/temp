@@ -162,28 +162,28 @@ export default function CustomerOverviewPage() {
 
       {/* タブセクション */}
       <Tabs defaultValue="overview" className="w-full flex flex-col gap-4">
-        <TabsList className="grid w-fit grid-cols-4 h-full bg-white border border-gray-200 rounded-lg p-0">
+        <TabsList className="grid w-fit h-full grid-cols-4 bg-white border border-[#BDC3C7] overflow-hidden">
           <TabsTrigger
             value="overview"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3"
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
           >
             概要
           </TabsTrigger>
           <TabsTrigger
             value="device"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3"
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
           >
             デバイス
           </TabsTrigger>
           <TabsTrigger
             value="user"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3"
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
           >
             ユーザー
           </TabsTrigger>
           <TabsTrigger
             value="solution"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3"
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
           >
             ソリューション
           </TabsTrigger>

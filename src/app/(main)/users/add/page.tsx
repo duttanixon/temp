@@ -1,5 +1,12 @@
 import { auth } from "@/auth";
 import UserAddForm from "@/app/(main)/users/add/_components/UserAddForm";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default async function AddUserPage() {
   // サーバーサイドでセッションを取得
@@ -19,6 +26,15 @@ export default async function AddUserPage() {
 
   return (
     <div className="flex flex-col">
+      <Breadcrumb className="text-sm text-[#7F8C8D]">
+        <BreadcrumbList>
+          <BreadcrumbItem className=" hover:underline">
+            <BreadcrumbLink href="/users">ユーザー</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator className="text-[#7F8C8D]" />
+          <BreadcrumbItem>ユーザーの作成</BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       <UserAddForm accessToken={accessToken} role={role} customer={customer} />
     </div>
   );

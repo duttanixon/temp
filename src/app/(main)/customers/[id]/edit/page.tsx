@@ -2,14 +2,18 @@
 
 import { customerService } from "@/services/customerService";
 import { Customer } from "@/types/customer";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { TabsNav } from "../../_components/TabsNav";
 import CustomerEditForm from "./_components/CustomerEditForm";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default function AddCustomerPage() {
-  const [activeTab, setActiveTab] = useState("basic");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -50,24 +54,25 @@ export default function AddCustomerPage() {
   }
   return (
     <div>
-      <h2 className="text-sm text-[#7F8C8D]">
-        <Link href="/customers" className="hover:underline">
-          顧客管理
-        </Link>{" "}
-        &gt;{" "}
-        <Link href={`/customers/${customerId}`} className="hover:underline">
-          顧客概要
-        </Link>{" "}
-        &gt; 編集
-      </h2>
-      <div className="flex flex-col text-2xl font-bold text-[#2C3E50]">
+      <Breadcrumb className="text-sm text-[#7F8C8D]">
+        <BreadcrumbList>
+          <BreadcrumbItem className="hover:underline">
+            <BreadcrumbLink href="/customers">顧客</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator className="text-[#7F8C8D]" />
+          <BreadcrumbItem className="hover:underline">
+            <BreadcrumbLink href={`/customers/${customerId}`}>
+              {customer?.name}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator className="text-[#7F8C8D]" />
+          <BreadcrumbItem>編集</BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div className="flex flex-col gap-8 w-200 text-2xl font-bold text-[#2C3E50]">
         顧客編集
         <section className="flex flex-col gap-4">
-          <h2 className="text-sm text-[#7F8C8D]">顧客ID: {customerId}</h2>
-          <div className="inline-flex w-fit border border-[#BDC3C7] rounded bg-[#FFFFFF] overflow-hidden">
-            <TabsNav activeTab={activeTab} onChange={setActiveTab} />
-          </div>
-          <CustomerEditForm activeTab={activeTab} customer={customer} />
+          <CustomerEditForm customer={customer} />
         </section>
       </div>
     </div>

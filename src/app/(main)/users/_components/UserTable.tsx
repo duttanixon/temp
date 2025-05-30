@@ -111,26 +111,6 @@ export default function UserTable({
               </th>
               <th
                 scope="col"
-                onClick={() => handleSort("role")}
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-              >
-                <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                  <span>権限</span>
-                  {sortIcon("role")}
-                </div>
-              </th>
-              <th
-                scope="col"
-                onClick={() => handleSort("customer_name")}
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-              >
-                <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                  <span>顧客名</span>
-                  {sortIcon("customer_name")}
-                </div>
-              </th>
-              <th
-                scope="col"
                 onClick={() => handleSort("status")}
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
               >

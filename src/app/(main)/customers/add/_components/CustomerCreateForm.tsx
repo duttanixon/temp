@@ -124,7 +124,7 @@ export default function CustomerCreateForm() {
         </TabsList>
         <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
           <TabsContent value="basic">
-            <div className="w-230 h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
+            <div className="w-full h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex items-center gap-x-16">
                   <h2 className={formVariants({ variant: "companyInfo" })}>
@@ -163,7 +163,7 @@ export default function CustomerCreateForm() {
             </div>
           </TabsContent>
           <TabsContent value="subscription">
-            <div className="w-230 h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
+            <div className="w-full h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
               <div className="flex flex-col gap-4 p-4">
                 <h2 className={formVariants({ variant: "companyInfo" })}>
                   サブスクリプション
@@ -171,7 +171,7 @@ export default function CustomerCreateForm() {
               </div>
             </div>
           </TabsContent>
-          <div className="flex justify-end w-full md:w-230 gap-2">
+          <div className="flex justify-end w-full gap-2">
             <Button
               className="w-35 bg-white border border-[#BDC3C7] text-[#7F8C8D] hover:bg-[#ECF0F1] active:bg-[#BDC3C7] hover:cursor-pointer"
               type="button"

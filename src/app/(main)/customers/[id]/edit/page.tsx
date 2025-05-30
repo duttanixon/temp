@@ -69,7 +69,7 @@ export default function AddCustomerPage() {
           <BreadcrumbItem>編集</BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="flex flex-col gap-8 text-2xl font-bold text-[#2C3E50]">
+      <div className="flex flex-col gap-8 w-200 text-2xl font-bold text-[#2C3E50]">
         顧客編集
         <section className="flex flex-col gap-4">
           <CustomerEditForm customer={customer} />

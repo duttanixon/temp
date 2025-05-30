@@ -139,7 +139,7 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
         </TabsList>
         <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
           <TabsContent value="basic">
-            <div className="w-230 h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
+            <div className="w-full h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex items-center gap-x-16">
                   <h2 className={formVariants({ variant: "companyInfo" })}>
@@ -186,7 +186,7 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
             </div>
           </TabsContent>
           <TabsContent value="subscription">
-            <div className="w-230 h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
+            <div className="w-full h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
               <div className="flex flex-col gap-4 p-4">
                 <h2 className={formVariants({ variant: "companyInfo" })}>
                   サブスクリプション
@@ -194,7 +194,7 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
               </div>
             </div>
           </TabsContent>
-          <div className="flex justify-end w-full md:w-230 gap-2">
+          <div className="flex justify-end w-full gap-2">
             <Button
               className={buttonVariants({ variant: "cancel" })}
               type="button"

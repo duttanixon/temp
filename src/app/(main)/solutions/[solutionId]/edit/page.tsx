@@ -80,7 +80,6 @@ export default async function EditSolutionPage({ params }: Props) {
           ソリューション編集
         </h1>
       </div>
-
       <SolutionEditForm solution={solution} />
     </div>
   );

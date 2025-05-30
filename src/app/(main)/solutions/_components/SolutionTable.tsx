@@ -2,8 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-// import { formatDistanceToNow } from "date-fns";
-// import { ja } from "date-fns/locale";
 import { Solution } from "@/types/solution";
 import SolutionStatusBadge from "./SolutionStatusBadge";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
@@ -19,14 +17,9 @@ type SortDirection = "asc" | "desc";
 export default function SolutionTable({
   initialSolutions,
 }: SolutionTableProps) {
-  // const [solutions] = useState<Solution[]>(initialSolutions);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const router = useRouter();
-
-  const handleViewDetails = (solutionId: string) => {
-    router.push(`/solutions/${solutionId}`);
-  };
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -79,58 +72,75 @@ export default function SolutionTable({
   const renderSortIndicator = (key: SortKey) => {
     if (key !== sortKey) return null;
     return sortDirection === "asc" ? (
-      <ChevronUp className="inline w-4 h-4 ml-1" />
+      <ChevronUp size={16} />
     ) : (
-      <ChevronDown className="inline w-4 h-4 ml-1" />
+      <ChevronDown size={16} />
     );
+  };
+
+  const handleViewDetails = (solutionId: string) => {
+    router.push(`/solutions/${solutionId}`);
   };
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
-      <table className="min-w-full divide-y divide-[#BDC3C7]">
+      <table className="w-full min-w-[900px] divide-y divide-[#BDC3C7]">
+        <colgroup>
+          <col className="w-1/5" />
+          <col className="w-1/6" />
+          <col className="w-1/4" />
+          <col className="w-1/6" />
+          <col className="w-1/6" />
+          <col className="w-1/12" />
+        </colgroup>
         <thead className="bg-[#ECF0F1]">
           <tr>
             <th
               onClick={() => handleSort("name")}
-              className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                名前{renderSortIndicator("name")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>名前</span>
+                {renderSortIndicator("name")}
               </div>
             </th>
             <th
               onClick={() => handleSort("version")}
-              className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                バージョン{renderSortIndicator("version")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>バージョン</span>
+                {renderSortIndicator("version")}
               </div>
             </th>
             <th
               onClick={() => handleSort("compatibility")}
-              className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                互換デバイス{renderSortIndicator("compatibility")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>互換デバイス</span>
+                {renderSortIndicator("compatibility")}
               </div>
             </th>
             <th
               onClick={() => handleSort("status")}
-              className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                ステータス{renderSortIndicator("status")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>ステータス</span>
+                {renderSortIndicator("status")}
               </div>
             </th>
             <th
               onClick={() => handleSort("installCount")}
-              className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                導入数{renderSortIndicator("installCount")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>導入数</span>
+                {renderSortIndicator("installCount")}
               </div>
             </th>
-            <th className="px-6 py-3 text-right text-sm font-semibold text-[#2C3E50]">
+            <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
               アクション
             </th>
           </tr>
@@ -138,32 +148,31 @@ export default function SolutionTable({
         <tbody className="bg-white divide-y divide-[#BDC3C7]">
           {sortedSolutions.length > 0 ? (
             sortedSolutions.map((solution) => (
-              <tr key={solution.solution_id} className="hover:bg-[#F8F9FA]">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#2C3E50]">
-                  {solution.name}
+              <tr
+                key={solution.solution_id}
+                className="cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
+                onClick={() => handleViewDetails(solution.solution_id)}
+              >
+                <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
+                  <div className="truncate">{solution.name}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#2C3E50]">
+                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
                   {solution.version}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#2C3E50]">
-                  {solution.compatibility
-                    .map((device) => formatDeviceType(device))
-                    .join(", ")}
+                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
+                  <div className="truncate">
+                    {solution.compatibility.map(formatDeviceType).join(", ")}
+                  </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-3 text-sm text-center">
                   <SolutionStatusBadge status={solution.status} />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#2C3E50]">
+                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
                   {solution.customers_count || 0} 顧客 /{" "}
                   {solution.devices_count || 0} デバイス
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                  <button
-                    onClick={() => handleViewDetails(solution.solution_id)}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    詳細
-                  </button>
+                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
+                  <span className="px-2 py-1">-</span>
                 </td>
               </tr>
             ))

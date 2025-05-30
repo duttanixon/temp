@@ -7,14 +7,6 @@ import { ja } from "date-fns/locale";
 import { Device } from "@/types/device";
 import DeviceStatusBadge from "../_components/DeviceStatusBadge";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 type DeviceTableProps = {
   initialDevices: Device[];
@@ -23,17 +15,10 @@ type DeviceTableProps = {
 type SortKey = "name" | "device_type" | "customer_name" | "status";
 type SortDirection = "asc" | "desc";
 
-export default function DeviceTableShadcn({
-  initialDevices,
-}: DeviceTableProps) {
-  // const [devices] = useState<Device[]>(initialDevices);
+export default function DeviceTable({ initialDevices }: DeviceTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const router = useRouter();
-
-  const handleViewDetails = (deviceId: string) => {
-    router.push(`/devices/${deviceId}`);
-  };
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -54,106 +39,121 @@ export default function DeviceTableShadcn({
     });
   }, [initialDevices, sortKey, sortDirection]);
 
-  const renderSortIndicator = (key: SortKey) => {
-    if (key !== sortKey) return null;
-    return sortDirection === "asc" ? (
-      <ChevronUp className="inline w-4 h-4 ml-1" />
-    ) : (
-      <ChevronDown className="inline w-4 h-4 ml-1" />
-    );
+  const renderSortIcon = (key: SortKey) => {
+    return sortKey === key ? (
+      sortDirection === "asc" ? (
+        <ChevronUp size={16} />
+      ) : (
+        <ChevronDown size={16} />
+      )
+    ) : null;
   };
 
   return (
-    <div className="rounded-lg border border-[#BDC3C7] overflow-hidden">
-      <Table>
-        <TableHeader className="bg-[#ECF0F1]">
-          <TableRow className="border-b border-[#BDC3C7]">
-            <TableHead
+    <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
+      <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
+        <colgroup>
+          <col className="w-1/5" />
+          <col className="w-1/5" />
+          <col className="w-1/5" />
+          <col className="w-1/10" />
+          <col className="w-1/5" />
+          <col className="w-1/10" />
+        </colgroup>
+        <thead className="bg-[#ECF0F1]">
+          <tr>
+            <th
               onClick={() => handleSort("name")}
-              className="text-sm font-semibold text-[#2C3E50] h-14 py-4 cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                名前{renderSortIndicator("name")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>名前</span>
+                {renderSortIcon("name")}
               </div>
-            </TableHead>
-            <TableHead
+            </th>
+            <th
               onClick={() => handleSort("device_type")}
-              className="text-sm font-semibold text-[#2C3E50] h-14 py-4 cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                タイプ{renderSortIndicator("device_type")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>タイプ</span>
+                {renderSortIcon("device_type")}
               </div>
-            </TableHead>
-            <TableHead
+            </th>
+            <th
               onClick={() => handleSort("customer_name")}
-              className="text-sm font-semibold text-[#2C3E50] h-14 py-4 cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                顧客名{renderSortIndicator("customer_name")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>顧客名</span>
+                {renderSortIcon("customer_name")}
               </div>
-            </TableHead>
-            <TableHead
+            </th>
+            <th
               onClick={() => handleSort("status")}
-              className="text-sm font-semibold text-[#2C3E50] h-14 py-4 cursor-pointer select-none"
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
-              <div className="flex items-center">
-                ステータス{renderSortIndicator("status")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <span>ステータス</span>
+                {renderSortIcon("status")}
               </div>
-            </TableHead>
-            <TableHead className="text-sm font-semibold text-[#2C3E50] h-14 py-4">
+            </th>
+            <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
               最終接続
-            </TableHead>
-            <TableHead className="text-sm font-semibold text-[#2C3E50] text-right h-14 py-4">
+            </th>
+            <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
               アクション
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody className="bg-white">
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-[#BDC3C7]">
           {sortedDevices.length > 0 ? (
             sortedDevices.map((device) => (
-              <TableRow
+              <tr
                 key={device.device_id}
-                className="hover:bg-[#F8F9FA] cursor-pointer transition-colors border-b border-[#BDC3C7]"
-                onClick={() => handleViewDetails(device.device_id)}
+                onClick={() => router.push(`/devices/${device.device_id}`)}
+                className="cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
               >
-                <TableCell className="text-sm text-[#2C3E50] py-4 h-14">
-                  {device.name}
-                </TableCell>
-                <TableCell className="text-sm text-[#2C3E50] whitespace-nowrap py-4 h-14">
+                <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
+                  <div className="truncate">{device.name}</div>
+                </td>
+                <td className="px-6 py-3 text-sm text-[#2C3E50] whitespace-nowrap text-center">
                   {device.device_type}
-                </TableCell>
-                <TableCell className="text-sm text-[#2C3E50] py-4 h-14">
-                  {device.customer_name || "-"}
-                </TableCell>
-                <TableCell className="py-4 h-14">
+                </td>
+                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
+                  <div className="truncate">{device.customer_name || "-"}</div>
+                </td>
+                <td className="px-6 py-3 text-sm text-center">
                   <DeviceStatusBadge
                     status={device.status}
                     isOnline={device.is_online}
                   />
-                </TableCell>
-                <TableCell className="text-sm text-[#2C3E50] whitespace-nowrap py-4 h-14">
+                </td>
+                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
                   {device.last_connected
                     ? formatDistanceToNow(new Date(device.last_connected), {
                         addSuffix: true,
                         locale: ja,
                       })
                     : "-"}
-                </TableCell>
-                <TableCell className="text-right py-4 h-14">-</TableCell>
-              </TableRow>
+                </td>
+                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
+                  <span className="px-2 py-1">-</span>
+                </td>
+              </tr>
             ))
           ) : (
-            <TableRow>
-              <TableCell
+            <tr>
+              <td
                 colSpan={6}
-                className="text-center text-sm text-[#7F8C8D] py-4"
+                className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
               >
                 デバイスが見つかりません
-              </TableCell>
-            </TableRow>
+              </td>
+            </tr>
           )}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -21,7 +21,7 @@ from app.main import app
 from app.models import (
     User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, 
     DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, 
-    LicenseStatus, SolutionStatus, City_Eye_human_table, City_Eye_traffic_table
+    LicenseStatus, SolutionStatus, CityEyeHumanTable, CityEyeTrafficTable
 )
 
 # Test database URL - use SQLite for tests 
@@ -314,7 +314,7 @@ def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solu
     
     # Create sample human flow data
     test_data = [
-        City_Eye_human_table(
+        CityEyeHumanTable(
             device_id=device.device_id,
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,
@@ -332,7 +332,7 @@ def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solu
             male_65_plus=2,
             female_65_plus=4
         ),
-        City_Eye_human_table(
+        CityEyeHumanTable(
             device_id=device.device_id,
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,
@@ -365,7 +365,7 @@ def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Soluti
     
     # Create sample traffic flow data
     test_data = [
-        City_Eye_traffic_table(
+        CityEyeTrafficTable(
             device_id=device.device_id,
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,
@@ -377,7 +377,7 @@ def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Soluti
             bicycle=8,
             motorcycle=3
         ),
-        City_Eye_traffic_table(
+        CityEyeTrafficTable(
             device_id=device.device_id,
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,

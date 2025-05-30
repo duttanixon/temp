@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Integer, Date, Time, case, and_, or_
 from sqlalchemy.dialects.postgresql import INTERVAL, TIME
 from sqlalchemy.sql.expression import literal_column, ColumnElement
-from app.models.services.city_eye.human_table import City_Eye_human_table
-from app.models.services.city_eye.traffic_table import City_Eye_traffic_table
+from app.models.services.city_eye.human_table import CityEyeHumanTable
+from app.models.services.city_eye.traffic_table import CityEyeTrafficTable
 from app.schemas.services.city_eye_analytics import AnalyticsFilters, TrafficAnalyticsFilters
 from datetime import datetime, time as dt_time
 
@@ -20,16 +20,16 @@ class CRUDCityEyeAnalytics:
         """
         
         people_columns_map = {
-            ("male", "under_18"): City_Eye_human_table.male_less_than_18,
-            ("female", "under_18"): City_Eye_human_table.female_less_than_18,
-            ("male", "18_to_29"): City_Eye_human_table.male_18_to_29,
-            ("female", "18_to_29"): City_Eye_human_table.female_18_to_29,
-            ("male", "30_to_49"): City_Eye_human_table.male_30_to_49,
-            ("female", "30_to_49"): City_Eye_human_table.female_30_to_49,
-            ("male", "50_to_64"): City_Eye_human_table.male_50_to_64,
-            ("female", "50_to_64"): City_Eye_human_table.female_50_to_64,
-            ("male", "over_64"): City_Eye_human_table.male_65_plus, # Assuming "over_64" maps to "65_plus" columns
-            ("female", "over_64"): City_Eye_human_table.female_65_plus,
+            ("male", "under_18"): CityEyeHumanTable.male_less_than_18,
+            ("female", "under_18"): CityEyeHumanTable.female_less_than_18,
+            ("male", "18_to_29"): CityEyeHumanTable.male_18_to_29,
+            ("female", "18_to_29"): CityEyeHumanTable.female_18_to_29,
+            ("male", "30_to_49"): CityEyeHumanTable.male_30_to_49,
+            ("female", "30_to_49"): CityEyeHumanTable.female_30_to_49,
+            ("male", "50_to_64"): CityEyeHumanTable.male_50_to_64,
+            ("female", "50_to_64"): CityEyeHumanTable.female_50_to_64,
+            ("male", "over_64"): CityEyeHumanTable.male_65_plus, # Assuming "over_64" maps to "65_plus" columns
+            ("female", "over_64"): CityEyeHumanTable.female_65_plus,
         }
 
         selected_columns = []
@@ -58,17 +58,17 @@ class CRUDCityEyeAnalytics:
     def _apply_filters(self, query, filters: AnalyticsFilters, is_aggregation_query: bool = False):
         # Row-level filters (timestamps, devices, polygons)
         if filters.device_ids:
-            query = query.filter(City_Eye_human_table.device_id.in_(filters.device_ids))
+            query = query.filter(CityEyeHumanTable.device_id.in_(filters.device_ids))
         if filters.start_time:
-            query = query.filter(City_Eye_human_table.timestamp >= filters.start_time)
+            query = query.filter(CityEyeHumanTable.timestamp >= filters.start_time)
         if filters.end_time:
             # Add 1 hour to end_time to make it inclusive of the last hour
             inclusive_end_time = filters.end_time # + timedelta(hours=1)
-            query = query.filter(City_Eye_human_table.timestamp < inclusive_end_time)
+            query = query.filter(CityEyeHumanTable.timestamp < inclusive_end_time)
         if filters.polygon_ids_in:
-            query = query.filter(City_Eye_human_table.polygon_id_in.in_(filters.polygon_ids_in))
+            query = query.filter(CityEyeHumanTable.polygon_id_in.in_(filters.polygon_ids_in))
         if filters.polygon_ids_out:
-            query = query.filter(City_Eye_human_table.polygon_id_out.in_(filters.polygon_ids_out))
+            query = query.filter(CityEyeHumanTable.polygon_id_out.in_(filters.polygon_ids_out))
 
         # Day of the week filtering
         if filters.days:
@@ -80,7 +80,7 @@ class CRUDCityEyeAnalytics:
             }
             dow_numbers = [day_mapping[day.lower()] for day in filters.days if day.lower() in day_mapping]
             if dow_numbers:
-                query = query.filter(func.extract('dow', City_Eye_human_table.timestamp).in_(dow_numbers))
+                query = query.filter(func.extract('dow', CityEyeHumanTable.timestamp).in_(dow_numbers))
         if filters.hours:
             # Expecting hours like "10:00", "23:00". We only need the hour part.
             hour_numbers = []
@@ -93,7 +93,7 @@ class CRUDCityEyeAnalytics:
                     pass # Or log a warning
             
             if hour_numbers: # Only apply filter if valid hours were parsed
-                query = query.filter(func.extract('hour', City_Eye_human_table.timestamp).in_(hour_numbers))
+                query = query.filter(func.extract('hour', CityEyeHumanTable.timestamp).in_(hour_numbers))
 
         return query
 
@@ -108,11 +108,11 @@ class CRUDCityEyeAnalytics:
 
     def get_age_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
         query = db.query(
-            func.sum(City_Eye_human_table.male_less_than_18 + City_Eye_human_table.female_less_than_18).label("under_18"),
-            func.sum(City_Eye_human_table.male_18_to_29 + City_Eye_human_table.female_18_to_29).label("age_18_to_29"),
-            func.sum(City_Eye_human_table.male_30_to_49 + City_Eye_human_table.female_30_to_49).label("age_30_to_49"),
-            func.sum(City_Eye_human_table.male_50_to_64 + City_Eye_human_table.female_50_to_64).label("age_50_to_64"),
-            func.sum(City_Eye_human_table.male_65_plus + City_Eye_human_table.female_65_plus).label("over_64")
+            func.sum(CityEyeHumanTable.male_less_than_18 + CityEyeHumanTable.female_less_than_18).label("under_18"),
+            func.sum(CityEyeHumanTable.male_18_to_29 + CityEyeHumanTable.female_18_to_29).label("age_18_to_29"),
+            func.sum(CityEyeHumanTable.male_30_to_49 + CityEyeHumanTable.female_30_to_49).label("age_30_to_49"),
+            func.sum(CityEyeHumanTable.male_50_to_64 + CityEyeHumanTable.female_50_to_64).label("age_50_to_64"),
+            func.sum(CityEyeHumanTable.male_65_plus + CityEyeHumanTable.female_65_plus).label("over_64")
         )
         query = self._apply_filters(query, filters)
         result = query.first()
@@ -129,18 +129,18 @@ class CRUDCityEyeAnalytics:
     def get_gender_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
         query = db.query(
             func.sum(
-                City_Eye_human_table.male_less_than_18 +
-                City_Eye_human_table.male_18_to_29 +
-                City_Eye_human_table.male_30_to_49 +
-                City_Eye_human_table.male_50_to_64 +
-                City_Eye_human_table.male_65_plus
+                CityEyeHumanTable.male_less_than_18 +
+                CityEyeHumanTable.male_18_to_29 +
+                CityEyeHumanTable.male_30_to_49 +
+                CityEyeHumanTable.male_50_to_64 +
+                CityEyeHumanTable.male_65_plus
             ).label("male"),
             func.sum(
-                City_Eye_human_table.female_less_than_18 +
-                City_Eye_human_table.female_18_to_29 +
-                City_Eye_human_table.female_30_to_49 +
-                City_Eye_human_table.female_50_to_64 +
-                City_Eye_human_table.female_65_plus
+                CityEyeHumanTable.female_less_than_18 +
+                CityEyeHumanTable.female_18_to_29 +
+                CityEyeHumanTable.female_30_to_49 +
+                CityEyeHumanTable.female_50_to_64 +
+                CityEyeHumanTable.female_65_plus
             ).label("female")
         )
         query = self._apply_filters(query, filters)
@@ -152,16 +152,16 @@ class CRUDCityEyeAnalytics:
 
     def get_age_gender_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
         query = db.query(
-            func.sum(City_Eye_human_table.male_less_than_18).label("male_under_18"),
-            func.sum(City_Eye_human_table.female_less_than_18).label("female_under_18"),
-            func.sum(City_Eye_human_table.male_18_to_29).label("male_18_to_29"),
-            func.sum(City_Eye_human_table.female_18_to_29).label("female_18_to_29"),
-            func.sum(City_Eye_human_table.male_30_to_49).label("male_30_to_49"),
-            func.sum(City_Eye_human_table.female_30_to_49).label("female_30_to_49"),
-            func.sum(City_Eye_human_table.male_50_to_64).label("male_50_to_64"),
-            func.sum(City_Eye_human_table.female_50_to_64).label("female_50_to_64"),
-            func.sum(City_Eye_human_table.male_65_plus).label("male_65_plus"),
-            func.sum(City_Eye_human_table.female_65_plus).label("female_65_plus")
+            func.sum(CityEyeHumanTable.male_less_than_18).label("male_under_18"),
+            func.sum(CityEyeHumanTable.female_less_than_18).label("female_under_18"),
+            func.sum(CityEyeHumanTable.male_18_to_29).label("male_18_to_29"),
+            func.sum(CityEyeHumanTable.female_18_to_29).label("female_18_to_29"),
+            func.sum(CityEyeHumanTable.male_30_to_49).label("male_30_to_49"),
+            func.sum(CityEyeHumanTable.female_30_to_49).label("female_30_to_49"),
+            func.sum(CityEyeHumanTable.male_50_to_64).label("male_50_to_64"),
+            func.sum(CityEyeHumanTable.female_50_to_64).label("female_50_to_64"),
+            func.sum(CityEyeHumanTable.male_65_plus).label("male_65_plus"),
+            func.sum(CityEyeHumanTable.female_65_plus).label("female_65_plus")
         )
         query = self._apply_filters(query, filters)
         result = query.first()
@@ -183,7 +183,7 @@ class CRUDCityEyeAnalytics:
         }
 
     def get_hourly_distribution(self, db: Session, *, filters: AnalyticsFilters) -> List[Dict[str, Any]]:
-        hour_part = func.extract('hour', City_Eye_human_table.timestamp).label("hour")
+        hour_part = func.extract('hour', CityEyeHumanTable.timestamp).label("hour")
         sum_expr = self._get_people_sum_expression(filters)
         query = db.query(
             hour_part,
@@ -201,10 +201,10 @@ class CRUDCityEyeAnalytics:
 
         if db.bind.dialect.name == 'sqlite': # type: ignore
             # SQLite does not have date_trunc, approximate by formatting
-            time_bucket = func.strftime('%Y-%m-%d %H:00:00', City_Eye_human_table.timestamp).label("time_bucket")
+            time_bucket = func.strftime('%Y-%m-%d %H:00:00', CityEyeHumanTable.timestamp).label("time_bucket")
         else: # For PostgreSQL
             # This truncates to the hour. For other intervals, this would need to be more complex.
-            time_bucket = func.date_trunc('hour', City_Eye_human_table.timestamp).label("time_bucket")
+            time_bucket = func.date_trunc('hour', CityEyeHumanTable.timestamp).label("time_bucket")
 
         query = db.query(
             time_bucket,
@@ -227,10 +227,10 @@ class CRUDCityEyeAnalytics:
         """
         
         vehicle_columns_map = {
-            "large": City_Eye_traffic_table.large,
-            "normal": City_Eye_traffic_table.normal,
-            "bicycle": City_Eye_traffic_table.bicycle,
-            "motorcycle": City_Eye_traffic_table.motorcycle,
+            "large": CityEyeTrafficTable.large,
+            "normal": CityEyeTrafficTable.normal,
+            "bicycle": CityEyeTrafficTable.bicycle,
+            "motorcycle": CityEyeTrafficTable.motorcycle,
         }
 
         selected_columns = []
@@ -257,17 +257,17 @@ class CRUDCityEyeAnalytics:
     def _apply_traffic_filters(self, query, filters: TrafficAnalyticsFilters, is_aggregation_query: bool = False):
         # Row-level filters (timestamps, devices, polygons)
         if filters.device_ids:
-            query = query.filter(City_Eye_traffic_table.device_id.in_(filters.device_ids))
+            query = query.filter(CityEyeTrafficTable.device_id.in_(filters.device_ids))
         if filters.start_time:
-            query = query.filter(City_Eye_traffic_table.timestamp >= filters.start_time)
+            query = query.filter(CityEyeTrafficTable.timestamp >= filters.start_time)
         if filters.end_time:
             # Add 1 hour to end_time to make it inclusive of the last hour
             inclusive_end_time = filters.end_time # + timedelta(hours=1)
-            query = query.filter(City_Eye_traffic_table.timestamp < inclusive_end_time)
+            query = query.filter(CityEyeTrafficTable.timestamp < inclusive_end_time)
         if filters.polygon_ids_in:
-            query = query.filter(City_Eye_traffic_table.polygon_id_in.in_(filters.polygon_ids_in))
+            query = query.filter(CityEyeTrafficTable.polygon_id_in.in_(filters.polygon_ids_in))
         if filters.polygon_ids_out:
-            query = query.filter(City_Eye_traffic_table.polygon_id_out.in_(filters.polygon_ids_out))
+            query = query.filter(CityEyeTrafficTable.polygon_id_out.in_(filters.polygon_ids_out))
 
         # Day of the week filtering
         if filters.days:
@@ -278,7 +278,7 @@ class CRUDCityEyeAnalytics:
             }
             dow_numbers = [day_mapping[day.lower()] for day in filters.days if day.lower() in day_mapping]
             if dow_numbers:
-                query = query.filter(func.extract('dow', City_Eye_traffic_table.timestamp).in_(dow_numbers))
+                query = query.filter(func.extract('dow', CityEyeTrafficTable.timestamp).in_(dow_numbers))
         
         if filters.hours:
             # Expecting hours like "10:00", "23:00". We only need the hour part.
@@ -292,7 +292,7 @@ class CRUDCityEyeAnalytics:
                     pass # Or log a warning
             
             if hour_numbers: # Only apply filter if valid hours were parsed
-                query = query.filter(func.extract('hour', City_Eye_traffic_table.timestamp).in_(hour_numbers))
+                query = query.filter(func.extract('hour', CityEyeTrafficTable.timestamp).in_(hour_numbers))
 
         return query
 
@@ -307,10 +307,10 @@ class CRUDCityEyeAnalytics:
 
     def get_vehicle_type_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> Dict[str, int]:
         query = db.query(
-            func.sum(City_Eye_traffic_table.large).label("large"),
-            func.sum(City_Eye_traffic_table.normal).label("normal"),
-            func.sum(City_Eye_traffic_table.bicycle).label("bicycle"),
-            func.sum(City_Eye_traffic_table.motorcycle).label("motorcycle")
+            func.sum(CityEyeTrafficTable.large).label("large"),
+            func.sum(CityEyeTrafficTable.normal).label("normal"),
+            func.sum(CityEyeTrafficTable.bicycle).label("bicycle"),
+            func.sum(CityEyeTrafficTable.motorcycle).label("motorcycle")
         )
         query = self._apply_traffic_filters(query, filters)
         result = query.first()
@@ -324,7 +324,7 @@ class CRUDCityEyeAnalytics:
         }
 
     def get_hourly_traffic_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> List[Dict[str, Any]]:
-        hour_part = func.extract('hour', City_Eye_traffic_table.timestamp).label("hour")
+        hour_part = func.extract('hour', CityEyeTrafficTable.timestamp).label("hour")
         sum_expr = self._get_vehicles_sum_expression(filters)
         query = db.query(
             hour_part,
@@ -342,10 +342,10 @@ class CRUDCityEyeAnalytics:
 
         if db.bind.dialect.name == 'sqlite': # type: ignore
             # SQLite does not have date_trunc, approximate by formatting
-            time_bucket = func.strftime('%Y-%m-%d %H:00:00', City_Eye_traffic_table.timestamp).label("time_bucket")
+            time_bucket = func.strftime('%Y-%m-%d %H:00:00', CityEyeTrafficTable.timestamp).label("time_bucket")
         else: # For PostgreSQL
             # This truncates to the hour. For other intervals, this would need to be more complex.
-            time_bucket = func.date_trunc('hour', City_Eye_traffic_table.timestamp).label("time_bucket")
+            time_bucket = func.date_trunc('hour', CityEyeTrafficTable.timestamp).label("time_bucket")
 
         query = db.query(
             time_bucket,

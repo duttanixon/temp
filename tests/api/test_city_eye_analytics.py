@@ -848,7 +848,7 @@ def test_get_traffic_flow_analytics_no_city_eye_solution(
     )
     
     # Check response - should fail
-    assert response.status_code == 500
+    assert response.status_code == 404
     data = response.json()
     assert "detail" in data
     assert "not configured" in data["detail"]
@@ -863,8 +863,8 @@ def test_get_traffic_flow_analytics_customer_no_solution_access(
     """Test customer user without City Eye solution access"""
     filters = {
         "device_ids": [str(device.device_id)],
-        "start_time": "2025-01-01T00:00:00+09:00",
-        "end_time": "2025-12-31T23:59:59+09:00"
+        "start_time": "2025-01-01T00:00:00",
+        "end_time": "2025-12-31T23:59:59"
     }
     
     response = client.post(

@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 
-class City_Eye_traffic_table(Base):
+class CityEyeTrafficTable(Base):
     __tablename__ = "city_eye_traffic_data"
 
     data_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

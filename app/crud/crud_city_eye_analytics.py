@@ -4,10 +4,15 @@ from sqlalchemy import func, cast, Integer, Date, Time, case, and_, or_
 from sqlalchemy.dialects.postgresql import INTERVAL, TIME
 from sqlalchemy.sql.expression import literal_column, ColumnElement
 from app.models.services.city_eye.human_table import City_Eye_human_table
-from app.schemas.services.city_eye_analytics import AnalyticsFilters
+from app.models.services.city_eye.traffic_table import City_Eye_traffic_table
+from app.schemas.services.city_eye_analytics import AnalyticsFilters, TrafficAnalyticsFilters
 from datetime import datetime, time as dt_time
 
 class CRUDCityEyeAnalytics:
+
+    # =============================================================================
+    # HUMAN ANALYTICS METHODS
+    # =============================================================================
 
     def _get_people_sum_expression(self, filters: AnalyticsFilters) -> ColumnElement:
         """
@@ -50,7 +55,6 @@ class CRUDCityEyeAnalytics:
         
         return sum_expression
 
-
     def _apply_filters(self, query, filters: AnalyticsFilters, is_aggregation_query: bool = False):
         # Row-level filters (timestamps, devices, polygons)
         if filters.device_ids:
@@ -92,10 +96,6 @@ class CRUDCityEyeAnalytics:
                 query = query.filter(func.extract('hour', City_Eye_human_table.timestamp).in_(hour_numbers))
 
         return query
-
-    def _apply_age_gender_filter(self, query, filters: AnalyticsFilters):
-        pass 
-
 
     def get_total_count(self, db: Session, *, filters: AnalyticsFilters) -> int:
         sum_expr = self._get_people_sum_expression(filters)
@@ -196,7 +196,6 @@ class CRUDCityEyeAnalytics:
         results = query.all()
         return [{"hour": int(r.hour), "count": r.count or 0} for r in results]
 
-
     def get_time_series_data(self, db: Session, *, filters: AnalyticsFilters, interval_minutes: int = 60) -> List[Dict[str, Any]]:
         sum_expr = self._get_people_sum_expression(filters)
 
@@ -206,7 +205,6 @@ class CRUDCityEyeAnalytics:
         else: # For PostgreSQL
             # This truncates to the hour. For other intervals, this would need to be more complex.
             time_bucket = func.date_trunc('hour', City_Eye_human_table.timestamp).label("time_bucket")
-
 
         query = db.query(
             time_bucket,
@@ -219,5 +217,145 @@ class CRUDCityEyeAnalytics:
         results = query.all()
         return [{"timestamp": r.time_bucket, "count": r.count or 0} for r in results]
 
+    # =============================================================================
+    # TRAFFIC ANALYTICS METHODS
+    # =============================================================================
 
+    def _get_vehicles_sum_expression(self, filters: TrafficAnalyticsFilters) -> ColumnElement:
+        """
+        Dynamically creates a SQLAlchemy sum expression based on vehicle_types filters.
+        """
+        
+        vehicle_columns_map = {
+            "large": City_Eye_traffic_table.large,
+            "normal": City_Eye_traffic_table.normal,
+            "bicycle": City_Eye_traffic_table.bicycle,
+            "motorcycle": City_Eye_traffic_table.motorcycle,
+        }
+
+        selected_columns = []
+
+        # Determine which vehicle types to consider
+        vehicle_types_to_sum = filters.vehicle_types if filters.vehicle_types else ["large", "normal", "bicycle", "motorcycle"]
+
+        for vehicle_type in vehicle_types_to_sum:
+            column = vehicle_columns_map.get(vehicle_type.lower())
+            if column is not None:
+                selected_columns.append(column)
+        
+        if not selected_columns:
+            # If no columns are selected (e.g., invalid filters), sum nothing (results in 0)
+            return literal_column("0")
+
+        # Create a sum expression of all selected columns
+        sum_expression = selected_columns[0]
+        for i in range(1, len(selected_columns)):
+            sum_expression += selected_columns[i]
+        
+        return sum_expression
+    
+    def _apply_traffic_filters(self, query, filters: TrafficAnalyticsFilters, is_aggregation_query: bool = False):
+        # Row-level filters (timestamps, devices, polygons)
+        if filters.device_ids:
+            query = query.filter(City_Eye_traffic_table.device_id.in_(filters.device_ids))
+        if filters.start_time:
+            query = query.filter(City_Eye_traffic_table.timestamp >= filters.start_time)
+        if filters.end_time:
+            # Add 1 hour to end_time to make it inclusive of the last hour
+            inclusive_end_time = filters.end_time # + timedelta(hours=1)
+            query = query.filter(City_Eye_traffic_table.timestamp < inclusive_end_time)
+        if filters.polygon_ids_in:
+            query = query.filter(City_Eye_traffic_table.polygon_id_in.in_(filters.polygon_ids_in))
+        if filters.polygon_ids_out:
+            query = query.filter(City_Eye_traffic_table.polygon_id_out.in_(filters.polygon_ids_out))
+
+        # Day of the week filtering
+        if filters.days:
+            # Convert day names to DOW numbers (0=Sunday, 1=Monday, ..., 6=Saturday for PostgreSQL EXTRACT(DOW ...))
+            day_mapping = {
+                "sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3,
+                "thursday": 4, "friday": 5, "saturday": 6
+            }
+            dow_numbers = [day_mapping[day.lower()] for day in filters.days if day.lower() in day_mapping]
+            if dow_numbers:
+                query = query.filter(func.extract('dow', City_Eye_traffic_table.timestamp).in_(dow_numbers))
+        
+        if filters.hours:
+            # Expecting hours like "10:00", "23:00". We only need the hour part.
+            hour_numbers = []
+            for hour_str in filters.hours:
+                try:
+                    hour_part = int(hour_str.split(':')[0])
+                    hour_numbers.append(hour_part)
+                except ValueError:
+                    # Handle cases where hour_str might not be in "HH:MM" format or is invalid
+                    pass # Or log a warning
+            
+            if hour_numbers: # Only apply filter if valid hours were parsed
+                query = query.filter(func.extract('hour', City_Eye_traffic_table.timestamp).in_(hour_numbers))
+
+        return query
+
+    def get_total_traffic_count(self, db: Session, *, filters: TrafficAnalyticsFilters) -> int:
+        sum_expr = self._get_vehicles_sum_expression(filters)
+        query = db.query(func.sum(sum_expr).label("total_vehicles"))
+
+        # Apply row-level filters (time, device, polygon, day, hour)
+        query = self._apply_traffic_filters(query, filters, is_aggregation_query=True)
+        result = query.scalar()
+        return result or 0
+
+    def get_vehicle_type_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> Dict[str, int]:
+        query = db.query(
+            func.sum(City_Eye_traffic_table.large).label("large"),
+            func.sum(City_Eye_traffic_table.normal).label("normal"),
+            func.sum(City_Eye_traffic_table.bicycle).label("bicycle"),
+            func.sum(City_Eye_traffic_table.motorcycle).label("motorcycle")
+        )
+        query = self._apply_traffic_filters(query, filters)
+        result = query.first()
+        return {
+            "large": result.large or 0,
+            "normal": result.normal or 0,
+            "bicycle": result.bicycle or 0,
+            "motorcycle": result.motorcycle or 0,
+        } if result else {
+            "large": 0, "normal": 0, "bicycle": 0, "motorcycle": 0
+        }
+
+    def get_hourly_traffic_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> List[Dict[str, Any]]:
+        hour_part = func.extract('hour', City_Eye_traffic_table.timestamp).label("hour")
+        sum_expr = self._get_vehicles_sum_expression(filters)
+        query = db.query(
+            hour_part,
+            func.sum(sum_expr).label("count")
+        )
+        # Apply row-level filters (time, device, polygon, day, hour already applied in _apply_traffic_filters)
+        query = self._apply_traffic_filters(query, filters, is_aggregation_query=True)
+        query = query.group_by(hour_part).order_by(hour_part)
+
+        results = query.all()
+        return [{"hour": int(r.hour), "count": r.count or 0} for r in results]
+    
+    def get_traffic_time_series_data(self, db: Session, *, filters: TrafficAnalyticsFilters, interval_minutes: int = 60) -> List[Dict[str, Any]]:
+        sum_expr = self._get_vehicles_sum_expression(filters)
+
+        if db.bind.dialect.name == 'sqlite': # type: ignore
+            # SQLite does not have date_trunc, approximate by formatting
+            time_bucket = func.strftime('%Y-%m-%d %H:00:00', City_Eye_traffic_table.timestamp).label("time_bucket")
+        else: # For PostgreSQL
+            # This truncates to the hour. For other intervals, this would need to be more complex.
+            time_bucket = func.date_trunc('hour', City_Eye_traffic_table.timestamp).label("time_bucket")
+
+        query = db.query(
+            time_bucket,
+            func.sum(sum_expr).label("count")
+        )
+        # Apply row-level filters (time, device, polygon, day, hour already applied in _apply_traffic_filters)
+        query = self._apply_traffic_filters(query, filters, is_aggregation_query=True)
+        query = query.group_by(time_bucket).order_by(time_bucket)
+
+        results = query.all()
+        return [{"timestamp": r.time_bucket, "count": r.count or 0} for r in results]
+        
 crud_city_eye_analytics = CRUDCityEyeAnalytics()

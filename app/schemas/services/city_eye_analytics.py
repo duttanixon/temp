@@ -6,8 +6,24 @@ import uuid
 class CityEyeAnalyticsBase(BaseModel):
     pass
 
+# =============================================================================
+# SHARED SCHEMAS (used by both human and traffic analytics)
+# =============================================================================
+
 class TotalCount(BaseModel):
     total_count: int
+
+class HourlyCount(BaseModel):
+    hour: int
+    count: int
+
+class TimeSeriesData(BaseModel):
+    timestamp: datetime
+    count: int
+
+# =============================================================================
+# HUMAN ANALYTICS SCHEMAS
+# =============================================================================
 
 class AgeDistribution(BaseModel):
     under_18: int
@@ -32,14 +48,6 @@ class AgeGenderDistribution(BaseModel):
     male_65_plus: int
     female_65_plus: int
 
-class HourlyCount(BaseModel):
-    hour: int
-    count: int
-
-class TimeSeriesData(BaseModel):
-    timestamp: datetime
-    count: int
-
 class AnalyticsFilters(BaseModel):
     device_ids: Optional[List[uuid.UUID]] = None
     start_time: datetime
@@ -59,6 +67,36 @@ class PerDeviceAnalyticsData(BaseModel):
     hourly_distribution: Optional[List[HourlyCount]] = None
     time_series_data: Optional[List[TimeSeriesData]] = None
 
+# =============================================================================
+# TRAFFIC ANALYTICS SCHEMAS
+# =============================================================================
+
+class VehicleTypeDistribution(BaseModel):
+    large: int
+    normal: int
+    bicycle: int
+    motorcycle: int
+
+class TrafficAnalyticsFilters(BaseModel):
+    device_ids: Optional[List[uuid.UUID]] = None
+    start_time: datetime
+    end_time: datetime
+    days: Optional[List[str]] = None  # e.g., ["sunday", "monday"]
+    hours: Optional[List[str]] = None  # e.g., ["10:00", "14:00"]
+    polygon_ids_in: Optional[List[str]] = None
+    polygon_ids_out: Optional[List[str]] = None
+    vehicle_types: Optional[List[str]] = None # ["large", "normal", "bicycle", "motorcycle"]
+
+class PerDeviceTrafficAnalyticsData(BaseModel):
+    total_count: Optional[TotalCount] = None
+    vehicle_type_distribution: Optional[VehicleTypeDistribution] = None
+    hourly_distribution: Optional[List[HourlyCount]] = None
+    time_series_data: Optional[List[TimeSeriesData]] = None
+
+# =============================================================================
+# DEVICE ANALYTICS ITEMS (for per-device responses)
+# =============================================================================
+
 class DeviceAnalyticsItem(BaseModel):
     device_id: uuid.UUID
     device_name: Optional[str] = None # Helpful for the frontend
@@ -66,5 +104,19 @@ class DeviceAnalyticsItem(BaseModel):
     analytics_data: PerDeviceAnalyticsData
     error: Optional[str] = None # In case processing for this device fails
 
-# --- MODIFIED: The main response is now a list of DeviceAnalyticsItem ---
+class DeviceTrafficAnalyticsItem(BaseModel):
+    device_id: uuid.UUID
+    device_name: Optional[str] = None
+    device_location: Optional[str] = None
+    analytics_data: PerDeviceTrafficAnalyticsData
+    error: Optional[str] = None
+
+# =============================================================================
+# RESPONSE TYPES
+# =============================================================================
+
+# Human analytics response (list of devices with human flow data)
 CityEyeAnalyticsPerDeviceResponse = List[DeviceAnalyticsItem]
+
+# Traffic analytics response (list of devices with traffic flow data)
+CityEyeTrafficAnalyticsPerDeviceResponse = List[DeviceTrafficAnalyticsItem]

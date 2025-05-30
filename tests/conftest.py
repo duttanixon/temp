@@ -21,9 +21,9 @@ from app.main import app
 from app.models import (
     User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, 
     DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, 
-    LicenseStatus, SolutionStatus
+    LicenseStatus, SolutionStatus, City_Eye_human_table, City_Eye_traffic_table
 )
-from app.models.services.city_eye.human_table import City_Eye_human_table
+
 # Test database URL - use SQLite for tests 
 TEST_DATABASE_URL = f"sqlite:///./test.db"
 
@@ -349,6 +349,45 @@ def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solu
             female_50_to_64=7,
             male_65_plus=3,
             female_65_plus=5
+        )
+    ]
+    
+    for data in test_data:
+        db.add(data)
+    db.commit()
+    
+    return test_data
+
+@pytest.fixture
+def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+    """Create test traffic analytics data for City Eye"""
+    base_time = datetime.now()
+    
+    # Create sample traffic flow data
+    test_data = [
+        City_Eye_traffic_table(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=base_time,
+            polygon_id_in="entrance_1",
+            polygon_id_out="exit_1",
+            large=5,
+            normal=15,
+            bicycle=8,
+            motorcycle=3
+        ),
+        City_Eye_traffic_table(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=base_time + timedelta(hours=1),
+            polygon_id_in="entrance_2",
+            polygon_id_out="exit_2",
+            large=7,
+            normal=20,
+            bicycle=12,
+            motorcycle=5
         )
     ]
     

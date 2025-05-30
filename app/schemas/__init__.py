@@ -3,3 +3,20 @@ from app.schemas.customer import Customer, CustomerCreate, CustomerUpdate, Custo
 from app.schemas.token import Token, TokenPayload
 from app.schemas.solution import SolutionCreate, SolutionUpdate, Solution, SolutionAdminView
 from app.schemas.device_metrics import MetricsResponse
+from app.schemas.services.city_eye_analytics import (
+    TotalCount,
+    HourlyCount, 
+    TimeSeriesData,
+    AgeDistribution,
+    GenderDistribution,
+    AgeGenderDistribution,
+    VehicleTypeDistribution,
+    AnalyticsFilters,
+    TrafficAnalyticsFilters,
+    PerDeviceAnalyticsData,
+    PerDeviceTrafficAnalyticsData,
+    DeviceAnalyticsItem,
+    DeviceTrafficAnalyticsItem,
+    CityEyeAnalyticsPerDeviceResponse,
+    CityEyeTrafficAnalyticsPerDeviceResponse
+)

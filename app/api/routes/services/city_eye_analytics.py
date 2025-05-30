@@ -201,7 +201,7 @@ def get_traffic_flow_analytics(
     city_eye_solution_model = crud_solution.get_by_name(db, name="City Eye")
     if not city_eye_solution_model:
         logger.error("CityEye solution not found in database")
-        raise HTTPException(status_code=500, detail="CityEye solution not configured")
+        raise HTTPException(status_code=404, detail="CityEye solution not configured")
 
     # --- Authorization and Device Validation ---
     final_device_ids_to_process: List[uuid.UUID] = []

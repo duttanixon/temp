@@ -1,16 +1,15 @@
 import { Label } from "@/components/ui/label";
 import { FC } from "react";
 import { cn } from "@/lib/utils";
+import { FieldErrors, UseFormRegister } from "react-hook-form";
+import { formVariants } from "@/components/forms/FormField";
 
-type FormFieldProps = {
+type AccessFormFieldProps = {
   id: string;
   label: string;
   type: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => void;
+  register: UseFormRegister<any>;
+  errors?: FieldErrors;
   required?: boolean;
   labelClassName?: string;
   inputClassName?: string;
@@ -18,16 +17,15 @@ type FormFieldProps = {
   placeholder?: string;
 };
 
-export const AccessFormField: FC<FormFieldProps> = ({
+export const AccessFormField: FC<AccessFormFieldProps> = ({
   id,
   label,
-  name,
-  value,
-  onChange,
+  register,
+  errors,
   required = false,
   labelClassName = "",
   inputClassName = "",
-  placeholder = "選択してください",
+  placeholder = "",
   options = [],
 }) => (
   <div className="flex flex-col gap-1">
@@ -37,9 +35,7 @@ export const AccessFormField: FC<FormFieldProps> = ({
     <select
       className={cn(inputClassName)}
       id={id}
-      name={name}
-      value={value ?? ""}
-      onChange={onChange}
+      {...register(id)}
       required={required}
     >
       <option value="">{placeholder}</option>
@@ -49,5 +45,10 @@ export const AccessFormField: FC<FormFieldProps> = ({
         </option>
       ))}
     </select>
+    {errors && errors[id] && (
+      <div className={formVariants({ variant: "error" })}>
+        {errors[id]?.message?.toString()}
+      </div>
+    )}
   </div>
 );

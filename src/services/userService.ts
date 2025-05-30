@@ -16,6 +16,18 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+export class ApiError extends Error {
+  statusCode?: number;
+  responseData?: any;
+
+  constructor(message: string, statusCode?: number, responseData?: any) {
+    super(message);
+    this.name = "ApiError";
+    this.statusCode = statusCode;
+    this.responseData = responseData;
+  }
+}
+
 // Helper for consistent error handling
 function handleApiError(error: any): never {
   if (axios.isAxiosError(error)) {

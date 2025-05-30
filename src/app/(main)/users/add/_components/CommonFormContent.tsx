@@ -2,16 +2,8 @@ import { cva } from "class-variance-authority";
 import { UserFormField } from "@/app/(main)/users/_components/UserFormField";
 
 type Props = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  verifyPassword: string;
-  setFirstName: (val: string) => void;
-  setLastName: (val: string) => void;
-  setEmail: (val: string) => void;
-  setPassword: (val: string) => void;
-  setVerifyPassword: (val: string) => void;
+  register: any;
+  errors: any;
 };
 
 export const formVariants = cva("", {
@@ -27,22 +19,11 @@ export const formVariants = cva("", {
     variant: "userInfo",
   },
 });
-export const CommonFormContent = ({
-  firstName,
-  setFirstName,
-  lastName,
-  setLastName,
-  email,
-  setEmail,
-  password,
-  setPassword,
-  verifyPassword,
-  setVerifyPassword,
-}: Props) => {
+export const CommonFormContent = ({ register, errors }: Props) => {
   return (
     <>
       <div className="flex flex-col gap-4 p-4">
-        <div className="flex items-center gap-x-16 pb-5">
+        <div className="flex items-center gap-x-16">
           <h2 className={formVariants({ variant: "userInfo" })}>
             ユーザー情報
           </h2>
@@ -53,23 +34,21 @@ export const CommonFormContent = ({
         <div className="flex flex-col items-center gap-2">
           <div className="flex gap-5">
             <UserFormField
-              id="lastName"
+              id="last_name"
               label="姓"
               type="text"
-              name="lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              register={register}
+              errors={errors}
               required
               labelClassName={formVariants({ variant: "label" })}
               inputClassName={formVariants({ variant: "inputName" })}
             />
             <UserFormField
-              id="firstName"
+              id="first_name"
               label="名"
               type="text"
-              name="firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              register={register}
+              errors={errors}
               required
               labelClassName={formVariants({ variant: "label" })}
               inputClassName={formVariants({ variant: "inputName" })}
@@ -79,9 +58,8 @@ export const CommonFormContent = ({
             id="email"
             label="連絡先メール"
             type="email"
-            name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            register={register}
+            errors={errors}
             required
             labelClassName={formVariants({ variant: "label" })}
             inputClassName={formVariants({ variant: "input" })}
@@ -90,20 +68,18 @@ export const CommonFormContent = ({
             id="password"
             label="パスワード"
             type="password"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            register={register}
+            errors={errors}
             required
             labelClassName={formVariants({ variant: "label" })}
             inputClassName={formVariants({ variant: "input" })}
           />
           <UserFormField
-            id="password"
+            id="verify_password"
             label="パスワード(確認用)"
             type="password"
-            name="password"
-            value={verifyPassword}
-            onChange={(e) => setVerifyPassword(e.target.value)}
+            register={register}
+            errors={errors}
             required
             labelClassName={formVariants({ variant: "label" })}
             inputClassName={formVariants({ variant: "input" })}

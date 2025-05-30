@@ -31,14 +31,21 @@ export interface User {
 
 // Types for create/update operations
 export type UserCreateData = {
+  // customer_id?: string;
+  // device_type: string;
+  // description?: string;
+  // mac_address?: string;
+  // serial_number?: string;
+  // firmware_version?: string;
+  // location?: string;
+  // ip_address?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  status: UserStatus;
   customer_id?: string;
-  device_type: string;
-  description?: string;
-  mac_address?: string;
-  serial_number?: string;
-  firmware_version?: string;
-  location?: string;
-  ip_address?: string;
 };
 
 export type UserUpdateData = {

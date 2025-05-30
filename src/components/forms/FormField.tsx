@@ -16,6 +16,7 @@ export const formVariants = cva("", {
     variant: {
       label: "text-sm font-normal text-[#7F8C8D]",
       input: "w-full h-[35.56px] border border-[#BDC3C7]",
+      halfInput: "w-1/2 h-[35.56px] border border-[#BDC3C7]",
       error: "text-xs text-red-500 mt-1",
     },
   },
@@ -121,7 +122,8 @@ export const ToggleField: FC<ToggleFieldProps> = ({
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors hover:cursor-pointer ${
                 isActive ? "bg-[#3498DB]" : "bg-[#BDC3C7]"
               }`}
-              onClick={() => onChange(isActive ? "INACTIVE" : "ACTIVE")}>
+              onClick={() => onChange(isActive ? "INACTIVE" : "ACTIVE")}
+            >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                   isActive ? "translate-x-6" : "translate-x-1"
@@ -132,7 +134,8 @@ export const ToggleField: FC<ToggleFieldProps> = ({
               className={cn(
                 isActive ? "text-[#3498DB]" : "text-[#BDC3C7]",
                 "text-sm"
-              )}>
+              )}
+            >
               {isActive ? activeLabel : inactiveLabel}
             </span>
           </div>

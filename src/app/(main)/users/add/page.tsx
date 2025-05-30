@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import UserAddForm from "@/app/(main)/users/add/_components/UserAddForm";
+import UserCreateForm from "@/app/(main)/users/add/_components/UserCreateForm";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,6 +23,8 @@ export default async function AddUserPage() {
   if (role !== "ADMIN" && role !== "CUSTOMER_ADMIN") {
     return <div className="text-red-500">権限がありません</div>;
   }
+  const customerLabel =
+    role === "ADMIN" ? "" : role === "CUSTOMER_ADMIN" ? `：${customer}` : "";
 
   return (
     <div className="flex flex-col">
@@ -35,7 +37,12 @@ export default async function AddUserPage() {
           <BreadcrumbItem>ユーザーの作成</BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <UserAddForm accessToken={accessToken} role={role} customer={customer} />
+      <div className="flex flex-col gap-8 w-170 text-2xl font-bold text-[#2C3E50]">
+        ユーザーの作成{customerLabel}
+        <section className="flex flex-col gap-4">
+          <UserCreateForm role={role} />
+        </section>
+      </div>
     </div>
   );
 }

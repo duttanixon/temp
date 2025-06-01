@@ -38,7 +38,7 @@ export default function AgeDistributionCard({
       }
     >
       <ShadcnPieChartDonutCard
-        title=""
+        title={title}
         fontSize={10}
         data={ageDistributionData}
         isLoading={false}

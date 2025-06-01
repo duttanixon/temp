@@ -54,7 +54,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       };
     }
     // Add traffic params when implemented
-    return {};
+    // return {};
   }, [horizontalTab]);
 
   // Fetch data for main and comparison periods

@@ -1,17 +1,13 @@
-// src/app/(main)/analytics/cityeye/_components/cards/GenericAnalyticsCard.tsx
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertTriangle, Info } from "lucide-react";
 
 interface GenericAnalyticsCardProps {
-  title: string;
   isLoading: boolean;
   error: string | null;
   hasData: boolean;
   emptyMessage?: string;
   children: React.ReactNode;
-  className?: string;
 }
 
 /**
@@ -19,13 +15,11 @@ interface GenericAnalyticsCardProps {
  * Reduces code duplication across different analytics cards
  */
 export function GenericAnalyticsCard({
-  title,
   isLoading,
   error,
   hasData,
   emptyMessage = "データがありません。",
   children,
-  className = "",
 }: GenericAnalyticsCardProps) {
   const renderContent = () => {
     if (isLoading) {
@@ -59,16 +53,5 @@ export function GenericAnalyticsCard({
     return children;
   };
 
-  return (
-    <Card
-      className={`shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col ${className}`}
-    >
-      <CardHeader className="pb-2 pt-3 px-4">
-        <CardTitle className="text-base font-semibold text-gray-700">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow p-3">{renderContent()}</CardContent>
-    </Card>
-  );
+  return <>{renderContent()}</>;
 }

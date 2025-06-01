@@ -1,20 +1,52 @@
+/**
+ * Total People Count Processing Utilities
+ *
+ * This module processes raw analytics data to generate total people count
+ * information for dashboard display. Handles both city-wide totals and
+ * per-device breakdowns with comprehensive error handling.
+ *
+ * Key Features:
+ * - Aggregates total counts across all devices
+ * - Provides per-device count breakdown
+ * - Handles device-specific errors gracefully
+ * - Returns chart-ready data structure
+ */
+
 import {
   FrontendCityEyeAnalyticsPerDeviceResponse,
-  ProcessedAnalyticsData, // Changed from ProcessedTotalPeopleData
+  ProcessedAnalyticsData,
   DeviceCountData,
 } from "@/types/cityEyeAnalytics";
 
+// ============================================================================
+// MAIN PROCESSING FUNCTION
+// ============================================================================
+
+/**
+ * Processes raw analytics data to extract total people count information
+ *
+ * Transforms raw device analytics into a structured format containing:
+ * - Overall total count across all devices
+ * - Individual device counts with error handling
+ * - Proper fallbacks for missing or invalid data
+ *
+ * @param data - Raw analytics response from API
+ * @returns Processed total people data or null if no input data
+ */
 export const processAnalyticsDataForTotalPeople = (
-  // Renaming to reflect its specific purpose
   data: FrontendCityEyeAnalyticsPerDeviceResponse | null
 ): ProcessedAnalyticsData["totalPeople"] | null => {
-  // Return type changed
+  // --- Input Validation ---
   if (!data) return null;
+
+  // --- State Initialization ---
   let overallTotal = 0;
   const deviceCountsArray: DeviceCountData[] = [];
   let hasAnyData = false;
 
+  // --- Process Each Device ---
   data.forEach((item) => {
+    // Handle devices with errors or missing data
     if (item.error || !item.analytics_data?.total_count) {
       deviceCountsArray.push({
         deviceId: item.device_id,
@@ -25,9 +57,12 @@ export const processAnalyticsDataForTotalPeople = (
       });
       return;
     }
+
+    // Process valid device data
     hasAnyData = true;
     const count = item.analytics_data.total_count?.total_count ?? 0;
     overallTotal += count;
+
     deviceCountsArray.push({
       deviceId: item.device_id,
       deviceName: item.device_name,
@@ -36,9 +71,17 @@ export const processAnalyticsDataForTotalPeople = (
     });
   });
 
+  // --- Handle Complete Data Failure ---
   if (!hasAnyData && deviceCountsArray.every((d) => d.error)) {
-    return { totalCount: 0, perDeviceCounts: deviceCountsArray };
+    return {
+      totalCount: 0,
+      perDeviceCounts: deviceCountsArray,
+    };
   }
 
-  return { totalCount: overallTotal, perDeviceCounts: deviceCountsArray };
+  // --- Return Processed Results ---
+  return {
+    totalCount: overallTotal,
+    perDeviceCounts: deviceCountsArray,
+  };
 };

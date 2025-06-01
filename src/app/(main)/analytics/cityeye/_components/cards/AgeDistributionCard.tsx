@@ -1,5 +1,3 @@
-// src/app/(main)/analytics/cityeye/_components/cards/AgeDistributionCard.tsx
-
 "use client";
 
 import React from "react";

@@ -4,7 +4,6 @@ import {
   FrontendAnalyticsFilters,
 } from "@/types/cityEyeAnalytics";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
-import { toast } from "sonner";
 
 // Default filter state with sensible defaults
 const createDefaultFilters = (): CityEyeFilterState => ({

@@ -35,8 +35,7 @@ const createDefaultFilters = (): CityEyeFilterState => ({
 });
 
 /**
- * Simplified hook for managing analytics filters
- * Reduced complexity by removing unnecessary state and consolidating logic
+ * hook for managing analytics filters
  */
 export function useAnalyticsFilters() {
   const [filters, setFilters] = useState<CityEyeFilterState>(

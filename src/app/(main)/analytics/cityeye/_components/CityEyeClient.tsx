@@ -53,6 +53,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         include_age_gender_distribution: true,
       };
     }
+    // Add traffic params when implemented
     return {};
   }, [horizontalTab]);
 

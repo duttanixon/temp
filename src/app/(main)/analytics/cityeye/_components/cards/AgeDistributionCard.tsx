@@ -26,26 +26,17 @@ export default function AgeDistributionCard({
     ageDistributionData.length > 0;
 
   return (
-    <GenericAnalyticsCard
-      isLoading={isLoading}
-      error={hasAttemptedFetch ? error : null}
-      hasData={hasData}
-      emptyMessage={
-        hasAttemptedFetch
-          ? "年齢層データがありません。"
-          : "フィルターを適用してデータを表示します。"
-      }
-    >
       <ShadcnPieChartDonutCard
         title={title}
         fontSize={10}
+        description=""
         data={ageDistributionData}
-        isLoading={false}
-        error={null}
-        hasAttemptedFetch={true}
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        emptyDataMessage="データがありません。"
         dataKey="value"
         nameKey="name"
       />
-    </GenericAnalyticsCard>
   );
 }

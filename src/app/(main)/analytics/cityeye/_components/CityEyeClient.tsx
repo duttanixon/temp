@@ -45,7 +45,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   }>({ main: null, comparison: null });
 
   // Query parameters based on current tab
-  const queryParams = useMemo(() => {
+  const queryParams: Record<string, boolean> = useMemo((): Record<string, boolean> => {
     if (horizontalTab === "people") {
       return {
         include_total_count: true,

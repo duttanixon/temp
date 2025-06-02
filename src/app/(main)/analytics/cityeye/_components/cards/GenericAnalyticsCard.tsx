@@ -24,7 +24,7 @@ export function GenericAnalyticsCard({
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
+        <div className="flex flex-col items-center justify-center min-h-[200px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">データを読み込み中...</p>
         </div>
@@ -33,7 +33,7 @@ export function GenericAnalyticsCard({
 
     if (error) {
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-destructive">
+        <div className="flex flex-col items-center justify-center min-h-[200px] text-destructive">
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">エラー</p>
           <p className="text-xs text-center px-2">{error}</p>
@@ -43,7 +43,7 @@ export function GenericAnalyticsCard({
 
     if (!hasData) {
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
+        <div className="flex flex-col items-center justify-center min-h-[200px]">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         </div>

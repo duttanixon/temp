@@ -4,19 +4,19 @@ import React from "react";
 import TrafficOverviewView from "../views/TrafficOverviewView";
 import TrafficComparisonView from "../views/TrafficComparisonView"; // Can reuse if structure is similar
 import {
-  ProcessedAnalyticsData,
+  ProcessedTrafficAnalyticsData,
 } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 
 interface TrafficTabContentProps {
   verticalTab: string;
 
-  mainProcessedData: ProcessedAnalyticsData | null;
+  mainProcessedData: ProcessedTrafficAnalyticsData | null;
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;
   mainPeriodDateRange?: DateRange;
-  comparisonProcessedData?: ProcessedAnalyticsData | null;
+  comparisonProcessedData?: ProcessedTrafficAnalyticsData | null;
   isLoadingComparison?: boolean; 
   errorComparison?: string | null;
   hasAttemptedFetchComparison?: boolean;

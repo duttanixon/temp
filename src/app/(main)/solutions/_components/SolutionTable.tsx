@@ -84,16 +84,15 @@ export default function SolutionTable({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
-      <table className="w-full min-w-[900px] divide-y divide-[#BDC3C7]">
+      <table className="w-full min-w-[900px]">
         <colgroup>
+          <col className="w-1/10" />
           <col className="w-1/5" />
-          <col className="w-1/6" />
-          <col className="w-1/4" />
-          <col className="w-1/6" />
-          <col className="w-1/6" />
-          <col className="w-1/12" />
+          <col className="w-1/5" />
+          <col className="w-1/5" />
+          <col className="w-1/10" />
         </colgroup>
-        <thead className="bg-[#ECF0F1]">
+        <thead className="bg-[#ECF0F1] border-b border-[#BDC3C7]">
           <tr>
             <th
               onClick={() => handleSort("name")}
@@ -150,7 +149,7 @@ export default function SolutionTable({
             sortedSolutions.map((solution) => (
               <tr
                 key={solution.solution_id}
-                className="cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
+                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
                 onClick={() => handleViewDetails(solution.solution_id)}
               >
                 <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">

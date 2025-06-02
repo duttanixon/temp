@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { User } from "@/types/user";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -79,7 +79,7 @@ export default function UserTable({
   if (userRole === "CUSTOMER_ADMIN") {
     return (
       <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
-        <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
+        <table className="w-full min-w-[800px]">
           <colgroup>
             <col className="w-1/5" />
             <col className="w-1/5" />
@@ -133,7 +133,7 @@ export default function UserTable({
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white">
+          <tbody className="bg-white divide-y divide-[#BDC3C7]">
             {paginated.length > 0 ? (
               paginated.map((user) => (
                 <tr

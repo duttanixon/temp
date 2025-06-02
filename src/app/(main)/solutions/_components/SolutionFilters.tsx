@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SolutionFilters() {
@@ -12,82 +12,51 @@ export default function SolutionFilters() {
   );
   const [status, setStatus] = useState(searchParams.get("status") || "");
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (deviceType) params.set("deviceType", deviceType);
+      if (status) params.set("status", status);
+      router.push(`/solutions?${params.toString()}`);
+    }, 300);
 
-    const params = new URLSearchParams();
-    if (deviceType) params.set("deviceType", deviceType);
-    if (status) params.set("status", status);
-
-    router.push(`/solutions?${params.toString()}`);
-  };
-
-  const handleReset = () => {
-    setDeviceType("");
-    setStatus("");
-    router.push("/solutions");
-  };
+    return () => clearTimeout(debounce);
+  }, [deviceType, status, router]);
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-[#BDC3C7]">
-      <form onSubmit={handleSearch} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="deviceType"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              デバイスタイプ互換性
-            </label>
-            <select
-              id="deviceType"
-              value={deviceType}
-              onChange={(e) => setDeviceType(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2 text-sm"
-            >
-              <option value="">すべて</option>
-              <option value="NVIDIA_JETSON">NVIDIA Jetson</option>
-              <option value="RASPBERRY_PI">Raspberry Pi</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="status"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
-              ステータス
-            </label>
-            <select
-              id="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2 text-sm"
-            >
-              <option value="">すべて</option>
-              <option value="ACTIVE">有効</option>
-              <option value="BETA">ベータ版</option>
-              <option value="DEPRECATED">非推奨</option>
-            </select>
-          </div>
+    <div className="relative border border-gray-400 rounded-md px-4 py-3 w-2/5 bg-white overflow-hidden">
+      <div className="flex items-center gap-6 flex-nowrap">
+        <label className="text-gray-800 text-sm whitespace-nowrap">
+          デバイスタイプ:
+        </label>
+        <div className="relative w-40">
+          <select
+            value={deviceType}
+            onChange={(e) => setDeviceType(e.target.value)}
+            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+          >
+            <option value="">すべて</option>
+            <option value="NVIDIA_JETSON">NVIDIA Jetson</option>
+            <option value="RASPBERRY_PI">Raspberry Pi</option>
+          </select>
         </div>
 
-        <div className="flex justify-end space-x-2">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-4 py-2 border border-[#BDC3C7] rounded-md text-sm text-[#7F8C8D] hover:bg-[#ECF0F1]"
+        <label className="text-gray-800 text-sm whitespace-nowrap">
+          ステータス:
+        </label>
+        <div className="relative w-40">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
           >
-            リセット
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-[#3498DB] text-white rounded-md text-sm hover:bg-[#2980B9]"
-          >
-            検索
-          </button>
+            <option value="">すべて</option>
+            <option value="ACTIVE">有効</option>
+            <option value="BETA">ベータ版</option>
+            <option value="DEPRECATED">非推奨</option>
+          </select>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

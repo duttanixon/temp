@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Device } from "@/types/device";
@@ -19,6 +19,7 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -29,15 +30,25 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
     }
   };
 
-  const sortedDevices = useMemo(() => {
-    return [...initialDevices].sort((a, b) => {
+  const filteredAndSortedDevices = useMemo(() => {
+    const deviceType = searchParams.get("deviceType");
+    const status = searchParams.get("status");
+
+    const filtered = initialDevices.filter((device) => {
+      const matchesDeviceType =
+        !deviceType || device.device_type === deviceType;
+      const matchesStatus = !status || device.status === status;
+      return matchesDeviceType && matchesStatus;
+    });
+
+    return filtered.sort((a, b) => {
       const valA = (a[sortKey] || "").toString().toLowerCase();
       const valB = (b[sortKey] || "").toString().toLowerCase();
       if (valA < valB) return sortDirection === "asc" ? -1 : 1;
       if (valA > valB) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
-  }, [initialDevices, sortKey, sortDirection]);
+  }, [initialDevices, sortKey, sortDirection, searchParams]);
 
   const renderSortIcon = (key: SortKey) => {
     return sortKey === key ? (
@@ -107,8 +118,8 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-[#BDC3C7]">
-          {sortedDevices.length > 0 ? (
-            sortedDevices.map((device) => (
+          {filteredAndSortedDevices.length > 0 ? (
+            filteredAndSortedDevices.map((device) => (
               <tr
                 key={device.device_id}
                 onClick={() => router.push(`/devices/${device.device_id}`)}

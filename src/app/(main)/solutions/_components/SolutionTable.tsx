@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Solution } from "@/types/solution";
 import SolutionStatusBadge from "./SolutionStatusBadge";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
@@ -20,6 +20,7 @@ export default function SolutionTable({
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -30,8 +31,19 @@ export default function SolutionTable({
     }
   };
 
-  const sortedSolutions = useMemo(() => {
-    return [...initialSolutions].sort((a, b) => {
+  const filteredAndSortedSolutions = useMemo(() => {
+    const deviceType = searchParams.get("deviceType");
+    const status = searchParams.get("status");
+
+    const filtered = initialSolutions.filter((solution) => {
+      const matchesDeviceType =
+        !deviceType || solution.compatibility.includes(deviceType);
+      const matchesStatus = !status || solution.status === status;
+
+      return matchesDeviceType && matchesStatus;
+    });
+
+    return filtered.sort((a, b) => {
       let valA: string | number = "";
       let valB: string | number = "";
 
@@ -67,7 +79,7 @@ export default function SolutionTable({
       if (valA > valB) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
-  }, [initialSolutions, sortKey, sortDirection]);
+  }, [initialSolutions, sortKey, sortDirection, searchParams]);
 
   const renderSortIndicator = (key: SortKey) => {
     if (key !== sortKey) return null;
@@ -145,8 +157,8 @@ export default function SolutionTable({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-[#BDC3C7]">
-          {sortedSolutions.length > 0 ? (
-            sortedSolutions.map((solution) => (
+          {filteredAndSortedSolutions.length > 0 ? (
+            filteredAndSortedSolutions.map((solution) => (
               <tr
                 key={solution.solution_id}
                 className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"

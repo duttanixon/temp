@@ -1,5 +1,6 @@
+"use client";
+
 import UserEditForm from "@/app/(main)/users/[id]/edit/_components/UserEditForm";
-import { auth } from "@/auth";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,56 +8,50 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { userService } from "@/services/userService";
+import { User } from "@/types/user";
+import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-async function getUser(userId: string, accessToken: string) {
-  const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/users/${userId}`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      cache: "no-store",
-    });
-
-    if (response.status === 404) {
-      return null;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch solution: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error("Error fetching solution:", error);
-    throw error;
-  }
-}
-
-type Props = {
-  params: Promise<{
-    id: string;
-  }>;
-};
-export default async function UserEditPage({ params }: Props) {
-  const resolvedParams = await params;
-  // サーバーサイドでセッションを取得
-  const session = await auth();
+export default function UserEditPage() {
+  const { data: session } = useSession();
   const role = session?.user?.role;
-  const accessToken = session?.accessToken ?? "";
-  const userId = resolvedParams.id;
-  const user = await getUser(userId, accessToken);
-  console.log("accessToken:", accessToken);
-  console.log("typeof accessToken:", typeof accessToken);
-  console.log("accessToken keys:", Object.keys(accessToken));
-  console.log("session:", session);
-  console.log("user:", user);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const params = useParams();
+  const userId = params?.id as string;
 
-  console.log(" ADD USER PAGE: Session data:", session);
-  if (role !== "ADMIN" && role !== "CUSTOMER_ADMIN") {
-    return <div className="text-red-500">権限がありません</div>;
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setLoading(true);
+        const userData = await userService.getUser(userId);
+        if (!userData) {
+          return <div>ユーザーデータがありません</div>;
+        }
+        console.log("Fetched user data:", userData);
+        setUser(userData);
+      } catch (error) {
+        console.error("ユーザー情報の取得に失敗しました:", error);
+
+        return <div>ユーザー情報の取得に失敗しました</div>;
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (userId) {
+      fetchUser();
+    }
+  }, [userId]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-600">読み込み中...</div>
+      </div>
+    );
   }
+  const userLabel = `：${user?.last_name} ${user?.first_name}`;
 
   return (
     <div className="flex flex-col">
@@ -66,15 +61,15 @@ export default async function UserEditPage({ params }: Props) {
             <BreadcrumbLink href="/users">ユーザー</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator className="text-[#7F8C8D]" />
-          <BreadcrumbItem>{`${user.last_name} ${user.first_name}`}</BreadcrumbItem>
+          <BreadcrumbItem>{`${user?.last_name} ${user?.first_name}`}</BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <UserEditForm
-        accessToken={accessToken}
-        role={role}
-        userId={userId}
-        user={user}
-      />
+      <div className="flex flex-col gap-8 w-170 text-2xl font-bold text-[#2C3E50]">
+        ユーザー編集{userLabel}
+        <section className="flex flex-col gap-4">
+          <UserEditForm role={role} user={user} />
+        </section>
+      </div>
     </div>
   );
 }

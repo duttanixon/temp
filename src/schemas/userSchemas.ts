@@ -19,7 +19,6 @@ export const userCreateSchema = z
       .regex(/[a-z]/, "パスワードには小文字を含める必要があります"),
     verify_password: z.string().min(1, "パスワード確認は必須です"),
     role: z.enum(["ADMIN", "ENGINEER", "CUSTOMER_ADMIN"]),
-    status: z.enum(["ACTIVE", "INACTIVE"]),
     customer_id: z.string().optional(),
   })
   .refine((data) => data.password === data.verify_password, {
@@ -28,3 +27,17 @@ export const userCreateSchema = z
   });
 
 export type UserCreateFormValues = z.infer<typeof userCreateSchema>;
+
+export const userEditSchema = z.object({
+  first_name: z.string().min(1, "名は必須です"),
+  last_name: z.string().min(1, "姓は必須です"),
+  email: z
+    .string()
+    .min(1, "メールアドレスは必須です")
+    .email("有効なメールアドレスを入力してください"),
+  role: z.enum(["ADMIN", "ENGINEER", "CUSTOMER_ADMIN"]),
+  customer_id: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
+});
+
+export type UserEditFormValues = z.infer<typeof userEditSchema>;

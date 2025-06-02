@@ -4,9 +4,15 @@ import { cn } from "@/lib/utils";
 import { FC } from "react";
 import { FieldErrors, UseFormRegister } from "react-hook-form";
 import { formVariants } from "@/components/forms/FormField";
+import {
+  UserCreateFormValues,
+  UserEditFormValues,
+} from "@/schemas/userSchemas";
+
+type UserFormFieldId = keyof UserCreateFormValues | keyof UserEditFormValues;
 
 type UserFormFieldProps = {
-  id: string;
+  id: UserFormFieldId;
   label: string;
   type: string;
   register: UseFormRegister<any>;
@@ -45,15 +51,15 @@ export const UserFormField: FC<UserFormFieldProps> = ({
         placeholder={placeholder}
       />
     )}
-    {as === "toggle" && (
+    {/* {as === "toggle" && (
       <div className="flex items-center gap-3">
         <label className="relative inline-block w-12 h-6">
-          <input type="checkbox" id={id} className="opacity-0" />
+          <input type="checkbox" {...register(id)} className="opacity-0" />
           <span className="toggle-track" />
         </label>
         <span className={cn("text-sm")}></span>
       </div>
-    )}
+    )} */}
     {errors && errors[id] && (
       <div className={formVariants({ variant: "error" })}>
         {errors[id]?.message?.toString()}

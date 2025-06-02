@@ -1,9 +1,11 @@
 import { cva } from "class-variance-authority";
 import { UserFormField } from "@/app/(main)/users/_components/UserFormField";
+import { FieldErrors, UseFormRegister } from "react-hook-form";
+import { UserCreateFormValues } from "@/schemas/userSchemas";
 
 type Props = {
-  register: any;
-  errors: any;
+  register: UseFormRegister<UserCreateFormValues>;
+  errors: FieldErrors;
 };
 
 export const formVariants = cva("", {

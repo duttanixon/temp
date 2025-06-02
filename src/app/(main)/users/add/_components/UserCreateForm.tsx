@@ -14,7 +14,7 @@ import { customerService } from "@/services/customerService";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-  role: "ADMIN" | "ENGINEER" | "CUSTOMER_ADMIN" | undefined;
+  role: "ADMIN" | "ENGINEER" | "CUSTOMER_ADMIN";
 };
 export const formVariants = cva("", {
   variants: {
@@ -60,7 +60,6 @@ export default function UserCreateForm({ role }: Props) {
       password: "",
       verify_password: "",
       role: undefined,
-      status: "ACTIVE",
       customer_id: "",
     },
   });
@@ -113,7 +112,7 @@ export default function UserCreateForm({ role }: Props) {
     (errors) => {
       console.error("Form submission error:", errors);
       if (Object.keys(errors).length > 0) {
-        toast.error("基本情報に入力エラーがあります");
+        toast.error("入力エラーがあります");
       }
     }
   );

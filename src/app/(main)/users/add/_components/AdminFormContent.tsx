@@ -1,10 +1,12 @@
 import { cva } from "class-variance-authority";
 import { AccessFormField } from "@/app/(main)/users/_components/AccessFormField";
+import { FieldErrors, UseFormRegister } from "react-hook-form";
+import { UserCreateFormValues } from "@/schemas/userSchemas";
 
 type Props = {
-  register: any;
-  errors: any;
-  customers: any;
+  register: UseFormRegister<UserCreateFormValues>;
+  errors: FieldErrors;
+  customers: { name: string; customer_id: string }[];
 };
 
 export const formVariants = cva("", {

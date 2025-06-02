@@ -1,14 +1,11 @@
 import { cva } from "class-variance-authority";
 import { UserFormField } from "@/app/(main)/users/_components/UserFormField";
+import { FieldErrors, UseFormRegister } from "react-hook-form";
+import { UserEditFormValues } from "@/schemas/userSchemas";
 
 type Props = {
-  userId?: string;
-  firstName: string;
-  setFirstName: (val: string) => void;
-  lastName: string;
-  setLastName: (val: string) => void;
-  email: string;
-  setEmail: (val: string) => void;
+  register: UseFormRegister<UserEditFormValues>;
+  errors: FieldErrors;
 };
 
 export const formVariants = cva("", {
@@ -25,14 +22,7 @@ export const formVariants = cva("", {
   },
 });
 
-export const CommonFormContent = ({
-  firstName,
-  setFirstName,
-  lastName,
-  setLastName,
-  email,
-  setEmail,
-}: Props) => {
+export const CommonFormContent = ({ register, errors }: Props) => {
   return (
     <>
       <div className="flex items-center gap-x-16">
@@ -44,23 +34,21 @@ export const CommonFormContent = ({
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-5">
           <UserFormField
-            id="lastName"
+            id="last_name"
             label="姓"
             type="text"
-            name="lastName"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
+            register={register}
+            errors={errors}
             required
             labelClassName={formVariants({ variant: "label" })}
             inputClassName={formVariants({ variant: "inputName" })}
           />
           <UserFormField
-            id="firstName"
+            id="first_name"
             label="名"
             type="text"
-            name="firstName"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            register={register}
+            errors={errors}
             required
             labelClassName={formVariants({ variant: "label" })}
             inputClassName={formVariants({ variant: "inputName" })}
@@ -70,9 +58,8 @@ export const CommonFormContent = ({
           id="email"
           label="メールアドレス"
           type="email"
-          name="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          register={register}
+          errors={errors}
           required
           labelClassName={formVariants({ variant: "label" })}
           inputClassName={formVariants({ variant: "input" })}

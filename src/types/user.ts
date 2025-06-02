@@ -44,13 +44,18 @@ export type UserCreateData = {
   email: string;
   password: string;
   role: UserRole;
-  status: UserStatus;
   customer_id?: string;
 };
 
 export type UserUpdateData = {
-  description?: string;
-  location?: string;
-  firmware_version?: string;
-  ip_address?: string;
+  // description?: string;
+  // location?: string;
+  // firmware_version?: string;
+  // ip_address?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  role?: UserRole;
+  customer_id?: string;
+  status?: UserStatus;
 };

@@ -1,5 +1,21 @@
 # cc-platform-backend-90012
 
+## Project Number
+<ul data-type="Project Number">
+<li>90012</li>
+</ul>
+
+## Project Type
+<ul data-type="Project Type">
+<li>Cybercore platform backend system</li>
+ </ul>
+
+## Project Summary
+<ul data-type="Project Summary">
+ <li> The backend works as mediator between the platform WEB page and Database, AWS infrastructure, remote devices.
+It maintains all the permission and access to all services offered in Cybercore platform. <br>
+ </li>
+</ul>
 
 ## Tech Stack
 

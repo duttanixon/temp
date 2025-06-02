@@ -1,11 +1,10 @@
-// src/app/(main)/analytics/cityeye/_components/cards/HourlyDistributionCard.tsx
 "use client";
 
 import React from "react";
 import ShadcnAreaChartCard from "@/components/charts/areachart-card";
 import { ProcessedHourlyDataPoint } from "@/types/cityEyeAnalytics";
 
-interface HourlyDistributionCardProps {
+interface HumanHourlyDistributionCardProps {
   title: string;
   hourlyDistributionData: ProcessedHourlyDataPoint[] | null;
   isLoading: boolean;
@@ -13,13 +12,13 @@ interface HourlyDistributionCardProps {
   hasAttemptedFetch: boolean;
 }
 
-export default function HourlyDistributionCard({
+export default function HumanHourlyDistributionCard({
   title,
   hourlyDistributionData,
   isLoading,
   error,
   hasAttemptedFetch,
-}: HourlyDistributionCardProps) {
+}: HumanHourlyDistributionCardProps) {
   const areaChartDataKeys = [
     {
       name: "人数", // "Number of People"

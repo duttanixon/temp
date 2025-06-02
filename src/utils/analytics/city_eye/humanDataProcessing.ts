@@ -33,7 +33,7 @@ const CONFIG = {
 /**
  * Main data processing function that handles all analytics data types
  */
-export function processAnalyticsData(
+export function processHumanAnalyticsData(
   data: FrontendCityEyeAnalyticsPerDeviceResponse | null
 ): ProcessedAnalyticsData | null {
   if (!data) return null;

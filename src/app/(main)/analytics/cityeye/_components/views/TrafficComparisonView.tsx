@@ -1,23 +1,20 @@
 "use client";
 
 import React from "react";
-import TotalPeopleCard from "../cards/TotalPeopleCard";
-import AgeDistributionCard from "../cards/AgeDistributionCard";
-import GenderDistributionCard from "../cards/GenderDistributionCard";
-import HourlyDistributionCard from "../cards/HourlyDistributionCard";
-import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-// import AnalyticsCard from "../cards/AnalyticsCard"; // If other placeholders are needed
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
+import TotalVehiclesCard from "../cards/TotalVehiclesCard";
+import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
+import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
+import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 
-interface ComparisonViewProps {
-  mainPeriodProcessedData: ProcessedAnalyticsData | null;
+interface TrafficComparisonViewProps {
+  mainPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;
 
-  comparisonPeriodProcessedData: ProcessedAnalyticsData | null;
+  comparisonPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
   isLoadingComparison: boolean;
   errorComparison: string | null;
   hasAttemptedFetchComparison: boolean;
@@ -34,7 +31,7 @@ const formatDateRange = (dateRange?: DateRange): string => {
   return `${fromDate} - ${toDate}`;
 };
 
-export default function ComparisonView({
+export default function TrafficComparisonView({
   mainPeriodProcessedData,
   isLoadingMain,
   errorMain,
@@ -45,7 +42,7 @@ export default function ComparisonView({
   hasAttemptedFetchComparison,
   mainPeriodDateRange,
   comparisonPeriodDateRange,
-}: ComparisonViewProps) {
+}: TrafficComparisonViewProps) {
   return (
     <div className="p-1 bg-slate-50 rounded-lg shadow-inner mt-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -57,40 +54,30 @@ export default function ComparisonView({
               ({formatDateRange(mainPeriodDateRange)})
             </span>
           </div>
-          <TotalPeopleCard
-            title="総人数 (分析期間)"
+          <TotalVehiclesCard
+            title="総交通量 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
             totalCountData={
-              mainPeriodProcessedData?.totalPeople?.totalCount ?? null
+              mainPeriodProcessedData?.totalVehicles?.totalCount ?? null
             }
             perDeviceCountsData={
-              mainPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
+              mainPeriodProcessedData?.totalVehicles?.perDeviceCounts ?? []
             }
           />
-          <AgeDistributionCard
-            title="年齢層別分析 (分析期間)"
+          <VehicleTypeDistributionCard
+            title="車種別分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
-            ageDistributionData={
-              mainPeriodProcessedData?.ageDistribution
-                ?.overallAgeDistribution ?? null
+            vehicleTypeDistributionData={
+              mainPeriodProcessedData?.vehicleTypeDistribution
+                ?.overallVehicleTypeDistribution ?? null
             }
           />
-          <GenderDistributionCard
-            title="性別分析 (分析期間)"
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-            genderDistributionData={
-              mainPeriodProcessedData?.genderDistribution
-                ?.overallGenderDistribution ?? null
-            }
-          />
-          <HourlyDistributionCard
-            title="時間別分析 (分析期間)"
+          <TrafficHourlyDistributionCard
+            title="時間別交通量 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
@@ -98,13 +85,6 @@ export default function ComparisonView({
               mainPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
-          />
-          <AgeGenderButterflyChartCard
-            title="年齢層・性別構成 (分析期間)"
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-            data={mainPeriodProcessedData?.ageGenderDistribution ?? null}
           />
         </div>
 
@@ -116,40 +96,30 @@ export default function ComparisonView({
               ({formatDateRange(comparisonPeriodDateRange)})
             </span>
           </div>
-          <TotalPeopleCard
-            title="総人数 (比較期間)"
+          <TotalVehiclesCard
+            title="総交通量 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
             totalCountData={
-              comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
+              comparisonPeriodProcessedData?.totalVehicles?.totalCount ?? null
             }
             perDeviceCountsData={
-              comparisonPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
+              comparisonPeriodProcessedData?.totalVehicles?.perDeviceCounts ?? []
             }
           />
-          <AgeDistributionCard
-            title="年齢層別分析 (比較期間)"
+          <VehicleTypeDistributionCard
+            title="車種別分析 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
-            ageDistributionData={
-              comparisonPeriodProcessedData?.ageDistribution
-                ?.overallAgeDistribution ?? null
+            vehicleTypeDistributionData={
+              comparisonPeriodProcessedData?.vehicleTypeDistribution
+                ?.overallVehicleTypeDistribution ?? null
             }
           />
-          <GenderDistributionCard // Added
-            title="性別分析 (比較期間)"
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
-            genderDistributionData={
-              comparisonPeriodProcessedData?.genderDistribution
-                ?.overallGenderDistribution ?? null
-            }
-          />
-          <HourlyDistributionCard // Added
-            title="時間別分析 (比較期間)"
+          <TrafficHourlyDistributionCard
+            title="時間別交通量 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
@@ -157,13 +127,6 @@ export default function ComparisonView({
               comparisonPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
-          />
-          <AgeGenderButterflyChartCard
-            title="年齢層・性別構成 (比較期間)"
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
-            data={comparisonPeriodProcessedData?.ageGenderDistribution ?? null}
           />
         </div>
       </div>

@@ -1,15 +1,14 @@
-// src/app/(main)/analytics/cityeye/_components/tabs/PeopleFlowTabContent.tsx
 "use client";
 
 import React from "react";
-import OverviewView from "../views/HumanOverviewView";
-import HumanComparisonView from "../views/HumanComparisonView";
+import TrafficOverviewView from "../views/TrafficOverviewView";
+import TrafficComparisonView from "../views/TrafficComparisonView"; // Can reuse if structure is similar
 import {
   ProcessedAnalyticsData,
 } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 
-interface PeopleFlowTabContentProps {
+interface TrafficTabContentProps {
   verticalTab: string;
 
   mainProcessedData: ProcessedAnalyticsData | null;
@@ -17,15 +16,14 @@ interface PeopleFlowTabContentProps {
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;
   mainPeriodDateRange?: DateRange;
-
-  comparisonProcessedData?: ProcessedAnalyticsData | null; // Changed prop name and type
-  isLoadingComparison?: boolean;
+  comparisonProcessedData?: ProcessedAnalyticsData | null;
+  isLoadingComparison?: boolean; 
   errorComparison?: string | null;
   hasAttemptedFetchComparison?: boolean;
   comparisonPeriodDateRange?: DateRange;
 }
 
-export default function PeopleFlowTabContent({
+export default function TrafficFlowTabContent({
   verticalTab,
   mainProcessedData,
   isLoadingMain,
@@ -37,10 +35,11 @@ export default function PeopleFlowTabContent({
   errorComparison,
   hasAttemptedFetchComparison,
   comparisonPeriodDateRange,
-}: PeopleFlowTabContentProps) {
+}: TrafficTabContentProps) {
+  // Placeholder implementation
   if (verticalTab === "overview") {
     return (
-      <OverviewView
+      <TrafficOverviewView
         processedData={mainProcessedData} // Pass the combined processed data
         isLoading={isLoadingMain}
         error={errorMain}
@@ -48,10 +47,9 @@ export default function PeopleFlowTabContent({
       />
     );
   }
-
   if (verticalTab === "comparison") {
     return (
-      <HumanComparisonView
+      <TrafficComparisonView
         mainPeriodProcessedData={mainProcessedData} // Pass combined data
         isLoadingMain={isLoadingMain}
         errorMain={errorMain}
@@ -65,6 +63,5 @@ export default function PeopleFlowTabContent({
       />
     );
   }
-
   return null;
 }

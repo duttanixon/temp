@@ -27,7 +27,6 @@ export default function AgeDistributionCard({
 
   return (
     <GenericAnalyticsCard
-      title={title}
       isLoading={isLoading}
       error={hasAttemptedFetch ? error : null}
       hasData={hasData}

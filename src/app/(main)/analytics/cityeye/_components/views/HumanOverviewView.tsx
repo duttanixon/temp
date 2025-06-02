@@ -4,7 +4,7 @@ import React from "react";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
-import HourlyDistributionCard from "../cards/HourlyDistributionCard";
+import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import AnalyticsCard from "../cards/AnalyticsCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
 import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
@@ -53,7 +53,7 @@ export default function OverviewView({
           processedData?.genderDistribution?.overallGenderDistribution ?? null
         }
       />
-      <HourlyDistributionCard // Added
+      <HumanHourlyDistributionCard // Added
         title="時間別分析"
         isLoading={isLoading}
         error={error}

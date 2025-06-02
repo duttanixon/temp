@@ -29,13 +29,35 @@ export interface FrontendAnalyticsFilters {
   /** Hours of day to include (e.g., ["10:00", "14:00"]) */
   hours?: string[];
   /** Polygon IDs for entry zones */
-  polygon_ids_in?: string[];
+  polygon_ids_in?: string[]; // not used yet
   /** Polygon IDs for exit zones */
-  polygon_ids_out?: string[];
+  polygon_ids_out?: string[]; // not used yet
   /** Gender filters (["male", "female"]) */
   genders?: string[];
   /** Age group filters (["under_18", "18_to_29", ...]) */
   age_groups?: string[];
+}
+
+/**
+ * Traffic-specific API filter parameters
+ */
+export interface FrontendTrafficAnalyticsFilters {
+  /** Array of device UUIDs to include in analysis */
+  device_ids?: string[];
+  /** Analysis start time (ISO datetime string) */
+  start_time?: string;
+  /** Analysis end time (ISO datetime string) */
+  end_time?: string;
+  /** Days of week to include (e.g., ["sunday", "monday"]) */
+  days?: string[];
+  /** Hours of day to include (e.g., ["10:00", "14:00"]) */
+  hours?: string[];
+  /** Polygon IDs for entry zones */
+  polygon_ids_in?: string[]; // not used yet
+  /** Polygon IDs for exit zones */
+  polygon_ids_out?: string[]; // not used yet
+  /** Vehicle types to filter (["large", "normal", "bicycle", "motorcycle"]) */
+  vehicle_types?: string[];
 }
 
 /**
@@ -114,6 +136,17 @@ export interface FrontendAgeGenderDistribution {
 }
 
 /**
+ * Vehicle type distribution breakdown
+ * Maps to backend CityEyeTrafficTable columns
+ */
+export interface FrontendVehicleTypeDistribution {
+  large: number;
+  normal: number;
+  bicycle: number;
+  motorcycle: number;
+}
+
+/**
  * Hourly count data point
  * Used for time-series analysis
  */
@@ -138,6 +171,16 @@ export interface FrontendPerDeviceAnalyticsData {
 }
 
 /**
+ * Traffic analytics data for a single device
+ */
+export interface FrontendPerDeviceTrafficAnalyticsData {
+  total_count?: FrontendTotalCount;
+  vehicle_type_distribution?: FrontendVehicleTypeDistribution;
+  hourly_distribution?: FrontendHourlyCount[];
+  // Future: time_series_data?: TimeSeriesData[];
+}
+
+/**
  * Device information with its analytics data
  * Main unit of response from per-device analytics API
  */
@@ -155,10 +198,32 @@ export interface FrontendDeviceAnalyticsItem {
 }
 
 /**
+ * Device information with traffic analytics data
+ */
+export interface FrontendDeviceTrafficAnalyticsItem {
+  /** Device UUID */
+  device_id: string;
+  /** Human-readable device name */
+  device_name?: string;
+  /** Device physical location description */
+  device_location?: string;
+  /** All traffic analytics data for this device */
+  analytics_data: FrontendPerDeviceTrafficAnalyticsData;
+  /** Error message if analytics failed for this device */
+  error?: string;
+}
+
+/**
  * Complete response type for per-device analytics API
  */
 export type FrontendCityEyeAnalyticsPerDeviceResponse =
   FrontendDeviceAnalyticsItem[];
+
+/**
+ * Complete response type for per-device traffic analytics API
+ */
+export type FrontendCityEyeTrafficAnalyticsPerDeviceResponse =
+  FrontendDeviceTrafficAnalyticsItem[];
 
 // ============================================================================
 // SECTION 3: PROCESSED DATA TYPES (FOR UI COMPONENTS)
@@ -232,6 +297,36 @@ export interface ProcessedGenderDistributionData {
   perDeviceGenderDistribution: Array<
     DeviceCountData & {
       genderDistribution: ProcessedGenderSegment[] | null;
+      error?: string;
+    }
+  >;
+}
+
+// --- Vehicle Type Distribution Processing ---
+
+/**
+ * Processed vehicle type for charts
+ */
+export interface ProcessedVehicleType {
+  /** Display name (e.g., "大型", "普通車") */
+  name: string;
+  /** Count value */
+  value: number;
+  /** Configuration key (e.g., "large", "normal") */
+  configKey: string;
+}
+
+/**
+ * Complete processed vehicle type distribution data
+ * Ready for vehicle type distribution dashboard card
+ */
+export interface ProcessedVehicleTypeDistributionData {
+  /** City-wide vehicle type distribution */
+  overallVehicleTypeDistribution: ProcessedVehicleType[] | null;
+  /** Per-device vehicle type distributions */
+  perDeviceVehicleTypeDistribution: Array<
+    DeviceCountData & {
+      vehicleTypeDistribution: ProcessedVehicleType[] | null;
       error?: string;
     }
   >;
@@ -328,4 +423,23 @@ export interface ProcessedAnalyticsData {
 
   /** Cross-demographic analysis */
   ageGenderDistribution: ProcessedAgeGenderDistributionData | null;
+}
+
+
+/**
+ * Master processed traffic analytics data container
+ * Contains all traffic analytics ready for dashboard consumption
+ */
+export interface ProcessedTrafficAnalyticsData {
+  /** Total vehicle count analysis */
+  totalVehicles: {
+    totalCount: number;
+    perDeviceCounts: DeviceCountData[];
+  } | null;
+
+  /** Vehicle type distribution analysis */
+  vehicleTypeDistribution: ProcessedVehicleTypeDistributionData | null;
+
+  /** Hourly pattern analysis */
+  hourlyDistribution: ProcessedHourlyDistributionData | null;
 }

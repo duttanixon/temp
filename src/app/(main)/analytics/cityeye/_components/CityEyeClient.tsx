@@ -9,11 +9,13 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAnalyticsFilters } from "@/hooks/analytics/city_eye/useAnalyticsFilters";
-import { useAnalyticsData } from "@/hooks/analytics/city_eye/useAnalyticsData";
-import { processAnalyticsData } from "@/utils/analytics/city_eye/dataProcessing";
+import { useHumanAnalyticsData } from "@/hooks/analytics/city_eye/useHumanAnalyticsData";
+import { useTrafficAnalyticsData } from "@/hooks/analytics/city_eye/useTrafficAnalyticsData";
+import { processHumanAnalyticsData } from "@/utils/analytics/city_eye/humanDataProcessing";
+import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
 
 import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
-import TrafficTabContent from "./tabs/TrafficTabContent";
+import TrafficFlowTabContent from "./tabs/TrafficFlowTabContent";
 import MonthlyTabContent from "./tabs/MonthlyTabContent";
 import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
 
@@ -52,40 +54,80 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         include_hourly_distribution: true,
         include_age_gender_distribution: true,
       };
+    } else if (horizontalTab === "traffic") {
+      return {
+        include_total_count: true,
+        include_vehicle_type_distribution: true,
+        include_hourly_distribution: true,
+        include_time_series: false, // Can be enabled when needed
+      };
     }
-    // Add traffic params when implemented
-    // return {};
+    return {};
   }, [horizontalTab]);
 
-  // Fetch data for main and comparison periods
+  // Fetch data for people analytics
   const {
     rawData: mainRawData,
     isLoading: isLoadingMain,
     error: errorMain,
-  } = useAnalyticsData({
-    activeApiFilters: activeFilters.main,
-    queryParams,
+  } = useHumanAnalyticsData({
+    activeApiFilters: horizontalTab === "people" ? activeFilters.main : null,
+    queryParams: horizontalTab === "people" ? queryParams : {},
   });
 
   const {
     rawData: comparisonRawData,
     isLoading: isLoadingComparison,
     error: errorComparison,
-  } = useAnalyticsData({
+  } = useHumanAnalyticsData({
     activeApiFilters:
-      verticalTab === "comparison" ? activeFilters.comparison : null,
-    queryParams: verticalTab === "comparison" ? queryParams : {},
+      horizontalTab === "people" && verticalTab === "comparison" 
+        ? activeFilters.comparison 
+        : null,
+    queryParams: horizontalTab === "people" && verticalTab === "comparison" ? queryParams : {},
   });
 
-  // Process data using consolidated utility
+  // Fetch data for traffic analytics
+  const {
+    rawData: mainTrafficRawData,
+    isLoading: isLoadingTrafficMain,
+    error: errorTrafficMain,
+  } = useTrafficAnalyticsData({
+    activeApiFilters: horizontalTab === "traffic" ? activeFilters.main : null,
+    queryParams: horizontalTab === "traffic" ? queryParams : {},
+  });
+
+  const {
+    rawData: comparisonTrafficRawData,
+    isLoading: isLoadingTrafficComparison,
+    error: errorTrafficComparison,
+  } = useTrafficAnalyticsData({
+    activeApiFilters:
+      horizontalTab === "traffic" && verticalTab === "comparison"
+        ? activeFilters.comparison
+        : null,
+    queryParams: horizontalTab === "traffic" && verticalTab === "comparison" ? queryParams : {},
+  });
+
+  // Process data using appropriate utilities
   const processedMainData = useMemo(
-    () => processAnalyticsData(mainRawData),
+    () => processHumanAnalyticsData(mainRawData),
     [mainRawData]
   );
 
   const processedComparisonData = useMemo(
-    () => processAnalyticsData(comparisonRawData),
+    () => processHumanAnalyticsData(comparisonRawData),
     [comparisonRawData]
+  );
+
+  const processedTrafficMainData = useMemo(
+    () => processTrafficAnalyticsData(mainTrafficRawData),
+    [mainTrafficRawData]
+  );
+
+  const processedTrafficComparisonData = useMemo(
+    () => processTrafficAnalyticsData(comparisonTrafficRawData),
+    [comparisonTrafficRawData]
   );
 
   // Filter application handler
@@ -193,8 +235,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
   // Check if filters are needed for current tab
   const showFilters = horizontalTab === "people" || horizontalTab === "traffic";
-  const isLoading =
-    isLoadingMain || (verticalTab === "comparison" && isLoadingComparison);
+  
+  // Determine loading state based on current tab
+  const isLoading = horizontalTab === "people" 
+    ? (isLoadingMain || (verticalTab === "comparison" && isLoadingComparison))
+    : (isLoadingTrafficMain || (verticalTab === "comparison" && isLoadingTrafficComparison));
 
   // Render appropriate content based on current tab
   const renderContent = () => {
@@ -216,7 +261,21 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           />
         );
       case "traffic":
-        return <TrafficTabContent verticalTab={verticalTab} />;
+        return (
+          <TrafficFlowTabContent
+            verticalTab={verticalTab}
+            mainProcessedData={processedTrafficMainData}
+            isLoadingMain={isLoadingTrafficMain}
+            errorMain={errorTrafficMain}
+            hasAttemptedFetchMain={!!activeFilters.main}
+            mainPeriodDateRange={filters.analysisPeriod}
+            comparisonProcessedData={processedTrafficComparisonData}
+            isLoadingComparison={isLoadingTrafficComparison}
+            errorComparison={errorTrafficComparison}
+            hasAttemptedFetchComparison={!!activeFilters.comparison}
+            comparisonPeriodDateRange={filters.comparisonPeriod}
+          />
+        );
       case "monthly":
         return <MonthlyTabContent />;
       case "quarterly":

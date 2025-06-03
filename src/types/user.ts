@@ -8,12 +8,7 @@ export type UserStatus =
 
 export type DeviceType = "NVIDIA_JETSON" | "RASPBERRY_PI";
 
-export type UserRole =
-  | "ADMIN"
-  | "CUSTOMER_ADMIN"
-  | "CUSTOMER_USER"
-  | "AUDITOR"
-  | "ENGINEER";
+export type UserRole = "ADMIN" | "CUSTOMER_ADMIN" | "ENGINEER";
 
 export interface User {
   user_id: string;

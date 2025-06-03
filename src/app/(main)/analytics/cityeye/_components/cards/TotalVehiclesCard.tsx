@@ -2,9 +2,9 @@ import React from "react";
 import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 import { DeviceCountData } from "@/types/cityEyeAnalytics";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Ensure Card components are imported
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface TotalPeopleCardProps {
+interface TotalVehiclesCardProps {
   title: string;
   totalCountData: number | null;
   perDeviceCountsData: DeviceCountData[];
@@ -13,34 +13,32 @@ interface TotalPeopleCardProps {
   hasAttemptedFetch: boolean;
 }
 
-export default function TotalPeopleCard({
+export default function TotalVehiclesCard({
   title,
   totalCountData,
   perDeviceCountsData,
   isLoading,
   error,
   hasAttemptedFetch,
-}: TotalPeopleCardProps) {
+}: TotalVehiclesCardProps) {
   const hasData = hasAttemptedFetch && totalCountData !== null;
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
       <CardHeader className="pb-2 pt-3 px-4">
-        {/* TotalPeopleCard now renders its own title */}
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow p-3">
-        {/* GenericAnalyticsCard is used here for conditional content rendering */}
         <GenericAnalyticsCard
           isLoading={isLoading}
           error={hasAttemptedFetch ? error : null}
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "人流データがありません。"
-              : "フィルターを適用して総人数データを表示します。"
+              ? "交通量データがありません。"
+              : "フィルターを適用して交通量データを表示します。"
           }
         >
           {/* Actual content to display when data is available */}
@@ -52,7 +50,7 @@ export default function TotalPeopleCard({
               </p>
             </div>
             <p className="text-xs text-muted-foreground mb-1 text-center">
-              デバイス別人数:
+              デバイス別交通量:
             </p>
             <ScrollArea className="flex-grow pr-3">
               {perDeviceCountsData.length > 0 ? (
@@ -81,7 +79,7 @@ export default function TotalPeopleCard({
                       <span
                         className={`font-medium ${device.error ? "text-destructive" : "text-primary"}`}
                       >
-                        {device.error ? "N/A" : device.count.toLocaleString()}
+                        {device.error ? "N/A" : device.count.toLocaleString()} 台
                       </span>
                     </li>
                   ))}

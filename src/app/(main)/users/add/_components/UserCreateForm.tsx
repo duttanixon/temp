@@ -119,7 +119,7 @@ export default function UserCreateForm({ role }: Props) {
 
   return (
     <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-      <div className="w-full h-145 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
+      <div className="w-full pb-4 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
         <div className="flex flex-col gap-4 p-4">
           <div className="flex items-center gap-x-16">
             <h2 className={formVariants({ variant: "userInfo" })}>
@@ -204,7 +204,7 @@ export default function UserCreateForm({ role }: Props) {
                   errors={errors}
                   required
                   inputClassName={formVariants({ variant: "halfInput" })}
-                  placeholder="選択してください(任意)"
+                  placeholder="選択してください"
                   options={[
                     ...customers.map(
                       (customer: { name: string; customer_id: string }) => ({

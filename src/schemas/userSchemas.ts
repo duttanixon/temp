@@ -18,8 +18,10 @@ export const userCreateSchema = z
       .regex(/[A-Z]/, "パスワードには大文字を含める必要があります")
       .regex(/[a-z]/, "パスワードには小文字を含める必要があります"),
     verify_password: z.string().min(1, "パスワード確認は必須です"),
-    role: z.enum(["ADMIN", "ENGINEER", "CUSTOMER_ADMIN"]),
-    customer_id: z.string().optional(),
+    role: z.enum(["ADMIN", "ENGINEER", "CUSTOMER_ADMIN"], {
+      errorMap: () => ({ message: "権限を選択してください" }),
+    }),
+    customer_id: z.string().min(1, "顧客を選択してください"),
   })
   .refine((data) => data.password === data.verify_password, {
     message: "パスワードが一致しません",
@@ -35,8 +37,10 @@ export const userEditSchema = z.object({
     .string()
     .min(1, "メールアドレスは必須です")
     .email("有効なメールアドレスを入力してください"),
-  role: z.enum(["ADMIN", "ENGINEER", "CUSTOMER_ADMIN"]),
-  customer_id: z.string().optional(),
+  role: z.enum(["ADMIN", "ENGINEER", "CUSTOMER_ADMIN"], {
+    errorMap: () => ({ message: "権限を選択してください" }),
+  }),
+  customer_id: z.string().min(1, "顧客を選択してください"),
   status: z.enum(["ACTIVE", "INACTIVE"]),
 });
 

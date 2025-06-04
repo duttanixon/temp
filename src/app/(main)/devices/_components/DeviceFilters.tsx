@@ -1,39 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+type Props = {
+  deviceType: string;
+  setDeviceType: (val: string) => void;
+  status: string;
+  setStatus: (val: string) => void;
+};
 
-export default function DeviceFilters() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [deviceType, setDeviceType] = useState(
-    searchParams.get("deviceType") || ""
-  );
-  const [status, setStatus] = useState(searchParams.get("status") || "");
-
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      const params = new URLSearchParams();
-      if (deviceType) params.set("deviceType", deviceType);
-      if (status) params.set("status", status);
-      router.push(`/devices?${params.toString()}`);
-    }, 300);
-
-    return () => clearTimeout(debounce);
-  }, [deviceType, status, router]);
-
+export default function DeviceFilters({
+  deviceType,
+  setDeviceType,
+  status,
+  setStatus,
+}: Props) {
   return (
     <div className="relative border border-gray-400 rounded-md px-4 py-3 w-2/5 bg-white overflow-hidden">
       <div className="flex items-center gap-6 flex-nowrap">
         <label className="text-gray-800 text-sm whitespace-nowrap">
-          デバイスタイプ:
+          タイプ:
         </label>
         <div className="relative w-40">
           <select
             value={deviceType}
             onChange={(e) => setDeviceType(e.target.value)}
-            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700"
           >
             <option value="">すべて</option>
             <option value="NVIDIA_JETSON">NVIDIA Jetson</option>
@@ -48,7 +38,7 @@ export default function DeviceFilters() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700"
           >
             <option value="">すべて</option>
             <option value="CREATED">作成済み</option>

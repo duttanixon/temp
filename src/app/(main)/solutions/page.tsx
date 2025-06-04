@@ -1,41 +1,61 @@
-// src/app/(main)/solutions/page.tsx
-import { auth } from "@/auth";
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import SolutionTable from "./_components/SolutionTable";
 import SolutionFilters from "./_components/SolutionFilters";
-import { solutionService } from "@/services/solutionService";
+import { Solution } from "@/types/solution";
 import Link from "next/link";
+import axios from "axios";
 
-async function getSolutions(accessToken: string) {
+async function getSolutions(accessToken: string): Promise<Solution[]> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/admin`;
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await axios.get<Solution[]>(apiUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      cache: "no-store", // Disable caching to always get fresh data
     });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch solutions: ${response.status}`);
-    }
-    return await response.json();
+
+    return response.data;
   } catch (error) {
     console.error("Error fetching solutions:", error);
     return [];
   }
 }
 
-export default async function SolutionsPage() {
-  const session = await auth();
-  const accessToken = session?.accessToken ?? "";
-  const solutions = await getSolutions(accessToken);
+export default function SolutionsPage() {
+  const { data: session } = useSession();
+  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [deviceType, setDeviceType] = useState("");
+  const [status, setStatus] = useState("");
   const isAdmin = session?.user?.role === "ADMIN";
+
+  useEffect(() => {
+    if (!session?.accessToken) return;
+
+    getSolutions(session.accessToken).then((result) => {
+      setSolutions(result);
+    });
+  }, [session]);
+
+  const filteredSolutions = useMemo(() => {
+    return solutions.filter((solution) => {
+      const matchesDeviceType =
+        !deviceType || solution.compatibility.includes(deviceType);
+      const matchesStatus = !status || solution.status === status;
+      return matchesDeviceType && matchesStatus;
+    });
+  }, [solutions, deviceType, status]);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#2C3E50]">ソリューション管理</h1>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">
+          ソリューション管理
+        </h1>
         {isAdmin && (
           <Link
             href="/solutions/add"
@@ -46,9 +66,14 @@ export default async function SolutionsPage() {
         )}
       </div>
 
-      <SolutionFilters />
+      <SolutionFilters
+        deviceType={deviceType}
+        setDeviceType={setDeviceType}
+        status={status}
+        setStatus={setStatus}
+      />
 
-      <SolutionTable initialSolutions={solutions} />
+      <SolutionTable initialSolutions={filteredSolutions} />
     </div>
   );
 }

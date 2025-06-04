@@ -51,6 +51,9 @@ export default function UserEditPage() {
       </div>
     );
   }
+  if (!user) {
+    return <h1>指定されたユーザーは存在しません</h1>;
+  }
   const userLabel = `：${user?.last_name} ${user?.first_name}`;
 
   return (
@@ -67,7 +70,7 @@ export default function UserEditPage() {
       <div className="flex flex-col gap-8 w-170 text-2xl font-bold text-[#2C3E50]">
         ユーザー編集{userLabel}
         <section className="flex flex-col gap-4">
-          <UserEditForm role={role} user={user} />
+          {user && <UserEditForm role={role} user={user} />}
         </section>
       </div>
     </div>

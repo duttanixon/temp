@@ -33,6 +33,8 @@ module "lambdas" {
     iot_devices_metrics_log_group_arn = module.metrics.iot_devices_metrics_log_group_arn
     timestream_database_name = module.metrics.timestream_database_name
     timestream_raw_table_name = module.metrics.timestream_raw_table_name
+    platform_backend_user_name = module.common.backend_service_user_name
+
 
 }
 
@@ -62,8 +64,8 @@ module "metrics" {
     raw_table_name                      = "raw_metrics"
     hourly_table_name                   = "hourly_metrics"
     daily_table_name                    = "daily_metrics"
-    raw_memory_retention_hours          = 2 
-    raw_magnetic_retention_days         = 14   # 14 days
+    raw_memory_retention_hours          = 1 
+    raw_magnetic_retention_days         = 3   # 14 days
     hourly_memory_retention_hours       = 2   
     hourly_magnetic_retention_days      = 90   # 90 days
     daily_memory_retention_hours        = 2  

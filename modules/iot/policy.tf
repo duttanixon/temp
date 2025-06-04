@@ -1,9 +1,6 @@
 resource "aws_iot_policy" "device_policy" {
     name = "${var.environment}-DeviceCommunicationPolicy"
 
-    # The policy document defines what actions are allowed or denied
-    # This uses IoT policy variables to dynamically restrict access based on the connecting certificates
-
     policy = jsonencode({
         Version = "2012-10-17"
         Statement = [
@@ -12,10 +9,9 @@ resource "aws_iot_policy" "device_policy" {
                 Action = [
                     "iot:Connect"
                 ]
-            Resource = [
-                # ${iot:ClientId} must match ${iot:CertificateID} for secure device identification
-                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:client/*"
-            ]
+                Resource = [
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:client/*"
+                ]
             },
             {
                 Effect = "Allow"
@@ -23,34 +19,79 @@ resource "aws_iot_policy" "device_policy" {
                     "iot:Publish"
                 ]
                 Resource = [
-                    # Allow devices to publish data based on their certificate ID
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/data/*",
-                    # Allow devices to publish their status
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/status"
                 ]
-
             },
             {
                 Effect = "Allow"
                 Action = [
                     "iot:Subscribe"
-                    ]
+                ]
                 Resource = [
-                # Allow devices to subscribe to commands from the cloud
-                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:ClientId}/commands"
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:ClientId}/commands"
                 ]
             },
             {
-            Effect = "Allow"
-            Action = [
-                "iot:Receive"
+                Effect = "Allow"
+                Action = [
+                    "iot:Receive"
                 ]
-            Resource = [
-                # Allow devices to receive commands from the cloud
-                "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/commands"
+                Resource = [
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/commands"
                 ]
             }
+        ]
+    })
+}
 
+resource "aws_iot_policy" "device_config_shadow_policy" {
+    name = "${var.environment}-DeviceShadowPolicy"
+
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Effect = "Allow"
+                Action = [
+                    "iot:GetThingShadow",
+                    "iot:UpdateThingShadow",
+                    "iot:DeleteThingShadow"
+                ]
+                Resource = [
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:thing/$${iot:ClientId}/shadow/name/XLinesConfigShadow",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:thing/$${iot:ClientId}/shadow"
+                ]
+            },
+            {
+                Effect = "Allow"
+                Action = [
+                    "iot:Publish"
+                ]
+                Resource = [
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/get",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/update",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/delete"
+                ]
+            },
+            {
+                Effect = "Allow"
+                Action = [
+                    "iot:Subscribe"
+                ]
+                Resource = [
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
+                ]
+            },
+            {
+                Effect = "Allow"
+                Action = [
+                    "iot:Receive"
+                ]
+                Resource = [
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
+                ]
+            }
         ]
     })
 }
@@ -109,7 +150,13 @@ resource "aws_iam_policy" "iot_backend_policy" {
           "iot:AttachThingPrincipal",
           "iot:DetachThingPrincipal",
           "iot:AttachPrincipalPolicy",
-          "iot:DetachPrincipalPolicy"
+          "iot:DetachPrincipalPolicy",
+
+          # Shadow permissions
+          "iot:GetThingShadow",
+          "iot:UpdateThingShadow",
+          "iot:DeleteThingShadow",
+          "iot:ListNamedShadowsForThing"
         ]
         Resource = "*"
       }

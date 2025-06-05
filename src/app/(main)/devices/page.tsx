@@ -7,6 +7,7 @@ import DeviceTable from "./_components/DeviceTable";
 import DeviceFilters from "./_components/DeviceFilters";
 import Link from "next/link";
 import axios from "axios";
+import DevicePagination from "../users/_components/Pagination";
 
 async function getDevices(accessToken: string): Promise<Device[]> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices`;
@@ -31,6 +32,8 @@ export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [deviceType, setDeviceType] = useState("");
   const [status, setStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (!session?.accessToken) return;
@@ -41,13 +44,21 @@ export default function DevicesPage() {
   }, [session]);
 
   const filteredDevices = useMemo(() => {
-    return devices.filter((device) => {
+    const filtered = devices.filter((device) => {
       const matchesDeviceType =
         !deviceType || device.device_type === deviceType;
       const matchesStatus = !status || device.status === status;
       return matchesDeviceType && matchesStatus;
     });
+
+    return filtered;
   }, [devices, deviceType, status]);
+
+  const paginatedDevices = useMemo(() => {
+    const start = page * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredDevices.slice(start, end);
+  }, [filteredDevices, page, itemsPerPage]);
 
   return (
     <div className="space-y-6">
@@ -68,7 +79,14 @@ export default function DevicesPage() {
         setStatus={setStatus}
       />
 
-      <DeviceTable initialDevices={filteredDevices} />
+      <DeviceTable initialDevices={paginatedDevices} />
+
+      <DevicePagination
+        page={page}
+        setPage={setPage}
+        totalItems={filteredDevices.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import SolutionFilters from "./_components/SolutionFilters";
 import { Solution } from "@/types/solution";
 import Link from "next/link";
 import axios from "axios";
+import SolutionPagination from "@/app/(main)/users/_components/Pagination";
 
 async function getSolutions(accessToken: string): Promise<Solution[]> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/admin`;
@@ -32,6 +33,8 @@ export default function SolutionsPage() {
   const [deviceType, setDeviceType] = useState("");
   const [status, setStatus] = useState("");
   const isAdmin = session?.user?.role === "ADMIN";
+  const [page, setPage] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (!session?.accessToken) return;
@@ -49,6 +52,12 @@ export default function SolutionsPage() {
       return matchesDeviceType && matchesStatus;
     });
   }, [solutions, deviceType, status]);
+
+  const paginatedSolutions = useMemo(() => {
+    const start = page * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredSolutions.slice(start, end);
+  }, [filteredSolutions, page, itemsPerPage]);
 
   return (
     <div className="space-y-6">
@@ -73,7 +82,14 @@ export default function SolutionsPage() {
         setStatus={setStatus}
       />
 
-      <SolutionTable initialSolutions={filteredSolutions} />
+      <SolutionTable initialSolutions={paginatedSolutions} />
+
+      <SolutionPagination
+        page={page}
+        setPage={setPage}
+        totalItems={filteredSolutions.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 }

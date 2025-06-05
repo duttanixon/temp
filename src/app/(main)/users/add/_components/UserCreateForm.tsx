@@ -38,14 +38,16 @@ export default function UserCreateForm({ role }: Props) {
   >([]);
 
   useEffect(() => {
-    customerService
-      .getCustomers()
-      .then((data) => setCustomers(data))
-      .catch((err) => {
-        console.error("顧客情報の取得に失敗しました", err);
-        toast.error("顧客情報の取得に失敗しました");
-      });
-  }, []);
+    if (role === "ADMIN") {
+      customerService
+        .getCustomers()
+        .then((data) => setCustomers(data))
+        .catch((err) => {
+          console.error("顧客情報の取得に失敗しました", err);
+          toast.error("顧客情報の取得に失敗しました");
+        });
+    }
+  }, [role]);
 
   const {
     register,
@@ -66,6 +68,14 @@ export default function UserCreateForm({ role }: Props) {
 
   const onSubmit = async (data: UserCreateFormValues) => {
     try {
+      if (data.role === "ADMIN") {
+        const confirmation = window.confirm(
+          "システム管理者権限のユーザーを作成します。\nこのまま作成してもよろしいですか？"
+        );
+        if (!confirmation) {
+          return;
+        }
+      }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { verify_password, ...apiData } = data;
       await userService.createUser(apiData);

@@ -39,15 +39,18 @@ export default function UserEditForm({ role, user }: Props) {
     { name: string; customer_id: string }[]
   >([]);
   const userId = user?.user_id;
+
   useEffect(() => {
-    customerService
-      .getCustomers()
-      .then((data) => setCustomers(data))
-      .catch((err) => {
-        console.error("顧客情報の取得に失敗しました", err);
-        toast.error("顧客情報の取得に失敗しました");
-      });
-  }, []);
+    if (role === "ADMIN") {
+      customerService
+        .getCustomers()
+        .then((data) => setCustomers(data))
+        .catch((err) => {
+          console.error("顧客情報の取得に失敗しました", err);
+          toast.error("顧客情報の取得に失敗しました");
+        });
+    }
+  }, [role]);
 
   const {
     register,
@@ -81,11 +84,19 @@ export default function UserEditForm({ role, user }: Props) {
   }, [user?.customer_id, customers, setValue]);
 
   const onSubmit = async (data: UserEditFormValues) => {
-    const sanitizedData = {
-      ...data,
-      customer_id: data.customer_id === "none" ? undefined : data.customer_id,
-    };
     try {
+      if (data.role === "ADMIN") {
+        const confirmation = window.confirm(
+          "システム管理者権限のユーザーを更新します。\nこのまま更新してもよろしいですか？"
+        );
+        if (!confirmation) {
+          return;
+        }
+      }
+      const sanitizedData = {
+        ...data,
+        customer_id: data.customer_id === "none" ? undefined : data.customer_id,
+      };
       await userService.updateUser(userId ?? "", sanitizedData);
       toast.success("更新完了", {
         description: "ユーザー情報が更新されました",

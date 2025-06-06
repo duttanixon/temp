@@ -14,10 +14,10 @@ from core.interfaces.solutions.solution import ISolution
 from core.interfaces.platforms.platform_controller import IPlatformController
 from core.interfaces.io.input_source import IInputSource
 from core.interfaces.io.output_handler import IOutputHandler
-import traceback
 
 
 def main():
+    app = None 
     try:
         config_manager = ConfigManager("configs/city-eye.yaml")
         config = config_manager.load_config()

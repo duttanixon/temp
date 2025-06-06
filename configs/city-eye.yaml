@@ -64,3 +64,5 @@ solution:
         root_ca_path: "AmazonRootCA1.pem"
         solution_type: "city-eye"
         enable_compression: true
+        shadow_enabled: true
+        config_shadow_name: "XLinesConfigShadow"

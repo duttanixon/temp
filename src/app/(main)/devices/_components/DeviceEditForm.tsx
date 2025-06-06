@@ -1,17 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Device } from "@/types/device";
-import { deviceService } from "@/services/deviceService";
+import { FormField } from "@/components/forms/FormField";
 import {
   DeviceUpdateFormValues,
   deviceUpdateSchema,
 } from "@/schemas/deviceSchemas";
+import { deviceService } from "@/services/deviceService";
+import { Device } from "@/types/device";
 import { isDeviceProvisioned } from "@/utils/devices/deviceHelpers";
-import { FormField } from "@/components/forms/FormField";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type DeviceEditFormProps = {
   device: Device;
@@ -81,7 +81,7 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
             type="text"
             register={register}
             errors={errors}
-            isTextarea={true}
+            as="textarea"
             rows={3}
             placeholder="デバイスの説明や用途などを入力してください"
           />
@@ -119,15 +119,13 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
             type="button"
             onClick={() => router.back()}
             className="px-4 py-2 border border-[#BDC3C7] rounded-md text-sm text-[#7F8C8D] hover:bg-[#ECF0F1]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             キャンセル
           </button>
           <button
             type="submit"
             className="px-4 py-2 bg-[#27AE60] text-white rounded-md text-sm hover:bg-[#219955]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             {isSubmitting ? "更新中..." : "保存"}
           </button>
         </div>

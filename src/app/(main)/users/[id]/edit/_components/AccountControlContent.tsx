@@ -1,10 +1,10 @@
 import { cva } from "class-variance-authority";
-import { UserFormField } from "@/app/(main)/users/_components/UserFormField";
+import { ToggleField } from "@/components/forms/FormField";
+import { Control } from "react-hook-form";
+import { UserEditFormValues } from "@/schemas/userSchemas";
 
 type Props = {
-  userId?: string;
-  status: string;
-  setStatus: (val: string) => void;
+  control: Control<UserEditFormValues>;
 };
 
 export const formVariants = cva("", {
@@ -21,7 +21,7 @@ export const formVariants = cva("", {
   },
 });
 
-export const AccountControlContent = ({ status, setStatus }: Props) => {
+export const AccountControlContent = ({ control }: Props) => {
   return (
     <>
       <div className="flex items-center gap-x-16">
@@ -29,19 +29,12 @@ export const AccountControlContent = ({ status, setStatus }: Props) => {
           アカウント制御
         </h2>
       </div>
-      <UserFormField
+      <ToggleField
         id="status"
         label="状態"
-        name="status"
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        labelClassName={formVariants({ variant: "label" })}
-        inputClassName={formVariants({ variant: "inputName" })}
-        as="toggle"
-        options={[
-          { label: "アクティブ", value: "ACTIVE" },
-          { label: "非アクティブ", value: "INACTIVE" },
-        ]}
+        control={control}
+        activeLabel="アクティブ"
+        inactiveLabel="非アクティブ"
       />
     </>
   );

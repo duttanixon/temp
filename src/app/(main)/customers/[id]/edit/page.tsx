@@ -50,8 +50,9 @@ export default function AddCustomerPage() {
     );
   }
   if (!customer) {
-    return <div>customerがありません</div>;
+    return <h1>指定された顧客は存在しません</h1>;
   }
+
   return (
     <div>
       <Breadcrumb className="text-sm text-[#7F8C8D]">

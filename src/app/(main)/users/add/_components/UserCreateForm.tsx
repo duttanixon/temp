@@ -1,23 +1,20 @@
 "use client";
 
-import { cva } from "class-variance-authority";
-import { User } from "@/types/user";
-import { userService, ApiError } from "@/services/userService";
 import { useRouter } from "next/navigation";
-
-import { toast } from "sonner";
-import { UserEditFormValues, userEditSchema } from "@/schemas/userSchemas";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ApiError, userService } from "@/services/userService";
+import { toast } from "sonner";
+import { cva } from "class-variance-authority";
 import { useEffect, useState } from "react";
+import { UserCreateFormValues, userCreateSchema } from "@/schemas/userSchemas";
 import { customerService } from "@/services/customerService";
+import { Button } from "@/components/ui/button";
+import { UserRole } from "@/types/user";
 import { FormField } from "@/components/forms/FormField";
-import { ToggleField } from "@/components/forms/FormField";
 
 type Props = {
-  role: string | undefined;
-  user: User;
+  role: UserRole;
 };
 export const formVariants = cva("", {
   variants: {
@@ -33,12 +30,12 @@ export const formVariants = cva("", {
   },
 });
 
-export default function UserEditForm({ role, user }: Props) {
+export default function UserCreateForm({ role }: Props) {
   const router = useRouter();
+
   const [customers, setCustomers] = useState<
     { name: string; customer_id: string }[]
   >([]);
-  const userId = user?.user_id;
 
   useEffect(() => {
     if (role === "ADMIN") {
@@ -54,61 +51,47 @@ export default function UserEditForm({ role, user }: Props) {
 
   const {
     register,
-    control,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<UserEditFormValues>({
-    resolver: zodResolver(userEditSchema),
+  } = useForm<UserCreateFormValues>({
+    resolver: zodResolver(userCreateSchema),
     defaultValues: {
-      first_name: user.first_name || "",
-      last_name: user.last_name || "",
-      email: user.email || "",
-      role: ["ADMIN", "ENGINEER", "CUSTOMER_ADMIN"].includes(user.role ?? "")
-        ? (user.role as "ADMIN" | "ENGINEER" | "CUSTOMER_ADMIN")
-        : undefined,
-      customer_id: user.customer_id || "",
-      status:
-        user.status === "ACTIVE" || user.status === "INACTIVE"
-          ? user.status
-          : "ACTIVE",
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: "",
+      verify_password: "",
+      role: undefined,
+      customer_id: "",
     },
   });
-  useEffect(() => {
-    if (
-      user?.customer_id &&
-      customers.some((c) => c.customer_id === user?.customer_id)
-    ) {
-      setValue("customer_id", user?.customer_id);
-    }
-  }, [user?.customer_id, customers, setValue]);
 
-  const onSubmit = async (data: UserEditFormValues) => {
+  const onSubmit = async (data: UserCreateFormValues) => {
     try {
       if (data.role === "ADMIN") {
         const confirmation = window.confirm(
-          "システム管理者権限のユーザーを更新します。\nこのまま更新してもよろしいですか？"
+          "システム管理者権限のユーザーを作成します。\nこのまま作成してもよろしいですか？"
         );
         if (!confirmation) {
           return;
         }
       }
-      const sanitizedData = {
-        ...data,
-        customer_id: data.customer_id === "none" ? undefined : data.customer_id,
-      };
-      await userService.updateUser(userId ?? "", sanitizedData);
-      toast.success("更新完了", {
-        description: "ユーザー情報が更新されました",
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { verify_password, ...apiData } = data;
+      await userService.createUser(apiData);
+      toast.success("作成完了", {
+        description: "新しいユーザーが正常に作成されました。",
       });
       router.push("/users");
+      router.refresh();
     } catch (error) {
-      console.error("Error updating user:", error);
+      console.error("Error creating user:", error);
 
       if (error instanceof ApiError) {
         const statusCode = error.statusCode;
 
         let description = "";
+
         switch (statusCode) {
           case 400:
             description = "このメールアドレスは既に登録されています。";
@@ -123,13 +106,10 @@ export default function UserEditForm({ role, user }: Props) {
           default:
             description = "予期しないエラーが発生しました。";
         }
-        toast.error("更新エラー", { description });
+        toast.error("作成エラー", { description });
       } else {
-        toast.error("更新エラー", {
-          description:
-            error instanceof Error
-              ? error.message
-              : "予期しないエラーが発生しました",
+        toast.error("作成エラー", {
+          description: "予期しないエラーが発生しました。",
         });
       }
     }
@@ -140,11 +120,13 @@ export default function UserEditForm({ role, user }: Props) {
       onSubmit(data);
     },
     (errors) => {
+      console.error("Form submission error:", errors);
       if (Object.keys(errors).length > 0) {
         toast.error("入力エラーがあります");
       }
     }
   );
+
   return (
     <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
       <div className="w-full pb-4 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
@@ -153,8 +135,8 @@ export default function UserEditForm({ role, user }: Props) {
             <h2 className={formVariants({ variant: "userInfo" })}>
               ユーザー情報
             </h2>
-            <span className="text-sm font-formal text-[#7F8C8D]">
-              <span className="text-[#FF0000]">*</span>必須項目
+            <span className="text-sm font-normal text-[#7F8C8D]">
+              <span className="text-[#FF0000]">*</span> 必須項目
             </span>
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -182,8 +164,28 @@ export default function UserEditForm({ role, user }: Props) {
             </div>
             <FormField
               id="email"
-              label="メールアドレス"
+              label="連絡先メール"
               type="email"
+              register={register}
+              errors={errors}
+              required
+              as="input"
+              inputClassName={formVariants({ variant: "input" })}
+            />
+            <FormField
+              id="password"
+              label="パスワード"
+              type="password"
+              register={register}
+              errors={errors}
+              required
+              as="input"
+              inputClassName={formVariants({ variant: "input" })}
+            />
+            <FormField
+              id="verify_password"
+              label="パスワード(確認用)"
+              type="password"
               register={register}
               errors={errors}
               required
@@ -198,7 +200,9 @@ export default function UserEditForm({ role, user }: Props) {
               <h2 className={formVariants({ variant: "userInfo" })}>
                 アクセス制御
               </h2>
-              <span className="text-sm font-normal text-[#7F8C8D]"></span>
+              <span className="text-sm font-normal text-[#7F8C8D]">
+                <span className="text-[#FF0000]">*</span> 必須項目
+              </span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="flex gap-5">
@@ -239,20 +243,6 @@ export default function UserEditForm({ role, user }: Props) {
             </div>
           </div>
         )}
-        <div className="flex flex-col gap-4 p-4">
-          <div className="flex items-center gap-x-16">
-            <h2 className={formVariants({ variant: "userInfo" })}>
-              アカウント制御
-            </h2>
-          </div>
-          <ToggleField
-            id="status"
-            label="状態"
-            control={control}
-            activeLabel="アクティブ"
-            inactiveLabel="非アクティブ"
-          />
-        </div>
       </div>
       <div className="flex justify-end w-full gap-2">
         <Button
@@ -268,7 +258,7 @@ export default function UserEditForm({ role, user }: Props) {
           type="submit"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "保存中..." : "保存"}
+          {isSubmitting ? "作成中..." : "作成"}
         </Button>
       </div>
     </form>

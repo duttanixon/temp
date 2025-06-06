@@ -7,6 +7,8 @@ import {
   Control,
   Controller,
   FieldErrors,
+  FieldValues,
+  Path,
   UseFormRegister,
 } from "react-hook-form";
 
@@ -16,6 +18,7 @@ export const formVariants = cva("", {
     variant: {
       label: "text-sm font-normal text-[#7F8C8D]",
       input: "w-full h-[35.56px] border border-[#BDC3C7]",
+      halfInput: "w-1/2 h-[35.56px] border border-[#BDC3C7]",
       error: "text-xs text-red-500 mt-1",
     },
   },
@@ -24,56 +27,85 @@ export const formVariants = cva("", {
   },
 });
 
-type FormFieldProps = {
-  id: string;
+type FormFieldProps<TFieldValues extends FieldValues> = {
+  id: Path<TFieldValues>;
   label: string;
-  type: string;
   // Make it work with react-hook-form
-  register: UseFormRegister<any>;
-  errors?: FieldErrors;
+  register: UseFormRegister<TFieldValues>;
+  errors?: FieldErrors<TFieldValues>;
   required?: boolean;
   placeholder?: string;
+  labelClassName?: string;
+  inputClassName?: string;
   // Optional textarea props
-  isTextarea?: boolean;
+  as?: "input" | "textarea" | "select";
+  type?: string;
   rows?: number;
+  options?: {
+    label: string;
+    value: string | number | readonly string[] | undefined;
+  }[];
 };
 
-export const FormField: FC<FormFieldProps> = ({
+export const FormField = <TFieldValues extends FieldValues>({
   id,
   label,
-  type,
   register,
   errors,
   required = false,
   placeholder = "",
-  isTextarea = false,
+  inputClassName = "",
+  labelClassName = "",
+  as = "input",
+  type = "text",
   rows = 3,
-}) => (
+  options = [],
+}: FormFieldProps<TFieldValues>) => (
   <div className="flex flex-col gap-1">
-    <Label htmlFor={id} className={formVariants({ variant: "label" })}>
+    <Label
+      htmlFor={id}
+      className={cn(formVariants({ variant: "label" }), labelClassName)}
+    >
       {label} {required && <span className="text-[#FF0000]">*</span>}
     </Label>
 
-    {isTextarea ? (
-      <textarea
-        className={
-          formVariants({ variant: "input" }) + " min-h-[80px] py-2 px-3"
-        }
-        id={id}
-        rows={rows}
-        placeholder={placeholder}
-        {...register(id)}
-      />
-    ) : (
+    {as === "input" && (
       <Input
-        className={formVariants({ variant: "input" })}
+        className={cn(formVariants({ variant: "input" }), inputClassName)}
         id={id}
         type={type}
         placeholder={placeholder}
         {...register(id)}
       />
     )}
-
+    {as === "textarea" && (
+      <textarea
+        className={cn(
+          formVariants({ variant: "input" }),
+          inputClassName,
+          "min-h-[80px] py-2 px-3"
+        )}
+        id={id}
+        rows={rows}
+        placeholder={placeholder}
+        {...register(id)}
+      />
+    )}
+    {as === "select" && (
+      <select
+        className={cn(formVariants({ variant: "input" }), inputClassName)}
+        id={id}
+        {...register(id)}
+        required={required}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map((option) => (
+          <option key={option.value?.toString()} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    )}
     {errors && errors[id] && (
       <div className={formVariants({ variant: "error" })}>
         {errors[id]?.message?.toString()}
@@ -121,7 +153,8 @@ export const ToggleField: FC<ToggleFieldProps> = ({
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors hover:cursor-pointer ${
                 isActive ? "bg-[#3498DB]" : "bg-[#BDC3C7]"
               }`}
-              onClick={() => onChange(isActive ? "INACTIVE" : "ACTIVE")}>
+              onClick={() => onChange(isActive ? "INACTIVE" : "ACTIVE")}
+            >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                   isActive ? "translate-x-6" : "translate-x-1"
@@ -132,7 +165,8 @@ export const ToggleField: FC<ToggleFieldProps> = ({
               className={cn(
                 isActive ? "text-[#3498DB]" : "text-[#BDC3C7]",
                 "text-sm"
-              )}>
+              )}
+            >
               {isActive ? activeLabel : inactiveLabel}
             </span>
           </div>

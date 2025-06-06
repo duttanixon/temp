@@ -54,7 +54,7 @@ module "common" {
 }
 
 module "metrics" {
-    source =  "../../modules/metrics"
+    source =  "../../modules/devices"
 
     # Pass ant required variables to the module
     aws_region                          = var.aws_region

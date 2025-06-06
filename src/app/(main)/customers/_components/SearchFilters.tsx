@@ -25,20 +25,18 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
       <div className="flex items-center gap-6 flex-nowrap">
         <label className="text-gray-800 text-sm whitespace-nowrap">状態:</label>
 
-        {/* Select Box */}
         <div className="relative w-40">
           <select
             className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={status}
-            onChange={(e) => setStatus(e.target.value)}>
+            onChange={(e) => setStatus(e.target.value)}
+          >
             <option>すべて</option>
             <option value={"active"}>アクティブ</option>
             <option value={"inactive"}>非アクティブ</option>
           </select>
-          {/* Right-pointing triangle icon */}
         </div>
 
-        {/* Input Box */}
         <div className="relative flex-grow min-w-[150px]">
           <Input
             placeholder="顧客を検索…"
@@ -46,7 +44,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          {/* No entry icon — flipped line */}
+
           <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
             <Search color="gray" />
           </div>

@@ -8,12 +8,7 @@ export type UserStatus =
 
 export type DeviceType = "NVIDIA_JETSON" | "RASPBERRY_PI";
 
-export type UserRole =
-  | "ADMIN"
-  | "CUSTOMER_ADMIN"
-  | "CUSTOMER_USER"
-  | "AUDITOR"
-  | "ENGINEER";
+export type UserRole = "ADMIN" | "CUSTOMER_ADMIN" | "ENGINEER";
 
 export interface User {
   user_id: string;
@@ -31,19 +26,31 @@ export interface User {
 
 // Types for create/update operations
 export type UserCreateData = {
+  // customer_id?: string;
+  // device_type: string;
+  // description?: string;
+  // mac_address?: string;
+  // serial_number?: string;
+  // firmware_version?: string;
+  // location?: string;
+  // ip_address?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+  role: UserRole;
   customer_id?: string;
-  device_type: string;
-  description?: string;
-  mac_address?: string;
-  serial_number?: string;
-  firmware_version?: string;
-  location?: string;
-  ip_address?: string;
 };
 
 export type UserUpdateData = {
-  description?: string;
-  location?: string;
-  firmware_version?: string;
-  ip_address?: string;
+  // description?: string;
+  // location?: string;
+  // firmware_version?: string;
+  // ip_address?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  role?: UserRole;
+  customer_id?: string;
+  status?: UserStatus;
 };

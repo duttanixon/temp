@@ -142,13 +142,13 @@ export default function CustomerOverviewPage() {
       {/* ヘッダー部分 */}
       <div className="flex justify-between items-start">
         <div className="flex flex-col gap-4">
-          <Breadcrumb className="text-sm text-gray-600">
+          <Breadcrumb className="text-sm text-[#7F8C8D]">
             <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/customers">顧客管理</BreadcrumbLink>
+              <BreadcrumbItem className=" hover:underline">
+                <BreadcrumbLink href="/customers">顧客</BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="text-gray-400" />
-              <BreadcrumbItem>顧客概要</BreadcrumbItem>
+              <BreadcrumbSeparator className="text-[#7F8C8D]" />
+              <BreadcrumbItem>{customer?.name}</BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <h1 className="text-2xl font-bold text-gray-900">{customer?.name}</h1>
@@ -162,25 +162,29 @@ export default function CustomerOverviewPage() {
 
       {/* タブセクション */}
       <Tabs defaultValue="overview" className="w-full flex flex-col gap-4">
-        <TabsList className="grid w-fit grid-cols-4 h-full bg-white border border-gray-200 rounded-lg p-0">
+        <TabsList className="grid w-fit h-full grid-cols-4 bg-white border border-[#BDC3C7] overflow-hidden">
           <TabsTrigger
             value="overview"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3">
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
+          >
             概要
           </TabsTrigger>
           <TabsTrigger
             value="device"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3">
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
+          >
             デバイス
           </TabsTrigger>
           <TabsTrigger
             value="user"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3">
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
+          >
             ユーザー
           </TabsTrigger>
           <TabsTrigger
             value="solution"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-3">
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
+          >
             ソリューション
           </TabsTrigger>
         </TabsList>

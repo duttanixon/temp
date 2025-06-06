@@ -1,16 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useForm, Controller, SubmitHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { solutionService } from "@/services/solutionService";
+import { FormField } from "@/components/forms/FormField";
 import {
-  SolutionCreateFormValues,
   SolutionCreateFormInput,
+  SolutionCreateFormValues,
   solutionCreateSchema,
 } from "@/schemas/solutionSchemas";
-import { FormField } from "@/components/forms/FormField";
+import { solutionService } from "@/services/solutionService";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export default function SolutionCreateForm() {
   const router = useRouter();
@@ -89,8 +89,7 @@ export default function SolutionCreateForm() {
           <div className="flex flex-col gap-1 md:col-span-2">
             <label
               htmlFor="compatibility"
-              className="text-sm font-normal text-[#7F8C8D]"
-            >
+              className="text-sm font-normal text-[#7F8C8D]">
               互換デバイスタイプ <span className="text-[#FF0000]">*</span>
             </label>
             <div className="space-y-2">
@@ -134,15 +133,13 @@ export default function SolutionCreateForm() {
           <div className="flex flex-col gap-1 md:col-span-2">
             <label
               htmlFor="status"
-              className="text-sm font-normal text-[#7F8C8D]"
-            >
+              className="text-sm font-normal text-[#7F8C8D]">
               ステータス
             </label>
             <select
               id="status"
               {...register("status")}
-              className="w-full h-[35.56px] border border-[#BDC3C7] rounded"
-            >
+              className="w-full h-[35.56px] border border-[#BDC3C7] rounded">
               <option value="ACTIVE">有効</option>
               <option value="BETA">ベータ版</option>
               <option value="DEPRECATED">非推奨</option>
@@ -156,7 +153,7 @@ export default function SolutionCreateForm() {
               type="text"
               register={register}
               errors={errors}
-              isTextarea={true}
+              as="textarea"
               rows={3}
               placeholder="ソリューションの説明を入力してください"
             />
@@ -168,15 +165,13 @@ export default function SolutionCreateForm() {
             type="button"
             onClick={() => router.push("/solutions")}
             className="px-4 py-2 border border-[#BDC3C7] rounded-md text-sm text-[#7F8C8D] hover:bg-[#ECF0F1]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             キャンセル
           </button>
           <button
             type="submit"
             className="px-4 py-2 bg-[#27AE60] text-white rounded-md text-sm hover:bg-[#219955]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             {isSubmitting ? "作成中..." : "作成"}
           </button>
         </div>

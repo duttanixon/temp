@@ -19,7 +19,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <SessionProvider>
           {children}
-          <Toaster richColors position="bottom-left" />
+          <Toaster richColors position="bottom-right" />
         </SessionProvider>
       </body>
     </html>

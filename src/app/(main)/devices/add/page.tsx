@@ -1,6 +1,13 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import DeviceCreateForm from "../_components/DeviceCreateForm";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 async function getCustomers(accessToken: string) {
   try {
@@ -40,10 +47,16 @@ export default async function AddDevicePage() {
   return (
     <div className="space-y-6">
       <div>
-        <a href="/devices" className="text-sm text-[#7F8C8D] hover:underline">
-          デバイス管理
-        </a>
-        <h1 className="text-2xl font-bold text-[#2C3E50]">新規デバイス追加</h1>
+        <Breadcrumb className="text-sm text-[#7F8C8D]">
+          <BreadcrumbList>
+            <BreadcrumbItem className=" hover:underline">
+              <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#7F8C8D]" />
+            <BreadcrumbItem>デバイスの作成</BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイスの作成</h1>
       </div>
 
       <DeviceCreateForm customers={customers} />

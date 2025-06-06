@@ -1,16 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Solution } from "@/types/solution";
-import { solutionService } from "@/services/solutionService";
+import { FormField } from "@/components/forms/FormField";
 import {
   SolutionUpdateFormValues,
   solutionUpdateSchema,
 } from "@/schemas/solutionSchemas";
-import { FormField } from "@/components/forms/FormField";
+import { solutionService } from "@/services/solutionService";
+import { Solution } from "@/types/solution";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type SolutionEditFormProps = {
   solution: Solution;
@@ -92,8 +92,7 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
           <div className="flex flex-col gap-1 md:col-span-2">
             <label
               htmlFor="compatibility"
-              className="text-sm font-normal text-[#7F8C8D]"
-            >
+              className="text-sm font-normal text-[#7F8C8D]">
               互換デバイスタイプ
             </label>
             <div className="space-y-2">
@@ -111,10 +110,15 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
                             const currentCompatibility = field.value || [];
                             const optionId = type.id;
                             if (e.target.checked) {
-                              field.onChange([...currentCompatibility, optionId]);
+                              field.onChange([
+                                ...currentCompatibility,
+                                optionId,
+                              ]);
                             } else {
                               field.onChange(
-                                currentCompatibility.filter((v: string) => v !== optionId)
+                                currentCompatibility.filter(
+                                  (v: string) => v !== optionId
+                                )
                               );
                             }
                           }}
@@ -133,15 +137,13 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
           <div className="flex flex-col gap-1 md:col-span-2">
             <label
               htmlFor="status"
-              className="text-sm font-normal text-[#7F8C8D]"
-            >
+              className="text-sm font-normal text-[#7F8C8D]">
               ステータス
             </label>
             <select
               id="status"
               {...register("status")}
-              className="w-full h-[35.56px] border border-[#BDC3C7] rounded"
-            >
+              className="w-full h-[35.56px] border border-[#BDC3C7] rounded">
               <option value="ACTIVE">有効</option>
               <option value="BETA">ベータ版</option>
               <option value="DEPRECATED">非推奨</option>
@@ -155,7 +157,7 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
               type="text"
               register={register}
               errors={errors}
-              isTextarea={true}
+              as="textarea"
               rows={3}
               placeholder="ソリューションの説明を入力してください"
             />
@@ -167,15 +169,13 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
             type="button"
             onClick={() => router.back()}
             className="px-4 py-2 border border-[#BDC3C7] rounded-md text-sm text-[#7F8C8D] hover:bg-[#ECF0F1]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             キャンセル
           </button>
           <button
             type="submit"
             className="px-4 py-2 bg-[#27AE60] text-white rounded-md text-sm hover:bg-[#219955]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             {isSubmitting ? "更新中..." : "保存"}
           </button>
         </div>

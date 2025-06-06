@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import SearchFilters from "./_components/SearchFilters";
 import StatsCard from "./_components/StatsCard";
 import UserTable from "./_components/UserTable";
+import { Plus } from "lucide-react";
 
 // ユーザーと顧客名を組み合わせた型
 interface UserWithCustomerName extends User {
@@ -220,17 +221,20 @@ export default function UsersPage() {
   // タイトルの決定
   const getTitle = () => {
     if (session?.user.role === "CUSTOMER_ADMIN" && currentCustomerName) {
-      return `ユーザー管理：${currentCustomerName}`;
+      return `ユーザー：${currentCustomerName}`;
     }
-    return "ユーザー管理";
+    return "ユーザー";
   };
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{getTitle()}</h1>
         <Link href="/users/add">
-          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-12 py-2 rounded cursor-pointer">
-            + ユーザー追加
+          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded cursor-pointer">
+            <div className="flex justify-center items-center gap-1">
+              <Plus size={20} />
+              ユーザーの作成
+            </div>
           </button>
         </Link>
       </div>

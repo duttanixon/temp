@@ -1,18 +1,9 @@
 "use client";
 
+import type { Customer } from "@/types/customer";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-interface Customer {
-  customer_id: string;
-  name: string;
-  contact_email: string;
-  address: string;
-  device: number;
-  status: string;
-  created_at: string;
-}
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -68,32 +59,38 @@ export default function CustomerTable({
           <tr>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               顧客名
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               メールアドレス
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               デバイス
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               状態
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               作成日
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               アクション
             </th>
           </tr>
@@ -106,7 +103,8 @@ export default function CustomerTable({
                 onClick={() =>
                   router.push(`/customers/${customer.customer_id}`)
                 }
-                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white">
+                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
+              >
                 <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
                   <div className="truncate">{customer.name}</div>
                 </td>
@@ -124,7 +122,8 @@ export default function CustomerTable({
                         : customer.status === "INACTIVE"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-gray-100 text-gray-700"
-                    }`}>
+                    }`}
+                  >
                     {customer.status === "ACTIVE"
                       ? "アクティブ"
                       : customer.status === "INACTIVE"
@@ -146,7 +145,8 @@ export default function CustomerTable({
             <tr>
               <td
                 colSpan={6}
-                className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
+              >
                 顧客が見つかりません
               </td>
             </tr>

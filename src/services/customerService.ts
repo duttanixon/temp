@@ -23,9 +23,9 @@ apiClient.interceptors.request.use(async (config) => {
 // カスタムAPIエラークラスを定義
 export class ApiError extends Error {
   statusCode?: number;
-  responseData?: any;
+  responseData?: Customer;
 
-  constructor(message: string, statusCode?: number, responseData?: any) {
+  constructor(message: string, statusCode?: number, responseData?: Customer) {
     super(message);
     this.name = "ApiError";
     this.statusCode = statusCode;
@@ -72,9 +72,11 @@ function cleanEmptyFields<T extends Record<string, any>>(data: T): T {
 
 export const customerService = {
   // Get all customers
-  async getCustomers(): Promise<Customer[]> {
+  async getCustomers(skip = 0, limit = 100): Promise<Customer[]> {
     try {
-      const response = await apiClient.get<Customer[]>("/customers");
+      const response = await apiClient.get<Customer[]>("/customers", {
+        params: { skip, limit },
+      });
       return response.data;
     } catch (error) {
       return handleApiError(error);

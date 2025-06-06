@@ -6,16 +6,8 @@ import CustomerTable from "./_components/CustomerTable";
 import SearchFilters from "./_components/SearchFilters";
 import StatsCard from "./_components/StatsCard";
 import CustomerPagination from "@/app/(main)/customers/_components/Pagination";
-
-interface Customer {
-  customer_id: string;
-  name: string;
-  contact_email: string;
-  device: number;
-  address: string;
-  status: string;
-  created_at: string;
-}
+import type { Customer } from "@/types/customer";
+import { customerService } from "@/services/customerService";
 
 export default function CustomersPage() {
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
@@ -32,19 +24,7 @@ export default function CustomersPage() {
 
       try {
         while (hasMore) {
-          const res = await axios.get(
-            `/api/customers?skip=${skip}&limit=${limit}`
-          );
-          const data = res.data;
-
-          const list: Customer[] = Array.isArray(data)
-            ? data
-            : Array.isArray(data.customers)
-              ? data.customers
-              : Array.isArray(data.data)
-                ? data.data
-                : [];
-
+          const list = await customerService.getCustomers(skip, limit);
           allData = [...allData, ...list];
 
           if (list.length < limit) {

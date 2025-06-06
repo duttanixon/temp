@@ -4,6 +4,13 @@ import DeviceActions from "../_components/DeviceActions";
 import DeviceInfoCard from "../_components/DeviceInfoCard";
 import DeviceDetailsTabs from "../_components/DeviceDetailsTabs";
 import type { Metadata, ResolvingMetadata } from "next";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 async function getDevice(deviceId: string, accessToken: string) {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices/${deviceId}`;
@@ -60,7 +67,15 @@ export default async function DeviceDetailsPage(
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <a href="/devices" className="text-sm text-[#7F8C8D] hover:underline"> デバイス管理 </a>
+          <Breadcrumb className="text-sm text-[#7F8C8D]">
+            <BreadcrumbList>
+              <BreadcrumbItem className=" hover:underline">
+                <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="text-[#7F8C8D]" />
+              <BreadcrumbItem>{device.name}</BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <h2 className="text-lg font-bold text-[#2C3E50]">
             {device.name}
             {device.isOnline ? (

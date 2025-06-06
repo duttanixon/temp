@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useSession } from "next-auth/react";
-import SolutionTable from "./_components/SolutionTable";
-import SolutionFilters from "./_components/SolutionFilters";
-import { Solution } from "@/types/solution";
-import Link from "next/link";
-import axios from "axios";
 import SolutionPagination from "@/app/(main)/users/_components/Pagination";
+import { Solution } from "@/types/solution";
+import axios from "axios";
+import { Plus } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import SolutionFilters from "./_components/SolutionFilters";
+import SolutionTable from "./_components/SolutionTable";
 
 async function getSolutions(accessToken: string): Promise<Solution[]> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/admin`;
@@ -62,15 +63,15 @@ export default function SolutionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#2C3E50]">
-          ソリューション管理
-        </h1>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">ソリューション</h1>
         {isAdmin && (
-          <Link
-            href="/solutions/add"
-            className="bg-[#27AE60] text-white py-2 px-4 rounded hover:bg-[#219955] transition-colors"
-          >
-            新規ソリューション追加
+          <Link href="/solutions/add">
+            <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded cursor-pointer">
+              <div className="flex justify-center items-center gap-1">
+                <Plus size={20} />
+                ソリューションの作成
+              </div>
+            </button>
           </Link>
         )}
       </div>

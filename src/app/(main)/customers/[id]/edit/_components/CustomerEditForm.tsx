@@ -8,9 +8,11 @@ import { ApiError, customerService } from "@/services/customerService";
 import { Customer } from "@/types/customer";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cva } from "class-variance-authority";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const formVariants = cva("", {
   variants: {
@@ -31,7 +33,7 @@ const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
       default:
         "bg-[#27AE60] text-[#FFFFFF] hover:bg-[#219653] active:bg-[#27AE60] focus:bg-[#219653]",
       cancel:
-        "bg-[#BDC3C7] text-[#7F8C8D] hover:bg-[#A6ACAF] active:bg-[#BDC3C7] focus:bg-[#A6ACAF]",
+        "bg-white border border-[#BDC3C7] text-[#7F8C8D] hover:bg-[#ECF0F1] active:bg-[#BDC3C7]",
     },
   },
   defaultVariants: {
@@ -39,13 +41,8 @@ const buttonVariants = cva("w-35 text-sm font-normal cursor-pointer", {
   },
 });
 
-export default function CustomerEditForm({
-  activeTab,
-  customer,
-}: {
-  activeTab: string;
-  customer: Customer;
-}) {
+export default function CustomerEditForm({ customer }: { customer: Customer }) {
+  const [activeTab, setActiveTab] = useState("basic");
   const router = useRouter();
 
   const {
@@ -124,75 +121,98 @@ export default function CustomerEditForm({
   );
 
   return (
-    <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-      <div className="w-230 h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
-        {activeTab === "basic" ? (
-          <div className="flex flex-col gap-4 p-4">
-            <div className="flex items-center gap-x-16">
-              <h2 className={formVariants({ variant: "companyInfo" })}>
-                会社情報
-              </h2>
-              <span className="text-sm font-normal text-[#7F8C8D]">
-                <span className="text-[#FF0000]">*</span> 必須項目
-              </span>
+    <>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-fit h-full grid-cols-2 bg-white border border-[#BDC3C7] overflow-hidden">
+          <TabsTrigger
+            value="basic"
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
+          >
+            基本情報
+          </TabsTrigger>
+          <TabsTrigger
+            value="subscription"
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
+          >
+            サブスクリプション
+          </TabsTrigger>
+        </TabsList>
+        <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
+          <TabsContent value="basic">
+            <div className="w-full h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
+              <div className="flex flex-col gap-4 p-4">
+                <div className="flex items-center gap-x-16">
+                  <h2 className={formVariants({ variant: "companyInfo" })}>
+                    会社情報
+                  </h2>
+                  <span className="text-sm font-normal text-[#7F8C8D]">
+                    <span className="text-[#FF0000]">*</span> 必須項目
+                  </span>
+                </div>
+                <div className="w-96 flex flex-col gap-2">
+                  <FormField
+                    id="name"
+                    label="会社名"
+                    type="text"
+                    register={register}
+                    errors={errors}
+                    required
+                  />
+                  <FormField
+                    id="contact_email"
+                    label="メールアドレス"
+                    type="contact_email"
+                    register={register}
+                    errors={errors}
+                    required
+                  />
+                  <FormField
+                    id="address"
+                    label="住所"
+                    type="text"
+                    register={register}
+                    errors={errors}
+                  />
+                  {/* 専用のトグルスイッチコンポーネント */}
+                  <ToggleField
+                    id="status"
+                    label="アカウント状態"
+                    control={control}
+                    activeLabel="アクティブ"
+                    inactiveLabel="非アクティブ"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="w-96 flex flex-col gap-2">
-              <FormField
-                id="name"
-                label="会社名"
-                type="text"
-                register={register}
-                errors={errors}
-                required
-              />
-              <FormField
-                id="contact_email"
-                label="メールアドレス"
-                type="contact_email"
-                register={register}
-                errors={errors}
-                required
-              />
-              <FormField
-                id="address"
-                label="住所"
-                type="text"
-                register={register}
-                errors={errors}
-              />
-              {/* 専用のトグルスイッチコンポーネント */}
-              <ToggleField
-                id="status"
-                label="アカウント状態"
-                control={control}
-                activeLabel="アクティブ"
-                inactiveLabel="非アクティブ"
-              />
+          </TabsContent>
+          <TabsContent value="subscription">
+            <div className="w-full h-106 border border-[#BDC3C7] rounded bg-[#FFFFFF]">
+              <div className="flex flex-col gap-4 p-4">
+                <h2 className={formVariants({ variant: "companyInfo" })}>
+                  サブスクリプション
+                </h2>
+              </div>
             </div>
+          </TabsContent>
+          <div className="flex justify-end w-full gap-2">
+            <Button
+              className={buttonVariants({ variant: "cancel" })}
+              type="button"
+              onClick={() => router.push(`/customers/${customerId}`)}
+              disabled={isSubmitting}
+            >
+              キャンセル
+            </Button>
+            <Button
+              className={buttonVariants({ variant: "default" })}
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "保存中..." : "保存"}
+            </Button>
           </div>
-        ) : (
-          <div className="p-4">
-            <span className="text-lg font-bold text-[#2C3E50]">
-              サブスクリプション
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <Button
-          className={buttonVariants({ variant: "default" })}
-          type="submit"
-          disabled={isSubmitting}>
-          {isSubmitting ? "保存中..." : "保存"}
-        </Button>
-        <Button
-          className={buttonVariants({ variant: "cancel" })}
-          type="button"
-          onClick={() => router.push(`/customers/${customerId}`)}
-          disabled={isSubmitting}>
-          キャンセル
-        </Button>
-      </div>
-    </form>
+        </form>
+      </Tabs>
+    </>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useSession } from "next-auth/react";
 import { Device } from "@/types/device";
-import DeviceTable from "./_components/DeviceTable";
-import DeviceFilters from "./_components/DeviceFilters";
-import Link from "next/link";
 import axios from "axios";
+import { Plus } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import DevicePagination from "../users/_components/Pagination";
+import DeviceFilters from "./_components/DeviceFilters";
+import DeviceTable from "./_components/DeviceTable";
 
 async function getDevices(accessToken: string): Promise<Device[]> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices`;
@@ -63,12 +64,14 @@ export default function DevicesPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス管理</h1>
-        <Link
-          href="/devices/add"
-          className="bg-[#27AE60] text-white py-2 px-4 rounded hover:bg-[#219955] transition-colors"
-        >
-          新規デバイス追加
+        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス</h1>
+        <Link href="/devices/add">
+          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded cursor-pointer">
+            <div className="flex justify-center items-center gap-1">
+              <Plus size={20} />
+              デバイスの作成
+            </div>
+          </button>
         </Link>
       </div>
 

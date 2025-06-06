@@ -1,5 +1,3 @@
-import { formatDistanceToNow } from "date-fns";
-import { ja } from "date-fns/locale";
 import { Solution } from "@/types/solution";
 import SolutionStatusBadge from "../../_components/SolutionStatusBadge";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
@@ -12,7 +10,9 @@ export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
   return (
     <div className="bg-white rounded-lg border border-[#BDC3C7] overflow-hidden">
       <div className="px-6 py-4 border-b border-[#BDC3C7]">
-        <h2 className="text-lg font-semibold text-[#2C3E50]">ソリューション情報</h2>
+        <h2 className="text-lg font-semibold text-[#2C3E50]">
+          ソリューション情報
+        </h2>
       </div>
 
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -50,9 +50,7 @@ export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-[#7F8C8D]">
-              説明
-            </h3>
+            <h3 className="text-sm font-medium text-[#7F8C8D]">説明</h3>
             <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm text-[#2C3E50]">
               {solution.description || "説明はありません。"}
             </div>
@@ -100,7 +98,9 @@ export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
 
           {solution.configuration_template && (
             <div>
-              <h3 className="text-sm font-medium text-[#7F8C8D]">設定テンプレート</h3>
+              <h3 className="text-sm font-medium text-[#7F8C8D]">
+                設定テンプレート
+              </h3>
               <div className="mt-2 p-3 bg-gray-50 rounded-md overflow-auto max-h-48">
                 <pre className="text-xs text-[#2C3E50]">
                   {JSON.stringify(solution.configuration_template, null, 2)}

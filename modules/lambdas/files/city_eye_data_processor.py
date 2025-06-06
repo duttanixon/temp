@@ -170,6 +170,13 @@ def process_human_data(session, human_data, device_id, solution_id, device_solut
             )
             session.add(new_record)
 
+VEHICLE_TYPE_MAPPING = {
+    'car': 'normal',
+    'truck': 'large', 
+    'bus': 'large',
+    'motorcycle': 'motorcycle',
+    'bicycle': 'bicycle'
+}
 
 def process_traffic_data(session, traffic_data, device_id, solution_id, device_solution_id):
     """
@@ -215,9 +222,12 @@ def process_traffic_data(session, traffic_data, device_id, solution_id, device_s
                 'motorcycle': 0
             }
 
+        # Map the incoming vehicle type to database category
+        db_vehicle_category = VEHICLE_TYPE_MAPPING.get(vehicle_type.lower())
+
         # Increment the counter for this vehicle type
-        if vehicle_type in traffic_data_by_group[group_key]:
-            traffic_data_by_group[group_key][vehicle_type] += 1
+        if db_vehicle_category:
+            traffic_data_by_group[group_key][db_vehicle_category] += 1
         else:
             print(f"Warning: Unrecognized vehicle type: {vehicle_type}")
 
@@ -335,7 +345,8 @@ def lambda_handler(event, context):
                 raise ValueError(f"Device not found with certificate ID: {device_id_str}")
             
             # Find the solution in the database
-            solution_name = event.get('solution_name')
+            # solution_name = event.get('solution_name')
+            solution_name = "City Eye"
             solution = session.query(Solution).filter(Solution.name == solution_name).first()
 
             if not solution:

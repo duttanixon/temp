@@ -55,3 +55,8 @@ variable "timestream_daily_table_name" {
   type        = string
   default     = ""
 }
+
+variable "platform_backend_user_name" {
+    description = "Backend user name"
+    type = string
+}

@@ -90,57 +90,57 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_metrics_processor" 
 }
 
 
-# CloudWatch Events Rule for hourly aggregation
-resource "aws_cloudwatch_event_rule" "hourly_aggregation_rule" {
-  name                = "${var.environment}-hourly-metrics-aggregation"
-  description         = "Trigger hourly metrics aggregation"
-  schedule_expression = "cron(0 * * * ? *)"  # Run at the top of every hour
+# # CloudWatch Events Rule for hourly aggregation
+# resource "aws_cloudwatch_event_rule" "hourly_aggregation_rule" {
+#   name                = "${var.environment}-hourly-metrics-aggregation"
+#   description         = "Trigger hourly metrics aggregation"
+#   schedule_expression = "cron(0 * * * ? *)"  # Run at the top of every hour
   
-  tags = {
-    Environment = var.environment
-  }
-}
+#   tags = {
+#     Environment = var.environment
+#   }
+# }
 
-# CloudWatch Events Target for hourly aggregation
-resource "aws_cloudwatch_event_target" "hourly_aggregation_target" {
-  rule      = aws_cloudwatch_event_rule.hourly_aggregation_rule.name
-  target_id = "HourlyMetricsAggregator"
-  arn       = aws_lambda_function.hourly_metrics_aggregator.arn
-}
+# # CloudWatch Events Target for hourly aggregation
+# resource "aws_cloudwatch_event_target" "hourly_aggregation_target" {
+#   rule      = aws_cloudwatch_event_rule.hourly_aggregation_rule.name
+#   target_id = "HourlyMetricsAggregator"
+#   arn       = aws_lambda_function.hourly_metrics_aggregator.arn
+# }
 
-# Lambda permission for CloudWatch Events to invoke hourly aggregator
-resource "aws_lambda_permission" "allow_events_to_invoke_hourly_aggregator" {
-  statement_id  = "AllowExecutionFromCloudWatchEvents"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.hourly_metrics_aggregator.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.hourly_aggregation_rule.arn
-}
+# # Lambda permission for CloudWatch Events to invoke hourly aggregator
+# resource "aws_lambda_permission" "allow_events_to_invoke_hourly_aggregator" {
+#   statement_id  = "AllowExecutionFromCloudWatchEvents"
+#   action        = "lambda:InvokeFunction"
+#   function_name = aws_lambda_function.hourly_metrics_aggregator.function_name
+#   principal     = "events.amazonaws.com"
+#   source_arn    = aws_cloudwatch_event_rule.hourly_aggregation_rule.arn
+# }
 
-# CloudWatch Events Rule for daily aggregation
-resource "aws_cloudwatch_event_rule" "daily_aggregation_rule" {
-  name                = "${var.environment}-daily-metrics-aggregation"
-  description         = "Trigger daily metrics aggregation"
-  schedule_expression = "cron(0 0 * * ? *)"  # Run at midnight UTC every day
+# # CloudWatch Events Rule for daily aggregation
+# resource "aws_cloudwatch_event_rule" "daily_aggregation_rule" {
+#   name                = "${var.environment}-daily-metrics-aggregation"
+#   description         = "Trigger daily metrics aggregation"
+#   schedule_expression = "cron(0 0 * * ? *)"  # Run at midnight UTC every day
   
-  tags = {
-    Environment = var.environment
-  }
-}
+#   tags = {
+#     Environment = var.environment
+#   }
+# }
 
-# CloudWatch Events Target for daily aggregation
-resource "aws_cloudwatch_event_target" "daily_aggregation_target" {
-  rule      = aws_cloudwatch_event_rule.daily_aggregation_rule.name
-  target_id = "DailyMetricsAggregator"
-  arn       = aws_lambda_function.daily_metrics_aggregator.arn
-}
+# # CloudWatch Events Target for daily aggregation
+# resource "aws_cloudwatch_event_target" "daily_aggregation_target" {
+#   rule      = aws_cloudwatch_event_rule.daily_aggregation_rule.name
+#   target_id = "DailyMetricsAggregator"
+#   arn       = aws_lambda_function.daily_metrics_aggregator.arn
+# }
 
-# Lambda permission for CloudWatch Events to invoke daily aggregator
-resource "aws_lambda_permission" "allow_events_to_invoke_daily_aggregator" {
-  statement_id  = "AllowExecutionFromCloudWatchEvents"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.daily_metrics_aggregator.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.daily_aggregation_rule.arn
-}
+# # Lambda permission for CloudWatch Events to invoke daily aggregator
+# resource "aws_lambda_permission" "allow_events_to_invoke_daily_aggregator" {
+#   statement_id  = "AllowExecutionFromCloudWatchEvents"
+#   action        = "lambda:InvokeFunction"
+#   function_name = aws_lambda_function.daily_metrics_aggregator.function_name
+#   principal     = "events.amazonaws.com"
+#   source_arn    = aws_cloudwatch_event_rule.daily_aggregation_rule.arn
+# }
 

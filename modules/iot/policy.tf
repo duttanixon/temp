@@ -20,7 +20,8 @@ resource "aws_iot_policy" "device_policy" {
                 ]
                 Resource = [
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/data/*",
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/status"
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/status",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
                 ]
             },
             {
@@ -29,7 +30,8 @@ resource "aws_iot_policy" "device_policy" {
                     "iot:Subscribe"
                 ]
                 Resource = [
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:ClientId}/commands"
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:ClientId}/commands",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
                 ]
             },
             {
@@ -38,19 +40,10 @@ resource "aws_iot_policy" "device_policy" {
                     "iot:Receive"
                 ]
                 Resource = [
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/commands"
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/commands",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
                 ]
-            }
-        ]
-    })
-}
-
-resource "aws_iot_policy" "device_config_shadow_policy" {
-    name = "${var.environment}-DeviceShadowPolicy"
-
-    policy = jsonencode({
-        Version = "2012-10-17"
-        Statement = [
+            },
             {
                 Effect = "Allow"
                 Action = [
@@ -63,35 +56,6 @@ resource "aws_iot_policy" "device_config_shadow_policy" {
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:thing/$${iot:ClientId}/shadow"
                 ]
             },
-            {
-                Effect = "Allow"
-                Action = [
-                    "iot:Publish"
-                ]
-                Resource = [
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/get",
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/update",
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/delete"
-                ]
-            },
-            {
-                Effect = "Allow"
-                Action = [
-                    "iot:Subscribe"
-                ]
-                Resource = [
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
-                ]
-            },
-            {
-                Effect = "Allow"
-                Action = [
-                    "iot:Receive"
-                ]
-                Resource = [
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
-                ]
-            }
         ]
     })
 }

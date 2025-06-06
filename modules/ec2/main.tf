@@ -36,7 +36,7 @@ resource "aws_key_pair" "app_server_key" {
 
 # EC2 Spot Instance
 resource "aws_instance" "app_server" {
-    ami                     = data.aws_ami.ubuntu_24_04.id
+    ami                     = "ami-026c39f4021df9abe"
     instance_type           = var.instance_type
     key_name                = aws_key_pair.app_server_key.key_name
     vpc_security_group_ids  = [aws_security_group.app_server_sg.id]

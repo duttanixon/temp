@@ -53,12 +53,15 @@ export default function CustomerTable({
 
   const getSortedCustomers = () => {
     return [...customers].sort((a, b) => {
-      let aVal: string | number = a[sortKey];
-      let bVal: string | number = b[sortKey];
+      let aVal: string | number;
+      let bVal: string | number;
 
       if (sortKey === "device") {
         aVal = deviceCounts[a.customer_id] ?? 0;
         bVal = deviceCounts[b.customer_id] ?? 0;
+      } else {
+        aVal = a[sortKey as Exclude<SortKey, "device">];
+        bVal = b[sortKey as Exclude<SortKey, "device">];
       }
 
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;

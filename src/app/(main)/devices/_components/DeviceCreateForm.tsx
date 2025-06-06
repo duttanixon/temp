@@ -1,15 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { deviceService } from "@/services/deviceService";
+import { FormField } from "@/components/forms/FormField";
 import {
   DeviceCreateFormValues,
   deviceCreateSchema,
 } from "@/schemas/deviceSchemas";
-import { FormField } from "@/components/forms/FormField";
+import { deviceService } from "@/services/deviceService";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type Customer = {
   customer_id: string;
@@ -79,15 +79,13 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
           <div>
             <label
               htmlFor="customer_id"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
+              className="block text-sm font-medium text-[#7F8C8D]">
               顧客
             </label>
             <select
               id="customer_id"
               {...register("customer_id")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-            >
+              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2">
               <option value="">顧客を選択（任意）</option>
               {customers.map((customer) => (
                 <option key={customer.customer_id} value={customer.customer_id}>
@@ -109,15 +107,13 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
           <div>
             <label
               htmlFor="device_type"
-              className="block text-sm font-medium text-[#7F8C8D]"
-            >
+              className="block text-sm font-medium text-[#7F8C8D]">
               デバイスタイプ <span className="text-red-500">*</span>
             </label>
             <select
               id="device_type"
               {...register("device_type")}
-              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2"
-            >
+              className="mt-1 block w-full rounded-md border border-[#BDC3C7] px-3 py-2">
               <option value="">選択してください</option>
               <option value="NVIDIA_JETSON">NVIDIA Jetson</option>
               <option value="RASPBERRY_PI">Raspberry Pi</option>
@@ -180,7 +176,7 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
               type="text"
               register={register}
               errors={errors}
-              isTextarea={true}
+              as="textarea"
               rows={3}
               placeholder="デバイスの説明や用途を入力してください"
             />
@@ -192,15 +188,13 @@ export default function DeviceCreateForm({ customers }: DeviceCreateFormProps) {
             type="button"
             onClick={() => router.push("/devices")}
             className="px-4 py-2 border border-[#BDC3C7] rounded-md text-sm text-[#7F8C8D] hover:bg-[#ECF0F1]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             キャンセル
           </button>
           <button
             type="submit"
             className="px-4 py-2 bg-[#27AE60] text-white rounded-md text-sm hover:bg-[#219955]"
-            disabled={isSubmitting}
-          >
+            disabled={isSubmitting}>
             {isSubmitting ? "作成中..." : "作成"}
           </button>
         </div>

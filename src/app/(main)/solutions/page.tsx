@@ -1,37 +1,64 @@
-// src/app/(main)/solutions/page.tsx
-import { auth } from "@/auth";
-import SolutionTable from "./_components/SolutionTable";
-import SolutionFilters from "./_components/SolutionFilters";
-import { solutionService } from "@/services/solutionService";
-import Link from "next/link";
-import { Plus } from "lucide-react";
+"use client";
 
-async function getSolutions(accessToken: string) {
+import SolutionPagination from "@/app/(main)/users/_components/Pagination";
+import { Solution } from "@/types/solution";
+import axios from "axios";
+import { Plus } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import SolutionFilters from "./_components/SolutionFilters";
+import SolutionTable from "./_components/SolutionTable";
+
+async function getSolutions(accessToken: string): Promise<Solution[]> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/admin`;
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await axios.get<Solution[]>(apiUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      cache: "no-store", // Disable caching to always get fresh data
     });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch solutions: ${response.status}`);
-    }
-    return await response.json();
+
+    return response.data;
   } catch (error) {
     console.error("Error fetching solutions:", error);
     return [];
   }
 }
 
-export default async function SolutionsPage() {
-  const session = await auth();
-  const accessToken = session?.accessToken ?? "";
-  const solutions = await getSolutions(accessToken);
+export default function SolutionsPage() {
+  const { data: session } = useSession();
+  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [deviceType, setDeviceType] = useState("");
+  const [status, setStatus] = useState("");
   const isAdmin = session?.user?.role === "ADMIN";
+  const [page, setPage] = useState(0);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    if (!session?.accessToken) return;
+
+    getSolutions(session.accessToken).then((result) => {
+      setSolutions(result);
+    });
+  }, [session]);
+
+  const filteredSolutions = useMemo(() => {
+    return solutions.filter((solution) => {
+      const matchesDeviceType =
+        !deviceType || solution.compatibility.includes(deviceType);
+      const matchesStatus = !status || solution.status === status;
+      return matchesDeviceType && matchesStatus;
+    });
+  }, [solutions, deviceType, status]);
+
+  const paginatedSolutions = useMemo(() => {
+    const start = page * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredSolutions.slice(start, end);
+  }, [filteredSolutions, page, itemsPerPage]);
 
   return (
     <div className="space-y-6">
@@ -49,9 +76,21 @@ export default async function SolutionsPage() {
         )}
       </div>
 
-      <SolutionFilters />
+      <SolutionFilters
+        deviceType={deviceType}
+        setDeviceType={setDeviceType}
+        status={status}
+        setStatus={setStatus}
+      />
 
-      <SolutionTable initialSolutions={solutions} />
+      <SolutionTable initialSolutions={paginatedSolutions} />
+
+      <SolutionPagination
+        page={page}
+        setPage={setPage}
+        totalItems={filteredSolutions.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 }

@@ -1,35 +1,65 @@
-import Link from "next/link";
-import { auth } from "@/auth";
-import DeviceTable from "./_components/DeviceTable";
-import DeviceFilters from "./_components/DeviceFilters";
-import { Plus } from "lucide-react";
+"use client";
 
-async function getDevices(accessToken: string) {
+import { Device } from "@/types/device";
+import axios from "axios";
+import { Plus } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import DevicePagination from "../users/_components/Pagination";
+import DeviceFilters from "./_components/DeviceFilters";
+import DeviceTable from "./_components/DeviceTable";
+
+async function getDevices(accessToken: string): Promise<Device[]> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices`;
 
   try {
-    const reponse = await fetch(apiUrl, {
+    const response = await axios.get<Device[]>(apiUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      cache: "no-store", // Diable caching to always get fresh data
     });
-    if (!reponse.ok) {
-      throw new Error(`Failed to fetch devices: ${reponse.status}`);
-    }
-    return await reponse.json();
+
+    return response.data;
   } catch (error) {
     console.error("Error fetching devices:", error);
     return [];
   }
 }
 
-export default async function DevicesPage() {
-  const session = await auth();
+export default function DevicesPage() {
+  const { data: session } = useSession();
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [deviceType, setDeviceType] = useState("");
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const itemsPerPage = 10;
 
-  const accessToken = session?.accessToken ?? "";
-  const devices = await getDevices(accessToken);
+  useEffect(() => {
+    if (!session?.accessToken) return;
+
+    getDevices(session.accessToken).then((result) => {
+      setDevices(result);
+    });
+  }, [session]);
+
+  const filteredDevices = useMemo(() => {
+    const filtered = devices.filter((device) => {
+      const matchesDeviceType =
+        !deviceType || device.device_type === deviceType;
+      const matchesStatus = !status || device.status === status;
+      return matchesDeviceType && matchesStatus;
+    });
+
+    return filtered;
+  }, [devices, deviceType, status]);
+
+  const paginatedDevices = useMemo(() => {
+    const start = page * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredDevices.slice(start, end);
+  }, [filteredDevices, page, itemsPerPage]);
 
   return (
     <div className="space-y-6">
@@ -45,9 +75,21 @@ export default async function DevicesPage() {
         </Link>
       </div>
 
-      <DeviceFilters />
+      <DeviceFilters
+        deviceType={deviceType}
+        setDeviceType={setDeviceType}
+        status={status}
+        setStatus={setStatus}
+      />
 
-      <DeviceTable initialDevices={devices} />
+      <DeviceTable initialDevices={paginatedDevices} />
+
+      <DevicePagination
+        page={page}
+        setPage={setPage}
+        totalItems={filteredDevices.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 }

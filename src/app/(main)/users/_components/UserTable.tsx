@@ -1,7 +1,9 @@
 "use client";
 
 import { User } from "@/types/user";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 // ユーザーと顧客名を組み合わせた型
 interface UserWithCustomerName extends User {
@@ -16,31 +18,72 @@ interface UserTableProps {
   userRole: string;
 }
 
+type SortKey =
+  | "last_name"
+  | "email"
+  | "status"
+  | "last_login"
+  | "role"
+  | "customer_name";
+type SortOrder = "asc" | "desc";
+
 export default function UserTable({
   users,
   page,
-  // setPage,
+  setPage,
   itemsPerPage,
   userRole,
 }: UserTableProps) {
+  const [sortKey, setSortKey] = useState<SortKey>("last_name");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const router = useRouter();
 
-  const paginated = [...users]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-    .slice(page * itemsPerPage, (page + 1) * itemsPerPage);
-  // const totalItems = users.length;
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
+    }
+    setPage(0);
+  };
+
+  const getSortedUsers = () => {
+    return [...users].sort((a, b) => {
+      const aVal = a[sortKey] ?? "";
+      const bVal = b[sortKey] ?? "";
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortOrder === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+      return 0;
+    });
+  };
+
+  const paginated = getSortedUsers().slice(
+    page * itemsPerPage,
+    (page + 1) * itemsPerPage
+  );
+
+  const sortIcon = (key: SortKey) => {
+    return sortKey === key ? (
+      sortOrder === "asc" ? (
+        <ChevronUp size={16} />
+      ) : (
+        <ChevronDown size={16} />
+      )
+    ) : null;
+  };
 
   if (userRole === "CUSTOMER_ADMIN") {
     return (
       <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
-        <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
+        <table className="w-full min-w-[800px]">
           <colgroup>
             <col className="w-1/5" />
             <col className="w-1/5" />
-            <col className="w-1/5" /> 
+            <col className="w-1/5" />
             <col className="w-1/5" />
             <col className="w-1/5" />
           </colgroup>
@@ -48,38 +91,56 @@ export default function UserTable({
             <tr>
               <th
                 scope="col"
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-                ユーザー名
+                onClick={() => handleSort("last_name")}
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+              >
+                <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                  <span>ユーザー名</span>
+                  {sortIcon("last_name")}
+                </div>
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-                メールアドレス
+                onClick={() => handleSort("email")}
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+              >
+                <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                  <span>メールアドレス</span>
+                  {sortIcon("email")}
+                </div>
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-                状態
+                onClick={() => handleSort("status")}
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+              >
+                <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                  <span>状態</span>
+                  {sortIcon("status")}
+                </div>
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+              >
                 最終ログイン
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+              >
                 アクション
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white">
+          <tbody className="bg-white divide-y divide-[#BDC3C7]">
             {paginated.length > 0 ? (
               paginated.map((user) => (
                 <tr
                   key={user.user_id}
                   onClick={() => router.push(`/users/${user.user_id}/edit`)}
-                  className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white">
+                  className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
+                >
                   {/* ユーザー名 */}
                   <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
                     <div className="truncate">
@@ -100,7 +161,8 @@ export default function UserTable({
                           : user.status === "INACTIVE"
                             ? "bg-yellow-100 text-yellow-700"
                             : "bg-gray-100 text-gray-700"
-                      }`}>
+                      }`}
+                    >
                       {user.status === "ACTIVE"
                         ? "アクティブ"
                         : user.status === "INACTIVE"
@@ -122,7 +184,8 @@ export default function UserTable({
               <tr>
                 <td
                   colSpan={5}
-                  className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                  className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
+                >
                   ユーザーが見つかりません
                 </td>
               </tr>
@@ -148,37 +211,64 @@ export default function UserTable({
           <tr>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              ユーザー名
+              onClick={() => handleSort("last_name")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                <span>ユーザー名</span>
+                {sortIcon("last_name")}
+              </div>
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              メールアドレス
+              onClick={() => handleSort("email")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                <span>メールアドレス</span>
+                {sortIcon("email")}
+              </div>
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              権限
+              onClick={() => handleSort("role")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                <span>権限</span>
+                {sortIcon("role")}
+              </div>
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              顧客名
+              onClick={() => handleSort("customer_name")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                <span>顧客名</span>
+                {sortIcon("customer_name")}
+              </div>
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              状態
+              onClick={() => handleSort("status")}
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+            >
+              <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                <span>状態</span>
+                {sortIcon("status")}
+              </div>
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               最終ログイン
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+            >
               アクション
             </th>
           </tr>
@@ -189,7 +279,8 @@ export default function UserTable({
               <tr
                 key={user.user_id}
                 onClick={() => router.push(`/users/${user.user_id}/edit`)}
-                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white">
+                className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
+              >
                 {/* ユーザー名 */}
                 <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
                   <div className="truncate">
@@ -209,7 +300,8 @@ export default function UserTable({
                         : user.role === "CUSTOMER_ADMIN"
                           ? "bg-[#E6D9EC] text-[#8E44AD]"
                           : "bg-[#E5E8E8] text-[#7F8C8D]"
-                    }`}>
+                    }`}
+                  >
                     {user.role === "ADMIN"
                       ? "システム管理者"
                       : user.role === "CUSTOMER_ADMIN"
@@ -230,7 +322,8 @@ export default function UserTable({
                         : user.status === "INACTIVE"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-gray-100 text-gray-700"
-                    }`}>
+                    }`}
+                  >
                     {user.status === "ACTIVE"
                       ? "アクティブ"
                       : user.status === "INACTIVE"
@@ -252,7 +345,8 @@ export default function UserTable({
             <tr>
               <td
                 colSpan={7}
-                className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
+              >
                 ユーザーが見つかりません
               </td>
             </tr>

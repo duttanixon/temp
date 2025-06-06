@@ -1,7 +1,6 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, List
 import numpy as np
 import os
-import signal
 import threading
 from queue import Queue, Empty, Full
 from .bytetrack.mc_bytetrack import MultiClassByteTrack
@@ -16,10 +15,12 @@ from core.implementation.common.event_formatter import EventFormatter
 from core.implementation.common.sqlite_manager import DatabaseManager
 from core.implementation.common.logger import get_logger
 from core.implementation.common.exceptions import SolutionError, ProcessingError, TrackingError, DatabaseError
+from core.implementation.cloud.config_shadow_manager import ShadowConfigManager
 from core.implementation.common.error_handler import handle_errors
 
 from .models import HumanResult, TrafficResult, TestResult
 from .sync_handler import BatchSyncHandler
+import traceback
 
 logger = get_logger()
 
@@ -43,6 +44,8 @@ class CityEyeSolution(ISolution):
             output_handler: Output handler for processed frames and results
         """
 
+        self.component_name = self.__class__.__name__ # For logger
+
         # Initialize couters and lock
         self.counters = {"tracking": 0, "attr": 0, "frame_number": 0}
         self.counters_lock = threading.Lock()
@@ -56,31 +59,21 @@ class CityEyeSolution(ISolution):
         self.test_mode = config.get("test", False)
         self.test_counts = {
             "total_human": 0,
-            "male_less_than_18": 0,
-            "female_less_than_18": 0,
-            "male_18_to_29": 0,
-            "female_18_to_29": 0,
-            "male_30_to_49": 0,
-            "female_30_to_49": 0,
-            "male_50_to_64": 0,
-            "female_50_to_64": 0,
-            "male_65_plus": 0,
-            "female_65_plus": 0,
-            # Add traffic test counters
-            "total_vehicles": 0,
-            "bicycle": 0,
-            "car": 0,
-            "motorcycle": 0, 
-            "bus": 0,
-            "truck": 0
+            "male_less_than_18": 0, "female_less_than_18": 0,
+            "male_18_to_29": 0, "female_18_to_29": 0,
+            "male_30_to_49": 0, "female_30_to_49": 0,
+            "male_50_to_64": 0, "female_50_to_64": 0,
+            "male_65_plus": 0, "female_65_plus": 0,
+            "total_vehicles": 0, "bicycle": 0, "car": 0,
+            "motorcycle": 0, "bus": 0, "truck": 0
         }
 
         # Initialize input source
         try:
-            logger.debug("Initaizing input source", component="CityEyeSolution")
+            logger.debug("Initaizing input source", component=self.component_name)
             self.input_source.initialize()
         except Exception as e:
-            logger.error("Failed to initialize input source", exception=e, component="CityEyeSolution")
+            logger.error("Failed to initialize input source", exception=e, component=self.component_name)
 
         # Get the video file name if in test mode
         if self.test_mode:
@@ -90,12 +83,12 @@ class CityEyeSolution(ISolution):
                 logger.info(
                     "Running in test mode",
                     context={"video_file": self.video_file_name},
-                    component="CityEyeSolution"
+                    component=self.component_name
                 )
             else:
                 logger.warning(
                     "Test mode is enabled but input is not a file",
-                    component="CityEyeSolution"
+                    component=self.component_name
                 )
                 self.video_file_name = "live_feed"            
 
@@ -104,10 +97,10 @@ class CityEyeSolution(ISolution):
 
         # Initialize streaming
         try:
-            logger.debug("Initializing output streaming", component="CityEyeSolution")
+            logger.debug("Initializing output streaming", component=self.component_name)
             self.output_handler.initialize_streaming()
         except Exception as e:
-            logger.error("Failed to initialize output streaming", exception=e, component="CityEyeSolution")
+            logger.error("Failed to initialize output streaming", exception=e, component=self.component_name)
             # Continue even if streaming fails - it's not critical
         
 
@@ -120,7 +113,7 @@ class CityEyeSolution(ISolution):
 
         # initialize bytetrack
         try:
-            logger.debug("Initalizing ByteTrack", component="CityEyeSolution")
+            logger.debug("Initalizing ByteTrack", component=self.component_name)
             self.tracker = MultiClassByteTrack(
                 fps=config["tracking"]["track_fps"],
                 track_thresh=config["tracking"]["track_thresh"],
@@ -129,7 +122,7 @@ class CityEyeSolution(ISolution):
                 min_box_area=config["tracking"]["min_box_area"],
             )
         except Exception as e:
-            logger.error("Failed to initialize tracker", exception=e, component="CityEyeSolution")
+            logger.error("Failed to initialize tracker", exception=e, component=self.component_name)
             raise TrackingError(
                 "Failed to initialize ByteTrack",
                 code="TRACKING_INIT_FAILED",
@@ -139,7 +132,7 @@ class CityEyeSolution(ISolution):
         
         # Initialize counting
         try:
-            logger.debug("Initializing Counter", component="CityEyeSolution")
+            logger.debug("Initializing Counter", component=self.component_name)
             self.xlines_cfg_path = config["xlines_cfg_path"]
             self.count_output_path = config["count_output_path"]
             self.class_names_dict = {
@@ -149,7 +142,7 @@ class CityEyeSolution(ISolution):
             }
             self.count = Counter(self.xlines_cfg_path,self.count_output_path,self.class_names_dict)
         except Exception as e:
-            logger.error("Failed to initialize counter", exception=e, component="CityEyeSolution")
+            logger.error("Failed to initialize counter", exception=e, component=self.component_name)
             raise SolutionError(
                 "Failed to initialize Counter",
                 code="COUNTER_INIT_FAILED",
@@ -159,11 +152,11 @@ class CityEyeSolution(ISolution):
 
         # Initialize database
         try:
-            logger.debug("Initializing database", component="CityEyeSolution")
+            logger.debug("Initializing database", component=self.component_name)
             basedb_dir = config["sqlite_base_dir"]
             self.db_manager = DatabaseManager(basedb_dir)
         except Exception as e:
-            logger.error("Failed to initialize database", exception=e, component="CityEyeSolution")
+            logger.error("Failed to initialize database", exception=e, component=self.component_name)
             raise DatabaseError(
                 "Failed to initialize database",
                 code="DB_INIT_FAILED",
@@ -174,13 +167,30 @@ class CityEyeSolution(ISolution):
         # initialize cloud communication
         self.cloud_connector = None
         self.sync_handler = None
+        self.config_shadow_manager = None 
 
         if "cloud" in config:
             try:
-                logger.debug("Initializing cloud connection", component="CityEyeSolution")
+                logger.debug("Initializing cloud connection", component=self.component_name)
                 self.cloud_connector = CloudConnectorFactory.create(config["cloud"])
                 if self.cloud_connector:
                     self.cloud_connector.initialize(config["cloud"], self.__class__.__name__)
+                
+                    config_shadow_enabled = config["cloud"].get("shadow_enabled", True) 
+                    if config_shadow_enabled:
+                        try:
+                            logger.info("Initializing config shadow manager", component=self.component_name)
+                            self.config_shadow_manager = ShadowConfigManager(
+                                cloud_connector = self.cloud_connector,
+                                config_update_callback = self.update_xlines_config,
+                                xlines_config_path = self.xlines_cfg_path
+                            )
+                        
+                        except Exception as e:
+                            print(traceback.format_exc())
+                            logger.error("Failed to initialize config shadow manager", component=self.component_name) 
+                    else:
+                        logger.info("AWS IoT Shadow not enabled or cloud connector not available.", component=self.component_name)
         
                     # Initialize sync handler
                     self.sync_handler = BatchSyncHandler(
@@ -189,11 +199,11 @@ class CityEyeSolution(ISolution):
                         config
                     )
                     self.sync_handler.start()
-                    logger.info("Cloud synchonization enabled", component="CityEyeSolution")
+                    logger.info("Cloud synchonization enabled", component=self.component_name)
                 else:
-                    logger.warning("Cloud connector creation failed or disabled", component="CityEyeSolution")
+                    logger.warning("Cloud connector creation failed or disabled", component=self.component_name)
             except Exception as e:
-                logger.error("Failed to initialize cloud connection", exception=e, component="CityEyeSolution")
+                logger.error("Failed to initialize cloud connection", exception=e, component=self.component_name)
                 # Continue even if cloud connection fails - it's not critical
 
         # Initialize the processing queue and thread
@@ -202,11 +212,31 @@ class CityEyeSolution(ISolution):
         self.worker_thread.daemon = True
         self.worker_thread.start()
 
-        logger.info("CityEyeSolution initialized successfully", component="CityEyeSolution")
+        logger.info("CityEyeSolution initialized successfully", component=self.component_name)
 
-        # # Setup signal handler for clean shutdown
-        # signal.signal(signal.SIGINT, self._handle_shutdown)
-        # signal.signal(signal.SIGTERM, self._handle_shutdown)
+    def update_xlines_config(self, new_config_path:str, new_config_content: Any)-> bool:
+        """
+        Reloads the xlines configuration for the Counter
+        This method is intended to be called by the ShadowConfigManager.
+
+        Args:
+            new_config_path:  Path to the (now updated) xlines config file.
+            new_config_content: The actual new configuration content (dict, list, or JSON string).
+
+        Returns:
+            bool: True if successful, False otherwise.            
+        """
+        logger.info(f"Attempting to update xlines configuration using: {new_config_path}", component=self.component_name)
+        try:
+            self.count.reload_config(new_config_path, new_config_content)
+            self.xlines_cfg_path = new_config_path
+            logger.info("Successfully reloaded xlines configuration in Counter.", component=self.component_name)
+            return True
+
+        except Exception as e:
+            logger.error("Failed to update and reload xlines configuration in Counter", exception=e, component=self.component_name)
+            return False
+
 
     def on_frame_processed(self, frame_data: Dict[str, Any]) -> None:
         """Queue the frame data for processing.
@@ -220,7 +250,9 @@ class CityEyeSolution(ISolution):
             self.frame_queue.put(frame_data, block=False)
         except Full:
             # Log that we're dropping a frame
-            logger.warning("Processing queue full, dropping frame", component="CityEyeSolution")
+            logger.warning("Processing queue full, dropping frame", component=self.component_name)
+        except Exception as e:
+            logger.error("Error putting frame data into queue", exception=e, component=self.component_name)
 
             
     def _process_frames_worker(self) -> None:
@@ -240,20 +272,20 @@ class CityEyeSolution(ISolution):
                     self.count.count_by_frame(self.counters["frame_number"],frame_data["object_meta"])
                     frame_result = self.count.finish_tracklets(self.counters["frame_number"])
                 except Exception as e:
-                    logger.error("Error in counting module", exception=e, component="CityEyeSolution")
+                    logger.error("Error in counting module", exception=e, component=self.component_name)
                     frame_result = None
                 
                 # Handle output
                 try:
                     self.output_handler.handle_result(frame_data)
                 except Exception as e:
-                    logger.error("Error in output handler", exception=e, component="CityEyeSolution")
+                    logger.error("Error in output handler", exception=e, component=self.component_name)
 
                 if frame_result:
                     try:
                         self._write_to_database(frame_result)
                     except Exception as e:
-                        logger.error("Error writing to database", exception=e, component="CityEyeSolution")                        
+                        logger.error("Error writing to database", exception=e, component=self.component_name)                        
                 
                 # Mark task as done
                 self.frame_queue.task_done()
@@ -265,8 +297,10 @@ class CityEyeSolution(ISolution):
                 logger.error(
                     "Error in processing thread",
                     exception=e,
-                    component="CityEyeSolution"
+                    component=self.component_name
                 )
+                # Avoid continuous fast logging of the same error if queue remains problematic
+                time.sleep(0.1)
                 
     def _write_to_database(self, frame_result:Optional[Tuple[str,str]]) -> None:
         """
@@ -282,15 +316,20 @@ class CityEyeSolution(ISolution):
             return
 
         route, class_ = frame_result
-        from_polygon, to_polygon = route.split("->")
+        try:
+            from_polygon_str, to_polygon_str = route.split("->")
+        except ValueError:
+            logger.warning(f"Invalid route format: {route}. Expected 'from->to'. Skipping database write.", component=self.component_name)
+            return
 
         with self.db_manager.session_scope() as session:
             try:
+                item = None
                 if "vehicle" in class_:
                     vehicle_type = class_.split("::")[-1]
                     item = TrafficResult(
-                        from_polygon=from_polygon,
-                        to_polygon=to_polygon,
+                        from_polygon=from_polygon_str,
+                        to_polygon=to_polygon_str,
                         vehicletype= vehicle_type
                     )
                     # Update test counts if in test mode for traffic
@@ -302,8 +341,8 @@ class CityEyeSolution(ISolution):
                 else:
                     gender, age = class_.split("::")
                     item = HumanResult(
-                        from_polygon=from_polygon,
-                        to_polygon=to_polygon,
+                        from_polygon=from_polygon_str,
+                        to_polygon=to_polygon_str,
                         gender=gender,
                         age=age
                     )
@@ -313,14 +352,15 @@ class CityEyeSolution(ISolution):
                         # Update the combined gender-age counter
                         gender_age_key = f"{gender}_{age}"
                         self.test_counts[gender_age_key] += 1
-    
-                session.add(item)
+
+                if item:
+                    session.add(item)
             except Exception as e:
                 logger.error(
                     "Database error",
                     exception=e,
                     context={"route": route, "class": class_},
-                    component="CityEyeSolution"
+                    component=self.component_name
                 )
                 session.rollback()
 
@@ -340,7 +380,7 @@ class CityEyeSolution(ISolution):
                     "total_human": self.test_counts["total_human"],
                     "total_vehicles": self.test_counts["total_vehicles"]
                 },
-                component="CityEyeSolution"
+                component=self.component_name
             )            
 
             with self.db_manager.session_scope() as session:
@@ -403,14 +443,14 @@ class CityEyeSolution(ISolution):
                     "total_human": self.test_counts["total_human"],
                     "total_vehicles": self.test_counts["total_vehicles"]
                 },
-                component="CityEyeSolution"
+                component=self.component_name
             )   
                 
         except Exception as e:
             logger.error(
                 "Error updating test results",
                 exception=e,
-                component="CityEyeSolution"
+                component=self.component_name
             )
 
 
@@ -424,7 +464,7 @@ class CityEyeSolution(ISolution):
         try:
             self.counters[counter_type] += 1
         except Exception:
-            logger.error(f"Counter type {counter_type} not recognized", component="CityEyeSolution")
+            logger.error(f"Counter type {counter_type} not recognized", component=self.component_name)
 
     def get_frame_count(self, counter_type:str) -> Optional[int]:
         """
@@ -440,14 +480,14 @@ class CityEyeSolution(ISolution):
         try:
             return self.counters[counter_type]
         except Exception:
-            logger.error(f"Counter type {counter_type} not recognized", component="CityEyeSolution")
+            logger.error(f"Counter type {counter_type} not recognized", component=self.component_name)
             return None
 
     def cleanup(self) -> None:
         """Cleanup resources when the solution is shutting down.
         Stops background threads and closes connections.
         """
-        logger.info("Cleaning up CityEyeSolution resources", component="CityEyeSolution")
+        logger.info("Cleaning up CityEyeSolution resources", component=self.component_name)
 
         # If in test mode, update test results in database
         if self.test_mode:
@@ -461,21 +501,21 @@ class CityEyeSolution(ISolution):
             try:
                 self.worker_thread.join(timeout=2)
             except Exception as e:
-                logger.warning(f"Failed to join worker thread: {str(e)}", component="CItyEyeSolution")
+                logger.warning(f"Failed to join worker thread: {str(e)}", component=self.component_name)
 
         # Clean up cloud connector
         if hasattr(self, "cloud_connector") and self.cloud_connector:
             try:
                self.cloud_connector.cleanup()
             except Exception as e:
-                logger.warning(f"Failed to clean up cloud connector: {str(e)}", component="CityEyeSolution")                
+                logger.warning(f"Failed to clean up cloud connector: {str(e)}", component=self.component_name)                
 
         # Stop sync handler
         if hasattr(self, "sync_handler") and self.sync_handler:
             try:
                 self.sync_handler.stop()
             except Exception as e:
-                logger.warning(f"Failed to stop sync handler: {str(e)}", component="CityEyeSolution")
+                logger.warning(f"Failed to stop sync handler: {str(e)}", component=self.component_name)
         
-        logger.info("CityEyeSolution cleanup completed", component="CityEyeSolution")
+        logger.info("CityEyeSolution cleanup completed", component=self.component_name)
         

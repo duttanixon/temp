@@ -15,10 +15,8 @@ class Counter(BaseCounter):
     """Counter for tracking objects moving through defined zones"""
     
     def __init__(self, xlines_cfg_path:str, count_output_path:str, class_names_dict: Dict[str, List[str]], buffer_size:int = 30, frame_thresh:int=5, cos_thresh:int = 0.0, handle:bool=True):
-
         """
         Initialize the counter with configuration.
-        
         Args:
             xlines_cfg_path: Path to crossing lines configuration
             count_output_path: Path to output counted results
@@ -31,24 +29,43 @@ class Counter(BaseCounter):
         Raises:
             SolutionError: If initialization fails
         """
+        self.component_name = self.__class__.__name__ # For logger
 
+        # Store initial parameters that might be needed for re-initialization
+        self.initial_xlines_cfg_path = xlines_cfg_path
+        self.initial_count_output_path = count_output_path
+        self.initial_class_names_dict = class_names_dict.copy() # Make a copy
+        self.initial_buffer_size = buffer_size
+        self.initial_frame_thresh = frame_thresh
+        self.initial_cos_thresh = cos_thresh
+        self.initial_handle = handle
+        
+        # Call the main initialization logic
+        self._initialize_counter_logic(
+            xlines_cfg_path,
+            count_output_path,
+            class_names_dict,
+            buffer_size,
+            frame_thresh,
+            cos_thresh,
+            handle
+        )
+
+
+    def _initialize_counter_logic(self, xlines_cfg_path:str, count_output_path:str, class_names_dict: Dict[str, List[str]], buffer_size:int = 30, frame_thresh:int=5, cos_thresh:float = 0.0, handle:bool=True):
+        """Helper to contain the core initialization logic, callable on initial load and on reload."""
         try:
             # Normalize class names dict to lowercase keys for consistency
             self.class_names_dict = {k.lower(): v for k, v in class_names_dict.items()}
-
             
             # Validate required classes
             required_classes = ['age', 'gender', 'vehicle']
-            for required_class in required_classes:
-                if required_class not in self.class_names_dict:
-                    error_msg = f"Missing required class in class_names_dict: {required_class}"
-                    logger.error(error_msg, component="Counter")
-                    raise SolutionError(
-                        error_msg,
-                        code="MISSING_REQUIRED_CLASS",
-                        details={"required_classes": required_classes, "provided_classes": list(self.class_names_dict.keys())},
-                        source="Counter"
-                    )
+            for req_class in required_classes:
+                if req_class not in self.class_names_dict:
+                    error_msg = f"Missing required class in class_names_dict: {req_class}"
+                    logger.error(error_msg, component=self.component_name)
+                    raise SolutionError(error_msg, code="MISSING_REQUIRED_CLASS", details={"required_classes": required_classes, "provided_classes": list(self.class_names_dict.keys())}, source=self.component_name)
+
             
             # Store class names for different detection types
             self.age_classes: List[str] = self.class_names_dict['age']
@@ -62,14 +79,12 @@ class Counter(BaseCounter):
 
             # Create maps for name to index and index to name
             self.name_idx_map: Dict[str, int] =  {name: idx for idx, name in enumerate(self.class_names)}
-            self.idx_name_map:Dict[str, int] = {idx: name for name, idx in self.name_idx_map.items()}
+            self.idx_name_map: Dict[int, str] = {idx: name for name, idx in self.name_idx_map.items()}
         
             # Store configuration        
             self.frame_thresh: int = frame_thresh
             self.cos_thresh: float = cos_thresh
             self.handle: bool = handle
-            self.track_id_dict: Dict[str, Any] = {}
-            self.finished_track_id: List[str] = []
             self.buffer_size: int = buffer_size
             self.xlines_cfg_path: str = xlines_cfg_path
         
@@ -80,14 +95,19 @@ class Counter(BaseCounter):
             self._init_counter()
             self.count_output_path:str = count_output_path
 
+            # Reset these on each initialization/reload
+            self.track_id_dict: Dict[str, Any] = {}
+            self.finished_track_id: List[str] = []
+
             logger.info(
-                "Counter initialized successfully",
+                "Counter logic initialized/re-initialized successfully",
                 context={
+                    "xlines_cfg_path": self.xlines_cfg_path,
                     "class_count": len(self.class_names),
                     "xlines_count": len(self.xlines),
                     "buffer_size": buffer_size
                 },
-                component="Counter"
+                component=self.component_name
             )
 
         except Exception as e:
@@ -96,7 +116,7 @@ class Counter(BaseCounter):
                 logger.error(
                     error_msg,
                     exception=e,
-                    component="Counter"
+                    component=self.component_name
                 )
                 raise SolutionError(
                     error_msg,
@@ -109,7 +129,7 @@ class Counter(BaseCounter):
     @handle_errors(component="Counter")
     def _load_xlines(self):
         """
-        Load crossing lines configuration from file.
+        Load crossing lines configuration from self.xlines_cfg_path.
         
         Returns:
             Tuple of xlines info and polygon objects
@@ -118,10 +138,13 @@ class Counter(BaseCounter):
             SolutionError: If xlines configuration cannot be loaded
         """
         try:
-            logger.debug(f"Loading xlines from {self.xlines_cfg_path}", component="Counter")
+            logger.debug(f"Loading xlines from {self.xlines_cfg_path}", component=self.component_name)
 
             with open(self.xlines_cfg_path, 'r') as f:
                 xlines_info = json.load(f)
+
+            if not isinstance(xlines_info, list):
+                raise SolutionError("Xlines config should be a list of polygon definitions.", code="INVALID_XLINES_FORMAT")
 
             # Convert xlines to Polygon objects
 
@@ -133,7 +156,7 @@ class Counter(BaseCounter):
             logger.error(
                 error_msg,
                 exception=e,
-                component="Counter"
+                component=self.component_name
             )
             raise SolutionError(
                 error_msg,
@@ -143,7 +166,7 @@ class Counter(BaseCounter):
             ) from e            
     
     @handle_errors(component="Counter")
-    def _init_counter(self, point_cfgs: List[List[float]] = None):
+    def _init_counter(self, point_cfgs: Optional[List[List[float]]] = None):
         """
         Initialize counter data structures.
         
@@ -166,7 +189,26 @@ class Counter(BaseCounter):
         })
         # Initialize direction and count tables
         self.direction_dict, self.count_table = self.get_direction_and_count_table(self.xlines)
-        logger.debug("Counter data structures initialized", component="Counter")
+        logger.debug("Counter data structures initialized", component=self.component_name)
+
+    def reload_config(self, new_xlines_cfg_path: str, new_config_content: Any):
+        """
+        Reloads the xlines configuration for the Counter.
+        The new_config_content is implicitly used because the file at new_xlines_cfg_path is updated.
+        """
+        logger.info(f"Reloading Counter configuration with new xlines path: {new_xlines_cfg_path}", component=self.component_name)
+        
+        # Call the main initialization logic with the new path.
+        # Other parameters are taken from the initial setup unless they are also dynamic.
+        self._initialize_counter_logic(
+            xlines_cfg_path=new_xlines_cfg_path,
+            count_output_path=self.initial_count_output_path, # Use initially stored or make dynamic
+            class_names_dict=self.initial_class_names_dict, # Use initially stored or make dynamic
+            buffer_size=self.initial_buffer_size,
+            frame_thresh=self.initial_frame_thresh,
+            cos_thresh=self.initial_cos_thresh,
+            handle=self.initial_handle
+        )
 
     @handle_errors(component="Counter")
     def _get_track_dict(self, frame_idx:int, detections_result: "Detection")->DefaultDict[str, Dict[str, Any]]:

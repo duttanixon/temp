@@ -46,6 +46,7 @@ jobs:
         S3_CERTIFICATES_PATH=${{ vars.S3_CERTIFICATES_PATH }}
         TIMESTREAM_RAW_TABLE=${{ secrets.TIMESTREAM_RAW_TABLE }}
         TIMESTREAM_DATABASE=${{ secrets.TIMESTREAM_DATABASE }}
+        INTERNAL_API_KEY=${{ secrets.INTERNAL_API_KEY }}
         EOL"
 
     - name: Deploy to EC2

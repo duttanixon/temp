@@ -9,7 +9,9 @@ from app.api.routes import (
     device_solutions_router,
     customer_solutions_router,
     device_metrics_router,
-    city_eye_analytics_router
+    city_eye_analytics_router,
+    device_commands_router,
+    sse_router,
 )
 from app.core.config import settings
 from app.api import deps
@@ -72,6 +74,18 @@ app.include_router(
     city_eye_analytics_router,
     prefix=f"{settings.API_V1_STR}/analytics/city-eye",
     tags=["analytics-city-eye"],
+)
+
+app.include_router(
+    device_commands_router,
+    prefix=f"{settings.API_V1_STR}/device-commands",
+    tags=["device-commands"],
+)
+
+app.include_router(
+    sse_router,
+    prefix=f"{settings.API_V1_STR}/sse/commands",
+    tags=["sse"],
 )
 
 

@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     TIMESTREAM_DATABASE: Optional[str] = None
     TIMESTREAM_RAW_TABLE: Optional[str] = None
 
+    # API Key for internal services
+    INTERNAL_API_KEY: Optional[str] = None
+
 
     class Config:
         env_file = ".env"

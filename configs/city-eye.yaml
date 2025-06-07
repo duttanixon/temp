@@ -62,7 +62,8 @@ solution:
         cert_path: "b1bc3ac4d0b4a3d932ddeb66ad75ab88da21c3e7c6acb6e9c5f13188e9255be4.pem"
         private_key_path: "b1bc3ac4d0b4a3d932ddeb66ad75ab88da21c3e7c6acb6e9c5f13188e9255be4.key"
         root_ca_path: "AmazonRootCA1.pem"
-        solution_type: "city-eye"
+        solution_type: "cityeye"
         enable_compression: true
         shadow_enabled: true
         config_shadow_name: "XLinesConfigShadow"
+        s3_bucket_name: cc-captured-images

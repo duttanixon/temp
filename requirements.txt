@@ -10,3 +10,4 @@ awsiotsdk
 ruff
 pandas
 shapely
+boto3

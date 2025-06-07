@@ -7,7 +7,9 @@ import time
 import threading
 import uuid
 import os
+import boto3
 from typing import Dict, Any, Optional, Callable
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError, ClientError
 from datetime import datetime
 
 
@@ -49,6 +51,10 @@ class AWSIoTCoreConnector(ICloudConnector):
         self.ca_path: Optional[str] = None
         self.cert_path: Optional[str] = None
         self.key_path: Optional[str] = None
+
+        # S3 specific attributes
+        self.s3_client = None
+        self.s3_bucket_name: Optional[str] = None
 
         logger.info("AWSIoTCoreConnector created", component="AWSIoTConnector")
 
@@ -117,6 +123,10 @@ class AWSIoTCoreConnector(ICloudConnector):
                     )
                 logger.info(f"AWS IoT Device Shadow enabled for Thing: {self.thing_name}, Shadow: {self.config_shadow_name}", component="AWSIoTConnector")
 
+            # Handle S3 configuration
+            self.s3_bucket_name = config.get("s3_bucket_name")
+            if self.s3_bucket_name:
+                self.s3_client = boto3.client('s3')
 
             # Connect to AWS IoT Core
             success = self._connect()
@@ -172,6 +182,66 @@ class AWSIoTCoreConnector(ICloudConnector):
         if not self.is_shadow_enabled():
             return None
         return self.shadow_get_rejected_topic_template.format(thingName=self.thing_name, shadowName=self.config_shadow_name)
+
+    @handle_errors(component="AWSIoTConnector")
+    def get_capture_image_command_topic(self) -> Optional[str]:
+        """
+        Get the topic for receiving commands from the cloud.
+        """
+        if not self.client_id or not self.solution_type:
+            logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
+            return None
+        return f"devices/{self.client_id}/solution/{self.solution_type}/command/capture_image"
+
+    @handle_errors(component="AWSIoTConnector")
+    def upload_file_to_s3(self, file_path: str, object_name: Optional[str] = None) -> bool:
+        """
+        Upload a file to an s3 bucket
+
+        Args:
+            file_path (str): Path to the file to upload
+            object_name (str, optional): The S3 object name. If not specified, the file_path's base name is used.
+
+        Returns:
+            bool: True if the file was uploaded successfully, False otherwise.
+        """
+        if not self.s3_client:
+            logger.error("S3 client not initialized. Cannot upload file.", component="AWSIoTConnector")
+            return False
+
+
+        if object_name is None:
+            logger.error("No object. Cannot upload file.", component="AWSIoTConnector")
+            return False
+
+        try:
+            self.s3_client.upload_file(file_path, self.s3_bucket_name, object_name)
+            logger.info(
+                "File uploaded to S3 successfully",
+                context={"bucket": self.s3_bucket_name, "object_name": object_name},
+                component="AWSIoTConnector"
+            )
+            return True
+        except FileNotFoundError:
+            logger.error(f"The file was not found: {file_path}", component="AWSIoTConnector")
+            return False
+        except (NoCredentialsError, PartialCredentialsError):
+            logger.error("AWS credentials not found or incomplete.", component="AWSIoTConnector")
+            return False
+        except ClientError as e:
+            logger.error(
+                f"An error occurred during S3 upload: {e}",
+                exception=e,
+                component="AWSIoTConnector"
+            )
+            return False
+        except Exception as e:
+            logger.error(
+                f"An unexpected error occurred during S3 upload: {e}",
+                exception=e,
+                component="AWSIoTConnector"
+            )
+            return False
 
     @handle_errors(component="AWSIoTConnector")
     def _connect(self) -> bool:

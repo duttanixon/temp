@@ -1,7 +1,11 @@
 from typing import Any, Dict, Optional, Tuple, List
 import numpy as np
 import os
+import json
+import cv2
 import threading
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from queue import Queue, Empty, Full
 from .bytetrack.mc_bytetrack import MultiClassByteTrack
 from .count.counter import Counter
@@ -45,6 +49,8 @@ class CityEyeSolution(ISolution):
         """
 
         self.component_name = self.__class__.__name__ # For logger
+        self._capture_requested = threading.Event()
+        self._current_capture_request: Optional[Dict[str, Any]] = None
 
         # Initialize couters and lock
         self.counters = {"tracking": 0, "attr": 0, "frame_number": 0}
@@ -174,7 +180,7 @@ class CityEyeSolution(ISolution):
                 logger.debug("Initializing cloud connection", component=self.component_name)
                 self.cloud_connector = CloudConnectorFactory.create(config["cloud"])
                 if self.cloud_connector:
-                    self.cloud_connector.initialize(config["cloud"], self.__class__.__name__)
+                    self.cloud_connector.initialize(config["cloud"], config["cloud"]["solution_type"])
                 
                     config_shadow_enabled = config["cloud"].get("shadow_enabled", True) 
                     if config_shadow_enabled:
@@ -200,6 +206,19 @@ class CityEyeSolution(ISolution):
                     )
                     self.sync_handler.start()
                     logger.info("Cloud synchonization enabled", component=self.component_name)
+
+                    # Subscribe to command topics
+                    capture_images_command_topic = self.cloud_connector.get_capture_image_command_topic()
+                    if capture_images_command_topic:
+                        self.cloud_connector.subscribe(
+                            capture_images_command_topic,
+                            self._handle_capture_image_command
+                        )
+                        logger.info(
+                            f"Subscribed to capture images command topic {capture_images_command_topic}",
+                            context={"topic": capture_images_command_topic},
+                            component=self.component_name
+                        )
                 else:
                     logger.warning("Cloud connector creation failed or disabled", component=self.component_name)
             except Exception as e:
@@ -213,6 +232,62 @@ class CityEyeSolution(ISolution):
         self.worker_thread.start()
 
         logger.info("CityEyeSolution initialized successfully", component=self.component_name)
+
+
+    def _handle_capture_image_command(self, topic: str, payload_str: str):
+        """
+        Handles the 'capture_image' command received from the cloud.
+        """
+        try:
+            payload = json.loads(payload_str)
+            command = payload.get("command")
+            message_id = payload.get("messageId")
+
+            if not message_id:
+                logger.warning("Received capture command without a 'messageId'. Ignoring.", component=self.component_name)
+                return
+
+            if command == "capture_image":
+                logger.info(f"Image capture command received with messageId: {message_id}", component=self.component_name)
+                self._current_capture_request = {"messageId": message_id}
+                self._capture_requested.set()
+            else:
+                logger.warning(f"Received unknown command '{command}' on capture topic.", component=self.component_name)
+                self._publish_capture_status(message_id, "failed", error_message=f"Unknown command: {command}")
+
+        except Exception as e:
+            logger.error("Error handling capture command", exception=e, component=self.component_name)
+            # If we can parse a messageId, we can report a failure.
+            try:
+                payload = json.loads(payload_str)
+                message_id = payload.get("messageId")
+                if message_id:
+                    self._publish_capture_status(message_id, "failed", error_message=f"Error processing command: {str(e)}")
+            except Exception:
+                pass # Ignore if we can't even parse the message to get an ID.
+
+    def _publish_capture_status(self, message_id: str, status: str, filename: str = None, s3_path: str = None, error_message: str = None):
+        """Publishes the status of the image capture command."""
+        if not self.cloud_connector:
+            logger.warning("Cannot publish capture status, cloud connector not available.", component=self.component_name)
+            return
+
+        response_topic = f"{self.cloud_connector.get_capture_image_command_topic()}/response"
+        response_payload = {
+            "messageId": message_id,
+            "status": status,
+            "timestamp": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat(),
+        }
+        if status == "success":
+            response_payload["filename"] = filename
+            response_payload["s3Path"] = s3_path
+            response_payload["s3Bucket"] = self.cloud_connector.s3_bucket_name
+        else:
+            response_payload["errorMessage"] = error_message
+
+        self.cloud_connector.publish(response_topic, response_payload)
+        logger.info(f"Published capture status '{status}' for messageId '{message_id}' to topic '{response_topic}'.", component=self.component_name)
+
 
     def update_xlines_config(self, new_config_path:str, new_config_content: Any)-> bool:
         """
@@ -263,7 +338,13 @@ class CityEyeSolution(ISolution):
             try:
                 # Get frame data
                 frame_data = self.frame_queue.get(block=True, timeout=0.5)
+                if self._capture_requested.is_set():
+                    capture_request = self._current_capture_request
+                    self._handle_image_capture(frame_data, capture_request)
+                    self._current_capture_request = None
+                    self._capture_requested.clear()
                 
+
                 # Get current frame number
                 with self.counters_lock:
                     frame_number = self.counters["frame_number"]
@@ -301,7 +382,55 @@ class CityEyeSolution(ISolution):
                 )
                 # Avoid continuous fast logging of the same error if queue remains problematic
                 time.sleep(0.1)
-                
+
+
+    def _handle_image_capture(self, frame_data: Dict[str, Any], capture_request: Dict[str, Any]):
+        """
+        Handles the logic for capturing and uploading an image, including status reporting.
+        """
+        message_id = capture_request.get("messageId")
+        if not message_id:
+            logger.error("Cannot handle image capture without a messageId.", component=self.component_name)
+            return
+
+        if 'frame' not in frame_data:
+            logger.warning("Capture requested, but no frame available in frame_data.", component=self.component_name)
+            self._publish_capture_status(message_id, "failed", error_message="No frame available to capture.")
+            return
+
+        frame = frame_data['frame']
+        filename = "capture.jpg"
+        filepath = os.path.join("/tmp", filename)
+        
+        # Define S3 object key with a structured path
+        s3_object_name = f"captures/{self.cloud_connector.solution_type}/{self.cloud_connector.client_id}/capture.jpg"
+
+        try:
+            # Save the frame locally as a JPEG image
+            cv2.imwrite(filepath, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+
+
+            # Upload to S3 if the connector is available
+            if self.cloud_connector and self.cloud_connector.s3_client:
+                success = self.cloud_connector.upload_file_to_s3(filepath, s3_object_name)
+                if success:
+                    self._publish_capture_status(message_id, "success", filename=filename, s3_path=s3_object_name)
+                else:
+                    self._publish_capture_status(message_id, "failed", error_message="Failed to upload image to S3.")
+            else:
+                logger.warning("S3 client not available, cannot upload image.", component=self.component_name)
+                self._publish_capture_status(message_id, "failed", error_message="S3 client not configured on device.")
+
+        except Exception as e:
+            logger.error("Failed to capture or upload image", exception=e, component=self.component_name)
+            self._publish_capture_status(message_id, "failed", error_message=f"An unexpected error occurred: {str(e)}")
+        finally:
+            # Clean up the local file
+            if os.path.exists(filepath):
+                os.remove(filepath)
+
+
+
     def _write_to_database(self, frame_result:Optional[Tuple[str,str]]) -> None:
         """
         Write detection results to database.

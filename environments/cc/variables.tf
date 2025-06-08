@@ -23,6 +23,20 @@ variable "database_url" {
     sensitive = true
 }
 
+variable "api_base_url" {
+  description = "backend api url"
+  type        = string
+  default     = ""
+}
+
+variable "internal_api_key" {
+  description = "internal api key for secured api access"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+
 # EC2 module variables
 variable "availability_zone" {
     description = "Availability zone suffix (a, b, c, etc.)"

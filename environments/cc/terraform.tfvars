@@ -4,6 +4,9 @@ environment = "cc"
 
 # Database configuration - this is sensitive and should ideally be managed via secrets
 database_url = "postgresql+pg8000://ccadmin:qwerty12345@54.168.126.215/platformdb-dev"
+api_base_url = "http://54.168.126.215:8000/api/v1"
+internal_api_key = "k-TzDzlJew9s3Z_NXJprY4cwgL0IeiaQeZ8fHVx2N8M"
+
 # In production, use terraform-apply with -var or environment variables instead of hardcoding here
 
 

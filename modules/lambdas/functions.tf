@@ -13,10 +13,10 @@ resource "aws_lambda_function" "iot_data_processor_functions" {
   source_code_hash    = data.archive_file.lambda_archives[each.key].output_base64sha256
 
   # Attach the layer to the city_eye function
-  layers              = each.key == "city_eye" ? [aws_lambda_layer_version.city_eye_dependencies.arn] : []
+  layers              = [aws_lambda_layer_version.city_eye_dependencies.arn]
 
   # Increase timeout and memory for database operations
-  timeout             = each.key == "city_eye" ? 30 : 3
+  timeout             = each.key == "city_eye" ? 30 : 10
   memory_size         = each.key == "city_eye" ? 256 : 128
 
   dynamic "environment" {

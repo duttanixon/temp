@@ -3,6 +3,7 @@ resource "local_file" "layer_requirements" {
   content = <<-EOT
 sqlalchemy>=2.0.0
 pg8000==1.30.3
+requests
   EOT
   filename = "${path.module}/build/layer_requirements.txt"
   depends_on = [null_resource.create_build_dir]

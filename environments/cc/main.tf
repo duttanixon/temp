@@ -29,12 +29,13 @@ module "lambdas" {
     environment = var.environment
     instance_id = module.ec2.instance_id
     database_url = var.database_url
+    api_base_url = var.api_base_url
+    internal_api_key = var.internal_api_key
     iot_devices_metrics_log_group = module.metrics.iot_devices_metrics_log_group
     iot_devices_metrics_log_group_arn = module.metrics.iot_devices_metrics_log_group_arn
     timestream_database_name = module.metrics.timestream_database_name
     timestream_raw_table_name = module.metrics.timestream_raw_table_name
     platform_backend_user_name = module.common.backend_service_user_name
-
 
 }
 

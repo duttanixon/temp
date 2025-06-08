@@ -60,3 +60,16 @@ variable "platform_backend_user_name" {
     description = "Backend user name"
     type = string
 }
+
+variable "api_base_url" {
+  description = "backend api url"
+  type        = string
+  default     = ""
+}
+
+variable "internal_api_key" {
+  description = "internal api key for secured api access"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

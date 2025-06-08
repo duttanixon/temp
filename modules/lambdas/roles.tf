@@ -32,7 +32,10 @@ resource "aws_iam_policy" "lambda_logging" {
                     "logs:PutLogEvents"
                 ]
                 Effect      = "Allow"
-                Resource    = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.environment}-*"
+                Resource    = [
+                    "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.environment}-*",
+                    "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.environment}-*:*"
+                ]
 
             }
         ]

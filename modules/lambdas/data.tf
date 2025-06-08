@@ -11,6 +11,21 @@ locals {
                 DATABASE_URL = var.database_url
             }
         }
+        # Add the new command response handler
+        command_response = {
+            function_name   = "${var.environment}-command-response-handler"
+            handler         = "command_response_handler.lambda_handler"
+            runtime         = "python3.9"
+            source_path     = "${path.module}/files/command_response_handler.py"
+            description     = "Handles device command responses"
+            environment_variables = {
+                ENVIRONMENT = var.environment
+                API_BASE_URL = var.api_base_url
+                INTERNAL_API_KEY = var.internal_api_key
+
+            }
+        }
+
         # Add function for each solution
     }
 
@@ -21,6 +36,14 @@ locals {
             sql             =   "SELECT *, topic(2) AS client_id, topic(4) AS solution_name FROM 'devices/+/data/+'"
             lambda_key      =   "city_eye"
         }
+
+        command_response_rule = {
+            name            = "${var.environment}_device_command_response_rule"
+            description     = "Rule to process device command responses and trigger Lambda function"
+            sql             = "SELECT *, topic(2) AS client_id, topic(4) AS command_type FROM 'devices/+/command/+/response'"
+            lambda_key      = "command_response"
+        }
+      
         # add rule for each solution
     }
 

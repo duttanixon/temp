@@ -20,7 +20,7 @@ resource "aws_iot_policy" "device_policy" {
                 ]
                 Resource = [
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/data/*",
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/status",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/command/*",
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
                 ]
             },
@@ -30,7 +30,7 @@ resource "aws_iot_policy" "device_policy" {
                     "iot:Subscribe"
                 ]
                 Resource = [
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:ClientId}/commands",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/devices/$${iot:ClientId}/command/*",
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
                 ]
             },
@@ -40,7 +40,7 @@ resource "aws_iot_policy" "device_policy" {
                     "iot:Receive"
                 ]
                 Resource = [
-                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/commands",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/command/*",
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$aws/things/$${iot:ClientId}/shadow/name/XLinesConfigShadow/*",
                 ]
             },
@@ -120,7 +120,8 @@ resource "aws_iam_policy" "iot_backend_policy" {
           "iot:GetThingShadow",
           "iot:UpdateThingShadow",
           "iot:DeleteThingShadow",
-          "iot:ListNamedShadowsForThing"
+          "iot:ListNamedShadowsForThing",
+          "iot:Publish"
         ]
         Resource = "*"
       }

@@ -3,7 +3,7 @@ resource "local_file" "layer_requirements" {
   content = <<-EOT
 sqlalchemy>=2.0.0
 pg8000==1.30.3
-requests
+requests==2.32.3
   EOT
   filename = "${path.module}/build/layer_requirements.txt"
   depends_on = [null_resource.create_build_dir]
@@ -62,7 +62,7 @@ resource "aws_lambda_layer_version" "city_eye_dependencies" {
   # We need to reference the layer zip file that was created by the build_layer script
   filename   = "${path.module}/build/${var.environment}-city-eye-layer.zip"
   
-  compatible_runtimes = ["python3.9"]
+  compatible_runtimes = ["python3.9", "python3.13"]
   description = "Layer containing SQLAlchemy and PostgreSQL libraries for City Eye Lambda"
   
   depends_on = [null_resource.build_layer]

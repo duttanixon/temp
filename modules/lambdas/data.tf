@@ -15,7 +15,7 @@ locals {
         command_response = {
             function_name   = "${var.environment}-command-response-handler"
             handler         = "command_response_handler.lambda_handler"
-            runtime         = "python3.9"
+            runtime         = "python3.13"
             source_path     = "${path.module}/files/command_response_handler.py"
             description     = "Handles device command responses"
             environment_variables = {

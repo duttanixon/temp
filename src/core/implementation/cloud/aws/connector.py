@@ -191,7 +191,7 @@ class AWSIoTCoreConnector(ICloudConnector):
         if not self.client_id or not self.solution_type:
             logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
             return None
-        return f"devices/{self.client_id}/solution/{self.solution_type}/command/capture_image"
+        return f"devices/{self.client_id}/command/capture_image"
 
     @handle_errors(component="AWSIoTConnector")
     def upload_file_to_s3(self, file_path: str, object_name: Optional[str] = None) -> bool:

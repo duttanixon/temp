@@ -4,6 +4,7 @@ import os
 import json
 import cv2
 import threading
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from queue import Queue, Empty, Full
@@ -227,6 +228,7 @@ class CityEyeSolution(ISolution):
 
         # Initialize the processing queue and thread
         self.frame_queue = Queue(maxsize=100)
+        self.command_queue = Queue(maxsize=50)
         self.worker_thread = threading.Thread(target=self._process_frames_worker)
         self.worker_thread.daemon = True
         self.worker_thread.start()
@@ -236,35 +238,31 @@ class CityEyeSolution(ISolution):
 
     def _handle_capture_image_command(self, topic: str, payload_str: str):
         """
-        Handles the 'capture_image' command received from the cloud.
+        Handles incoming commands from the cloud by parsing them and putting them on a queue
+        for the worker thread to process. This function is fast and non-blocking.
         """
         try:
-            payload = json.loads(payload_str)
-            command = payload.get("command")
-            message_id = payload.get("messageId")
-
-            if not message_id:
-                logger.warning("Received capture command without a 'messageId'. Ignoring.", component=self.component_name)
-                return
-
-            if command == "capture_image":
-                logger.info(f"Image capture command received with messageId: {message_id}", component=self.component_name)
-                self._current_capture_request = {"messageId": message_id}
-                self._capture_requested.set()
-            else:
-                logger.warning(f"Received unknown command '{command}' on capture topic.", component=self.component_name)
-                self._publish_capture_status(message_id, "failed", error_message=f"Unknown command: {command}")
-
+            command_data = json.loads(payload_str)
+            # Queue the command data. The worker thread will perform all validation and processing.
+            self.command_queue.put(command_data, block=False)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Received non-JSON message on command topic, ignoring",
+                context={"topic": topic, "payload": payload_str[:100]}, # Log first 100 chars
+                component=self.component_name
+            )
+        except Full:
+            logger.warning(
+                "Command queue is full. Dropping incoming command.",
+                context={"payload": payload_str},
+                component=self.component_name
+            )
         except Exception as e:
-            logger.error("Error handling capture command", exception=e, component=self.component_name)
-            # If we can parse a messageId, we can report a failure.
-            try:
-                payload = json.loads(payload_str)
-                message_id = payload.get("messageId")
-                if message_id:
-                    self._publish_capture_status(message_id, "failed", error_message=f"Error processing command: {str(e)}")
-            except Exception:
-                pass # Ignore if we can't even parse the message to get an ID.
+            logger.error(
+                "Error queueing command for processing",
+                exception=e,
+                component=self.component_name
+            )
 
     def _publish_capture_status(self, message_id: str, status: str, filename: str = None, s3_path: str = None, error_message: str = None):
         """Publishes the status of the image capture command."""
@@ -329,15 +327,51 @@ class CityEyeSolution(ISolution):
         except Exception as e:
             logger.error("Error putting frame data into queue", exception=e, component=self.component_name)
 
-            
+    def _handle_command(self, command_data: Dict[str, Any]):
+        """
+        Processes a single command dequeued by the worker thread.
+        This method is always executed in the context of the worker thread,
+        so blocking calls (like publishing) are safe.
+        """
+        command = command_data.get("command")
+        message_id = command_data.get("messageId")
+
+        if not message_id:
+            logger.warning("Received command without a 'messageId'. Ignoring.", component=self.component_name)
+            return
+
+        if command == "capture_image":
+            logger.info(f"Image capture command queued with messageId: {message_id}", component=self.component_name)
+            # Use the existing mechanism to signal the frame processing part of the worker
+            self._current_capture_request = {"messageId": message_id}
+            self._capture_requested.set()
+        else:
+            # THE FIX: This blocking call is now safely made from the worker thread, not the MQTT callback thread.
+            logger.warning(f"Received unknown command '{command}' on capture topic.", component=self.component_name)
+            self._publish_capture_status(message_id, "failed", error_message=f"Unknown command: {command}")
+
+
     def _process_frames_worker(self) -> None:
-        """Worker thread that handles the actual frame processing
-        Processes frames from the queue and handles detection, tracking and counting.
+        """
+        Worker thread that handles the actual frame processing
+        Processes commands from the command_queue and frames from the frame_queue.
         """
         while self.running:
             try:
-                # Get frame data
-                frame_data = self.frame_queue.get(block=True, timeout=0.5)
+                # 1. Prioritize and process any pending commands from the command queue.
+                # This is non-blocking.
+                try:
+                    command_data = self.command_queue.get_nowait()
+                    self._handle_command(command_data)
+                    self.command_queue.task_done()
+                except Empty:
+                    # No commands to process, which is the normal case.
+                    pass
+
+                # 2. Process the next available frame.
+                frame_data = self.frame_queue.get(block=True, timeout=0.1)
+
+                # Check if a 'capture_image' command has requested a capture
                 if self._capture_requested.is_set():
                     capture_request = self._current_capture_request
                     self._handle_image_capture(frame_data, capture_request)
@@ -647,4 +681,3 @@ class CityEyeSolution(ISolution):
                 logger.warning(f"Failed to stop sync handler: {str(e)}", component=self.component_name)
         
         logger.info("CityEyeSolution cleanup completed", component=self.component_name)
-        

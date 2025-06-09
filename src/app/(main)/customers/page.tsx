@@ -1,5 +1,5 @@
 "use client";
-import axios from "axios";
+
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import CustomerTable from "./_components/CustomerTable";
@@ -9,6 +9,7 @@ import CustomerPagination from "@/app/(main)/customers/_components/Pagination";
 import type { Customer } from "@/types/customer";
 import { customerService } from "@/services/customerService";
 import { Plus } from "lucide-react";
+import { deviceService } from "@/services/deviceService";
 
 export default function CustomersPage() {
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
@@ -48,16 +49,8 @@ export default function CustomersPage() {
   useEffect(() => {
     const fetchDeviceCounts = async () => {
       try {
-        const res = await axios.get("/api/customers/devices", {
-          headers: { Accept: "application/json" },
-        });
-        const data: Record<string, number> = res.data;
-
-        const total = Object.values(data).reduce(
-          (acc, count) => acc + count,
-          0
-        );
-        setTotalDevices(total);
+        const devices = await deviceService.getDevices();
+        setTotalDevices(devices.length);
       } catch (error) {
         console.error("Failed to fetch device counts:", error);
       }

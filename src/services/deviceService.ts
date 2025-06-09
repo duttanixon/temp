@@ -60,4 +60,22 @@ export const deviceService = {
       return handleApiError(error);
     }
   },
+
+  // Get device counts per customer
+  async getDeviceCountsByCustomer(): Promise<Record<string, number>> {
+    try {
+      const devices = await deviceService.getDevices(); // Returns all devices
+      const counts: Record<string, number> = {};
+
+      for (const device of devices) {
+        const customerId = device.customer_id;
+        if (!customerId) continue;
+        counts[customerId] = (counts[customerId] || 0) + 1;
+      }
+
+      return counts;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
 };

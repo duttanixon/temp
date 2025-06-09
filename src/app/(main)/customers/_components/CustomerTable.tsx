@@ -1,7 +1,7 @@
 "use client";
 
+import { deviceService } from "@/services/deviceService";
 import type { Customer } from "@/types/customer";
-import axios from "axios";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -31,8 +31,8 @@ export default function CustomerTable({
   useEffect(() => {
     const fetchDeviceMap = async () => {
       try {
-        const res = await axios.get("/api/customers/devices");
-        setDeviceCounts(res.data);
+        const data = await deviceService.getDeviceCountsByCustomer();
+        setDeviceCounts(data);
       } catch (error) {
         console.error("Error fetching device counts:", error);
       }

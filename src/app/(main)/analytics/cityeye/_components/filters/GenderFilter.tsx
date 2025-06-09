@@ -47,7 +47,10 @@ export function GenderFilter({
             onCheckedChange={handleSelectAllToggle}
             className="cursor-pointer"
           />
-          <Label htmlFor="select-all-genders" className="text-sm font-medium">
+          <Label
+            htmlFor="select-all-genders"
+            className="text-sm font-medium cursor-pointer"
+          >
             すべて
           </Label>
         </div>
@@ -61,7 +64,7 @@ export function GenderFilter({
             />
             <Label
               htmlFor={`gender-${gender.id}`}
-              className="text-sm font-normal"
+              className="text-sm font-normal cursor-pointer"
             >
               {gender.label}
             </Label>

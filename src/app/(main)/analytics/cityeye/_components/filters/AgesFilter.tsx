@@ -6,11 +6,11 @@ import { Label } from "@/components/ui/label";
 import { FilterCard } from "./FilterCard";
 
 const ALL_AGES = [
-  { id: "under_18", label: "<18" }, // Matched to backend AnalyticsFilters
-  { id: "18_to_29", label: "18-29" },
-  { id: "30_to_49", label: "30-49" },
-  { id: "50_to_64", label: "50-64" },
-  { id: "over_64", label: ">64" }, // Matched to backend AnalyticsFilters (maps to 65_plus on backend)
+  { id: "under_18", label: "18歳未満" }, // Matched to backend AnalyticsFilters
+  { id: "18_to_29", label: "18-29歳" },
+  { id: "30_to_49", label: "30-49歳" },
+  { id: "50_to_64", label: "50-64歳" },
+  { id: "over_64", label: "65歳以上" }, // Matched to backend AnalyticsFilters (maps to 65_plus on backend)
 ];
 
 interface AgesFilterProps {
@@ -50,7 +50,10 @@ export function AgesFilter({
             onCheckedChange={handleSelectAllToggle}
             className="cursor-pointer"
           />
-          <Label htmlFor="select-all-ages" className="text-sm font-medium">
+          <Label
+            htmlFor="select-all-ages"
+            className="text-sm font-medium cursor-pointer"
+          >
             すべて
           </Label>
         </div>

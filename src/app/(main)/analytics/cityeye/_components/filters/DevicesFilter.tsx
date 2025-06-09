@@ -120,7 +120,7 @@ export function DevicesFilter({
               />
               <Label
                 htmlFor="select-all-devices"
-                className="text-sm font-medium"
+                className="text-sm font-medium cursor-pointer"
               >
                 すべて
               </Label>
@@ -142,7 +142,7 @@ export function DevicesFilter({
                     />
                     <Label
                       htmlFor={`device-${device.device_id}`}
-                      className="text-sm font-normal truncate"
+                      className="text-sm font-normal truncate cursor-pointer"
                       title={`${device.device_location || "N/A"}_${device.device_name || "Unknown"}`}
                     >
                       {`${device.device_location || "N/A"}_${device.device_name || "Unknown"}`}

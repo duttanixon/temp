@@ -315,7 +315,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
               <TabsTrigger
                 value="overview"
                 className={cn(
-                  "flex-1 md:justify-start rounded-sm text-xs py-2 px-3 cursor-pointer",
+                  "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 )}
               >
@@ -324,7 +324,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
               <TabsTrigger
                 value="comparison"
                 className={cn(
-                  "flex-1 md:justify-start rounded-sm text-xs py-2 px-3 cursor-pointer",
+                  "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                 )}
               >

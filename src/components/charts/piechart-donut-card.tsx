@@ -1,14 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { TrendingUp, Maximize, X } from "lucide-react"; // Added Maximize and X
-import {
-  Cell,
-  Pie,
-  PieChart as RechartsPieChart,
-  LabelList,
-  Label,
-} from "recharts";
+import { TrendingUp } from "lucide-react"; // Added Maximize and X
+import { Cell, Pie, PieChart as RechartsPieChart, Label } from "recharts";
 
 import {
   Card,
@@ -21,20 +15,11 @@ import {
 import {
   ChartConfig,
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"; //
 import { Loader2, AlertTriangle, Info } from "lucide-react";
-import { Button } from "@/components/ui/button"; //
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog"; //
+import CustomChartLegend from "@/components/charts/custom-chart-legend";
 
 interface ChartDataItem {
   name: string;
@@ -70,7 +55,6 @@ const DEFAULT_CHART_COLORS = [
 
 export default function ShadcnPieChartDonutCard({
   title,
-  fontSize,
   description,
   data,
   isLoading,
@@ -84,23 +68,32 @@ export default function ShadcnPieChartDonutCard({
   showTrending = false,
   unit,
 }: ShadcnPieChartDonutCardProps) {
-  const [isFullScreenModalOpen, setIsFullScreenModalOpen] =
-    React.useState(false);
   const chartData = React.useMemo(() => data || [], [data]);
 
-  const chartConfig = React.useMemo(() => {
-    const config: ChartConfig = {};
-    chartData.forEach((item, index) => {
-      config[item.configKey] = {
-        label: item.name,
-        color: DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length],
-      };
-    });
-    return config;
-  }, [chartData]);
-
-  const handleOpenFullScreen = () => setIsFullScreenModalOpen(true);
-  const handleCloseFullScreen = () => setIsFullScreenModalOpen(false);
+  const useChartConfig = (
+    seriesStyles: { name: string; cssVarColor: string; opacity?: number }[]
+  ) => {
+    return React.useMemo((): ChartConfig => {
+      if (seriesStyles.length === 0) {
+        return {};
+      }
+      const entries = seriesStyles.map((style) => [
+        style.name,
+        {
+          label: style.name,
+          color: style.cssVarColor,
+          fillOpacity: style.opacity,
+        },
+      ]);
+      return Object.fromEntries(entries) as ChartConfig;
+    }, [seriesStyles]);
+  };
+  const chartConfig = useChartConfig(
+    chartData.map((item, index) => ({
+      name: item.configKey,
+      cssVarColor: DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length],
+    }))
+  );
 
   const renderPieChart = (isFullView: boolean) => {
     const currentHeight = isFullView
@@ -115,78 +108,74 @@ export default function ShadcnPieChartDonutCard({
     );
 
     return (
-      <ChartContainer
-        config={chartConfig}
-        className="mx-auto aspect-square w-3xs [&_.recharts-text:not(.recharts-label)]:fill-background"
-      >
-        <RechartsPieChart>
-          <ChartTooltip
-            cursor={false}
-            content={<ChartTooltipContent nameKey={nameKey} hideLabel />}
-          />
-          <Pie
-            data={chartData}
-            dataKey={dataKey}
-            nameKey={nameKey}
-            innerRadius={outerRadiusValue * 0.6}
-            outerRadius={outerRadiusValue}
-            strokeWidth={5}
-            startAngle={90}
-            endAngle={-270}
-            labelLine={false} // Set true if position="outside" for labels
-          >
-            {chartData.map((entry) => (
-              <Cell
-                key={`cell-${entry.configKey}`}
-                fill={chartConfig[entry.configKey]?.color || "#CCCCCC"}
-                stroke={chartConfig[entry.configKey]?.color || "#CCCCCC"}
-              />
-            ))}
-            <LabelList
-              dataKey="configKey"
-              className="fill-background dark:fill-foreground"
-              stroke="none"
-              fontSize={fontSize}
-              formatter={(configKeyValue: string) =>
-                chartConfig[configKeyValue]?.label || configKeyValue
-              }
-              // position="inside" // Consider "outside" or "center" based on design
+      <>
+        <ChartContainer
+          config={chartConfig}
+          className="mx-auto aspect-square w-3xs [&_.recharts-text:not(.recharts-label)]:fill-background"
+        >
+          <RechartsPieChart>
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent nameKey={nameKey} hideLabel />}
             />
-            <Label
-              content={({ viewBox }) => {
-                if (viewBox != null && "cx" in viewBox && "cy" in viewBox) {
-                  const centerRadius = outerRadiusValue * 0.6;
-                  const size = centerRadius * Math.sqrt(2);
-                  const x = (viewBox.cx ?? 0) - size / 2;
-                  const y = (viewBox.cy ?? 0) - size / 2;
-                  const totalValue = chartData.reduce(
-                    (sum, item) => sum + item.value,
-                    0
-                  );
-                  return (
-                    <foreignObject x={x} y={y} width={size} height={size}>
-                      <div className="flex flex-col items-center justify-center h-full text-center">
-                        <span className="text-2xl font-bold">
-                          {totalValue.toLocaleString()}
-                        </span>
-                        {unit && (
-                          <span className="text-sm text-muted-foreground">
-                            {unit}
+            <Pie
+              data={chartData}
+              dataKey={dataKey}
+              nameKey={nameKey}
+              innerRadius={outerRadiusValue * 0.6}
+              outerRadius={outerRadiusValue}
+              strokeWidth={5}
+              startAngle={90}
+              endAngle={-270}
+              labelLine={false} // Set true if position="outside" for labels
+            >
+              {chartData.map((entry) => (
+                <Cell
+                  key={`cell-${entry.configKey}`}
+                  fill={chartConfig[entry.configKey]?.color || "#CCCCCC"}
+                  stroke={chartConfig[entry.configKey]?.color || "#CCCCCC"}
+                />
+              ))}
+              <Label
+                content={({ viewBox }) => {
+                  if (viewBox != null && "cx" in viewBox && "cy" in viewBox) {
+                    const centerRadius = outerRadiusValue * 0.6;
+                    const size = centerRadius * Math.sqrt(2);
+                    const x = (viewBox.cx ?? 0) - size / 2;
+                    const y = (viewBox.cy ?? 0) - size / 2;
+                    const totalValue = chartData.reduce(
+                      (sum, item) => sum + item.value,
+                      0
+                    );
+                    return (
+                      <foreignObject x={x} y={y} width={size} height={size}>
+                        <div className="flex flex-col items-center justify-center h-full text-center">
+                          <span className="text-2xl font-bold">
+                            {totalValue.toLocaleString()}
                           </span>
-                        )}
-                      </div>
-                    </foreignObject>
-                  );
-                }
-              }}
-            />
-          </Pie>
-          <ChartLegend
-            content={<ChartLegendContent nameKey="configKey" />}
-            className="flex-wrap gap-2 *:basis-1/4 *:justify-center"
-          />
-        </RechartsPieChart>
-      </ChartContainer>
+                          {unit && (
+                            <span className="text-sm text-muted-foreground">
+                              {unit}
+                            </span>
+                          )}
+                        </div>
+                      </foreignObject>
+                    );
+                  }
+                }}
+              />
+            </Pie>
+          </RechartsPieChart>
+        </ChartContainer>
+        <CustomChartLegend
+          seriesStyles={chartData.map((item, index) => ({
+            name: item.name,
+            cssVarColor:
+              DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length],
+            opacity: 1,
+          }))}
+        />
+      </>
     );
   };
 
@@ -278,19 +267,6 @@ export default function ShadcnPieChartDonutCard({
           </CardFooter>
         )}
       </Card>
-
-      {/* {isFullScreenModalOpen && (
-        <Dialog open={isFullScreenModalOpen} onOpenChange={setIsFullScreenModalOpen}>
-          <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] flex flex-col p-2 sm:p-4">
-            <DialogHeader className="flex-row justify-between items-center p-2 border-b mb-2">
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            <div className="flex-grow flex items-center justify-center overflow-auto">
-              {renderPieChart(true)}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )} */}
     </>
   );
 }

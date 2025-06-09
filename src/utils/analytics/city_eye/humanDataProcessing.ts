@@ -10,11 +10,11 @@ import {
 // Consolidated configuration for all data types
 const CONFIG = {
   AGE_GROUPS: [
-    { backendKey: "under_18", configKey: "under18", label: "<18" },
-    { backendKey: "age_18_to_29", configKey: "age18to29", label: "18-29" },
-    { backendKey: "age_30_to_49", configKey: "age30to49", label: "30-49" },
-    { backendKey: "age_50_to_64", configKey: "age50to64", label: "50-64" },
-    { backendKey: "over_64", configKey: "over64", label: "65+" },
+    { backendKey: "under_18", configKey: "under18", label: "18歳未満" },
+    { backendKey: "age_18_to_29", configKey: "age18to29", label: "18-29歳" },
+    { backendKey: "age_30_to_49", configKey: "age30to49", label: "30-49歳" },
+    { backendKey: "age_50_to_64", configKey: "age50to64", label: "50-64歳" },
+    { backendKey: "over_64", configKey: "over64", label: "65歳以上" },
   ],
   GENDER: {
     male: { label: "男性", configKey: "male" },

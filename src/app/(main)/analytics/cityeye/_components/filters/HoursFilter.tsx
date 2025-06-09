@@ -50,7 +50,10 @@ export function HoursFilter({
             onCheckedChange={handleSelectAllToggle}
             className="cursor-pointer"
           />
-          <Label htmlFor="select-all-hours" className="text-sm font-medium">
+          <Label
+            htmlFor="select-all-hours"
+            className="text-sm font-medium cursor-pointer"
+          >
             すべて
           </Label>
         </div>
@@ -66,7 +69,7 @@ export function HoursFilter({
                 />
                 <Label
                   htmlFor={`hour-${hour.id}`}
-                  className="text-sm font-normal whitespace-nowrap"
+                  className="text-sm font-normal whitespace-nowrap cursor-pointer"
                 >
                   {hour.label}
                 </Label>

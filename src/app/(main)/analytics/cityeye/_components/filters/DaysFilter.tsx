@@ -50,6 +50,7 @@ export function DaysFilter({
             id="select-all-days"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
+            className="cursor-pointer"
           />
           <Label htmlFor="select-all-days" className="text-sm font-medium">
             すべて
@@ -62,6 +63,7 @@ export function DaysFilter({
                 id={day.id}
                 checked={selectedDays.includes(day.id)}
                 onCheckedChange={() => handleDayToggle(day.id)}
+                className="cursor-pointer"
               />
               <Label htmlFor={day.id} className="text-sm font-normal">
                 {day.label}

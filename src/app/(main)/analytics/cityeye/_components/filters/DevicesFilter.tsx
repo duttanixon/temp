@@ -59,18 +59,22 @@ export function DevicesFilter({
         if (mappedDevicesData.length > 0 && selectedDevices.length === 0) {
           console.log("DevicesFilter: Auto-selecting all available devices.");
           onSelectionChange(mappedDevicesData.map((d) => d.device_id));
-        } else if (mappedDevicesData.length === 0 && selectedDevices.length > 0) {
+        } else if (
+          mappedDevicesData.length === 0 &&
+          selectedDevices.length > 0
+        ) {
           // If no devices are available for the new solutionId, clear any existing selection.
-          console.log("DevicesFilter: No devices available for this solution, clearing selection.");
+          console.log(
+            "DevicesFilter: No devices available for this solution, clearing selection."
+          );
           onSelectionChange([]);
         }
-
-
       } catch (error) {
         console.error("Failed to fetch devices for solution:", error);
         setAvailableDevices([]);
-        if (selectedDevices.length > 0) { // Clear selection if fetch fails
-           onSelectionChange([]);
+        if (selectedDevices.length > 0) {
+          // Clear selection if fetch fails
+          onSelectionChange([]);
         }
       } finally {
         setIsLoading(false);
@@ -112,6 +116,7 @@ export function DevicesFilter({
                 id="select-all-devices"
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAllToggle}
+                className="cursor-pointer"
               />
               <Label
                 htmlFor="select-all-devices"
@@ -133,6 +138,7 @@ export function DevicesFilter({
                       onCheckedChange={() =>
                         handleDeviceToggle(device.device_id)
                       }
+                      className="cursor-pointer"
                     />
                     <Label
                       htmlFor={`device-${device.device_id}`}

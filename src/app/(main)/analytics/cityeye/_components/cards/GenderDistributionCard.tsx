@@ -32,6 +32,7 @@ export default function GenderDistributionCard({
       emptyDataMessage="性別データがありません。"
       dataKey="value" // Key in ProcessedGenderSegment that holds the count
       nameKey="name" // Key in ProcessedGenderSegment that holds the display label (e.g., "男性")
+      unit="人"
     />
   );
 }

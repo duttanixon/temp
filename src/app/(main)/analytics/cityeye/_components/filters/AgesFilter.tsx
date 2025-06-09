@@ -48,6 +48,7 @@ export function AgesFilter({
             id="select-all-ages"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
+            className="cursor-pointer"
           />
           <Label htmlFor="select-all-ages" className="text-sm font-medium">
             すべて
@@ -60,6 +61,7 @@ export function AgesFilter({
                 id={`age-${age.id}`}
                 checked={selectedAges.includes(age.id)}
                 onCheckedChange={() => handleAgeToggle(age.id)}
+                className="cursor-pointer"
               />
               <Label
                 htmlFor={`age-${age.id}`}

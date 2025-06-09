@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { addDays, format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import {
+  addDays,
+  format,
+  subDays,
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+} from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -13,7 +20,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
+interface DatePickerWithRangeProps
+  extends React.HTMLAttributes<HTMLDivElement> {
   date: DateRange | undefined;
   setDate: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
   className?: string;
@@ -88,7 +96,7 @@ export function DatePickerWithRange({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal",
+              "w-[300px] justify-start text-left font-normal cursor-pointer",
               !date && "text-muted-foreground"
             )}
           >
@@ -115,7 +123,7 @@ export function DatePickerWithRange({
                 variant="outline"
                 size="sm"
                 onClick={range.onClick}
-                className="text-xs"
+                className="text-xs cursor-pointer"
               >
                 {range.label}
               </Button>

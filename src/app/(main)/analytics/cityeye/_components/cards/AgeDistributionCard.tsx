@@ -26,17 +26,18 @@ export default function AgeDistributionCard({
     ageDistributionData.length > 0;
 
   return (
-      <ShadcnPieChartDonutCard
-        title={title}
-        fontSize={10}
-        description=""
-        data={ageDistributionData}
-        isLoading={isLoading}
-        error={error}
-        hasAttemptedFetch={hasAttemptedFetch}
-        emptyDataMessage="データがありません。"
-        dataKey="value"
-        nameKey="name"
-      />
+    <ShadcnPieChartDonutCard
+      title={title}
+      fontSize={10}
+      description=""
+      data={ageDistributionData}
+      isLoading={isLoading}
+      error={error}
+      hasAttemptedFetch={hasAttemptedFetch}
+      emptyDataMessage="データがありません。"
+      dataKey="value"
+      nameKey="name"
+      unit="人"
+    />
   );
 }

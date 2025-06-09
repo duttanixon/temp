@@ -31,6 +31,7 @@ export default function VehicleTypeDistributionCard({
       emptyDataMessage="車種別データがありません。"
       dataKey="value" // Key in ProcessedVehicleType that holds the count
       nameKey="name" // Key in ProcessedVehicleType that holds the display label
+      unit="台"
     />
   );
 }

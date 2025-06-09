@@ -2,7 +2,13 @@
 
 import * as React from "react";
 import { TrendingUp, Maximize, X } from "lucide-react"; // Added Maximize and X
-import { Cell, Pie, PieChart as RechartsPieChart, LabelList } from "recharts";
+import {
+  Cell,
+  Pie,
+  PieChart as RechartsPieChart,
+  LabelList,
+  Label,
+} from "recharts";
 
 import {
   Card,
@@ -15,6 +21,8 @@ import {
 import {
   ChartConfig,
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"; //
@@ -48,6 +56,7 @@ interface ShadcnPieChartDonutCardProps {
   nameKey: string;
   footerText?: string;
   showTrending?: boolean;
+  unit?: string;
 }
 
 const DEFAULT_CHART_COLORS = [
@@ -73,8 +82,10 @@ export default function ShadcnPieChartDonutCard({
   nameKey,
   footerText,
   showTrending = false,
+  unit,
 }: ShadcnPieChartDonutCardProps) {
-  const [isFullScreenModalOpen, setIsFullScreenModalOpen] = React.useState(false);
+  const [isFullScreenModalOpen, setIsFullScreenModalOpen] =
+    React.useState(false);
   const chartData = React.useMemo(() => data || [], [data]);
 
   const chartConfig = React.useMemo(() => {
@@ -92,18 +103,21 @@ export default function ShadcnPieChartDonutCard({
   const handleCloseFullScreen = () => setIsFullScreenModalOpen(false);
 
   const renderPieChart = (isFullView: boolean) => {
-    const currentHeight = isFullView ? Math.max(400, window.innerHeight * 0.7) : chartHeight;
+    const currentHeight = isFullView
+      ? Math.max(400, window.innerHeight * 0.7)
+      : chartHeight;
     // For a donut, set innerRadius to something like currentHeight / 4 or a fixed value like 60
     // For a pie, innerRadius is 0.
-    const innerRadiusValue = currentHeight / 5; // Example for a donut hole, adjust as needed. Set to 0 for Pie.
-    const outerRadiusValue = Math.min(currentHeight / 2 - 20, isFullView ? currentHeight / 2.5 : 100);
-
+    // const innerRadiusValue = currentHeight / 5; // Example for a donut hole, adjust as needed. Set to 0 for Pie.
+    const outerRadiusValue = Math.min(
+      currentHeight / 2 - 30,
+      isFullView ? currentHeight / 2.5 : 100
+    );
 
     return (
       <ChartContainer
         config={chartConfig}
-        className="mx-auto"
-        style={{ height: `${currentHeight}px`, width: isFullView ? '90vw' : '100%'}}
+        className="mx-auto aspect-square w-3xs [&_.recharts-text:not(.recharts-label)]:fill-background"
       >
         <RechartsPieChart>
           <ChartTooltip
@@ -114,9 +128,11 @@ export default function ShadcnPieChartDonutCard({
             data={chartData}
             dataKey={dataKey}
             nameKey={nameKey}
-            innerRadius={innerRadiusValue} // Make this 0 for a Pie, or >0 for Donut
+            innerRadius={outerRadiusValue * 0.6}
             outerRadius={outerRadiusValue}
-            strokeWidth={2}
+            strokeWidth={5}
+            startAngle={90}
+            endAngle={-270}
             labelLine={false} // Set true if position="outside" for labels
           >
             {chartData.map((entry) => (
@@ -131,10 +147,44 @@ export default function ShadcnPieChartDonutCard({
               className="fill-background dark:fill-foreground"
               stroke="none"
               fontSize={fontSize}
-              formatter={(configKeyValue: string) => chartConfig[configKeyValue]?.label || configKeyValue}
+              formatter={(configKeyValue: string) =>
+                chartConfig[configKeyValue]?.label || configKeyValue
+              }
               // position="inside" // Consider "outside" or "center" based on design
             />
+            <Label
+              content={({ viewBox }) => {
+                if (viewBox != null && "cx" in viewBox && "cy" in viewBox) {
+                  const centerRadius = outerRadiusValue * 0.6;
+                  const size = centerRadius * Math.sqrt(2);
+                  const x = (viewBox.cx ?? 0) - size / 2;
+                  const y = (viewBox.cy ?? 0) - size / 2;
+                  const totalValue = chartData.reduce(
+                    (sum, item) => sum + item.value,
+                    0
+                  );
+                  return (
+                    <foreignObject x={x} y={y} width={size} height={size}>
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <span className="text-2xl font-bold">
+                          {totalValue.toLocaleString()}
+                        </span>
+                        {unit && (
+                          <span className="text-sm text-muted-foreground">
+                            {unit}
+                          </span>
+                        )}
+                      </div>
+                    </foreignObject>
+                  );
+                }
+              }}
+            />
           </Pie>
+          <ChartLegend
+            content={<ChartLegendContent nameKey="configKey" />}
+            className="flex-wrap gap-2 *:basis-1/4 *:justify-center"
+          />
         </RechartsPieChart>
       </ChartContainer>
     );
@@ -143,7 +193,10 @@ export default function ShadcnPieChartDonutCard({
   const renderCardContent = () => {
     if (isLoading) {
       return (
-        <div className="flex flex-col items-center justify-center" style={{ height: `${chartHeight}px` }}>
+        <div
+          className="flex flex-col items-center justify-center"
+          style={{ height: `${chartHeight}px` }}
+        >
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">データを読み込み中...</p>
         </div>
@@ -151,7 +204,10 @@ export default function ShadcnPieChartDonutCard({
     }
     if (error && hasAttemptedFetch) {
       return (
-        <div className="flex flex-col items-center justify-center text-destructive" style={{ height: `${chartHeight}px` }}>
+        <div
+          className="flex flex-col items-center justify-center text-destructive"
+          style={{ height: `${chartHeight}px` }}
+        >
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">エラー</p>
           <p className="text-xs text-center px-2">{error}</p>
@@ -160,19 +216,29 @@ export default function ShadcnPieChartDonutCard({
     }
     if (!hasAttemptedFetch) {
       return (
-        <div className="flex flex-col items-center justify-center" style={{ height: `${chartHeight}px` }}>
+        <div
+          className="flex flex-col items-center justify-center"
+          style={{ height: `${chartHeight}px` }}
+        >
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground p-4 text-center">フィルターを適用してデータを表示します。</p>
+          <p className="text-sm text-muted-foreground p-4 text-center">
+            フィルターを適用してデータを表示します。
+          </p>
         </div>
       );
     }
     if (!chartData || chartData.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center" style={{ height: `${chartHeight}px` }}>
+        <div
+          className="flex flex-col items-center justify-center"
+          style={{ height: `${chartHeight}px` }}
+        >
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">{emptyDataMessage}</p>
           {hasAttemptedFetch && !error && (
-            <p className="text-xs text-muted-foreground text-center px-2">選択されたフィルター条件に一致するデータが見つかりませんでした。</p>
+            <p className="text-xs text-muted-foreground text-center px-2">
+              選択されたフィルター条件に一致するデータが見つかりませんでした。
+            </p>
           )}
         </div>
       );
@@ -183,22 +249,32 @@ export default function ShadcnPieChartDonutCard({
   return (
     <>
       <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
-        <CardHeader className="items-center pb-0 pt-3 px-4 flex flex-row justify-between"> {/* Changed to flex-row and justify-between */}
+        <CardHeader className="items-center pb-0 pt-3 px-4 flex flex-row justify-between">
+          {" "}
+          {/* Changed to flex-row and justify-between */}
           <CardTitle>{title}</CardTitle>
           {/* <Button variant="ghost" size="icon" onClick={handleOpenFullScreen} className="h-6 w-6 p-0"> 
             <Maximize className="h-4 w-4" />
           </Button> */}
         </CardHeader>
-        {description && <CardDescription className="px-4 pt-1">{description}</CardDescription>} {/* Added pt-1 for spacing */}
+        {description && (
+          <CardDescription className="px-4 pt-1">{description}</CardDescription>
+        )}{" "}
+        {/* Added pt-1 for spacing */}
         <CardContent className="flex-1 pb-0">{renderCardContent()}</CardContent>
         {(footerText || showTrending) && (
           <CardFooter className="flex-col gap-1 text-xs pt-2 pb-3">
             {showTrending && (
               <div className="flex items-center gap-1 font-medium leading-none text-muted-foreground">
-                Trending up by 5.2% this month <TrendingUp className="h-3 w-3" />
+                Trending up by 5.2% this month{" "}
+                <TrendingUp className="h-3 w-3" />
               </div>
             )}
-            {footerText && <div className="leading-none text-muted-foreground">{footerText}</div>}
+            {footerText && (
+              <div className="leading-none text-muted-foreground">
+                {footerText}
+              </div>
+            )}
           </CardFooter>
         )}
       </Card>

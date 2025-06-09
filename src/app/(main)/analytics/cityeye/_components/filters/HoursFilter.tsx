@@ -48,6 +48,7 @@ export function HoursFilter({
             id="select-all-hours"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
+            className="cursor-pointer"
           />
           <Label htmlFor="select-all-hours" className="text-sm font-medium">
             すべて
@@ -61,6 +62,7 @@ export function HoursFilter({
                   id={`hour-${hour.id}`} // Ensure unique ID if ALL_HOURS.id might not be unique enough across page
                   checked={selectedHours.includes(hour.id)}
                   onCheckedChange={() => handleHourToggle(hour.id)}
+                  className="cursor-pointer"
                 />
                 <Label
                   htmlFor={`hour-${hour.id}`}

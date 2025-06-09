@@ -511,7 +511,7 @@ class AWSIoTCoreConnector(ICloudConnector):
             return False # Indicate failure
     
     @handle_errors(component="AWSIoTConnector")
-    def update_device_shadow_reported_state(self, reported_state: Dict[str, Any], client_token: Optional[str] = None, qos: int = 1) -> bool:
+    def update_device_shadow_reported_state(self, reported_state: Dict[str, Any], message_id: Optional[str] = None, qos: int = 1) -> bool:
         if not self.is_shadow_enabled():
             logger.warning("Shadow not enabled, cannot update reported state.", component="AWSIoTConnector")
             return False
@@ -522,8 +522,8 @@ class AWSIoTCoreConnector(ICloudConnector):
 
         desired_null_state = {key: None for key in reported_state.keys()}
         shadow_payload_dict = {"state": {"reported": reported_state, "desired": desired_null_state}}
-        if client_token:
-            shadow_payload_dict["clientToken"] = client_token
+        if message_id:
+            shadow_payload_dict["message_id"] = message_id
         
         payload_str = json.dumps(shadow_payload_dict)
         return self.publish(topic, payload_str, qos, is_shadow_update=True)

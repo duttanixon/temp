@@ -67,7 +67,7 @@ class ShadowConfigManager:
             delta_message = json.loads(payload_str)
             desired_state_node = delta_message.get("state", {})
             # desired_state_node = state_node.get("desired", {})
-            client_token = desired_state_node.get("clientToken", "Unknown")
+            message_id = desired_state_node.get("xlines_config_management", "Unknown").get("message_id","unknown")
             if "xlines_cfg_content" not in desired_state_node:
                 logger.info("No 'xlines_cfg_content' key in delta state. Ignoring.", component=self.component_name)
                 return
@@ -87,7 +87,7 @@ class ShadowConfigManager:
                             json.dump(parsed_json, f, indent=4)
                         else:
                             logger.error(f"Unsupported type for xlines_cfg_content: {type(new_xlines_content)}.", component=self.component_name)
-                            self.update_reported_status("failed", client_token, version, error=f"Unsupported xlines_cfg_content type: {type(new_xlines_content)}")
+                            self.update_reported_status("failed", message_id, version, error=f"Unsupported xlines_cfg_content type: {type(new_xlines_content)}")
                             return
 
                     logger.info(f"Successfully updated local xlines_cfg.json at {self.xlines_config_path}", component=self.component_name)
@@ -97,25 +97,25 @@ class ShadowConfigManager:
                     
                     if success:
                         # Update reported state - this blocking call is now safe
-                        self.update_reported_status("successful", client_token, version, content=new_xlines_content)
+                        self.update_reported_status("successful", message_id, version, content=new_xlines_content)
                     else:
-                        self.update_reported_status("failed", client_token, version, error="Application failed to reload config.")
+                        self.update_reported_status("failed", message_id, version, error="Application failed to reload config.")
 
                 except Exception as e:
                     logger.error("Error processing and applying xlines delta", exception=e, component=self.component_name)
-                    self.update_reported_status("failed", client_token, version, error=str(e))
+                    self.update_reported_status("failed", message_id, version, error=str(e))
         except Exception as e:
             logger.error("Fatal error in delta processing worker thread", exception=e, component=self.component_name)
 
-    def update_reported_status(self, status: str, client_token: Optional[str] = None, version: Optional[int] = None, details: Optional[str] = None, error: Optional[str] = None, content: Optional[str]=None):
+    def update_reported_status(self, status: str, message_id: Optional[str] = None, version: Optional[int] = None, details: Optional[str] = None, error: Optional[str] = None, content: Optional[str]=None):
         reported_payload = {
             "xlines_config_management": {
                 "status": status,
                 "last_update_timestamp": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat()
             }
         }
-        if client_token:
-            reported_payload["xlines_config_management"]["client_token"] = client_token            
+        if message_id:
+            reported_payload["xlines_config_management"]["message_id"] = message_id            
         if details:
             reported_payload["xlines_config_management"]["details"] = details
         if error:

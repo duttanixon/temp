@@ -1,61 +1,12 @@
 import { Device, DeviceCreateData, DeviceUpdateData } from "@/types/device";
-import axios, { AxiosError } from "axios";
-import { getSession } from "next-auth/react";
-
-// Create an axios instance
-const apiClient = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}`,
-});
-
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.accessToken}`;
-  }
-  return config;
-});
-
-// Helper for consistent error handling
-function handleApiError(error: any): never {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>;
-    let message: string;
-
-    if (axiosError?.message) {
-      message = axiosError.message;
-    } else {
-      message = "An unexpected error occurred";
-    }
-
-    console.log("API Error:", message);
-    throw new Error(message);
-  }
-
-  // For non-axios errors
-  if (error instanceof Error) {
-    throw error;
-  }
-
-  throw new Error("An unexpected error occurred");
-}
-
-// Helper to clean empty fields
-function cleanEmptyFields<T extends Record<string, any>>(data: T): T {
-  const cleanData = { ...data };
-  Object.keys(cleanData).forEach((key) => {
-    if (cleanData[key] === "") {
-      delete cleanData[key];
-    }
-  });
-  return cleanData;
-}
+import axios from "axios";
+import { apiClient, cleanData, handleApiError } from "./baseApiClient";
 
 export const deviceService = {
   // Get all devices
   async getDevices(customerId?: string): Promise<Device[]> {
     try {
-      const params: Record<string, any> = {};
+      const params: Record<string, unknown> = {};
       if (customerId) {
         params.customer_id = customerId;
       }
@@ -82,8 +33,8 @@ export const deviceService = {
   // Create a new device
   async createDevice(data: DeviceCreateData): Promise<Device> {
     try {
-      const cleanData = cleanEmptyFields(data);
-      const response = await apiClient.post<Device>("/devices", cleanData);
+      const cleaned = cleanData(data);
+      const response = await apiClient.post<Device>("/devices", cleaned);
       return response.data;
     } catch (error) {
       return handleApiError(error);

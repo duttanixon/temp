@@ -20,7 +20,7 @@ export default function CustomersPage() {
     const fetchAllCustomers = async () => {
       let allData: Customer[] = [];
       let skip = 0;
-      const limit = 20;
+      const limit = 100;
       let hasMore = true;
 
       try {

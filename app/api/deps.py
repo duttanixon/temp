@@ -1,7 +1,7 @@
 # Dependency injection for the API
 
 from typing import Generator, Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import ValidationError
@@ -60,6 +60,30 @@ def get_current_user(
         )
     return user
 
+def verify_api_key(x_api_key: Optional[str] = Header(None)):
+    """Verify API key for internal services"""
+    if not x_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required",
+            headers={"X-API-Key": "required"},
+        )
+    
+    if not settings.INTERNAL_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal API key not configured"
+        )
+    
+    if x_api_key != settings.INTERNAL_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+            headers={"X-API-Key": "invalid"},
+        )
+    
+    return True
+    
 def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:

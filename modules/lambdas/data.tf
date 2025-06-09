@@ -26,6 +26,19 @@ locals {
             }
         }
 
+        shadow_response = {
+            function_name   = "${var.environment}-shadow-response-handler"
+            handler         = "shadow_response_handler.lambda_handler"
+            runtime         = "python3.13"
+            source_path     = "${path.module}/files/shadow_response_handler.py"
+            description     = "Handles all device shadow update responses (accepted/rejected)"
+            environment_variables = {
+                ENVIRONMENT = var.environment
+                API_BASE_URL = var.api_base_url
+                INTERNAL_API_KEY = var.internal_api_key
+            }
+        }
+
         # Add function for each solution
     }
 
@@ -42,6 +55,14 @@ locals {
             description     = "Rule to process device command responses and trigger Lambda function"
             sql             = "SELECT *, topic(2) AS client_id, topic(4) AS command_type FROM 'devices/+/command/+/response'"
             lambda_key      = "command_response"
+        }
+
+        # Add the new shadow response rule
+        shadow_response_rule = {
+            name            = "${var.environment}_shadow_update_response_rule"
+            description     = "Rule to process all device shadow update responses (accepted/rejected)"
+            sql             = "SELECT *, topic(3) AS thing_name, topic(6) AS shadow_name, topic(8) AS response_type FROM '$aws/things/+/shadow/name/+/update/+'"
+            lambda_key      = "shadow_response"
         }
       
         # add rule for each solution

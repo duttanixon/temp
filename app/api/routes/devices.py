@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.crud import device, customer, solution, device_solution
+from app.crud import device, customer, solution, device_solution, customer_solution
 from app.models import User, UserRole, DeviceStatus
 from app.schemas.device import (
     Device as DeviceSchema,
@@ -28,27 +28,55 @@ router = APIRouter()
 def get_devices(
     db: Session = Depends(deps.get_db),
     customer_id: Optional[uuid.UUID] = None,
+    solution_id: Optional[uuid.UUID] = None,
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Retrieve devices added with customer_name.
-    - For admins and engineers: All devices or filtered by customer_id
-    - For customers admins and users: Only their customer's devices
+    - For admins and engineers: All devices or filtered by optional solution_id
+    - For customers Only their customer's devices, optionally filtered by solution_id
     """
-    if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
-        if customer_id:
-            # Verify customer exists
-            db_customer = customer.get_by_id(db, customer_id=customer_id)
-            if not db_customer:
+    # Validate solution_id if provided
+    if solution_id:
+        db_solution = solution.get_by_id(db, solution_id=solution_id)
+        if not db_solution:
+            raise HTTPException(
+                status_code=404,
+                detail="Solution not found"
+            )
+        
+        # For customer users, verify they have access to the solution
+        if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+            if not current_user.customer_id:
                 raise HTTPException(
-                    status_code=404,
-                    detail="Customer not found"
+                    status_code=403,
+                    detail="Not authorized"
                 )
-            return device.get_by_customer_with_name(db, customer_id=customer_id, skip=skip, limit=limit)
-        else:
-            return device.get_with_customer_name(db, skip=skip, limit=limit)
+            
+            # Check if customer has access to this solution
+            has_access = customer_solution.check_customer_has_access(
+                db, 
+                customer_id=current_user.customer_id, 
+                solution_id=solution_id
+            )
+            
+            if not has_access:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Not authorized to filter by this solution"
+                )
+
+
+    if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
+        # Use efficient method for all devices with optional solution filter
+        return device.get_with_customer_name_and_solution_filter(
+            db, 
+            solution_id=solution_id,
+            skip=skip, 
+            limit=limit
+        )
     else:
         # Customer users can only see their own devices
         if customer_id and current_user.customer_id != customer_id:
@@ -56,7 +84,15 @@ def get_devices(
                 status_code=403,
                 detail="Not authorized"
             )
-        return device.get_by_customer_with_name(db, customer_id=current_user.customer_id, skip=skip, limit=limit)
+        
+        # Use efficient method for customer's devices with optional solution filter
+        return device.get_by_customer_with_name_and_solution_filter(
+            db, 
+            customer_id=current_user.customer_id, 
+            solution_id=solution_id,
+            skip=skip, 
+            limit=limit
+        )
 
 @router.post("", response_model=DeviceSchema)
 def create_device(

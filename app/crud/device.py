@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, Union, List
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.crud.base import CRUDBase
-from app.models import Device, DeviceStatus, Customer
+from app.models import Device, DeviceStatus, Customer, DeviceSolution
 from app.schemas.device import DeviceCreate, DeviceUpdate
 import uuid
 
@@ -28,15 +28,61 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
             Device.customer_id == customer_id
         ).order_by(desc(Device.created_at)).offset(skip).limit(limit).all()
 
-
-    def get_with_customer_name(
-        self, db: Session, *, skip: int = 0, limit: int = 100
+    def get_with_customer_name_and_solution_filter(
+        self, db: Session, *, solution_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100
     ) -> List[Device]:
-        """Get all devices with customer name included"""
-        devices_with_customer = db.query(Device, Customer.name.label("customer_name"))\
+        """Get all devices with customer name, optionally filtered by solution"""
+        query = db.query(Device, Customer.name.label("customer_name"))\
+            .join(Customer, Device.customer_id == Customer.customer_id)
+        
+        if solution_id:
+            # Join with DeviceSolution to filter devices that have the specified solution
+            query = query.join(
+                DeviceSolution, 
+                Device.device_id == DeviceSolution.device_id
+            ).filter(
+                DeviceSolution.solution_id == solution_id
+            )
+        
+        query = query.order_by(
+            Device.customer_id, 
+            desc(Device.created_at)
+        ).offset(skip).limit(limit)
+        
+        devices_with_customer = query.all()
+        
+        # Add customer_name to each device object
+        result = []
+        for device_tuple in devices_with_customer:
+            device, customer_name = device_tuple
+            setattr(device, "customer_name", customer_name)
+            result.append(device)
+        
+        return result
+    
+
+    def get_by_customer_with_name_and_solution_filter(
+        self, db: Session, *, customer_id: uuid.UUID, solution_id: Optional[uuid.UUID] = None, 
+        skip: int = 0, limit: int = 100
+    ) -> List[Device]:
+        """Get customer's devices with customer name, optionally filtered by solution"""
+        query = db.query(Device, Customer.name.label("customer_name"))\
             .join(Customer, Device.customer_id == Customer.customer_id)\
-            .order_by(desc(Device.created_at))\
-            .offset(skip).limit(limit).all()
+            .filter(Device.customer_id == customer_id)
+        
+        if solution_id:
+            # Join with DeviceSolution to filter devices that have the specified solution
+            query = query.join(
+                DeviceSolution, 
+                Device.device_id == DeviceSolution.device_id
+            ).filter(
+                DeviceSolution.solution_id == solution_id
+            )
+        
+        query = query.order_by(desc(Device.created_at))\
+            .offset(skip).limit(limit)
+        
+        devices_with_customer = query.all()
         
         # Add customer_name to each device object
         result = []
@@ -47,25 +93,6 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         
         return result
 
-
-    def get_by_customer_with_name(
-        self, db: Session, *, customer_id: uuid.UUID, skip: int = 0, limit: int = 100
-    ) -> List[Device]:
-        """Get customer's devices with customer name included"""
-        devices_with_customer = db.query(Device, Customer.name.label("customer_name"))\
-            .join(Customer, Device.customer_id == Customer.customer_id)\
-            .filter(Device.customer_id == customer_id)\
-            .order_by(desc(Device.created_at))\
-            .offset(skip).limit(limit).all()
-        
-        # Add customer_name to each device object
-        result = []
-        for device_tuple in devices_with_customer:
-            device, customer_name = device_tuple
-            setattr(device, "customer_name", customer_name)
-            result.append(device)
-        
-        return result
 
     def create(self, db: Session, *, obj_in: DeviceCreate, device_name: str) -> Device:
         db_obj = Device(

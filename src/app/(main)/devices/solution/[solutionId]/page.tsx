@@ -3,8 +3,15 @@ import { Device } from "@/types/device";
 import { Solution } from "@/types/solution";
 import DeviceList from "./_components/DeviceList";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
 
 async function getSolutionDetails(solutionId: string, accessToken: string): Promise<Solution | null> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/${solutionId}`;
@@ -73,16 +80,19 @@ export default async function DeviceListPage({ params }: DeviceListPageProps) {
   return (
     <div className="space-y-6">
        <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" asChild>
-          <Link href="/devices">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
         <div>
-           <h1 className="text-2xl font-bold text-[#2C3E50]">
-              {solution.name}
-            </h1>
-            <p className="text-muted-foreground">このソリューションに属するデバイス</p>
+          <Breadcrumb className="text-sm text-[#7F8C8D]">
+            <BreadcrumbList>
+              <BreadcrumbItem className=" hover:underline">
+                <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="text-[#7F8C8D]" />
+              <BreadcrumbItem>{solution.name}</BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <h1 className="text-2xl font-bold text-[#2C3E50]">
+          {solution.name}
+          </h1>
         </div>
       </div>
       <DeviceList initialDevices={devices} />

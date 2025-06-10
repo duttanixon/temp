@@ -88,7 +88,7 @@ export default async function DeviceDetailsPage(
         <DeviceActions device={device} />
       </div>
 
-      <DeviceInfoCard device={device} />
+      {/* <DeviceInfoCard device={device} /> */}
       <DeviceDetailsTabs />
     </div>
   );

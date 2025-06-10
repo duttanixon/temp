@@ -1,5 +1,4 @@
 import { Device } from "@/types/device";
-import DeviceStatusBadge from "./DeviceStatusBadge";
 
 type DeviceInfoCardProps = {
   device: Device;
@@ -25,12 +24,6 @@ export default function DeviceInfoCard({ device }: DeviceInfoCardProps) {
             <span className="text-sm text-[#7F8C8D]">デバイスタイプ</span>
             <span className="text-sm font-medium text-[#2C3E50]">
               {device.device_type}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-[#7F8C8D]">ステータス</span>
-            <span className="text-sm font-medium text-[#2C3E50]">
-              <DeviceStatusBadge status={device.status} isOnline={device.is_online} />
             </span>
           </div>
         </div>

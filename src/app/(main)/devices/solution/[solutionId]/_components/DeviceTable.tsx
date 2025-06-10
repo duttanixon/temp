@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Device } from "@/types/device";
-import DeviceStatusBadge from "../_components/DeviceStatusBadge";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 type DeviceTableProps = {
@@ -68,7 +67,6 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
           <col className="w-1/5" />
           <col className="w-1/5" />
           <col className="w-1/10" />
-          <col className="w-1/5" />
           <col className="w-1/10" />
         </colgroup>
         <thead className="bg-[#ECF0F1]">
@@ -78,7 +76,7 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>名前</span>
+                <span>デバイス名</span>
                 {renderSortIcon("name")}
               </div>
             </th>
@@ -100,15 +98,6 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
                 {renderSortIcon("customer_name")}
               </div>
             </th>
-            <th
-              onClick={() => handleSort("status")}
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-            >
-              <div className="flex justify-center items-center gap-1 select-none">
-                <span>ステータス</span>
-                {renderSortIcon("status")}
-              </div>
-            </th>
             <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
               最終接続
             </th>
@@ -125,7 +114,7 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
                 onClick={() => router.push(`/devices/detail/${device.device_id}`)}
                 className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
               >
-                <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">
+                <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0 text-center">
                   <div className="truncate">{device.name}</div>
                 </td>
                 <td className="px-6 py-3 text-sm text-[#2C3E50] whitespace-nowrap text-center">
@@ -133,12 +122,6 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
                 </td>
                 <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
                   <div className="truncate">{device.customer_name || "-"}</div>
-                </td>
-                <td className="px-6 py-3 text-sm text-center">
-                  <DeviceStatusBadge
-                    status={device.status}
-                    isOnline={device.is_online}
-                  />
                 </td>
                 <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
                   {device.last_connected

@@ -4,9 +4,8 @@ import { Device } from "@/types/device";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-// import DevicePagination from "../../../../users/_components/Pagination";
 import DeviceFilters from "../../../_components/DeviceFilters";
-import DeviceTable from "../../../_components/DeviceTable";
+import DeviceTable from "./DeviceTable";
 
 interface DeviceListProps {
   initialDevices: Device[];
@@ -43,13 +42,6 @@ export default function DeviceList({ initialDevices }: DeviceListProps) {
       />
 
       <DeviceTable initialDevices={paginatedDevices} />
-
-      {/* <DevicePagination
-        page={page}
-        setPage={setPage}
-        totalItems={filteredDevices.length}
-        itemsPerPage={itemsPerPage}
-      /> */}
     </div>
   );
 }

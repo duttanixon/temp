@@ -1,5 +1,5 @@
 "use client";
-import DeviceTable from "@/app/(main)/devices/_components/DeviceTable";
+import DeviceTable from "@/app/(main)/devices/solution/[solutionId]/_components/DeviceTable";
 import {
   Breadcrumb,
   BreadcrumbItem,

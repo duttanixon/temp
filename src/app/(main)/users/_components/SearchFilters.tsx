@@ -35,7 +35,8 @@ export default function SearchFilters({
 
   return (
     <div
-      className={`relative border border-gray-400 rounded-md px-4 py-3 ${userRole === "ADMIN" ? "w-3/5" : "w-2/5"} bg-white overflow-hidden`}>
+      className={`relative border border-gray-400 rounded-md px-4 py-3 ${userRole === "ADMIN" ? "w-3/5" : "w-2/5"} bg-white overflow-hidden`}
+    >
       <div className="flex items-center gap-6 flex-nowrap">
         <div className="flex items-center gap-2">
           <label className="text-gray-800 text-sm whitespace-nowrap">
@@ -45,9 +46,10 @@ export default function SearchFilters({
           {/* Select Box */}
           <div className="relative w-40">
             <select
-              className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+              className="cursor-pointer w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
               value={status}
-              onChange={(e) => setStatus(e.target.value)}>
+              onChange={(e) => setStatus(e.target.value)}
+            >
               <option>すべて</option>
               <option value={"active"}>アクティブ</option>
               <option value={"inactive"}>非アクティブ</option>
@@ -64,9 +66,10 @@ export default function SearchFilters({
 
               <div className="relative w-40">
                 <select
-                  className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  className="cursor-pointer w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}>
+                  onChange={(e) => setRole(e.target.value)}
+                >
                   <option>すべて</option>
                   <option value={"ADMIN"}>システム管理者</option>
                   <option value={"CUSTOMER_ADMIN"}>顧客</option>
@@ -80,9 +83,10 @@ export default function SearchFilters({
 
               <div className="relative w-40">
                 <select
-                  className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  className="cursor-pointer w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   value={customer}
-                  onChange={(e) => setCustomer(e.target.value)}>
+                  onChange={(e) => setCustomer(e.target.value)}
+                >
                   <option>すべて</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.name}>
@@ -101,7 +105,7 @@ export default function SearchFilters({
         <div className="relative flex-grow min-w-[150px]">
           <Input
             placeholder="ユーザーを検索…"
-            className="h-[30px] w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="cursor-pointer h-[30px] w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

@@ -122,7 +122,7 @@ export default function DeviceTable({ initialDevices }: DeviceTableProps) {
             filteredAndSortedDevices.map((device) => (
               <tr
                 key={device.device_id}
-                onClick={() => router.push(`/devices/${device.device_id}`)}
+                onClick={() => router.push(`/devices/detail/${device.device_id}`)}
                 className="border-t cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
               >
                 <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0">

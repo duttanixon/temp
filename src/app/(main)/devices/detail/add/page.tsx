@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import DeviceCreateForm from "../_components/DeviceCreateForm";
+import DeviceCreateForm from "../../_components/DeviceCreateForm";
 import {
   Breadcrumb,
   BreadcrumbItem,

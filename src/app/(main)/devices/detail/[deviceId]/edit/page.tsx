@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
-import DeviceEditForm from "../../_components/DeviceEditForm";
+import DeviceEditForm from "../../../_components/DeviceEditForm";
 import type { Metadata, ResolvingMetadata } from "next";
 import {
   Breadcrumb,

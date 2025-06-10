@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
-import DeviceActions from "../_components/DeviceActions";
-import DeviceInfoCard from "../_components/DeviceInfoCard";
-import DeviceDetailsTabs from "../_components/DeviceDetailsTabs";
+import DeviceActions from "../../_components/DeviceActions";
+import DeviceInfoCard from "../../_components/DeviceInfoCard";
+import DeviceDetailsTabs from "../../_components/DeviceDetailsTabs";
 import type { Metadata, ResolvingMetadata } from "next";
 import {
   Breadcrumb,

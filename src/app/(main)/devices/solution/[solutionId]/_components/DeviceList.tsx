@@ -1,11 +1,10 @@
 "use client";
 
 import { Device } from "@/types/device";
-import { Plus } from "lucide-react";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import DeviceFilters from "../../../_components/DeviceFilters";
-import DeviceTable from "./DeviceTable";
+import DevicePagination from "../../../../users/_components/Pagination";
+import { DeviceTable } from "./DeviceTable";
 
 interface DeviceListProps {
   initialDevices: Device[];
@@ -41,7 +40,14 @@ export default function DeviceList({ initialDevices }: DeviceListProps) {
         setStatus={setStatus}
       />
 
-      <DeviceTable initialDevices={paginatedDevices} />
+      <DeviceTable devices={paginatedDevices} />
+
+      <DevicePagination
+        page={page}
+        setPage={setPage}
+        totalItems={filteredDevices.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 }

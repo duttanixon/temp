@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
 import { ProcessedAgeGroup } from "@/types/cityEyeAnalytics";
 
@@ -20,10 +19,13 @@ export default function AgeDistributionCard({
   error,
   hasAttemptedFetch,
 }: AgeDistributionCardProps) {
-  const hasData =
-    hasAttemptedFetch &&
-    ageDistributionData !== null &&
-    ageDistributionData.length > 0;
+  const chartColors = [
+    "var(--chart-analysis-1)",
+    "var(--chart-analysis-2)",
+    "var(--chart-analysis-3)",
+    "var(--chart-analysis-4)",
+    "var(--chart-analysis-5)",
+  ];
 
   return (
     <ShadcnPieChartDonutCard
@@ -34,6 +36,7 @@ export default function AgeDistributionCard({
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
+      chartColors={chartColors}
       emptyDataMessage="データがありません。"
       dataKey="value"
       nameKey="name"

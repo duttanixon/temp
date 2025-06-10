@@ -19,6 +19,13 @@ export default function VehicleTypeDistributionCard({
   error,
   hasAttemptedFetch,
 }: VehicleTypeDistributionCardProps) {
+  const chartColors = [
+    "var(--chart-analysis-1)",
+    "var(--chart-analysis-2)",
+    "var(--chart-analysis-3)",
+    "var(--chart-analysis-4)",
+    "var(--chart-analysis-5)",
+  ];
   return (
     <ShadcnPieChartDonutCard
       title={title}
@@ -28,6 +35,7 @@ export default function VehicleTypeDistributionCard({
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
+      chartColors={chartColors}
       emptyDataMessage="車種別データがありません。"
       dataKey="value" // Key in ProcessedVehicleType that holds the count
       nameKey="name" // Key in ProcessedVehicleType that holds the display label

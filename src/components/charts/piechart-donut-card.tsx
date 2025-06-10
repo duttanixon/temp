@@ -35,6 +35,7 @@ interface ShadcnPieChartDonutCardProps {
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
+  chartColors?: string[];
   chartHeight?: number;
   emptyDataMessage?: string;
   dataKey: string;
@@ -44,15 +45,6 @@ interface ShadcnPieChartDonutCardProps {
   unit?: string;
 }
 
-const DEFAULT_CHART_COLORS = [
-  "var(--chart-3)",
-  "var(--chart-1)",
-  "var(--chart-4)",
-  "var(--chart-2)",
-  "var(--chart-6)",
-  "var(--chart-5)",
-];
-
 export default function ShadcnPieChartDonutCard({
   title,
   description,
@@ -60,6 +52,7 @@ export default function ShadcnPieChartDonutCard({
   isLoading,
   error,
   hasAttemptedFetch,
+  chartColors,
   chartHeight = 250,
   emptyDataMessage = "データがありません。",
   dataKey,
@@ -71,7 +64,7 @@ export default function ShadcnPieChartDonutCard({
   const chartData = React.useMemo(() => data || [], [data]);
 
   const useChartConfig = (
-    seriesStyles: { name: string; cssVarColor: string; opacity?: number }[]
+    seriesStyles: { name: string; cssVarColor: string }[]
   ) => {
     return React.useMemo((): ChartConfig => {
       if (seriesStyles.length === 0) {
@@ -82,7 +75,6 @@ export default function ShadcnPieChartDonutCard({
         {
           label: style.name,
           color: style.cssVarColor,
-          fillOpacity: style.opacity,
         },
       ]);
       return Object.fromEntries(entries) as ChartConfig;
@@ -91,7 +83,10 @@ export default function ShadcnPieChartDonutCard({
   const chartConfig = useChartConfig(
     chartData.map((item, index) => ({
       name: item.configKey,
-      cssVarColor: DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length],
+      cssVarColor:
+        chartColors && chartColors.length > 0
+          ? chartColors[index % chartColors.length]
+          : "var(--chart-3)",
     }))
   );
 
@@ -116,7 +111,7 @@ export default function ShadcnPieChartDonutCard({
           <RechartsPieChart>
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent nameKey={nameKey} hideLabel />}
+              content={<ChartTooltipContent nameKey={nameKey} />}
             />
             <Pie
               data={chartData}
@@ -171,8 +166,9 @@ export default function ShadcnPieChartDonutCard({
           seriesStyles={chartData.map((item, index) => ({
             name: item.name,
             cssVarColor:
-              DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length],
-            opacity: 1,
+              chartColors && chartColors.length > 0
+                ? chartColors[index % chartColors.length]
+                : "var(--chart-3)",
           }))}
         />
       </>

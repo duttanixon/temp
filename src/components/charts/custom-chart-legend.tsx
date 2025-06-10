@@ -1,14 +1,12 @@
 import { type FC } from "react";
 
-import { cn } from "@/lib/utils";
-
 type CustomChartLegendProps = {
   seriesStyles: {
     name: string;
     cssVarColor: string;
-    opacity: number;
-    opacityClass?: string;
+    opacity?: number;
   }[];
+  className?: string;
 };
 
 export const CustomChartLegend: FC<CustomChartLegendProps> = ({
@@ -22,8 +20,11 @@ export const CustomChartLegend: FC<CustomChartLegendProps> = ({
       {seriesStyles.map((style) => (
         <div key={style.name} className="flex items-center gap-1.5 max-w-1/2">
           <div
-            className={cn("size-2 shrink-0 rounded-xs", style.opacityClass)}
-            style={{ backgroundColor: style.cssVarColor }}
+            className="size-2 shrink-0 rounded-xs"
+            style={{
+              backgroundColor: style.cssVarColor,
+              opacity: style.opacity,
+            }}
           />
           <div className="text-xs truncate">{style.name}</div>
         </div>

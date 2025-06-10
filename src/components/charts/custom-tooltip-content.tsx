@@ -6,7 +6,6 @@ import {
 } from "recharts/types/component/DefaultTooltipContent";
 
 import { cn } from "@/lib/utils";
-import { formatCompactSI } from "@/utils/common/format";
 
 type CustomTooltipContentProps = {
   label?: string;
@@ -34,9 +33,7 @@ export const CustomTooltipContent: FC<CustomTooltipContentProps> = ({
           <span className="text-foreground-alt truncate">{seriesName}</span>
         </div>
         <div className="flex">
-          <span className="text-foreground">
-            {formatCompactSI(Number(value))}
-          </span>
+          <span className="text-foreground">{value}</span>
           <span className="text-foreground-alt">{unit}</span>
         </div>
       </div>

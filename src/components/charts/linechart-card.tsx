@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -20,14 +20,14 @@ import {
 } from "@/components/ui/chart";
 import { Loader2, AlertTriangle, Info, TrendingUp } from "lucide-react";
 
-interface AreaChartDataItem {
+interface LineChartDataItem {
   [key: string]: string | number | undefined; // Allow undefined for property values
 }
 
-interface ShadcnAreaChartCardProps {
+interface ShadcnLineChartCardProps {
   title: string;
   description?: string;
-  data: AreaChartDataItem[] | null;
+  data: LineChartDataItem[] | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -49,7 +49,7 @@ interface ShadcnAreaChartCardProps {
   yAxisTickFormatter?: (value: number) => string;
 }
 
-export default function ShadcnAreaChartCard({
+export default function ShadcnLineChartCard({
   title,
   description,
   data,
@@ -67,7 +67,7 @@ export default function ShadcnAreaChartCard({
   yAxisDomain = ["auto", "auto"],
   xAxisTickFormatter,
   yAxisTickFormatter,
-}: ShadcnAreaChartCardProps) {
+}: ShadcnLineChartCardProps) {
   const chartData = React.useMemo(() => data || [], [data]);
 
   const chartConfig = React.useMemo(() => {
@@ -144,7 +144,7 @@ export default function ShadcnAreaChartCard({
         className="mx-auto"
         style={{ height: `${chartHeight}px` }}
       >
-        <AreaChart
+        <LineChart
           accessibilityLayer
           data={chartData}
           margin={{
@@ -181,21 +181,26 @@ export default function ShadcnAreaChartCard({
             content={<ChartTooltipContent indicator="line" />}
           />
           {dataKeys.map((dk) => (
-            <Area
+            <Line
               key={dk.dataKey}
               dataKey={dk.dataKey}
-              type="natural"
+              type="linear"
               fill={dk.color}
-              fillOpacity={0.4}
               stroke={dk.color}
-              stackId="a" // All areas will stack on top of each other
+              dot={{ r: 3, fill: dk.color, strokeWidth: 0 }}
+              activeDot={{
+                r: 5,
+                fill: dk.color,
+                stroke: dk.color,
+                strokeWidth: 0,
+              }}
               name={dk.label || dk.name} // For legend and tooltip
             />
           ))}
           {dataKeys.length > 1 && (
             <ChartLegend content={<ChartLegendContent verticalAlign="top" />} />
           )}
-        </AreaChart>
+        </LineChart>
       </ChartContainer>
     );
   };

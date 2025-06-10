@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import ShadcnAreaChartCard from "@/components/charts/areachart-card";
+import ShadcnLineChartCard from "@/components/charts/linechart-card";
 import { ProcessedHourlyDataPoint } from "@/types/cityEyeAnalytics";
 
 interface HumanHourlyDistributionCardProps {
@@ -23,7 +23,7 @@ export default function HumanHourlyDistributionCard({
     {
       name: "人数", // "Number of People"
       dataKey: "count",
-      color: "var(--chart-3)", // Or any other suitable chart color
+      color: "var(--chart-analysis-1)", // Or any other suitable chart color
       label: "時間別人数", // "Hourly People Count"
     },
   ];
@@ -48,7 +48,7 @@ export default function HumanHourlyDistributionCard({
   };
 
   return (
-    <ShadcnAreaChartCard
+    <ShadcnLineChartCard
       title={title}
       description="時間帯別の合計人数" // "Total number of people by time slot"
       data={hourlyDistributionData}

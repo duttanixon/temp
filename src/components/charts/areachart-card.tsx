@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Area, AreaChart, XAxis, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -19,15 +19,16 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { Loader2, AlertTriangle, Info, TrendingUp } from "lucide-react";
+import CustomTooltipContent from "@/components/charts/custom-tooltip-content";
 
-interface LineChartDataItem {
+interface AreaChartDataItem {
   [key: string]: string | number | undefined; // Allow undefined for property values
 }
 
-interface ShadcnLineChartCardProps {
+interface ShadcnAreaChartCardProps {
   title: string;
   description?: string;
-  data: LineChartDataItem[] | null;
+  data: AreaChartDataItem[] | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -49,7 +50,7 @@ interface ShadcnLineChartCardProps {
   yAxisTickFormatter?: (value: number) => string;
 }
 
-export default function ShadcnLineChartCard({
+export default function ShadcnAreaChartCard({
   title,
   description,
   data,
@@ -67,7 +68,7 @@ export default function ShadcnLineChartCard({
   yAxisDomain = ["auto", "auto"],
   xAxisTickFormatter,
   yAxisTickFormatter,
-}: ShadcnLineChartCardProps) {
+}: ShadcnAreaChartCardProps) {
   const chartData = React.useMemo(() => data || [], [data]);
 
   const chartConfig = React.useMemo(() => {
@@ -144,7 +145,7 @@ export default function ShadcnLineChartCard({
         className="mx-auto"
         style={{ height: `${chartHeight}px` }}
       >
-        <LineChart
+        <AreaChart
           accessibilityLayer
           data={chartData}
           margin={{
@@ -178,18 +179,45 @@ export default function ShadcnLineChartCard({
           />
           <ChartTooltip
             cursor={false}
-            content={<ChartTooltipContent indicator="line" />}
+            content={
+              <ChartTooltipContent
+                hideLabel
+                hideIndicator
+                formatter={(
+                  value,
+                  _name,
+                  item,
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  _index
+                ) => {
+                  const dataKey = item?.dataKey ?? "";
+                  const getIndicatorClass = chartConfig?.[dataKey]?.color;
+                  return (
+                    <CustomTooltipContent
+                      label={item?.payload?.[categoryKey]}
+                      seriesName={String(
+                        chartConfig?.[dataKey]?.label ?? dataKey
+                      )}
+                      value={value}
+                      unit={unit}
+                      indicatorClass={getIndicatorClass}
+                    />
+                  );
+                }}
+              />
+            }
           />
           {dataKeys.map((dk) => (
-            <Line
+            <Area
               key={dk.dataKey}
               dataKey={dk.dataKey}
               type="linear"
               fill={dk.color}
+              fillOpacity={0.4}
               stroke={dk.color}
-              dot={{ r: 3, fill: dk.color, strokeWidth: 0 }}
+              stackId="a"
               activeDot={{
-                r: 5,
+                r: 4,
                 fill: dk.color,
                 stroke: dk.color,
                 strokeWidth: 0,
@@ -200,7 +228,7 @@ export default function ShadcnLineChartCard({
           {dataKeys.length > 1 && (
             <ChartLegend content={<ChartLegendContent verticalAlign="top" />} />
           )}
-        </LineChart>
+        </AreaChart>
       </ChartContainer>
     );
   };

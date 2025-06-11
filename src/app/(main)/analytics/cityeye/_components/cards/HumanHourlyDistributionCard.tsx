@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import ShadcnLineChartCard from "@/components/charts/linechart-card";
+import ShadcnLineChartCard from "@/components/charts/areachart-card";
 import { ProcessedHourlyDataPoint } from "@/types/cityEyeAnalytics";
 
 interface HumanHourlyDistributionCardProps {

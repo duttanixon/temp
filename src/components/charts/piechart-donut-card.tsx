@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/chart"; //
 import { Loader2, AlertTriangle, Info } from "lucide-react";
 import CustomChartLegend from "@/components/charts/custom-chart-legend";
+import CustomTooltipContent from "./custom-tooltip-content";
 
 interface ChartDataItem {
   name: string;
@@ -62,6 +63,15 @@ export default function ShadcnPieChartDonutCard({
   unit,
 }: ShadcnPieChartDonutCardProps) {
   const chartData = React.useMemo(() => data || [], [data]);
+
+  // const chartDataWithColorClass = chartData.map((item, index) => ({
+  //   ...item,
+  //   cssVarColor:
+  //     chartColors && chartColors.length > 0
+  //       ? chartColors[index % chartColors.length]
+  //       : "var(--chart-3)",
+
+  // }));
 
   const useChartConfig = (
     seriesStyles: { name: string; cssVarColor: string }[]
@@ -106,12 +116,36 @@ export default function ShadcnPieChartDonutCard({
       <>
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square w-3xs [&_.recharts-text:not(.recharts-label)]:fill-background"
+          className="mx-auto w-full max-w-xs aspect-square [&_.recharts-text:not(.recharts-label)]:fill-background"
         >
           <RechartsPieChart>
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent nameKey={nameKey} />}
+              content={
+                <ChartTooltipContent
+                  hideLabel
+                  hideIndicator
+                  formatter={(
+                    value,
+                    _name,
+                    item,
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    _index
+                  ) => {
+                    return (
+                      <CustomTooltipContent
+                        label={item?.payload.category}
+                        seriesName={item?.payload.name}
+                        value={value}
+                        unit={unit}
+                        indicatorClass={
+                          chartConfig[item?.payload.configKey]?.color
+                        }
+                      />
+                    );
+                  }}
+                />
+              }
             />
             <Pie
               data={chartData}
@@ -119,14 +153,13 @@ export default function ShadcnPieChartDonutCard({
               nameKey={nameKey}
               innerRadius={outerRadiusValue * 0.6}
               outerRadius={outerRadiusValue}
-              strokeWidth={5}
               startAngle={90}
               endAngle={-270}
               labelLine={false} // Set true if position="outside" for labels
             >
-              {chartData.map((entry) => (
+              {chartData.map((entry, index) => (
                 <Cell
-                  key={`cell-${entry.configKey}`}
+                  key={index}
                   fill={chartConfig[entry.configKey]?.color || "#CCCCCC"}
                   stroke={chartConfig[entry.configKey]?.color || "#CCCCCC"}
                 />

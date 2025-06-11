@@ -156,7 +156,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
                       seriesName={groupALabel}
                       value={value}
                       unit={unit}
-                      indicatorClass="bg-chart-male"
+                      indicatorClass="var(--chart-male)"
                     />
                   )}
                 />
@@ -237,7 +237,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
                       seriesName={groupBLabel}
                       value={value}
                       unit={unit}
-                      indicatorClass="bg-chart-female"
+                      indicatorClass="var(--chart-female)"
                     />
                   )}
                 />

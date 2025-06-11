@@ -1,3 +1,7 @@
+/*
+* This component list all table header for the device table, common accross all application
+*/
+
 import { type FC } from 'react';
 import { ChevronDown, ChevronUp } from "lucide-react";
 

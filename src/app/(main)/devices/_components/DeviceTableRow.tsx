@@ -1,3 +1,7 @@
+/*
+* This component list all table rows for the device table, common accross all application
+*/
+
 "use client";
 
 import { type FC } from "react";

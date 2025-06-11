@@ -1,3 +1,7 @@
+/*
+* This component list all the devices based on application, common accross all application
+*/
+
 "use client";
 
 import { type FC, type ReactNode, useState, useMemo } from "react";

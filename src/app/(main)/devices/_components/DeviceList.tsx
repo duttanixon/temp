@@ -1,3 +1,8 @@
+/*
+* This component host all the devicetable based on application, common accross all application
+*/
+
+
 "use client";
 
 import { Device } from "@/types/device";

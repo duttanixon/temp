@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
-import DeviceDetailsTabs from "../../_components/DeviceDetailsTabs";
+import DeviceDetailsTabs from "./_components/DeviceDetailsTabs";
 import type { Metadata, ResolvingMetadata } from "next";
 import {
   Breadcrumb,

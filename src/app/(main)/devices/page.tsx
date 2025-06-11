@@ -1,3 +1,23 @@
+/*
+  This page is the entry point for the device management section of the application. The overall structure of the /devices route is as follows:
+
+  1.  /devices:
+      - This is the solutions landing page. It displays a list of all available solutions (e.g., CityEye, TrafficEye).
+      - Each solution card links to the device list page for that specific solution.
+
+  2.  /devices/[applicationId]:
+      - This is the device list page. It's a dynamic route that displays all devices associated with the selected solution (`applicationId`).
+      - It fetches the devices based on the solution and renders the `DeviceList` component.
+
+  3.  /devices/detail/[deviceId]:
+      - This is the device detail page. It's a dynamic route that shows detailed information for a specific device (`deviceId`).
+      - This page is generic and can display details for any device, regardless of its solution.
+
+  4.  /devices/[solution_name]/[deviceId]/[action]:
+      - This represents solution-specific device action pages. For example, `/devices/cityeye/[deviceId]/edit` is used for editing a device within the CityEye solution.
+      - These pages handle actions that are unique to a particular solution.
+*/
+
 import { auth } from "@/auth";
 import {
   Card,

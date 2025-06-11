@@ -1,3 +1,9 @@
+/*
+/devices/[applicationId]:
+- This is the device list page. It's a dynamic route that displays all devices associated with the selected solution (`applicationId`).
+- It fetches the devices based on the solution and renders the `DeviceList` component.
+*/
+
 import { auth } from "@/auth";
 import { Device } from "@/types/device";
 import { Solution } from "@/types/solution";

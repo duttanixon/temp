@@ -1,3 +1,9 @@
+/*
+/devices/[solution_name]/[deviceId]/[action]:
+- This represents solution-specific device action pages. For example, `/devices/cityeye/[deviceId]/edit` is used for editing a device within the CityEye solution.
+- These pages handle actions that are unique to a particular solution.
+*/
+
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import DeviceEditForm from "./DeviceEditForm";

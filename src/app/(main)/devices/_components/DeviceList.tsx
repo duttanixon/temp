@@ -1,16 +1,18 @@
 "use client";
 
 import { Device } from "@/types/device";
+import { Solution } from "@/types/solution";
 import { useMemo, useState } from "react";
-import DeviceFilters from "../../../_components/DeviceFilters";
-import DevicePagination from "../../../../users/_components/Pagination";
+import DeviceFilters from "./DeviceFilters";
+import DevicePagination from "../../users/_components/Pagination";
 import { DeviceTable } from "./DeviceTable";
 
 interface DeviceListProps {
   initialDevices: Device[];
+  solution: Solution;
 }
 
-export default function DeviceList({ initialDevices }: DeviceListProps) {
+export default function DeviceList({ initialDevices, solution }: DeviceListProps) {
   const [deviceType, setDeviceType] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(0);
@@ -39,7 +41,7 @@ export default function DeviceList({ initialDevices }: DeviceListProps) {
         setStatus={setStatus}
       />
 
-      <DeviceTable devices={paginatedDevices} />
+      <DeviceTable devices={paginatedDevices} solution={solution}/>
 
       <DevicePagination
         page={page}

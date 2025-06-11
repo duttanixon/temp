@@ -6,9 +6,11 @@ import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Edit } from "lucide-react";
 import { Device } from "@/types/device";
+import { Solution } from "@/types/solution";
 
 type DeviceTableRowProps = {
   device: Device;
+  solution: Solution;
 };
 
 /**
@@ -16,6 +18,7 @@ type DeviceTableRowProps = {
  */
 export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   device,
+  solution
 }) => {
   const router = useRouter();
 

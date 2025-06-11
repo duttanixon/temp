@@ -2,6 +2,7 @@
 
 import { type FC, type ReactNode, useState, useMemo } from "react";
 import { Device } from "@/types/device";
+import { Solution } from "@/types/solution"; 
 import { DeviceTableHeader } from "./DeviceTableHeader";
 import { DeviceTableRow } from "./DeviceTableRow";
 
@@ -11,7 +12,9 @@ type SortDirection = "asc" | "desc";
 type DeviceTableProps = {
   children?: ReactNode;
   devices?: Device[];
+  solution: Solution;
   isShowInactive?: boolean;
+
 };
 
 /**
@@ -19,6 +22,7 @@ type DeviceTableProps = {
  */
 export const DeviceTable: FC<DeviceTableProps> = ({
   devices = [],
+  solution,
   isShowInactive = false,
 }) => {
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -65,6 +69,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
               <DeviceTableRow
                 key={device.device_id}
                 device={device}
+                solution={solution}
               />
             ))
           ) : (

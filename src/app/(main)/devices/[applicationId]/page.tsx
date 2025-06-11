@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { Device } from "@/types/device";
 import { Solution } from "@/types/solution";
-import DeviceList from "./_components/DeviceList";
+import DeviceList from "../_components/DeviceList";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,7 +100,7 @@ This page lists all the devicesb for a particular solution
           </h1>
         </div>
       </div>
-      <DeviceList initialDevices={devices} />
+      <DeviceList initialDevices={devices} solution={solution} />
     </div>
   );
 }

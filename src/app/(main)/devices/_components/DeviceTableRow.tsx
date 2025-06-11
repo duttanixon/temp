@@ -8,9 +8,9 @@ import { type FC } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Edit } from "lucide-react";
 import { Device } from "@/types/device";
 import { Solution } from "@/types/solution";
+import { deviceActionComponents } from './deviceActionComponents';
 
 type DeviceTableRowProps = {
   device: Device;
@@ -34,6 +34,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     router.push(`/devices/${device.device_id}/edit`);
   };
 
+  const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
   const isActive = device.status === "ACTIVE";
 
   return (
@@ -65,21 +66,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="w-[240px]">
         <div className="relative flex items-center justify-center gap-2 px-2">
           <div className="absolute left-0 top-0 h-full border-l border-[#BDC3C7]" />
-          {/* Edit Action */}
-          <div className="flex size-full items-center justify-center">
-            {isActive ? (
-              <button
-                onClick={handleEdit}
-                className="group flex size-[30px] items-center justify-center rounded-full transition-colors duration-300 hover:bg-[#27AE60]"
-              >
-                <Edit className="text-xl text-[#7F8C8D] transition-colors duration-300 group-hover:text-white" />
-              </button>
-            ) : (
-              <div className="group flex size-[30px] cursor-not-allowed items-center justify-center">
-                <Edit className="text-xl text-[#BDC3C7]" />
-              </div>
-            )}
-          </div>
+          <ActionComponent device={device} />
         </div>
       </td>
     </tr>

@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
-import DeviceActions from "../../_components/DeviceActions";
 import DeviceDetailsTabs from "../../_components/DeviceDetailsTabs";
 import type { Metadata, ResolvingMetadata } from "next";
 import {
@@ -84,7 +83,7 @@ export default async function DeviceDetailsPage(
             )}
           </h2>
         </div>
-        <DeviceActions device={device} />
+        {/* <DeviceActions device={device} /> */}
       </div>
       <DeviceDetailsTabs />
     </div>

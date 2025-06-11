@@ -11,19 +11,18 @@ interface DeviceListProps {
 }
 
 export default function DeviceList({ initialDevices }: DeviceListProps) {
-  const [devices, setDevices] = useState<Device[]>(initialDevices);
   const [deviceType, setDeviceType] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(0);
   const itemsPerPage = 10;
 
   const filteredDevices = useMemo(() => {
-    return devices.filter((device) => {
+    return initialDevices.filter((device) => {
       const matchesDeviceType = !deviceType || device.device_type === deviceType;
       const matchesStatus = !status || device.status === status;
       return matchesDeviceType && matchesStatus;
     });
-  }, [devices, deviceType, status]);
+  }, [initialDevices, deviceType, status]);
 
   const paginatedDevices = useMemo(() => {
     const start = page * itemsPerPage;

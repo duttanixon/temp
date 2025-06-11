@@ -44,6 +44,9 @@ function getSolutionIcon(index: number) {
   return icons[index % icons.length];
 }
 
+/*
+This page list all the solutions card such as cityeye, traffic eye, licence eye, flow eye
+*/
 export default async function DevicesPage() {
   const session = await auth();
   const accessToken = session?.accessToken ?? "";

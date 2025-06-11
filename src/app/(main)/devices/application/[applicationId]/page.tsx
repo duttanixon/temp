@@ -77,6 +77,11 @@ export default async function DeviceListPage({ params }: DeviceListPageProps) {
     )
   }
 
+
+/*
+This page lists all the devicesb for a particular solution
+*/
+
   return (
     <div className="space-y-6">
        <div className="flex items-center gap-4">

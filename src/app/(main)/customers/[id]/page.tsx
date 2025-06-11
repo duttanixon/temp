@@ -1,5 +1,5 @@
 "use client";
-import DeviceTable from "@/app/(main)/devices/solution/[solutionId]/_components/DeviceTable";
+import { DeviceTable } from "@/app/(main)/devices/application/[applicationId]/_components/DeviceTable";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -232,7 +232,7 @@ export default function CustomerOverviewPage() {
         </TabsContent>
 
         <TabsContent value="device">
-          <DeviceTable initialDevices={devices} />
+          <DeviceTable devices={devices} />
         </TabsContent>
 
         <TabsContent value="user">

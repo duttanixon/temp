@@ -53,14 +53,14 @@ async function getDevicesBySolution(solutionId: string, accessToken: string): Pr
 }
 
 type DeviceListPageProps = {
-  params:  Promise<{ solutionId: string }>;
+  params:  Promise<{ applicationId: string }>;
 };
 
 export default async function DeviceListPage({ params }: DeviceListPageProps) {
   const resolvedParams = await params;
-  const  solutionId  = resolvedParams.solutionId;
+  const  solutionId  = resolvedParams.applicationId;
   const session = await auth();
-  const accessToken = session?.accessToken ?? "";
+  const accessToken = session?.accessToken ?? "";    
   
   const solution = await getSolutionDetails(solutionId, accessToken);
   const devices = await getDevicesBySolution(solutionId, accessToken);

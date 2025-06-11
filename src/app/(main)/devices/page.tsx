@@ -86,7 +86,7 @@ export default async function DevicesPage() {
                   className="w-full bg-primary hover:bg-primary/90"
                   asChild
                 >
-                  <Link href={`/devices/solution/${solution.solution_id}`}>
+                  <Link href={`/devices/application/${solution.solution_id}`}>
                     デバイスを表示
                   </Link>
                 </Button>

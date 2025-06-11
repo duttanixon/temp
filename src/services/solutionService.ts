@@ -1,62 +1,11 @@
 // src/services/solutionService.ts
-import axios, { AxiosError } from "axios";
-import { getSession } from "next-auth/react";
+import axios from "axios";
 import {
   Solution,
   SolutionCreateData,
   SolutionUpdateData,
 } from "@/types/solution";
-
-// Create an axios instance
-const apiClient = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}`,
-});
-
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.accessToken}`;
-  }
-  return config;
-});
-
-// Helper for consistent error handling
-function handleApiError(error: any): never {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>;
-    let message: string;
-
-    if (axiosError.response?.data?.detail) {
-      message = axiosError.response.data.detail;
-    } else if (axiosError?.message) {
-      message = axiosError.message;
-    } else {
-      message = "An unexpected error occurred";
-    }
-
-    console.error("API Error:", message);
-    throw new Error(message);
-  }
-
-  // For non-axios errors
-  if (error instanceof Error) {
-    throw error;
-  }
-
-  throw new Error("An unexpected error occurred");
-}
-
-// Helper to clean empty fields
-function cleanEmptyFields<T extends Record<string, any>>(data: T): T {
-  const cleanData = { ...data };
-  Object.keys(cleanData).forEach((key) => {
-    if (cleanData[key] === "") {
-      delete cleanData[key];
-    }
-  });
-  return cleanData;
-}
+import { apiClient, cleanData, handleApiError } from "./baseApiClient";
 
 export const solutionService = {
   // Get all solutions
@@ -104,27 +53,72 @@ export const solutionService = {
     }
   },
 
-  // Create a new solution
   async createSolution(data: SolutionCreateData): Promise<Solution> {
     try {
-      const cleanData = cleanEmptyFields(data);
-      const response = await apiClient.post<Solution>("/solutions", cleanData);
+      // Extract only primitive fields (string | number | boolean)
+      const primitiveFields: Record<string, string | number | boolean> = {};
+
+      for (const key in data) {
+        const value = data[key as keyof SolutionCreateData];
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"
+        ) {
+          primitiveFields[key] = value;
+        }
+      }
+
+      // Clean only the primitive fields
+      const cleaned = cleanData(primitiveFields);
+
+      // Merge cleaned primitive fields back into the full data object
+      const finalPayload: SolutionCreateData = {
+        ...data,
+        ...cleaned,
+      };
+
+      const response = await apiClient.post<Solution>(
+        "/solutions",
+        finalPayload
+      );
       return response.data;
     } catch (error) {
       return handleApiError(error);
     }
   },
 
-  // Update an existing solution
   async updateSolution(
     id: string,
     data: SolutionUpdateData
   ): Promise<Solution> {
     try {
-      const cleanData = cleanEmptyFields(data);
+      // Extract only primitive fields
+      const primitiveFields: Record<string, string | number | boolean> = {};
+
+      for (const key in data) {
+        const value = data[key as keyof SolutionUpdateData];
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"
+        ) {
+          primitiveFields[key] = value;
+        }
+      }
+
+      // Clean the primitive fields
+      const cleaned = cleanData(primitiveFields);
+
+      // Merge cleaned values back with full data
+      const finalPayload: SolutionUpdateData = {
+        ...data,
+        ...cleaned,
+      };
+
       const response = await apiClient.put<Solution>(
         `/solutions/${id}`,
-        cleanData
+        finalPayload
       );
       return response.data;
     } catch (error) {

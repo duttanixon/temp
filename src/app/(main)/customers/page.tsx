@@ -1,22 +1,15 @@
 "use client";
-import axios from "axios";
+
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import CustomerTable from "./_components/CustomerTable";
 import SearchFilters from "./_components/SearchFilters";
 import StatsCard from "./_components/StatsCard";
 import CustomerPagination from "@/app/(main)/customers/_components/Pagination";
+import type { Customer } from "@/types/customer";
+import { customerService } from "@/services/customerService";
 import { Plus } from "lucide-react";
-
-interface Customer {
-  customer_id: string;
-  name: string;
-  contact_email: string;
-  device: number;
-  address: string;
-  status: string;
-  created_at: string;
-}
+import { deviceService } from "@/services/deviceService";
 
 export default function CustomersPage() {
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
@@ -28,24 +21,12 @@ export default function CustomersPage() {
     const fetchAllCustomers = async () => {
       let allData: Customer[] = [];
       let skip = 0;
-      const limit = 20;
+      const limit = 100;
       let hasMore = true;
 
       try {
         while (hasMore) {
-          const res = await axios.get(
-            `/api/customers?skip=${skip}&limit=${limit}`
-          );
-          const data = res.data;
-
-          const list: Customer[] = Array.isArray(data)
-            ? data
-            : Array.isArray(data.customers)
-              ? data.customers
-              : Array.isArray(data.data)
-                ? data.data
-                : [];
-
+          const list = await customerService.getCustomers(skip, limit);
           allData = [...allData, ...list];
 
           if (list.length < limit) {
@@ -68,16 +49,8 @@ export default function CustomersPage() {
   useEffect(() => {
     const fetchDeviceCounts = async () => {
       try {
-        const res = await axios.get("/api/customers/devices", {
-          headers: { Accept: "application/json" },
-        });
-        const data: Record<string, number> = res.data;
-
-        const total = Object.values(data).reduce(
-          (acc, count) => acc + count,
-          0
-        );
-        setTotalDevices(total);
+        const devices = await deviceService.getDevices();
+        setTotalDevices(devices.length);
       } catch (error) {
         console.error("Failed to fetch device counts:", error);
       }

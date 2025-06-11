@@ -21,7 +21,7 @@ export default function SolutionFilters({
           <select
             value={deviceType}
             onChange={(e) => setDeviceType(e.target.value)}
-            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700"
+            className="cursor-pointer w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700"
           >
             <option value="">すべて</option>
             <option value="NVIDIA_JETSON">NVIDIA Jetson</option>
@@ -36,7 +36,7 @@ export default function SolutionFilters({
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700"
+            className="cursor-pointer w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700"
           >
             <option value="">すべて</option>
             <option value="ACTIVE">有効</option>

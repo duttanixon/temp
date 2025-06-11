@@ -58,6 +58,7 @@ export default function HumanComparisonView({
           </div>
           <TotalPeopleCard
             title="総人数 (分析期間)"
+            subtitle="デバイス別人数"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
@@ -117,6 +118,7 @@ export default function HumanComparisonView({
           </div>
           <TotalPeopleCard
             title="総人数 (比較期間)"
+            subtitle="デバイス別人数"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}

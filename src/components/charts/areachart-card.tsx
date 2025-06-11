@@ -235,7 +235,7 @@ export default function ShadcnAreaChartCard({
   return (
     <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
       <CardHeader className="items-center pb-0 pt-3 px-4">
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-gray-700">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="flex-1 pb-0">{renderContent()}</CardContent>

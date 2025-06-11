@@ -68,7 +68,7 @@ export function AgesFilter({
               />
               <Label
                 htmlFor={`age-${age.id}`}
-                className="text-sm font-normal whitespace-nowrap"
+                className="text-sm font-normal whitespace-nowrap cursor-pointer"
               >
                 {age.label}
               </Label>

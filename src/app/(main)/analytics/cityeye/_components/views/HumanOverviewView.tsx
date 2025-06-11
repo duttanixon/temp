@@ -17,7 +17,7 @@ interface OverviewViewProps {
 }
 
 // Update card titles to reflect the new card
-const placeholderCardTitles = ["カメラマップ", "期間内イベント一覧"];
+const placeholderCardTitles = ["カメラマップ"];
 
 export default function OverviewView({
   processedData,
@@ -29,6 +29,7 @@ export default function OverviewView({
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
       <TotalPeopleCard
         title="総人数"
+        subtitle="デバイス別人数"
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}

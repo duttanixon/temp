@@ -56,6 +56,7 @@ export default function TrafficComparisonView({
           </div>
           <TotalVehiclesCard
             title="総交通量 (分析期間)"
+            subtitle="デバイス別交通量"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
@@ -98,6 +99,7 @@ export default function TrafficComparisonView({
           </div>
           <TotalVehiclesCard
             title="総交通量 (比較期間)"
+            subtitle="デバイス別交通量"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
@@ -105,7 +107,8 @@ export default function TrafficComparisonView({
               comparisonPeriodProcessedData?.totalVehicles?.totalCount ?? null
             }
             perDeviceCountsData={
-              comparisonPeriodProcessedData?.totalVehicles?.perDeviceCounts ?? []
+              comparisonPeriodProcessedData?.totalVehicles?.perDeviceCounts ??
+              []
             }
           />
           <VehicleTypeDistributionCard

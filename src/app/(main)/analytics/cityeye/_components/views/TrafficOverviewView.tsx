@@ -15,7 +15,11 @@ interface TrafficOverviewViewProps {
 }
 
 // Placeholder cards for future features
-const placeholderCardTitles = ["交通密度マップ", "ピーク時間分析", "車線別統計"];
+const placeholderCardTitles = [
+  "交通密度マップ",
+  "ピーク時間分析",
+  "車線別統計",
+];
 
 export default function TrafficOverviewView({
   processedData,
@@ -27,11 +31,14 @@ export default function TrafficOverviewView({
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
       <TotalVehiclesCard
         title="総交通量"
+        subtitle="デバイス別交通量"
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
         totalCountData={processedData?.totalVehicles?.totalCount ?? null}
-        perDeviceCountsData={processedData?.totalVehicles?.perDeviceCounts ?? []}
+        perDeviceCountsData={
+          processedData?.totalVehicles?.perDeviceCounts ?? []
+        }
       />
       <VehicleTypeDistributionCard
         title="車種別分析"
@@ -39,7 +46,8 @@ export default function TrafficOverviewView({
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
         vehicleTypeDistributionData={
-          processedData?.vehicleTypeDistribution?.overallVehicleTypeDistribution ?? null
+          processedData?.vehicleTypeDistribution
+            ?.overallVehicleTypeDistribution ?? null
         }
       />
       <TrafficHourlyDistributionCard
@@ -51,7 +59,7 @@ export default function TrafficOverviewView({
           processedData?.hourlyDistribution?.overallHourlyDistribution ?? null
         }
       />
-      
+
       {/* Render placeholder cards */}
       {placeholderCardTitles.map((title, index) => (
         <AnalyticsCard key={index} title={title}>

@@ -270,7 +270,7 @@ export default function ShadcnPieChartDonutCard({
         <CardHeader className="items-center pb-0 pt-3 px-4 flex flex-row justify-between">
           {" "}
           {/* Changed to flex-row and justify-between */}
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="text-gray-700">{title}</CardTitle>
           {/* <Button variant="ghost" size="icon" onClick={handleOpenFullScreen} className="h-6 w-6 p-0"> 
             <Maximize className="h-4 w-4" />
           </Button> */}

@@ -16,7 +16,7 @@ const CityEyeDeviceActions: FC<CityEyeDeviceActionsProps> = ({ device }) => {
         e.stopPropagation();
         // This will now navigate to a "city_eye" specific edit page.
         // router.push(`/analytics/cityeye/edit/${device.device_id}`);
-        router.push(`/devices/detail/later/edit?deviceId=${device.device_id}`);
+        router.push(`/devices/cityeye/${device.device_id}/edit`);
       };
 
       return (

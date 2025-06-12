@@ -14,14 +14,15 @@ class DeviceBase(BaseModel):
     device_type: DeviceType
     firmware_version: Optional[str] = None
     location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float]=None
 
 # Properties to receive on device creation
 class DeviceCreate(DeviceBase):
     customer_id: UUID
     ip_address: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float]=None
+
 
 class DeviceProvisionResponse(BaseModel):
     device_id: str  # Now this is the certificate ID

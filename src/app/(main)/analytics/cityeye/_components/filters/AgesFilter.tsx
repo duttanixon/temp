@@ -48,6 +48,8 @@ export function AgesFilter({
     }
   };
 
+  const selectionSummary = `(${selectedAges.length}/${ALL_AGES.length})`;
+
   return (
     <FilterCard
       title="年齢層"
@@ -55,6 +57,7 @@ export function AgesFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
     >
       <div className="space-y-3">
         {/* Select All Option */}
@@ -63,13 +66,13 @@ export function AgesFilter({
             id="select-all-ages"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-ages"
             className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
           >
-            すべて ({selectedAges.length}/{ALL_AGES.length})
+            すべて
           </Label>
         </div>
 
@@ -88,7 +91,7 @@ export function AgesFilter({
                   id={`age-${age.id}`}
                   checked={selectedAges.includes(age.id)}
                   onCheckedChange={() => handleAgeToggle(age.id)}
-                  className="cursor-pointer data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={`age-${age.id}`}

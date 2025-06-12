@@ -41,6 +41,8 @@ export function DevicesFilter({
     availableDevices.length > 0 &&
     selectedDevices.length === availableDevices.length;
 
+  const selectionSummary = `(${selectedDevices.length}/${availableDevices.length})`;
+
   useEffect(() => {
     const fetchDevicesForSolution = async () => {
       if (!solutionId) {
@@ -142,18 +144,18 @@ export function DevicesFilter({
     return (
       <div className="space-y-3">
         {/* Select All Option */}
-        <div className="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+        <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
           <Checkbox
             id="select-all-devices"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-devices"
             className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
           >
-            すべて ({selectedDevices.length}/{availableDevices.length})
+            すべて
           </Label>
         </div>
 
@@ -178,7 +180,7 @@ export function DevicesFilter({
                       onCheckedChange={() =>
                         handleDeviceToggle(device.device_id)
                       }
-                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+                      className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
                     />
                     <Label
                       htmlFor={`device-${device.device_id}`}
@@ -204,6 +206,7 @@ export function DevicesFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
     >
       {renderContent()}
     </FilterCard>

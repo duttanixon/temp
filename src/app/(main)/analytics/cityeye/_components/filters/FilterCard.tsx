@@ -11,6 +11,7 @@ interface FilterCardProps {
   iconBgColor?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  selectionSummary?: string;
 }
 
 export function FilterCard({
@@ -21,6 +22,7 @@ export function FilterCard({
   iconBgColor = "bg-blue-100",
   collapsible = false,
   defaultExpanded = true,
+  selectionSummary,
 }: FilterCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -57,13 +59,18 @@ export function FilterCard({
           {collapsible && (
             <div className="text-slate-500 group-hover:text-slate-700 transition-colors">
               {isExpanded ? (
-                <ChevronUp className="w-4 h-4" />
+                <ChevronUp className="size-4" />
               ) : (
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="size-4" />
               )}
             </div>
           )}
         </div>
+        {selectionSummary && !isExpanded && (
+          <span className="px-2 py-1 rounded-full text-xs font-medium text-slate-500">
+            {selectionSummary}
+          </span>
+        )}
       </CardHeader>
 
       {isExpanded && (

@@ -14,6 +14,11 @@ const ALL_HOURS = Array.from({ length: 24 }, (_, i) => ({
 // Time period presets
 const TIME_PRESETS = [
   {
+    id: "midnight",
+    label: "深夜 (0-6)",
+    hours: ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00"],
+  },
+  {
     id: "morning",
     label: "朝 (6-12)",
     hours: ["06:00", "07:00", "08:00", "09:00", "10:00", "11:00"],
@@ -27,11 +32,6 @@ const TIME_PRESETS = [
     id: "evening",
     label: "夜 (18-24)",
     hours: ["18:00", "19:00", "20:00", "21:00", "22:00", "23:00"],
-  },
-  {
-    id: "midnight",
-    label: "深夜 (0-6)",
-    hours: ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00"],
   },
 ];
 
@@ -91,6 +91,8 @@ export function HoursFilter({
     return preset.hours.every((hour) => selectedHours.includes(hour));
   };
 
+  const selectionSummary = `(${selectedHours.length}/${ALL_HOURS.length})`;
+
   return (
     <FilterCard
       title="時間帯"
@@ -98,21 +100,22 @@ export function HoursFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
     >
       <div className="space-y-4">
         {/* Select All Option */}
-        <div className="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+        <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
           <Checkbox
             id="select-all-hours"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-hours"
             className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
           >
-            すべて ({selectedHours.length}/24)
+            すべて
           </Label>
         </div>
 
@@ -154,7 +157,7 @@ export function HoursFilter({
                     id={`hour-${hour.id}`}
                     checked={selectedHours.includes(hour.id)}
                     onCheckedChange={() => handleHourToggle(hour.id)}
-                    className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+                    className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
                   />
                   <Label
                     htmlFor={`hour-${hour.id}`}

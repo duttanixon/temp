@@ -75,6 +75,8 @@ export function DaysFilter({
     return days.every((day) => selectedDays.includes(day));
   };
 
+  const selectionSummary = `(${selectedDays.length}/${ALL_DAYS.length})`;
+
   return (
     <FilterCard
       title="曜日"
@@ -82,21 +84,22 @@ export function DaysFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
     >
       <div className="space-y-4">
         {/* Select All Option */}
-        <div className="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+        <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
           <Checkbox
             id="select-all-days"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-days"
             className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
           >
-            すべて ({selectedDays.length}/7)
+            すべて
           </Label>
         </div>
 
@@ -137,7 +140,7 @@ export function DaysFilter({
                   id={day.id}
                   checked={selectedDays.includes(day.id)}
                   onCheckedChange={() => handleDayToggle(day.id)}
-                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={day.id}

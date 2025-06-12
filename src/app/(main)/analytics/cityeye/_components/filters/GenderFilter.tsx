@@ -45,6 +45,8 @@ export function GenderFilter({
     }
   };
 
+  const selectionSummary = `(${selectedGenders.length}/${ALL_GENDERS.length})`;
+
   return (
     <FilterCard
       title="性別"
@@ -52,6 +54,7 @@ export function GenderFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
     >
       <div className="space-y-3">
         {/* Select All Option */}
@@ -60,13 +63,13 @@ export function GenderFilter({
             id="select-all-genders"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-genders"
             className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
           >
-            すべて ({selectedGenders.length}/{ALL_GENDERS.length})
+            すべて
           </Label>
         </div>
 
@@ -85,7 +88,7 @@ export function GenderFilter({
                   id={`gender-${gender.id}`}
                   checked={selectedGenders.includes(gender.id)}
                   onCheckedChange={() => handleGenderToggle(gender.id)}
-                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={`gender-${gender.id}`}

@@ -54,7 +54,8 @@ export function AgesFilter({
       icon={icon}
       iconBgColor={iconBgColor}
       collapsible={collapsible}
-      defaultExpanded={defaultExpanded}>
+      defaultExpanded={defaultExpanded}
+    >
       <div className="space-y-3">
         {/* Select All Option */}
         <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
@@ -62,11 +63,12 @@ export function AgesFilter({
             id="select-all-ages"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-ages"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて ({selectedAges.length}/{ALL_AGES.length})
           </Label>
         </div>
@@ -80,16 +82,18 @@ export function AgesFilter({
             {ALL_AGES.map((age) => (
               <div
                 key={age.id}
-                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+              >
                 <Checkbox
                   id={`age-${age.id}`}
                   checked={selectedAges.includes(age.id)}
                   onCheckedChange={() => handleAgeToggle(age.id)}
-                  className="cursor-pointer data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
+                  className="cursor-pointer data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                 />
                 <Label
                   htmlFor={`age-${age.id}`}
-                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors">
+                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors"
+                >
                   {age.label}
                 </Label>
               </div>

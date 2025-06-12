@@ -59,7 +59,20 @@ export function DaysFilter({
   ];
 
   const handleQuickSelect = (days: string[]) => {
-    onSelectionChange(days);
+    const allSelected = days.every((day) => selectedDays.includes(day));
+    if (allSelected) {
+      // Deselect all days in this range
+      onSelectionChange(selectedDays.filter((d) => !days.includes(d)));
+      return;
+    } else {
+      // Select all days in this range
+      const newSelectedDays = [...new Set([...selectedDays, ...days])];
+      onSelectionChange(newSelectedDays);
+    }
+  };
+
+  const isQuickSelected = (days: string[]) => {
+    return days.every((day) => selectedDays.includes(day));
   };
 
   return (
@@ -68,7 +81,8 @@ export function DaysFilter({
       icon={icon}
       iconBgColor={iconBgColor}
       collapsible={collapsible}
-      defaultExpanded={defaultExpanded}>
+      defaultExpanded={defaultExpanded}
+    >
       <div className="space-y-4">
         {/* Select All Option */}
         <div className="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
@@ -76,11 +90,12 @@ export function DaysFilter({
             id="select-all-days"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-days"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて ({selectedDays.length}/7)
           </Label>
         </div>
@@ -95,7 +110,12 @@ export function DaysFilter({
               <button
                 key={range.label}
                 onClick={() => handleQuickSelect(range.days)}
-                className="text-xs p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors duration-200 border border-blue-200 hover:border-blue-300">
+                className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
+                  isQuickSelected(range.days)
+                    ? "bg-blue-100 text-blue-700 border border-blue-300"
+                    : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                }`}
+              >
                 {range.label}
               </button>
             ))}
@@ -111,16 +131,18 @@ export function DaysFilter({
             {ALL_DAYS.map((day) => (
               <div
                 key={day.id}
-                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+              >
                 <Checkbox
                   id={day.id}
                   checked={selectedDays.includes(day.id)}
                   onCheckedChange={() => handleDayToggle(day.id)}
-                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={day.id}
-                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors">
+                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors"
+                >
                   {day.label}
                 </Label>
               </div>

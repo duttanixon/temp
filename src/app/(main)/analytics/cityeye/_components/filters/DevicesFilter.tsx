@@ -110,7 +110,7 @@ export function DevicesFilter({
       return (
         <div className="flex items-center justify-center py-8">
           <div className="flex flex-col items-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
             <span className="text-sm text-slate-500">
               デバイスを読み込み中...
             </span>
@@ -147,11 +147,12 @@ export function DevicesFilter({
             id="select-all-devices"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-devices"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて ({selectedDevices.length}/{availableDevices.length})
           </Label>
         </div>
@@ -169,19 +170,21 @@ export function DevicesFilter({
                 return (
                   <div
                     key={device.device_id}
-                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+                  >
                     <Checkbox
                       id={`device-${device.device_id}`}
                       checked={selectedDevices.includes(device.device_id)}
                       onCheckedChange={() =>
                         handleDeviceToggle(device.device_id)
                       }
-                      className="data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                     />
                     <Label
                       htmlFor={`device-${device.device_id}`}
                       className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors truncate"
-                      title={displayName}>
+                      title={displayName}
+                    >
                       {displayName}
                     </Label>
                   </div>
@@ -200,7 +203,8 @@ export function DevicesFilter({
       icon={icon}
       iconBgColor={iconBgColor}
       collapsible={collapsible}
-      defaultExpanded={defaultExpanded}>
+      defaultExpanded={defaultExpanded}
+    >
       {renderContent()}
     </FilterCard>
   );

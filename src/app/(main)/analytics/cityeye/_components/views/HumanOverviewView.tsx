@@ -15,9 +15,6 @@ interface OverviewViewProps {
   hasAttemptedFetch: boolean;
 }
 
-// Update card titles to reflect the new card
-const placeholderCardTitles = ["カメラマップ"];
-
 export default function OverviewView({
   processedData,
   isLoading,
@@ -35,6 +32,21 @@ export default function OverviewView({
         totalCountData={processedData?.totalPeople?.totalCount ?? null}
         perDeviceCountsData={processedData?.totalPeople?.perDeviceCounts ?? []}
       />
+      <AnalyticsCard title="カメラマップ">
+        <div className="flex flex-col items-center justify-center w-full h-full">
+          <p className="text-sm text-muted-foreground p-4 text-center">
+            {hasAttemptedFetch
+              ? "データ表示エリア (カメラマップ)"
+              : "フィルターを適用してください。"}
+          </p>
+          {isLoading && hasAttemptedFetch && (
+            <p className="text-xs text-muted-foreground">更新中...</p>
+          )}
+          {error && hasAttemptedFetch && (
+            <p className="text-xs text-destructive">エラー: {error}</p>
+          )}
+        </div>
+      </AnalyticsCard>
       <AgeDistributionCard
         title="年齢層別分析"
         isLoading={isLoading}
@@ -53,8 +65,9 @@ export default function OverviewView({
           processedData?.genderDistribution?.overallGenderDistribution ?? null
         }
       />
+
       <HumanHourlyDistributionCard // Added
-        title="時間別分析"
+        title="時系列分析"
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
@@ -62,32 +75,16 @@ export default function OverviewView({
           processedData?.hourlyDistribution?.overallHourlyDistribution ?? null
         }
       />
-      <AgeGenderButterflyChartCard
-        title="年齢層・性別構成"
-        description="指定期間内の年齢層別・性別の人数構成"
-        isLoading={isLoading}
-        error={error} // This error is general for the API call
-        hasAttemptedFetch={hasAttemptedFetch}
-        data={processedData?.ageGenderDistribution ?? null}
-      />
-      {/* Render remaining placeholder cards if any */}
-      {placeholderCardTitles.map((title, index) => (
-        <AnalyticsCard key={index} title={title}>
-          <div className="flex flex-col items-center justify-center w-full h-full">
-            <p className="text-sm text-muted-foreground p-4 text-center">
-              {hasAttemptedFetch
-                ? `データ表示エリア (${title})`
-                : "フィルターを適用してください。"}
-            </p>
-            {isLoading && hasAttemptedFetch && (
-              <p className="text-xs text-muted-foreground">更新中...</p>
-            )}
-            {error && hasAttemptedFetch && (
-              <p className="text-xs text-destructive">エラー: {error}</p>
-            )}
-          </div>
-        </AnalyticsCard>
-      ))}
+      <div className="col-span-1">
+        <AgeGenderButterflyChartCard
+          title="年齢層・性別構成"
+          description="指定期間内の年齢層別・性別の人数構成"
+          isLoading={isLoading}
+          error={error} // This error is general for the API call
+          hasAttemptedFetch={hasAttemptedFetch}
+          data={processedData?.ageGenderDistribution ?? null}
+        />
+      </div>
     </div>
   );
 }

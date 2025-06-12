@@ -67,8 +67,8 @@ export function FilterGroup({
         <AnalysisPeriodFilter
           currentDateRange={currentFilters.analysisPeriod}
           onDateChange={handleAnalysisPeriodChange}
-          icon={<CalendarDays className="w-4 h-4 text-emerald-600" />}
-          iconBgColor="bg-emerald-100 group-hover:bg-emerald-200"
+          icon={<CalendarDays className="w-4 h-4 text-blue-600" />}
+          iconBgColor="bg-blue-100 group-hover:bg-blue-200"
           collapsible={true}
           defaultExpanded={false}
         />
@@ -77,8 +77,8 @@ export function FilterGroup({
           <ComparisonPeriodFilter
             currentDateRange={currentFilters.comparisonPeriod}
             onDateChange={handleComparisonPeriodChange}
-            icon={<CalendarDays className="w-4 h-4 text-purple-600" />}
-            iconBgColor="bg-purple-100 group-hover:bg-purple-200"
+            icon={<CalendarDays className="w-4 h-4 text-blue-600" />}
+            iconBgColor="bg-blue-100 group-hover:bg-blue-200"
             collapsible={true}
             defaultExpanded={false}
           />
@@ -100,8 +100,8 @@ export function FilterGroup({
           onSelectionChange={(newHours) =>
             onFilterChange({ selectedHours: newHours })
           }
-          icon={<Clock className="w-4 h-4 text-orange-600" />}
-          iconBgColor="bg-orange-100 group-hover:bg-orange-200"
+          icon={<Clock className="w-4 h-4 text-blue-600" />}
+          iconBgColor="bg-blue-100 group-hover:bg-blue-200"
           collapsible={true}
           defaultExpanded={false}
         />
@@ -112,8 +112,8 @@ export function FilterGroup({
           onSelectionChange={(newDevices) =>
             onFilterChange({ selectedDevices: newDevices })
           }
-          icon={<MapPin className="w-4 h-4 text-cyan-600" />}
-          iconBgColor="bg-cyan-100 group-hover:bg-cyan-200"
+          icon={<MapPin className="w-4 h-4 text-blue-600" />}
+          iconBgColor="bg-blue-100 group-hover:bg-blue-200"
           collapsible={true}
           defaultExpanded={false}
         />
@@ -125,8 +125,8 @@ export function FilterGroup({
               onSelectionChange={(newAges) =>
                 onFilterChange({ selectedAges: newAges })
               }
-              icon={<Users className="w-4 h-4 text-indigo-600" />}
-              iconBgColor="bg-indigo-100 group-hover:bg-indigo-200"
+              icon={<Users className="w-4 h-4 text-blue-600" />}
+              iconBgColor="bg-blue-100 group-hover:bg-blue-200"
               collapsible={true}
               defaultExpanded={false}
             />
@@ -135,8 +135,8 @@ export function FilterGroup({
               onSelectionChange={(newGenders) =>
                 onFilterChange({ selectedGenders: newGenders })
               }
-              icon={<User className="w-4 h-4 text-pink-600" />}
-              iconBgColor="bg-pink-100 group-hover:bg-pink-200"
+              icon={<User className="w-4 h-4 text-blue-600" />}
+              iconBgColor="bg-blue-100 group-hover:bg-blue-200"
               collapsible={true}
               defaultExpanded={false}
             />
@@ -149,8 +149,8 @@ export function FilterGroup({
             onSelectionChange={(newTrafficTypes) =>
               onFilterChange({ selectedTrafficTypes: newTrafficTypes })
             }
-            icon={<Car className="w-4 h-4 text-green-600" />}
-            iconBgColor="bg-green-100 group-hover:bg-green-200"
+            icon={<Car className="w-4 h-4 text-blue-600" />}
+            iconBgColor="bg-blue-100 group-hover:bg-blue-200"
             collapsible={true}
             defaultExpanded={false}
           />

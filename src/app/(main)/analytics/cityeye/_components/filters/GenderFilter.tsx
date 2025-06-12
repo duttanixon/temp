@@ -51,7 +51,8 @@ export function GenderFilter({
       icon={icon}
       iconBgColor={iconBgColor}
       collapsible={collapsible}
-      defaultExpanded={defaultExpanded}>
+      defaultExpanded={defaultExpanded}
+    >
       <div className="space-y-3">
         {/* Select All Option */}
         <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
@@ -59,11 +60,12 @@ export function GenderFilter({
             id="select-all-genders"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-genders"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて ({selectedGenders.length}/{ALL_GENDERS.length})
           </Label>
         </div>
@@ -77,16 +79,18 @@ export function GenderFilter({
             {ALL_GENDERS.map((gender) => (
               <div
                 key={gender.id}
-                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+              >
                 <Checkbox
                   id={`gender-${gender.id}`}
                   checked={selectedGenders.includes(gender.id)}
                   onCheckedChange={() => handleGenderToggle(gender.id)}
-                  className="data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
+                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={`gender-${gender.id}`}
-                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors">
+                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors"
+                >
                   {gender.label}
                 </Label>
               </div>

@@ -97,7 +97,8 @@ export function HoursFilter({
       icon={icon}
       iconBgColor={iconBgColor}
       collapsible={collapsible}
-      defaultExpanded={defaultExpanded}>
+      defaultExpanded={defaultExpanded}
+    >
       <div className="space-y-4">
         {/* Select All Option */}
         <div className="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
@@ -105,11 +106,12 @@ export function HoursFilter({
             id="select-all-hours"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-hours"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて ({selectedHours.length}/24)
           </Label>
         </div>
@@ -124,11 +126,12 @@ export function HoursFilter({
               <button
                 key={preset.id}
                 onClick={() => handlePresetToggle(preset)}
-                className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
                   isPresetSelected(preset)
-                    ? "bg-orange-100 text-orange-700 border border-orange-300"
+                    ? "bg-blue-100 text-blue-700 border border-blue-300"
                     : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
-                }`}>
+                }`}
+              >
                 {preset.label}
               </button>
             ))}
@@ -145,16 +148,18 @@ export function HoursFilter({
               {ALL_HOURS.map((hour) => (
                 <div
                   key={hour.id}
-                  className="flex items-center space-x-2 p-1 hover:bg-white rounded transition-colors duration-200 group">
+                  className="flex items-center space-x-2 p-1 hover:bg-white rounded transition-colors duration-200 group"
+                >
                   <Checkbox
                     id={`hour-${hour.id}`}
                     checked={selectedHours.includes(hour.id)}
                     onCheckedChange={() => handleHourToggle(hour.id)}
-                    className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                    className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                   />
                   <Label
                     htmlFor={`hour-${hour.id}`}
-                    className="text-xs text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors whitespace-nowrap">
+                    className="text-xs text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors whitespace-nowrap"
+                  >
                     {hour.label}
                   </Label>
                 </div>

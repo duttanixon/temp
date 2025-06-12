@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import React, { useState } from "react";
 
@@ -31,15 +32,21 @@ export function FilterCard({
 
   return (
     <Card
-      className={`shadow-lg border-0 py-0 gap-0 bg-white hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden ${className}`}>
+      className={cn(
+        "select-none shadow-lg border-0 py-0 gap-0 bg-white hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden",
+        className
+      )}
+    >
       <CardHeader
         className={`pb-3 pt-4 px-4 ${collapsible ? "cursor-pointer" : ""} group`}
-        onClick={toggleExpanded}>
+        onClick={toggleExpanded}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {icon && (
               <div
-                className={`p-2 ${iconBgColor} rounded-lg group-hover:scale-110 transition-transform duration-200`}>
+                className={`p-2 ${iconBgColor} rounded-lg group-hover:scale-110 transition-transform duration-200`}
+              >
                 {icon}
               </div>
             )}

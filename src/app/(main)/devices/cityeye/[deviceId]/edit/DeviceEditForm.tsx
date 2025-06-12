@@ -3,6 +3,7 @@
 import { FormField } from "@/components/forms/FormField";
 import {
   DeviceUpdateFormValues,
+  DeviceUpdateFormInput,
   deviceUpdateSchema,
 } from "@/schemas/deviceSchemas";
 import { deviceService } from "@/services/deviceService";
@@ -28,13 +29,16 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<DeviceUpdateFormValues>({
+  } = useForm<DeviceUpdateFormInput>({
     resolver: zodResolver(deviceUpdateSchema),
     defaultValues: {
       description: device.description || "",
       location: device.location || "",
       firmware_version: device.firmware_version || "",
       ip_address: device.ip_address || "",
+      latitude: device.latitude?.toString() || "",
+      longitude: device.longitude?.toString() || "",
+
     },
   });
 
@@ -47,7 +51,7 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
       });
 
       // Redirect back to device details page
-      router.push(`/devices/${device.device_id}`);
+      router.push(`/devices`);
       router.refresh();
     } catch (error) {
       console.error("Error updating device:", error);
@@ -59,6 +63,13 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
       });
     }
   };
+  // Create a wrapper that handles the form submission with proper typing
+  const handleFormSubmit = handleSubmit(async (formData: DeviceUpdateFormInput) => {
+    // The zodResolver will automatically transform the input to the validated output type
+    const validatedData = deviceUpdateSchema.parse(formData);
+    await onSubmit(validatedData);
+  });
+
 
   return (
     <div className="bg-white rounded-lg border border-[#BDC3C7] overflow-hidden">
@@ -73,7 +84,7 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+      <form onSubmit={handleFormSubmit} className="p-6 space-y-6">
         <div className="grid grid-cols-1 gap-6">
           <FormField
             id="description"
@@ -99,6 +110,24 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
             label="ファームウェアバージョン"
             type="text"
             register={register}
+            errors={errors}
+          />
+
+          <FormField
+            id="latitude"
+            label="緯度"
+            type="text"
+            register={register}
+            placeholder="例: 35.6762"
+            errors={errors}
+          />
+
+          <FormField
+            id="longitude"
+            label="経度"
+            type="text"
+            register={register}
+            placeholder="例: 135.6762"
             errors={errors}
           />
 

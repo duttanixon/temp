@@ -109,7 +109,7 @@ export function HoursFilter({
             id="select-all-hours"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-hours"
@@ -157,7 +157,7 @@ export function HoursFilter({
                     id={`hour-${hour.id}`}
                     checked={selectedHours.includes(hour.id)}
                     onCheckedChange={() => handleHourToggle(hour.id)}
-                    className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+                    className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                   />
                   <Label
                     htmlFor={`hour-${hour.id}`}

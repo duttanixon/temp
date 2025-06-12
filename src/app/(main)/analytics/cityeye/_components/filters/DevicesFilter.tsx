@@ -149,7 +149,7 @@ export function DevicesFilter({
             id="select-all-devices"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-devices"
@@ -180,7 +180,7 @@ export function DevicesFilter({
                       onCheckedChange={() =>
                         handleDeviceToggle(device.device_id)
                       }
-                      className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                     />
                     <Label
                       htmlFor={`device-${device.device_id}`}

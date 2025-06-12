@@ -67,7 +67,7 @@ export function TrafficFilter({
             id="select-all-traffic"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-traffic"
@@ -92,7 +92,7 @@ export function TrafficFilter({
                   id={`traffic-${traffic.id}`}
                   checked={selectedTrafficTypes.includes(traffic.id)}
                   onCheckedChange={() => handleTrafficToggle(traffic.id)}
-                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={`traffic-${traffic.id}`}

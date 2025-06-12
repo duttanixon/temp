@@ -66,7 +66,7 @@ export function AgesFilter({
             id="select-all-ages"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-ages"
@@ -91,7 +91,7 @@ export function AgesFilter({
                   id={`age-${age.id}`}
                   checked={selectedAges.includes(age.id)}
                   onCheckedChange={() => handleAgeToggle(age.id)}
-                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={`age-${age.id}`}

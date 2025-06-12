@@ -63,7 +63,7 @@ export function GenderFilter({
             id="select-all-genders"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
           <Label
             htmlFor="select-all-genders"
@@ -88,7 +88,7 @@ export function GenderFilter({
                   id={`gender-${gender.id}`}
                   checked={selectedGenders.includes(gender.id)}
                   onCheckedChange={() => handleGenderToggle(gender.id)}
-                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 cursor-pointer"
+                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                 />
                 <Label
                   htmlFor={`gender-${gender.id}`}

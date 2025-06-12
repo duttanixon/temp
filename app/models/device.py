@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Boolean
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Boolean, Float
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import enum
@@ -23,6 +23,8 @@ class Device(Base):
     name = Column(String, nullable=False)
     device_id = Column(UUID(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
     description = Column(String, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
 
     # Device identifiers
     mac_address = Column(String, unique=True, index=True, nullable=True)

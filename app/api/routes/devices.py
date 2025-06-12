@@ -378,7 +378,7 @@ def update_device(
     restricted_update = {}
         
     # These are safe to update for provisioned devices
-    safe_fields = ["description", "location", "firmware_version"]
+    safe_fields = ["description", "location", "firmware_version", "latitude", "longitude"]
 
     # Admin/Engineer can update slightly more fields
     if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:

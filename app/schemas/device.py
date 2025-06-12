@@ -20,6 +20,8 @@ class DeviceCreate(DeviceBase):
     customer_id: UUID
     ip_address: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float]=None
 
 class DeviceProvisionResponse(BaseModel):
     device_id: str  # Now this is the certificate ID
@@ -40,6 +42,8 @@ class DeviceUpdate(BaseModel):
     location: Optional[str] = None
     status: Optional[DeviceStatus] = None
     configuration: Optional[Dict[str, Any]] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float]=None
 
 
 # Properties to return to client
@@ -62,6 +66,9 @@ class DeviceAdminView(Device):
     certificate_arn: Optional[str] = None
     ip_address: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float]=None
+    
 
     class Config:
         from_attributes = True

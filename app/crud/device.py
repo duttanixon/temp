@@ -106,6 +106,8 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
             location=obj_in.location,
             customer_id=obj_in.customer_id,
             configuration=obj_in.configuration,
+            latitude=obj_in.latitude,
+            longitude=obj_in.longitude
         )
         db.add(db_obj)
         db.commit()

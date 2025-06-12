@@ -1,19 +1,10 @@
 "use client";
 
-import axios from "axios";
+import { deviceService } from "@/services/deviceService";
+import type { Customer } from "@/types/customer";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-interface Customer {
-  customer_id: string;
-  name: string;
-  contact_email: string;
-  address: string;
-  device: number;
-  status: string;
-  created_at: string;
-}
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -40,8 +31,8 @@ export default function CustomerTable({
   useEffect(() => {
     const fetchDeviceMap = async () => {
       try {
-        const res = await axios.get("/api/customers/devices");
-        setDeviceCounts(res.data);
+        const data = await deviceService.getDeviceCountsByCustomer();
+        setDeviceCounts(data);
       } catch (error) {
         console.error("Error fetching device counts:", error);
       }
@@ -62,12 +53,15 @@ export default function CustomerTable({
 
   const getSortedCustomers = () => {
     return [...customers].sort((a, b) => {
-      let aVal: string | number = a[sortKey];
-      let bVal: string | number = b[sortKey];
+      let aVal: string | number;
+      let bVal: string | number;
 
       if (sortKey === "device") {
         aVal = deviceCounts[a.customer_id] ?? 0;
         bVal = deviceCounts[b.customer_id] ?? 0;
+      } else {
+        aVal = a[sortKey as Exclude<SortKey, "device">];
+        bVal = b[sortKey as Exclude<SortKey, "device">];
       }
 
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;

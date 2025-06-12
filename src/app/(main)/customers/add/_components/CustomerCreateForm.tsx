@@ -1,20 +1,20 @@
 "use client";
 
-import { ApiError, customerService } from "@/services/customerService";
+import { customerService } from "@/services/customerService";
 
 import { FormField } from "@/components/forms/FormField";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CustomerCreateFormValues,
   customerCreateSchema,
 } from "@/schemas/customerSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cva } from "class-variance-authority";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const formVariants = cva("", {
   variants: {
@@ -55,38 +55,13 @@ export default function CustomerCreateForm() {
       router.push("/customers");
       router.refresh();
     } catch (error) {
-      console.log("Error creating customer:", error);
-
-      if (error instanceof ApiError) {
-        const statusCode = error.statusCode;
-
-        // ステータスコードに基づいた処理
-        let description = "";
-
-        switch (statusCode) {
-          case 400:
-            description =
-              "この会社名またはメールアドレスは既に登録されています。";
-            break;
-          case 403:
-            description = "この操作を実行する権限がありません。";
-            break;
-          case 422:
-            description =
-              "入力内容に問題があります。必須項目を確認してください。";
-            break;
-          default:
-            description = error.message || "予期せぬエラーが発生しました。";
-        }
-        toast.error("作成エラー", { description });
-      } else {
-        toast.error("作成エラー", {
-          description:
-            error instanceof Error
-              ? error.message
-              : "予期せぬエラーが発生しました",
-        });
-      }
+      console.error("Error creating customer:", error);
+      toast.error("作成エラー", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "予期せぬエラーが発生しました",
+      });
     }
   };
 
@@ -111,14 +86,12 @@ export default function CustomerCreateForm() {
         <TabsList className="grid w-fit h-full grid-cols-2 bg-white border border-[#BDC3C7] overflow-hidden">
           <TabsTrigger
             value="basic"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
-          >
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2">
             基本情報
           </TabsTrigger>
           <TabsTrigger
             value="subscription"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
-          >
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2">
             サブスクリプション
           </TabsTrigger>
         </TabsList>
@@ -176,15 +149,13 @@ export default function CustomerCreateForm() {
               className="w-35 bg-white border border-[#BDC3C7] text-[#7F8C8D] hover:bg-[#ECF0F1] active:bg-[#BDC3C7] hover:cursor-pointer"
               type="button"
               onClick={() => router.push("/customers")}
-              disabled={isSubmitting}
-            >
+              disabled={isSubmitting}>
               キャンセル
             </Button>
             <Button
               className="w-35 bg-[#27AE60] text-[#FFFFFF] hover:bg-[#219653] active:bg-[#27AE60] focus:bg-[#219653] hover:cursor-pointer"
               type="submit"
-              disabled={isSubmitting}
-            >
+              disabled={isSubmitting}>
               {isSubmitting ? "作成中..." : "作成"}
             </Button>
           </div>

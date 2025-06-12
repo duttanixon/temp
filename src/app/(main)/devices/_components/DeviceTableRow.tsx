@@ -14,7 +14,7 @@ import { deviceActionComponents } from './deviceActionComponents';
 
 type DeviceTableRowProps = {
   device: Device;
-  solution: Solution;
+  solution?: Solution;
 };
 
 /**
@@ -34,7 +34,8 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     router.push(`/devices/${device.device_id}/edit`);
   };
 
-  const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
+  // const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
+  const ActionComponent = solution ? deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()] : null;
   const isActive = device.status === "ACTIVE";
 
   return (
@@ -66,7 +67,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="w-[240px]">
         <div className="relative flex items-center justify-center gap-2 px-2">
           <div className="absolute left-0 top-0 h-full border-l border-[#BDC3C7]" />
-          <ActionComponent device={device} />
+          {ActionComponent && <ActionComponent device={device} />}
         </div>
       </td>
     </tr>

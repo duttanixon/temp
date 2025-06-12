@@ -16,7 +16,7 @@ type SortDirection = "asc" | "desc";
 type DeviceTableProps = {
   children?: ReactNode;
   devices?: Device[];
-  solution: Solution;
+  solution?: Solution;
   isShowInactive?: boolean;
 
 };

@@ -14,6 +14,7 @@ import { useTrafficAnalyticsData } from "@/hooks/analytics/city_eye/useTrafficAn
 import { processHumanAnalyticsData } from "@/utils/analytics/city_eye/humanDataProcessing";
 import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
 
+import { FrontendAnalyticsFilters } from "@/types/cityEyeAnalytics";
 import MonthlyTabContent from "./tabs/MonthlyTabContent";
 import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
@@ -40,8 +41,8 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
   // Active API filters state
   const [activeFilters, setActiveFilters] = useState<{
-    main: any | null;
-    comparison: any | null;
+    main: FrontendAnalyticsFilters | null;
+    comparison: FrontendAnalyticsFilters | null;
   }>({ main: null, comparison: null });
 
   // Query parameters based on current tab

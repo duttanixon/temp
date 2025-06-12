@@ -8,7 +8,6 @@ import { FilterCard } from "./FilterCard";
 interface ComparisonPeriodFilterProps {
   currentDateRange: DateRange | undefined;
   onDateChange: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
-  disabled?: boolean;
   icon?: React.ReactNode;
   iconBgColor?: string;
   collapsible?: boolean;
@@ -18,18 +17,11 @@ interface ComparisonPeriodFilterProps {
 export function ComparisonPeriodFilter({
   currentDateRange,
   onDateChange,
-  disabled,
   icon,
   iconBgColor,
   collapsible = false,
   defaultExpanded = true,
 }: ComparisonPeriodFilterProps) {
-  const formatDateRange = (dateRange?: DateRange) => {
-    if (!dateRange?.from) return "比較期間を選択してください";
-    if (!dateRange.to) return dateRange.from.toLocaleDateString("ja-JP");
-    return `${dateRange.from.toLocaleDateString("ja-JP")} - ${dateRange.to.toLocaleDateString("ja-JP")}`;
-  };
-
   return (
     <FilterCard
       title="比較対象期間"

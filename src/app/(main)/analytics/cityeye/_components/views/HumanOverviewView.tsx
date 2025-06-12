@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
-import TotalPeopleCard from "../cards/TotalPeopleCard";
+import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
+import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
+import AnalyticsCard from "../cards/AnalyticsCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
-import AnalyticsCard from "../cards/AnalyticsCard";
-import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
+import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 interface OverviewViewProps {
   processedData: ProcessedAnalyticsData | null;
@@ -74,7 +73,7 @@ export default function OverviewView({
       {/* Render remaining placeholder cards if any */}
       {placeholderCardTitles.map((title, index) => (
         <AnalyticsCard key={index} title={title}>
-          <div className="flex flex-col items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center w-full h-full">
             <p className="text-sm text-muted-foreground p-4 text-center">
               {hasAttemptedFetch
                 ? `データ表示エリア (${title})`

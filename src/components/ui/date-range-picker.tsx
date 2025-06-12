@@ -1,17 +1,5 @@
 "use client";
 
-import * as React from "react";
-import {
-  addDays,
-  format,
-  subDays,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-} from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,18 +7,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { endOfMonth, format, startOfMonth, subDays, subMonths } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import * as React from "react";
+import { DateRange } from "react-day-picker";
 
 interface DatePickerWithRangeProps
   extends React.HTMLAttributes<HTMLDivElement> {
   date: DateRange | undefined;
   setDate: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
   className?: string;
+  childClassName?: string;
 }
 
 export function DatePickerWithRange({
   date,
   setDate,
   className,
+  childClassName,
 }: DatePickerWithRangeProps) {
   // Define static ranges
   const staticRanges = [
@@ -97,9 +92,9 @@ export function DatePickerWithRange({
             variant={"outline"}
             className={cn(
               "w-[300px] justify-start text-left font-normal cursor-pointer",
+              childClassName,
               !date && "text-muted-foreground"
-            )}
-          >
+            )}>
             <CalendarIcon className="mr-2 h-4 w-4" />
             {date?.from ? (
               date.to ? (
@@ -123,8 +118,7 @@ export function DatePickerWithRange({
                 variant="outline"
                 size="sm"
                 onClick={range.onClick}
-                className="text-xs cursor-pointer"
-              >
+                className="text-xs cursor-pointer">
                 {range.label}
               </Button>
             ))}

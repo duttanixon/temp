@@ -1,26 +1,41 @@
 "use client";
 
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import React from "react";
 import { DateRange } from "react-day-picker";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { FilterCard } from "./FilterCard";
-// subDays is not used here anymore as initial state is managed by parent
-// import { subDays } from "date-fns";
 
 interface AnalysisPeriodFilterProps {
-  currentDateRange: DateRange | undefined; // Changed from initialDateRange
+  currentDateRange: DateRange | undefined;
   onDateChange: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
+  icon?: React.ReactNode;
+  iconBgColor?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 }
 
 export function AnalysisPeriodFilter({
   currentDateRange,
   onDateChange,
+  icon,
+  iconBgColor,
+  collapsible = false,
+  defaultExpanded = true,
 }: AnalysisPeriodFilterProps) {
-  // The DatePickerWithRange component internally handles its presentation state.
-  // We directly use the props for managing the selected date range.
   return (
-    <FilterCard title="分析対象期間">
-      <DatePickerWithRange date={currentDateRange} setDate={onDateChange} />
+    <FilterCard
+      title="分析対象期間"
+      icon={icon}
+      iconBgColor={iconBgColor}
+      collapsible={collapsible}
+      defaultExpanded={defaultExpanded}>
+      <div className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors duration-200">
+        <DatePickerWithRange
+          date={currentDateRange}
+          setDate={onDateChange}
+          childClassName="w-full"
+        />
+      </div>
     </FilterCard>
   );
 }

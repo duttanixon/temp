@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { FilterGroup } from "./filters/FilterGroup";
-import { Loader2 } from "lucide-react";
+import { Funnel, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { FilterGroup } from "./filters/FilterGroup";
 
 import { useAnalyticsFilters } from "@/hooks/analytics/city_eye/useAnalyticsFilters";
 import { useHumanAnalyticsData } from "@/hooks/analytics/city_eye/useHumanAnalyticsData";
@@ -14,10 +14,10 @@ import { useTrafficAnalyticsData } from "@/hooks/analytics/city_eye/useTrafficAn
 import { processHumanAnalyticsData } from "@/utils/analytics/city_eye/humanDataProcessing";
 import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
 
-import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
-import TrafficFlowTabContent from "./tabs/TrafficFlowTabContent";
 import MonthlyTabContent from "./tabs/MonthlyTabContent";
+import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
+import TrafficFlowTabContent from "./tabs/TrafficFlowTabContent";
 
 interface CityEyeClientProps {
   solutionId: string;
@@ -303,22 +303,20 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-full gap-4">
+    <div className="flex flex-col md:flex-row gap-4">
       {showFilters && (
-        <div className="w-full md:w-[360px] border-b md:border-b-0 md:border-r bg-[#F8F9FA] flex flex-col p-2 rounded-lg shadow-sm">
+        <div className="w-full md:w-[300px] border-b md:border-b-0 md:border-r bg-[#F8F9FA] flex flex-col p-2 rounded-lg shadow-sm items-center">
           <Tabs
             value={verticalTab}
             onValueChange={setVerticalTab}
-            className="w-full"
-          >
+            className="w-full">
             <TabsList className="h-auto grid grid-cols-2 gap-2 rounded-xl bg-white/80 backdrop-blur-sm p-1 w-full shadow-sm border border-gray-200/50">
               <TabsTrigger
                 value="overview"
                 className={cn(
                   "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
-              >
+                )}>
                 分析表示
               </TabsTrigger>
               <TabsTrigger
@@ -326,14 +324,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
                 className={cn(
                   "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
-              >
+                )}>
                 比較表示
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <div className="flex-grow overflow-y-auto mt-2">
+          <div className="overflow-y-auto mt-2 w-full">
             <FilterGroup
               verticalTab={verticalTab}
               horizontalTab={horizontalTab}
@@ -345,11 +342,21 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
           <Button
             onClick={handleApplyFilters}
-            className="mt-3 w-full bg-primary hover:bg-primary/90 cursor-pointer"
-            disabled={isLoading}
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            フィルター適用
+            className="h-12 mt-3 w-full bg-primary hover:bg-primary/90 active:bg-primary/95 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-lg focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 rounded-lg cursor-pointer"
+            disabled={isLoading}>
+            <div className="flex items-center justify-center gap-2.5">
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>適用中...</span>
+                </>
+              ) : (
+                <>
+                  <Funnel className="h-4 w-4" />
+                  <span>フィルター適用</span>
+                </>
+              )}
+            </div>
           </Button>
         </div>
       )}
@@ -358,15 +365,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         <Tabs
           value={horizontalTab}
           onValueChange={setHorizontalTab}
-          className="w-full mb-3"
-        >
+          className="w-full mb-3">
           <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 gap-1 bg-muted p-0.5 rounded-md">
             {["people", "traffic", "monthly", "quarterly"].map((tabVal) => (
               <TabsTrigger
                 key={tabVal}
                 value={tabVal}
-                className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm cursor-pointer"
-              >
+                className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm cursor-pointer">
                 {tabVal === "people" && "人流"}
                 {tabVal === "traffic" && "交通量"}
                 {tabVal === "monthly" && "人流(方向)"}

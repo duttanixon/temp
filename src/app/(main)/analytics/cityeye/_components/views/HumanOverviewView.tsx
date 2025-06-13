@@ -8,12 +8,19 @@ import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
+import HoursAveragePeopleCard from "../cards/HoursAveragePeopleCard";
+import DaysAveragePeopleCard from "../cards/DaysAveragePeopleCard";
 
 interface OverviewViewProps {
   processedData: ProcessedAnalyticsData | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
+  activeFiltersMain?: {
+    hours: number[];
+    days: number[];
+    // Add other filter properties as needed
+  };
 }
 
 export default function OverviewView({
@@ -21,6 +28,7 @@ export default function OverviewView({
   isLoading,
   error,
   hasAttemptedFetch,
+  activeFiltersMain,
 }: OverviewViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
@@ -95,6 +103,22 @@ export default function OverviewView({
           data={processedData?.ageGenderDistribution ?? null}
         />
       </div>
+      <HoursAveragePeopleCard
+        title="時間平均人数"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        humanCountData={processedData?.totalPeople?.totalCount || null}
+        hoursCount={activeFiltersMain?.hours.length || 0}
+      />
+      <DaysAveragePeopleCard
+        title="日平均人数"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        daysCountData={processedData?.totalPeople?.totalCount || null}
+        daysCount={activeFiltersMain?.days.length || 0}
+      />
     </div>
   );
 }

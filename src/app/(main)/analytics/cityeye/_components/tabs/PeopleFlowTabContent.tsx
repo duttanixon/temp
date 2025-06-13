@@ -4,9 +4,7 @@
 import React from "react";
 import OverviewView from "../views/HumanOverviewView";
 import HumanComparisonView from "../views/HumanComparisonView";
-import {
-  ProcessedAnalyticsData,
-} from "@/types/cityEyeAnalytics";
+import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 
 interface PeopleFlowTabContentProps {
@@ -23,6 +21,7 @@ interface PeopleFlowTabContentProps {
   errorComparison?: string | null;
   hasAttemptedFetchComparison?: boolean;
   comparisonPeriodDateRange?: DateRange;
+  activeFiltersMain?: any;
 }
 
 export default function PeopleFlowTabContent({
@@ -37,6 +36,7 @@ export default function PeopleFlowTabContent({
   errorComparison,
   hasAttemptedFetchComparison,
   comparisonPeriodDateRange,
+  activeFiltersMain,
 }: PeopleFlowTabContentProps) {
   if (verticalTab === "overview") {
     return (
@@ -45,6 +45,7 @@ export default function PeopleFlowTabContent({
         isLoading={isLoadingMain}
         error={errorMain}
         hasAttemptedFetch={hasAttemptedFetchMain}
+        activeFiltersMain={activeFiltersMain}
       />
     );
   }
@@ -62,6 +63,7 @@ export default function PeopleFlowTabContent({
         errorComparison={errorComparison || null}
         hasAttemptedFetchComparison={hasAttemptedFetchComparison || false}
         comparisonPeriodDateRange={comparisonPeriodDateRange}
+        activeFiltersMain={activeFiltersMain}
       />
     );
   }

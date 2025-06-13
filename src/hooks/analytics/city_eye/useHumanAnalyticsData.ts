@@ -101,7 +101,9 @@ export function useHumanAnalyticsData({
       } catch (err) {
         // --- Error Handling ---
         const errorMessage =
-          err instanceof Error ? err.message : "人流分析データの取得に失敗しました";
+          err instanceof Error
+            ? err.message
+            : "人流分析データの取得に失敗しました";
 
         setError(errorMessage);
         toast.error("人流分析データ取得エラー", {

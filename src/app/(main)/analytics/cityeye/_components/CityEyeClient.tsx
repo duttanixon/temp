@@ -124,6 +124,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     () => processHumanAnalyticsData(mainRawData),
     [mainRawData]
   );
+  console.log("Processed Main Data:", processedMainData);
 
   const processedComparisonData = useMemo(
     () => processHumanAnalyticsData(comparisonRawData),
@@ -270,6 +271,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             errorComparison={errorComparison}
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
+            activeFiltersMain={activeFilters.main}
           />
         );
       case "traffic":

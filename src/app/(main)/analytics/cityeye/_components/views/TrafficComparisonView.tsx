@@ -7,6 +7,7 @@ import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCar
 import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
+import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 
 interface TrafficComparisonViewProps {
   mainPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
@@ -56,16 +57,21 @@ export default function TrafficComparisonView({
           </div>
           <TotalVehiclesCard
             title="総交通量 (分析期間)"
-            subtitle="デバイス別交通量"
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
             totalCountData={
               mainPeriodProcessedData?.totalVehicles?.totalCount ?? null
             }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+          />
+          <PerDeviceTrafficCard
+            title="デバイス別交通量 (分析期間)"
             perDeviceCountsData={
               mainPeriodProcessedData?.totalVehicles?.perDeviceCounts ?? []
             }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
           />
           <VehicleTypeDistributionCard
             title="車種別分析 (分析期間)"
@@ -99,17 +105,22 @@ export default function TrafficComparisonView({
           </div>
           <TotalVehiclesCard
             title="総交通量 (比較期間)"
-            subtitle="デバイス別交通量"
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
             totalCountData={
               comparisonPeriodProcessedData?.totalVehicles?.totalCount ?? null
             }
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+          />
+          <PerDeviceTrafficCard
+            title="デバイス別交通量 (比較期間)"
             perDeviceCountsData={
               comparisonPeriodProcessedData?.totalVehicles?.perDeviceCounts ??
               []
             }
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
           />
           <VehicleTypeDistributionCard
             title="車種別分析 (比較期間)"

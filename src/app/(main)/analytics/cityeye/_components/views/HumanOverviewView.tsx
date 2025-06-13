@@ -7,6 +7,7 @@ import AnalyticsCard from "../cards/AnalyticsCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
+import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
 
 interface OverviewViewProps {
   processedData: ProcessedAnalyticsData | null;
@@ -23,15 +24,24 @@ export default function OverviewView({
 }: OverviewViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-      <TotalPeopleCard
-        title="総人数"
-        subtitle="デバイス別人数"
-        isLoading={isLoading}
-        error={error}
-        hasAttemptedFetch={hasAttemptedFetch}
-        totalCountData={processedData?.totalPeople?.totalCount ?? null}
-        perDeviceCountsData={processedData?.totalPeople?.perDeviceCounts ?? []}
-      />
+      <div className="flex flex-col gap-3">
+        <TotalPeopleCard
+          title="総人数"
+          totalCountData={processedData?.totalPeople?.totalCount ?? null}
+          isLoading={isLoading}
+          error={error}
+          hasAttemptedFetch={hasAttemptedFetch}
+        />
+        <PerDevicePeopleCard
+          title="デバイス別人数"
+          perDeviceCountsData={
+            processedData?.totalPeople?.perDeviceCounts ?? []
+          }
+          isLoading={isLoading}
+          error={error}
+          hasAttemptedFetch={hasAttemptedFetch}
+        />
+      </div>
       <AnalyticsCard title="カメラマップ">
         <div className="flex flex-col items-center justify-center w-full h-full">
           <p className="text-sm text-muted-foreground p-4 text-center">

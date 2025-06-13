@@ -6,6 +6,7 @@ import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import AnalyticsCard from "../cards/AnalyticsCard";
 import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
+import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 
 interface TrafficOverviewViewProps {
   processedData: ProcessedTrafficAnalyticsData | null;
@@ -29,17 +30,24 @@ export default function TrafficOverviewView({
 }: TrafficOverviewViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-      <TotalVehiclesCard
-        title="総交通量"
-        subtitle="デバイス別交通量"
-        isLoading={isLoading}
-        error={error}
-        hasAttemptedFetch={hasAttemptedFetch}
-        totalCountData={processedData?.totalVehicles?.totalCount ?? null}
-        perDeviceCountsData={
-          processedData?.totalVehicles?.perDeviceCounts ?? []
-        }
-      />
+      <div className="flex flex-col gap-3">
+        <TotalVehiclesCard
+          title="総交通量"
+          totalCountData={processedData?.totalVehicles?.totalCount ?? null}
+          isLoading={isLoading}
+          error={error}
+          hasAttemptedFetch={hasAttemptedFetch}
+        />
+        <PerDeviceTrafficCard
+          title="デバイス別交通量"
+          perDeviceCountsData={
+            processedData?.totalVehicles?.perDeviceCounts ?? []
+          }
+          isLoading={isLoading}
+          error={error}
+          hasAttemptedFetch={hasAttemptedFetch}
+        />
+      </div>
       <VehicleTypeDistributionCard
         title="車種別分析"
         isLoading={isLoading}

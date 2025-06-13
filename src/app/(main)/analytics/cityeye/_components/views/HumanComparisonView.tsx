@@ -9,6 +9,7 @@ import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
 import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
+import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
 
 interface ComparisonViewProps {
   mainPeriodProcessedData: ProcessedAnalyticsData | null;
@@ -58,16 +59,21 @@ export default function HumanComparisonView({
           </div>
           <TotalPeopleCard
             title="総人数 (分析期間)"
-            subtitle="デバイス別人数"
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
             totalCountData={
               mainPeriodProcessedData?.totalPeople?.totalCount ?? null
             }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+          />
+          <PerDevicePeopleCard
+            title="デバイス別人数 (分析期間)"
             perDeviceCountsData={
               mainPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
             }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
           />
           <AgeDistributionCard
             title="年齢層別分析 (分析期間)"
@@ -118,16 +124,21 @@ export default function HumanComparisonView({
           </div>
           <TotalPeopleCard
             title="総人数 (比較期間)"
-            subtitle="デバイス別人数"
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
             totalCountData={
               comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
             }
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+          />
+          <PerDevicePeopleCard
+            title="デバイス別人数 (比較期間)"
             perDeviceCountsData={
               comparisonPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
             }
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
           />
           <AgeDistributionCard
             title="年齢層別分析 (比較期間)"

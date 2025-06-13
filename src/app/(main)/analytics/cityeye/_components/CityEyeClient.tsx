@@ -346,18 +346,18 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
           <Button
             onClick={handleApplyFilters}
-            className="h-12 mt-3 w-full bg-primary hover:bg-primary/90 active:bg-primary/95 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-lg focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 rounded-lg cursor-pointer"
+            className="mt-3 group flex w-full items-center justify-center rounded-full bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 text-neutral-50 shadow-[inset_0_1px_0px_0px_#93c5fd] hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 active:[box-shadow:none] cursor-pointer"
             disabled={isLoading}
           >
             <div className="flex items-center justify-center gap-2.5">
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                   <span>適用中...</span>
                 </>
               ) : (
                 <>
-                  <Funnel className="h-4 w-4" />
+                  <Funnel className="size-4" />
                   <span>フィルター適用</span>
                 </>
               )}

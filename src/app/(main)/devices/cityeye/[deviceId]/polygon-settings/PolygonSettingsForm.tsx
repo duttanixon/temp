@@ -1,17 +1,23 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { DndContext, useDraggable } from '@dnd-kit/core';
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
-import { Eye, EyeOff, Trash2, Plus, ChevronRight } from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useState, useMemo } from "react";
+import { DndContext, useDraggable } from "@dnd-kit/core";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  useMap,
+} from "react-leaflet";
+import { Eye, EyeOff, Trash2, Plus, ChevronRight } from "lucide-react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: '/images/media/marker-icon-2x.png',
-  iconUrl: '/images/media/marker-icon.png',
-  shadowUrl: '/images/media/marker-shadow.png',
+  iconRetinaUrl: "/images/media/marker-icon-2x.png",
+  iconUrl: "/images/media/marker-icon.png",
+  shadowUrl: "/images/media/marker-shadow.png",
 });
 
 // --- TYPE DEFINITIONS ---
@@ -66,7 +72,13 @@ const convertPosition = ({
 };
 
 // Draggable Vertex Component
-const DraggableVertex = ({ id, x, y, color, isActive }: {
+const DraggableVertex = ({
+  id,
+  x,
+  y,
+  color,
+  isActive,
+}: {
   id: string;
   x: number;
   y: number;
@@ -76,12 +88,14 @@ const DraggableVertex = ({ id, x, y, color, isActive }: {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
 
   const style = {
-    position: 'absolute' as const,
+    position: "absolute" as const,
     left: x,
     top: y,
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : 'translate(-50%, -50%)',
-    touchAction: 'none',
-    display: isActive ? 'block' : 'none',
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : "translate(-50%, -50%)",
+    touchAction: "none",
+    display: isActive ? "block" : "none",
   };
 
   return (
@@ -91,20 +105,25 @@ const DraggableVertex = ({ id, x, y, color, isActive }: {
       {...listeners}
       {...attributes}
       className="z-20 w-[10px] h-[10px] bg-white border-2 shadow-lg cursor-grab active:cursor-grabbing box-border"
-      >
+    >
       <div className="w-full h-full" style={{ borderColor: color }}></div>
     </div>
   );
 };
 
 // Editable Polygon Component
-const EditablePolygon = ({ polygon, isActive, isVisible }: {
+const EditablePolygon = ({
+  polygon,
+  isActive,
+  isVisible,
+}: {
   polygon: PolygonWithRoute;
   isActive: boolean;
   isVisible: boolean;
 }) => {
   const points = useMemo(
-    () => polygon.vertices.map(v => `${v.position.x},${v.position.y}`).join(' '),
+    () =>
+      polygon.vertices.map((v) => `${v.position.x},${v.position.y}`).join(" "),
     [polygon.vertices]
   );
 
@@ -143,10 +162,10 @@ const EditablePolygon = ({ polygon, isActive, isVisible }: {
 //   color?: string;
 // }) => {
 //   const map = useMap();
-  
+
 //   React.useEffect(() => {
 //     if (positions.length < 2) return;
-    
+
 //     // Create arrow head marker
 //     const arrowHead = L.divIcon({
 //       className: 'arrow-head',
@@ -161,59 +180,62 @@ const EditablePolygon = ({ polygon, isActive, isVisible }: {
 //       iconSize: [10, 10],
 //       iconAnchor: [5, 5],
 //     });
-    
+
 //     // Calculate angle for arrow
 //     const start = positions[0];
 //     const end = positions[1];
 //     const angle = Math.atan2(end.lng - start.lng, end.lat - start.lat) * 180 / Math.PI;
-    
+
 //     // Add marker at end position
 //     const marker = L.marker([end.lat, end.lng], {
 //       icon: arrowHead,
 //       // rotationAngle: angle,
 //     }).addTo(map);
-    
+
 //     return () => {
 //       map.removeLayer(marker);
 //     };
 //   }, [map, positions, color]);
-  
+
 //   return <Polyline positions={positions} color={color} />;
 // };
 // Polyline with Arrow Component for Map - FIXED VERSION
 // Polyline with Arrow Component for Map - FIXED VERSION
-const PolylineArrow = ({ positions, color = '#7048ec' }: {
+const PolylineArrow = ({
+  positions,
+  color = "#7048ec",
+}: {
   positions: LatLngLiteral[];
   color?: string;
 }) => {
   const map = useMap();
-  
+
   React.useEffect(() => {
     if (positions.length < 2) return;
-    
+
     // Calculate the correct angle for arrow direction
     const start = positions[0];
     const end = positions[1];
-    
+
     // Calculate the bearing from start to end point
     // CRITICAL: We negate the latitude difference to account for the coordinate system flip
     // Geographic coordinates: North is positive Y
     // Screen coordinates: Down is positive Y
-    const deltaX = end.lng - start.lng;  // Longitude difference (East is positive)
+    const deltaX = end.lng - start.lng; // Longitude difference (East is positive)
     const deltaY = -(end.lat - start.lat); // Latitude difference (NEGATED for screen coords)
-    
+
     // atan2 gives us the angle in radians, then we convert to degrees
     const angleInRadians = Math.atan2(deltaY, deltaX);
-    const angleInDegrees = angleInRadians * 180 / Math.PI;
-    
+    const angleInDegrees = (angleInRadians * 180) / Math.PI;
+
     // Adjust angle for proper arrow orientation
     // We subtract 45 degrees because our CSS triangle naturally points "up-right"
     // and we need to align it with the line direction
     const adjustedAngle = angleInDegrees - 45;
-    
+
     // Create arrow head marker with DYNAMIC rotation
     const arrowHead = L.divIcon({
-      className: 'arrow-head',
+      className: "arrow-head",
       html: `<div style="
         width: 0;
         height: 0;
@@ -226,29 +248,33 @@ const PolylineArrow = ({ positions, color = '#7048ec' }: {
       iconSize: [10, 10],
       iconAnchor: [5, 5], // Center the arrow on the point
     });
-    
+
     // Add marker at end position with the correctly rotated arrow
     const marker = L.marker([end.lat, end.lng], {
       icon: arrowHead,
     }).addTo(map);
-    
+
     // Cleanup function to prevent memory leaks
     return () => {
       map.removeLayer(marker);
     };
   }, [map, positions, color]);
-  
+
   return <Polyline positions={positions} color={color} />;
 };
 
 // Draggable Map Marker Component
-const DraggableMapMarker = ({ position, onDrag, label }: {
+const DraggableMapMarker = ({
+  position,
+  onDrag,
+  label,
+}: {
   position: LatLngLiteral;
   onDrag: (position: LatLngLiteral) => void;
   label: string;
 }) => {
   const markerRef = React.useRef<any>(null);
-  
+
   const eventHandlers = React.useMemo(
     () => ({
       dragend() {
@@ -258,22 +284,26 @@ const DraggableMapMarker = ({ position, onDrag, label }: {
         }
       },
     }),
-    [onDrag],
+    [onDrag]
   );
-  
+
   return (
     <Marker
       draggable={true}
       eventHandlers={eventHandlers}
       position={position}
       ref={markerRef}
-    >
-    </Marker>
+    ></Marker>
   );
 };
 
 // Toggle Button Component
-const ToggleButton = ({ checked, onChange, uncheckedLabel, checkedLabel }: {
+const ToggleButton = ({
+  checked,
+  onChange,
+  uncheckedLabel,
+  checkedLabel,
+}: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   uncheckedLabel: string;
@@ -282,13 +312,13 @@ const ToggleButton = ({ checked, onChange, uncheckedLabel, checkedLabel }: {
   return (
     <div className="grid h-10 grid-cols-2 items-center justify-center rounded-md bg-purple-100 p-1 text-sm text-gray-600">
       <div
-        className={`flex h-full w-full cursor-pointer items-center justify-center rounded ${!checked ? 'bg-white text-purple-600' : ''}`}
+        className={`flex h-full w-full cursor-pointer items-center justify-center rounded ${!checked ? "bg-white text-purple-600" : ""}`}
         onClick={() => onChange(false)}
       >
         <span>{uncheckedLabel}</span>
       </div>
       <div
-        className={`flex h-full w-full cursor-pointer items-center justify-center rounded ${checked ? 'bg-white text-purple-600' : ''}`}
+        className={`flex h-full w-full cursor-pointer items-center justify-center rounded ${checked ? "bg-white text-purple-600" : ""}`}
         onClick={() => onChange(true)}
       >
         <span>{checkedLabel}</span>
@@ -298,10 +328,12 @@ const ToggleButton = ({ checked, onChange, uncheckedLabel, checkedLabel }: {
 };
 
 // Main Polygon Editor Component
-const PolygonEditor = () => {
+export default function PolygonEditor() {
   const [polygons, setPolygons] = useState<PolygonWithRoute[]>([]);
 
-  const [polygonsState, setPolygonsState] = useState<Record<string, PolygonState>>(() => {
+  const [polygonsState, setPolygonsState] = useState<
+    Record<string, PolygonState>
+  >(() => {
     const initialState: Record<string, PolygonState> = {};
     polygons.forEach((polygon) => {
       initialState[polygon.polygonId] = { visible: true, active: false };
@@ -309,7 +341,7 @@ const PolygonEditor = () => {
     return initialState;
   });
 
-  const [activeTab, setActiveTab] = useState<'zone' | 'map'>('zone');
+  const [activeTab, setActiveTab] = useState<"zone" | "map">("zone");
   const [isOsm, setIsOsm] = useState(true);
 
   // Toggle polygon visibility
@@ -341,8 +373,13 @@ const PolygonEditor = () => {
   const addPolygon = () => {
     if (polygons.length >= 8) return; // Max 8 polygons
 
-    const existingIds = polygons.map((p) => parseInt(p.polygonId, 10)).sort((a, b) => a - b);
-    const newId = existingIds.reduce((acc, cur) => (acc === cur ? acc + 1 : acc), 1);
+    const existingIds = polygons
+      .map((p) => parseInt(p.polygonId, 10))
+      .sort((a, b) => a - b);
+    const newId = existingIds.reduce(
+      (acc, cur) => (acc === cur ? acc + 1 : acc),
+      1
+    );
     const newPolygonId = newId.toString();
 
     const newPolygon: PolygonWithRoute = {
@@ -380,8 +417,8 @@ const PolygonEditor = () => {
 
   // Update polygon name
   const updatePolygonName = (index: number, name: string) => {
-    setPolygons((prev) => 
-      prev.map((poly, i) => i === index ? { ...poly, name } : poly)
+    setPolygons((prev) =>
+      prev.map((poly, i) => (i === index ? { ...poly, name } : poly))
     );
   };
 
@@ -408,7 +445,11 @@ const PolygonEditor = () => {
   };
 
   // Update route markers
-  const updateRouteMarker = (polygonId: string, point: 'start' | 'end', position: LatLngLiteral) => {
+  const updateRouteMarker = (
+    polygonId: string,
+    point: "start" | "end",
+    position: LatLngLiteral
+  ) => {
     setPolygons((prev) =>
       prev.map((poly) =>
         poly.polygonId === polygonId
@@ -416,7 +457,7 @@ const PolygonEditor = () => {
               ...poly,
               center: {
                 ...poly.center,
-                [point === 'start' ? 'startPoint' : 'endPoint']: position,
+                [point === "start" ? "startPoint" : "endPoint"]: position,
               },
             }
           : poly
@@ -443,8 +484,8 @@ const PolygonEditor = () => {
       })),
     };
 
-    console.log('Submitting data:', JSON.stringify(dataToSend, null, 2));
-    alert('Check console for JSON data that would be sent to API');
+    console.log("Submitting data:", JSON.stringify(dataToSend, null, 2));
+    alert("Check console for JSON data that would be sent to API");
   };
 
   const mapCenter: LatLngLiteral = { lat: 36.5287, lng: 139.8147 };
@@ -453,8 +494,12 @@ const PolygonEditor = () => {
     <div className="w-full max-w-7xl mx-auto p-4">
       <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-800">Human Detection Zone Editor</h1>
-          <p className="mt-1 text-gray-600">Draw detection zones and set direction on the map</p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Human Detection Zone Editor
+          </h1>
+          <p className="mt-1 text-gray-600">
+            Draw detection zones and set direction on the map
+          </p>
         </div>
 
         <div className="flex gap-6 p-6">
@@ -464,7 +509,9 @@ const PolygonEditor = () => {
               <div
                 key={polygon.polygonId}
                 className={`flex items-center justify-between rounded-lg px-4 py-2 cursor-pointer transition-colors ${
-                  polygonsState[polygon.polygonId]?.active ? 'bg-purple-100' : 'hover:bg-gray-50'
+                  polygonsState[polygon.polygonId]?.active
+                    ? "bg-purple-100"
+                    : "hover:bg-gray-50"
                 }`}
                 onClick={() => togglePolygonActiveState(polygon.polygonId)}
               >
@@ -480,51 +527,57 @@ const PolygonEditor = () => {
                     className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                     maxLength={10}
                   />
-                  <span className="text-xs text-gray-500 mt-1">Max 10 characters</span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    Max 10 characters
+                  </span>
                 </div>
                 <div className="flex gap-2 ml-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    togglePolygonVisibility(polygon.polygonId);
-                  }}
-                  className="p-1 hover:bg-gray-200 rounded transition-colors"
-                  aria-label={polygonsState[polygon.polygonId]?.visible ? 'Hide zone' : 'Show zone'}
-                >
-                  {polygonsState[polygon.polygonId]?.visible ? (
-                    <Eye size={20} className="text-gray-600" />
-                  ) : (
-                    <EyeOff size={20} className="text-gray-400" />
-                  )}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removePolygon(index);
-                  }}
-                  className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500 hover:text-red-500"
-                  aria-label="Delete zone"
-                >
-                  <Trash2 size={20} />
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePolygonVisibility(polygon.polygonId);
+                    }}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                    aria-label={
+                      polygonsState[polygon.polygonId]?.visible
+                        ? "Hide zone"
+                        : "Show zone"
+                    }
+                  >
+                    {polygonsState[polygon.polygonId]?.visible ? (
+                      <Eye size={20} className="text-gray-600" />
+                    ) : (
+                      <EyeOff size={20} className="text-gray-400" />
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removePolygon(index);
+                    }}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500 hover:text-red-500"
+                    aria-label="Delete zone"
+                  >
+                    <Trash2 size={20} />
+                  </button>
                 </div>
               </div>
             ))}
-            
+
             <button
               onClick={addPolygon}
               disabled={polygons.length >= 8}
               className={`mt-2 py-2 rounded-lg border transition-colors ${
                 polygons.length >= 8
-                  ? 'border-gray-300 text-gray-400 cursor-not-allowed'
-                  : 'border-purple-600 text-purple-600 hover:bg-purple-50 cursor-pointer'
+                  ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                  : "border-purple-600 text-purple-600 hover:bg-purple-50 cursor-pointer"
               }`}
               aria-label="Add new zone"
             >
-            <div className="flex items-center justify-center gap-2">
-              <Plus size={20} />
-              <span>Add Zone</span>
-            </div>
+              <div className="flex items-center justify-center gap-2">
+                <Plus size={20} />
+                <span>Add Zone</span>
+              </div>
             </button>
           </div>
 
@@ -533,21 +586,21 @@ const PolygonEditor = () => {
             {/* Tab Navigation */}
             <div className="flex gap-2 mb-4">
               <button
-                onClick={() => setActiveTab('zone')}
+                onClick={() => setActiveTab("zone")}
                 className={`px-4 py-2 rounded-md transition-colors ${
-                  activeTab === 'zone'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                  activeTab === "zone"
+                    ? "bg-purple-600 text-white"
+                    : "bg-purple-100 text-purple-600 hover:bg-purple-200"
                 }`}
               >
                 Zone Setting
               </button>
               <button
-                onClick={() => setActiveTab('map')}
+                onClick={() => setActiveTab("map")}
                 className={`px-4 py-2 rounded-md transition-colors ${
-                  activeTab === 'map'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                  activeTab === "map"
+                    ? "bg-purple-600 text-white"
+                    : "bg-purple-100 text-purple-600 hover:bg-purple-200"
                 }`}
               >
                 Direction Setting
@@ -555,7 +608,7 @@ const PolygonEditor = () => {
             </div>
 
             {/* Tab Content */}
-            {activeTab === 'zone' ? (
+            {activeTab === "zone" ? (
               <DndContext onDragEnd={handleDragEnd}>
                 <div className="relative h-[563px] w-[1000px] bg-black rounded-lg overflow-hidden">
                   <img
@@ -596,8 +649,8 @@ const PolygonEditor = () => {
                     }
                     url={
                       isOsm
-                        ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-                        : 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'
+                        ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        : "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png"
                     }
                   />
                   {polygons.map((polygon) =>
@@ -607,18 +660,29 @@ const PolygonEditor = () => {
                           <>
                             <DraggableMapMarker
                               position={polygon.center.startPoint}
-                              onDrag={(pos) => updateRouteMarker(polygon.polygonId, 'start', pos)}
+                              onDrag={(pos) =>
+                                updateRouteMarker(
+                                  polygon.polygonId,
+                                  "start",
+                                  pos
+                                )
+                              }
                               label="Start"
                             />
                             <DraggableMapMarker
                               position={polygon.center.endPoint}
-                              onDrag={(pos) => updateRouteMarker(polygon.polygonId, 'end', pos)}
+                              onDrag={(pos) =>
+                                updateRouteMarker(polygon.polygonId, "end", pos)
+                              }
                               label="End"
                             />
                           </>
                         )}
                         <PolylineArrow
-                          positions={[polygon.center.startPoint, polygon.center.endPoint]}
+                          positions={[
+                            polygon.center.startPoint,
+                            polygon.center.endPoint,
+                          ]}
                         />
                       </React.Fragment>
                     ) : null
@@ -641,13 +705,13 @@ const PolygonEditor = () => {
       </div>
     </div>
   );
-};
-
-// Main App Component
-export default function App() {
-  return (
-    <main className="bg-gray-100 min-h-screen w-full py-8">
-      <PolygonEditor />
-    </main>
-  );
 }
+
+// // Main App Component
+// export default function App() {
+//   return (
+//     <main className="bg-gray-100 min-h-screen w-full py-8">
+//       <PolygonEditor />
+//     </main>
+//   );
+// }

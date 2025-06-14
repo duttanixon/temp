@@ -475,7 +475,7 @@ export default function PolygonEditor() {
           ...v,
           position: convertPosition({
             position: v.position,
-            inputWidth: 1000,
+            inputWidth: 896,
             inputHeight: 563,
             targetWidth: 1280,
             targetHeight: 720,
@@ -610,9 +610,9 @@ export default function PolygonEditor() {
             {/* Tab Content */}
             {activeTab === "zone" ? (
               <DndContext onDragEnd={handleDragEnd}>
-                <div className="relative h-[563px] w-[1000px] bg-black rounded-lg overflow-hidden">
+                <div className="relative h-[563px] w-[896px] bg-black rounded-lg overflow-hidden">
                   <img
-                    src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1000&h=563&fit=crop"
+                    src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=896&h=563&fit=crop"
                     alt="Camera view"
                     className="absolute inset-0 w-full h-full object-cover opacity-80"
                   />
@@ -639,7 +639,7 @@ export default function PolygonEditor() {
                 <MapContainer
                   center={mapCenter}
                   zoom={18}
-                  className="h-[563px] w-[1000px] rounded-lg"
+                  className="h-[563px] w-[896px] rounded-lg"
                 >
                   <TileLayer
                     attribution={

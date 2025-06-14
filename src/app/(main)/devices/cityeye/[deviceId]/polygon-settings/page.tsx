@@ -1,6 +1,9 @@
-import { auth } from "@/auth";
-import { notFound, redirect } from "next/navigation";
-import PolygonEditor from "./PolygonSettingsForm";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,53 +11,71 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import PolygonEditor from "./PolygonSettingsForm";
+import { Device } from "@/types/device";
+import { deviceService } from "@/services/deviceService";
 
-async function getDevice(deviceId: string, accessToken: string) {
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices/${deviceId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        cache: "no-store",
+export default function PolygonSettingsPage() {
+  const [device, setDevice] = useState<Device | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const params = useParams();
+  const { status } = useSession();
+
+  const deviceId = params?.deviceId as string;
+
+  useEffect(() => {
+    // We only need the deviceId to fetch. The apiClient in your service handles auth.
+    if (!deviceId) {
+      return;
+    }
+
+    const fetchDeviceData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Use the existing service to fetch the device details
+        const deviceData = await deviceService.getDevice(deviceId);
+        if (deviceData) {
+          setDevice(deviceData);
+        } else {
+          setError("Device not found.");
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred."
+        );
+      } finally {
+        setIsLoading(false);
       }
+    };
+
+    fetchDeviceData();
+  }, [deviceId]);
+
+  if (isLoading || status === "loading") {
+    return (
+      <div className="p-6">
+        <p>Loading...</p>
+      </div>
     );
-
-    if (response.status === 404) {
-      return null;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch device: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error("Error fetching device:", error);
-    throw error;
-  }
-}
-
-type Props = {
-  params: Promise<{ deviceId: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-};
-
-export default async function PolygonSettingsPage({ params }: Props) {
-  const resolvedParams = await params;
-  const session = await auth();
-  const accessToken = session?.accessToken ?? "";
-  const deviceId = resolvedParams.deviceId;
-
-  if (!accessToken) {
-    redirect("/login");
   }
 
-  const device = await getDevice(deviceId, accessToken);
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-red-600">Error: {error}</p>
+      </div>
+    );
+  }
 
   if (!device) {
-    notFound();
+    return (
+      <div className="p-6">
+        <p>Device could not be loaded.</p>
+      </div>
+    );
   }
 
   return (

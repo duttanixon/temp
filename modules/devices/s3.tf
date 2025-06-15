@@ -44,3 +44,8 @@ resource "aws_iam_user_policy_attachment" "image_bucket_policy_attachment_to_use
   policy_arn = aws_iam_policy.s3_access_to_image_bucket.arn
 }
 
+resource "aws_iam_user_policy_attachment" "image_bucket_policy_attachment_to_backend_service" {
+  user       = var.platform_backend_user_name
+  policy_arn = aws_iam_policy.s3_access_to_image_bucket.arn
+}
+

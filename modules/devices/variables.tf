@@ -13,6 +13,11 @@ variable "iot_device_metrics_user_name" {
     type = string
 }
 
+variable "platform_backend_user_name" {
+    description = "Backend user name"
+    type = string
+}
+
 variable "edge_device_metrics_database_name" {
   description = "Name of the Timestream database"
   type        = string

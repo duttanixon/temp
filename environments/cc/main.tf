@@ -61,6 +61,7 @@ module "metrics" {
     aws_region                          = var.aws_region
     environment                         = var.environment
     iot_device_metrics_user_name        = module.common.device_service_user_name
+    platform_backend_user_name          = module.common.backend_service_user_name
     edge_device_metrics_database_name   = "edge-metrics"
     raw_table_name                      = "raw_metrics"
     hourly_table_name                   = "hourly_metrics"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import dynamic from "next/dynamic"; // Import dynamic
 
 import {
   Breadcrumb,
@@ -11,9 +12,15 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import PolygonEditor from "./PolygonSettingsForm";
+
 import { Device } from "@/types/device";
 import { deviceService } from "@/services/deviceService";
+// import PolygonEditor from "./PolygonSettingsForm";
+// Dynamically import the PolygonEditor with SSR turned off
+const PolygonEditor = dynamic(() => import("./PolygonSettingsForm"), {
+  ssr: false,
+  loading: () => <p>Loading map...</p>, // Optional loading component
+});
 
 export default function PolygonSettingsPage() {
   const [device, setDevice] = useState<Device | null>(null);
@@ -97,7 +104,7 @@ export default function PolygonSettingsPage() {
         <h1 className="text-2xl font-bold text-[#2C3E50]">ポリゴン設定</h1>
       </div>
 
-      <PolygonEditor />
+      <PolygonEditor device={device} />
     </div>
   );
 }

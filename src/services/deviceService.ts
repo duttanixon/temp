@@ -1,4 +1,9 @@
-import { Device, DeviceCreateData, DeviceUpdateData } from "@/types/device";
+import {
+  Device,
+  DeviceCreateData,
+  DeviceUpdateData,
+  DeviceCommandResponse,
+} from "@/types/device";
 import axios from "axios";
 import { apiClient, cleanData, handleApiError } from "./baseApiClient";
 
@@ -74,6 +79,18 @@ export const deviceService = {
       }
 
       return counts;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  async captureImage(deviceId: string): Promise<DeviceCommandResponse> {
+    try {
+      const response = await apiClient.post<DeviceCommandResponse>(
+        "/device-commands/capture-image",
+        { device_id: deviceId }
+      );
+      return response.data;
     } catch (error) {
       return handleApiError(error);
     }

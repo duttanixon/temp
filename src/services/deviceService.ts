@@ -111,9 +111,70 @@ export const deviceService = {
         responseType: "blob", // Important: request image as blob
       });
 
+      console.log("Image response:", {
+        status: response.status,
+        headers: response.headers,
+        dataType: response.data.type,
+        dataSize: response.data.size,
+      });
+
+      // Check if we have a valid response
+      if (!response.data || response.data.size === 0) {
+        throw new Error("Empty image response");
+      }
+
+      // The backend might return binary/octet-stream for images
+      // We need to check if it's actually an image by examining the data
+      const contentType =
+        response.headers["content-type"] || response.data.type || "";
+
+      // If it's binary/octet-stream, we need to determine the actual type
+      let imageBlob = response.data;
+      if (
+        contentType === "binary/octet-stream" ||
+        contentType === "application/octet-stream"
+      ) {
+        // Check the first few bytes to determine if it's an image
+        const arrayBuffer = await response.data.slice(0, 12).arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+
+        // Check for common image file signatures
+        let detectedType = "image/jpeg"; // default
+
+        // JPEG: FF D8 FF
+        if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+          detectedType = "image/jpeg";
+        }
+        // PNG: 89 50 4E 47 0D 0A 1A 0A
+        else if (
+          bytes[0] === 0x89 &&
+          bytes[1] === 0x50 &&
+          bytes[2] === 0x4e &&
+          bytes[3] === 0x47
+        ) {
+          detectedType = "image/png";
+        }
+        // GIF: 47 49 46 38
+        else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+          detectedType = "image/gif";
+        }
+
+        // Create a new blob with the correct MIME type
+        imageBlob = new Blob([response.data], { type: detectedType });
+        console.log("Detected image type:", detectedType);
+      } else if (contentType.startsWith("image/")) {
+        // Content type is already correct, use as is
+        console.log("Image content type:", contentType);
+      } else {
+        // Unexpected content type, but let's try to use it anyway
+        console.warn("Unexpected content type:", contentType);
+        // Try to create blob with image/jpeg type
+        imageBlob = new Blob([response.data], { type: "image/jpeg" });
+      }
+
       // Convert blob to object URL that can be used in img src
-      const imageBlob = response.data;
       const imageUrl = URL.createObjectURL(imageBlob);
+      console.log("Created image URL:", imageUrl);
 
       return imageUrl;
     } catch (error) {

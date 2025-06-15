@@ -9,10 +9,13 @@ import {
   Polyline,
   useMap,
 } from "react-leaflet";
-import { Eye, EyeOff, Trash2, Plus, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Trash2, Plus, RefreshCw, Loader2 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Device } from "@/types/device";
+import { deviceService } from "@/services/deviceService";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -272,19 +275,19 @@ const ToggleButton = ({
 // Main Polygon Editor Component
 export default function PolygonEditor({ device }: { device: Device }) {
   const [polygons, setPolygons] = useState<PolygonWithRoute[]>([]);
-
   const [polygonsState, setPolygonsState] = useState<
     Record<string, PolygonState>
-  >(() => {
-    const initialState: Record<string, PolygonState> = {};
-    polygons.forEach((polygon) => {
-      initialState[polygon.polygonId] = { visible: true, active: false };
-    });
-    return initialState;
-  });
+  >({});
 
   const [activeTab, setActiveTab] = useState<"zone" | "map">("zone");
   const [isOsm, setIsOsm] = useState(true);
+
+  // --- Image caputre state---
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [imageUrl, setImageUrl] = useState(
+    // Use the secure backend endpoint. Start with a timestamp to load the initial image.
+    `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices/${device.device_id}/image?timestamp=${new Date().getTime()}?solution=cityeye`
+  );
 
   // Toggle polygon visibility
   const togglePolygonVisibility = (id: string) => {
@@ -429,15 +432,72 @@ export default function PolygonEditor({ device }: { device: Device }) {
     alert("Check console for JSON data that would be sent to API");
   };
 
+  const handleCaptureImage = async () => {
+    setIsCapturing(true);
+    toast.info("Requesting new image from device...");
+
+    try {
+      const { message_id } = await deviceService.captureImage(device.device_id);
+
+      const eventSource = new EventSource(
+        `/api/sse/commands/status/${message_id}`
+      );
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.status === "SUCCESS") {
+          toast.success("Image captured successfully! Refreshing...");
+          // Update the image URL with a new timestamp to bust the cache
+          setImageUrl(
+            `/api/devices/${device.device_id}/image?timestamp=${new Date().getTime()}`
+          );
+          eventSource.close();
+          setIsCapturing(false);
+        } else if (data.status === "FAILED") {
+          toast.error(
+            `Failed to capture image: ${data.error_message || "Unknown error"}`
+          );
+          eventSource.close();
+          setIsCapturing(false);
+        } else if (data.heartbeat) {
+          console.log("SSE heartbeat received");
+        }
+      };
+
+      eventSource.onerror = () => {
+        toast.error("Connection to status updates failed. Please try again.");
+        eventSource.close();
+        setIsCapturing(false);
+      };
+    } catch (error) {
+      toast.error("Failed to send capture command to the device.");
+      setIsCapturing(false);
+    }
+  };
+
   const mapCenter: LatLngLiteral = { lat: 36.5287, lng: 139.8147 };
 
   return (
     <div className="w-full p-4">
       <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 justify-between">
           <h2 className="text-2xl font-bold text-gray-800">
             {device.location} {device.name}
           </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCaptureImage}
+            disabled={isCapturing}
+          >
+            {isCapturing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Update Image
+          </Button>
         </div>
 
         {/* This new container makes the content horizontally scrollable on small screens */}
@@ -552,7 +612,8 @@ export default function PolygonEditor({ device }: { device: Device }) {
                 <DndContext onDragEnd={handleDragEnd}>
                   <div className="relative h-[563px] w-[1000px] bg-black rounded-lg overflow-hidden">
                     <img
-                      src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1000&h=563&fit=crop"
+                      src={imageUrl}
+                      key={imageUrl}
                       alt="Camera view"
                       className="absolute inset-0 w-full h-full object-cover opacity-80"
                     />

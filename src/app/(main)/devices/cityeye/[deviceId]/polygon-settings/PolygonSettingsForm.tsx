@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { DndContext, useDraggable } from "@dnd-kit/core";
 import {
   MapContainer,
@@ -170,7 +170,7 @@ const PolylineArrow = ({
 }) => {
   const map = useMap();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (positions.length < 2) return;
 
     const start = positions[0];
@@ -284,10 +284,37 @@ export default function PolygonEditor({ device }: { device: Device }) {
 
   // --- Image caputre state---
   const [isCapturing, setIsCapturing] = useState(false);
-  const [imageUrl, setImageUrl] = useState(
-    // Use the secure backend endpoint. Start with a timestamp to load the initial image.
-    `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices/${device.device_id}/image?timestamp=${new Date().getTime()}?solution=cityeye`
-  );
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [isLoadingImage, setIsLoadingImage] = useState(true);
+
+  // Function to load image
+  const loadDeviceImage = async () => {
+    try {
+      setIsLoadingImage(true);
+      const url = await deviceService.getDeviceImage(
+        device.device_id,
+        "cityeye"
+      );
+      setImageUrl(url);
+    } catch (error) {
+      console.error("Failed to load device image:", error);
+      toast.error("Failed to load device image");
+    } finally {
+      setIsLoadingImage(false);
+    }
+  };
+
+  // Load initial image
+  useEffect(() => {
+    loadDeviceImage();
+
+    // Cleanup function to revoke the blob URL when component unmounts
+    return () => {
+      if (imageUrl) {
+        deviceService.revokeImageUrl(imageUrl);
+      }
+    };
+  }, [device.device_id]);
 
   // Toggle polygon visibility
   const togglePolygonVisibility = (id: string) => {
@@ -443,15 +470,20 @@ export default function PolygonEditor({ device }: { device: Device }) {
         `/api/sse/commands/status/${message_id}`
       );
 
-      eventSource.onmessage = (event) => {
+      eventSource.onmessage = async (event) => {
         const data = JSON.parse(event.data);
 
         if (data.status === "SUCCESS") {
           toast.success("Image captured successfully! Refreshing...");
-          // Update the image URL with a new timestamp to bust the cache
-          setImageUrl(
-            `/api/devices/${device.device_id}/image?timestamp=${new Date().getTime()}`
-          );
+
+          // Revoke old image URL to prevent memory leak
+          if (imageUrl) {
+            deviceService.revokeImageUrl(imageUrl);
+          }
+
+          // Load the new image
+          await loadDeviceImage();
+
           eventSource.close();
           setIsCapturing(false);
         } else if (data.status === "FAILED") {
@@ -611,12 +643,21 @@ export default function PolygonEditor({ device }: { device: Device }) {
               {activeTab === "zone" ? (
                 <DndContext onDragEnd={handleDragEnd}>
                   <div className="relative h-[563px] w-[1000px] bg-black rounded-lg overflow-hidden">
-                    <img
-                      src={imageUrl}
-                      key={imageUrl}
-                      alt="Camera view"
-                      className="absolute inset-0 w-full h-full object-cover opacity-80"
-                    />
+                    {isLoadingImage ? (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-white">Loading image...</div>
+                      </div>
+                    ) : imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt="Camera view"
+                        className="absolute inset-0 w-full h-full object-cover opacity-80"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-white">No image available</div>
+                      </div>
+                    )}
                     {polygons.map((polygon) => (
                       <EditablePolygon
                         key={polygon.polygonId}

@@ -95,4 +95,36 @@ export const deviceService = {
       return handleApiError(error);
     }
   },
+
+  // Fetch device image as blob
+  async getDeviceImage(
+    deviceId: string,
+    solution: string = "cityeye"
+  ): Promise<string> {
+    try {
+      const timestamp = new Date().getTime();
+      const response = await apiClient.get(`/devices/${deviceId}/image`, {
+        params: {
+          timestamp,
+          solution,
+        },
+        responseType: "blob", // Important: request image as blob
+      });
+
+      // Convert blob to object URL that can be used in img src
+      const imageBlob = response.data;
+      const imageUrl = URL.createObjectURL(imageBlob);
+
+      return imageUrl;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Clean up object URL to prevent memory leaks
+  revokeImageUrl(url: string): void {
+    if (url.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+  },
 };

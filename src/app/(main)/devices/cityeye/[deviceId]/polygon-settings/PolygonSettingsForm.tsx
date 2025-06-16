@@ -462,51 +462,93 @@ export default function PolygonEditor({ device }: { device: Device }) {
   const handleCaptureImage = async () => {
     setIsCapturing(true);
     toast.info("Requesting new image from device...");
-
+    let eventSource: EventSource | null = null;
+  
     try {
       const { message_id } = await deviceService.captureImage(device.device_id);
-
-      const eventSource = new EventSource(
+  
+      // Create EventSource with the proxied endpoint
+      eventSource = new EventSource(
         `/api/sse/commands/status/${message_id}`
       );
-
+  
+      // Handle incoming messages
       eventSource.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.status === "SUCCESS") {
-          toast.success("Image captured successfully! Refreshing...");
-
-          // Revoke old image URL to prevent memory leak
-          if (imageUrl) {
-            deviceService.revokeImageUrl(imageUrl);
+        try {
+          const data = JSON.parse(event.data);
+          console.log("SSE message received:", data);
+  
+          if (data.status === "SUCCESS") {
+            toast.success("Image captured successfully! Refreshing...");
+            
+            // Revoke old image URL to prevent memory leak
+            if (imageUrl) {
+              deviceService.revokeImageUrl(imageUrl);
+            }
+            
+            // Load the new image
+            await loadDeviceImage();
+            
+            eventSource?.close();
+            setIsCapturing(false);
+          } else if (data.status === "FAILED" || data.status === "TIMEOUT") {
+            const errorMsg = data.error_message || data.error || "Unknown error";
+            toast.error(`Failed to capture image: ${errorMsg}`);
+            eventSource?.close();
+            setIsCapturing(false);
+          } else if (data.heartbeat) {
+            console.log("SSE heartbeat received");
+          } else {
+            // Status update (PENDING, SENT, etc.)
+            console.log(`Command status: ${data.status}`);
           }
-
-          // Load the new image
-          await loadDeviceImage();
-
-          eventSource.close();
-          setIsCapturing(false);
-        } else if (data.status === "FAILED") {
-          toast.error(
-            `Failed to capture image: ${data.error_message || "Unknown error"}`
-          );
-          eventSource.close();
-          setIsCapturing(false);
-        } else if (data.heartbeat) {
-          console.log("SSE heartbeat received");
+        } catch (parseError) {
+          console.error("Error parsing SSE data:", parseError, event.data);
         }
       };
-
-      eventSource.onerror = () => {
-        toast.error("Connection to status updates failed. Please try again.");
-        eventSource.close();
+  
+      // Handle connection errors
+      eventSource.onerror = (error) => {
+        console.error("SSE connection error:", error);
+        
+        // Check if the connection was closed normally
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          console.log("SSE connection closed");
+        } else {
+          toast.error("Connection to status updates failed. Please try again.");
+        }
+        
+        eventSource?.close();
         setIsCapturing(false);
       };
+  
+      // Handle connection open
+      eventSource.onopen = () => {
+        console.log("SSE connection established");
+      };
+  
+      // Set a timeout in case the command takes too long
+      const timeout = setTimeout(() => {
+        if (eventSource?.readyState !== EventSource.CLOSED) {
+          toast.error("Command timed out. Please try again.");
+          eventSource?.close();
+          setIsCapturing(false);
+        }
+      }, 1 * 60 * 1000); // 5 minutes timeout
+  
+      // Clean up timeout when event source closes
+      eventSource.addEventListener('close', () => {
+        clearTimeout(timeout);
+      });
+  
     } catch (error) {
+      console.error("Failed to initiate capture command:", error);
       toast.error("Failed to send capture command to the device.");
+      eventSource?.close();
       setIsCapturing(false);
     }
   };
+  
 
   const mapCenter: LatLngLiteral = { lat: 36.5287, lng: 139.8147 };
 

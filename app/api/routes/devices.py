@@ -16,8 +16,11 @@ from app.schemas.device import (
 from app.utils.audit import log_action
 from app.utils.aws_iot import iot_core
 from app.utils.logger import get_logger
+from app.core.config import settings
+from botocore.exceptions import NoCredentialsError, ClientError
 import uuid
 import random
+import boto3
 import string
 
 logger = get_logger("api.devices")
@@ -621,3 +624,108 @@ def get_compatible_devices_for_solution_by_customer(
             compatible_devices.append(dev)
     
     return compatible_devices
+
+@router.get("/{device_id}/image")
+def get_device_image(
+    *,
+    db: Session = Depends(deps.get_db),
+    device_id: uuid.UUID,
+    solution: str,
+    current_user: User = Depends(deps.get_current_active_user),
+    timestamp: Optional[str] = None,  # Cache busting parameter
+) -> Any:
+    """
+    Get the latest captured image for a device.
+    
+    - Admins and Engineers can access any device's image
+    - Customer users can only access their customer's devices
+    - Images are stored in S3 and served directly
+    """
+    # Get and validate device
+    db_device = device.get_by_id(db, device_id=device_id)
+    if not db_device:
+        raise HTTPException(
+            status_code=404,
+            detail="Device not found"
+        )
+    
+    # Check access permissions
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if db_device.customer_id != current_user.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access this device's images"
+            )
+
+    
+    # Check if device is active/provisioned
+    if db_device.status not in [DeviceStatus.ACTIVE, DeviceStatus.PROVISIONED]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Device is not active (current status: {db_device.status.value})"
+        )
+
+    try:
+        # Initialize S3 client
+        s3_client = boto3.client(
+            's3',
+            region_name=settings.AWS_REGION,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        )
+
+        object_key = f"captures/{solution}/{db_device.name}/capture.jpg"
+
+        try:
+            response = s3_client.get_object(
+                Bucket="cc-captured-images",
+                Key=object_key
+            )
+
+            
+            # Stream the image data
+            image_data = response['Body'].read()
+            
+            # Determine content type
+            content_type = response.get('ContentType', 'image/jpeg')
+
+            # Return the image as a streaming response
+            return Response(
+                content=image_data,
+                media_type=content_type,
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
+            
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'NoSuchKey':
+                raise HTTPException(
+                    status_code=404,
+                    detail="No image found for this device. Try capturing a new image first."
+                )
+            elif error_code == 'NoSuchBucket':
+                raise HTTPException(
+                    status_code=500,
+                    detail="Image storage bucket not found"
+                )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error retrieving image: {str(e)}"
+                )
+                
+    except NoCredentialsError:
+        raise HTTPException(
+            status_code=500,
+            detail="AWS credentials not configured"
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving image for device {device_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error retrieving device image"
+        )

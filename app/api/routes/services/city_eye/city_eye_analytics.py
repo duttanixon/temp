@@ -13,9 +13,9 @@ from app.utils.aws_iot_commands import iot_command_service
 from app.schemas.device_command import (
     DeviceCommandCreate,
     DeviceCommandResponse,
-    UpdateXLinesConfigCommand,
 )
-from app.crud.crud_city_eye_analytics import crud_city_eye_analytics # Explicitly import
+from app.schemas.services.city_eye_settings import XLinesConfigPayload, UpdateXLinesConfigCommand
+from app.crud.crud_city_eye_analytics import crud_city_eye_analytics
 from app.utils.audit import log_action
 from app.schemas.services.city_eye_analytics import (
     AnalyticsFilters,
@@ -34,6 +34,7 @@ from app.schemas.services.city_eye_analytics import (
     CityEyeAnalyticsPerDeviceResponse,
     CityEyeTrafficAnalyticsPerDeviceResponse
 )
+from app.utils.util import transform_to_device_shadow_format
 from app.utils.logger import get_logger
 from datetime import datetime, timedelta
 import uuid
@@ -332,12 +333,11 @@ def get_traffic_flow_analytics(
     )
     return analytics_results
 
-
-@router.post("/update-xlines-config", response_model=DeviceCommandResponse)
-def send_xlines_config_update(
+@router.post("/polygon-xlines-config", response_model=DeviceCommandResponse)
+def polygon_xlines_config(
     *,
     db: Session = Depends(deps.get_db),
-    command_in: UpdateXLinesConfigCommand,
+    command_in: XLinesConfigPayload,
     current_user: User = Depends(deps.get_current_active_user),
     background_tasks: BackgroundTasks,
     request: Request,
@@ -375,6 +375,7 @@ def send_xlines_config_update(
     logger.info(
         f"X-lines config update requested for device {command_in.device_id} by user {current_user.email}"
     )
+
     # Step 1: Get and validate the target device
     # This ensures the device exists and the user has permission to modify it
     db_device = device.get_by_id(db, device_id=command_in.device_id)
@@ -396,6 +397,8 @@ def send_xlines_config_update(
 
     solution_id = active_solutions[0].solution_id
 
+    transformed_payload = transform_to_device_shadow_format(command_in)
+    command_in = UpdateXLinesConfigCommand(**transformed_payload)
     xlines_config_data = [item.model_dump() for item in command_in.xlines_config]
 
     # Step 4: Create a command record in our database for tracking and audit purposes

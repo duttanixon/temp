@@ -1,5 +1,6 @@
 from app.models import User, UserRole, DeviceStatus
 from fastapi import HTTPException
+from app.schemas.services.city_eye_settings import XLinesConfigPayload
 
 def check_device_access(
     current_user: User, db_device, action: str = "send commands to"
@@ -31,3 +32,22 @@ def validate_device_for_commands(db_device) -> str:
         )
 
     return db_device.thing_name
+
+def transform_to_device_shadow_format(payload: XLinesConfigPayload) -> dict:
+    xlines_config = []
+
+    for zone in payload.detectionZones:
+        content = []
+        for vertex in zone.vertices:
+            content.append({
+                "x": vertex.position.x,
+                "y": vertex.position.y
+            })
+        
+        xlines_config.append({
+            "content": content
+        })
+    return {
+        "device_id": payload.device_id,
+        "xlines_config": xlines_config
+    }

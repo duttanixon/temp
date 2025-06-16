@@ -463,6 +463,7 @@ export default function PolygonEditor({ device }: { device: Device }) {
     setIsCapturing(true);
     toast.info("Requesting new image from device...");
     let eventSource: EventSource | null = null;
+    let isCompleted = false; // Track if we received a final status
   
     try {
       const { message_id } = await deviceService.captureImage(device.device_id);
@@ -479,6 +480,7 @@ export default function PolygonEditor({ device }: { device: Device }) {
           console.log("SSE message received:", data);
   
           if (data.status === "SUCCESS") {
+            isCompleted = true; // Mark as completed
             toast.success("Image captured successfully! Refreshing...");
             
             // Revoke old image URL to prevent memory leak
@@ -492,6 +494,7 @@ export default function PolygonEditor({ device }: { device: Device }) {
             eventSource?.close();
             setIsCapturing(false);
           } else if (data.status === "FAILED" || data.status === "TIMEOUT") {
+            isCompleted = true; // Mark as completed
             const errorMsg = data.error_message || data.error || "Unknown error";
             toast.error(`Failed to capture image: ${errorMsg}`);
             eventSource?.close();
@@ -509,17 +512,34 @@ export default function PolygonEditor({ device }: { device: Device }) {
   
       // Handle connection errors
       eventSource.onerror = (error) => {
-        console.error("SSE connection error:", error);
-        
-        // Check if the connection was closed normally
+        // Check if this is a normal closure after completion
+        if (isCompleted && eventSource?.readyState === EventSource.CLOSED) {
+          console.log("SSE connection closed normally after completion");
+          return; // This is expected, don't show error
+        }
+
+        if (isCompleted) {
+          console.log("SSE connection closed normally after completion");
+          return; // This is expected, don't show error
+        }
+  
+        // Check if the connection was closed normally without error
         if (eventSource?.readyState === EventSource.CLOSED) {
           console.log("SSE connection closed");
+          // Don't show error toast for normal closure
+          if (!isCompleted) {
+            console.warn("SSE connection closed unexpectedly");
+          }
         } else {
+          // This is an actual error
+          console.error("SSE connection error:", error);
           toast.error("Connection to status updates failed. Please try again.");
         }
         
         eventSource?.close();
-        setIsCapturing(false);
+        if (!isCompleted) {
+          setIsCapturing(false);
+        }
       };
   
       // Handle connection open
@@ -529,12 +549,12 @@ export default function PolygonEditor({ device }: { device: Device }) {
   
       // Set a timeout in case the command takes too long
       const timeout = setTimeout(() => {
-        if (eventSource?.readyState !== EventSource.CLOSED) {
+        if (!isCompleted && eventSource?.readyState !== EventSource.CLOSED) {
           toast.error("Command timed out. Please try again.");
           eventSource?.close();
           setIsCapturing(false);
         }
-      }, 1 * 60 * 1000); // 5 minutes timeout
+      }, 30 * 1000); // 30 seconds timeout
   
       // Clean up timeout when event source closes
       eventSource.addEventListener('close', () => {

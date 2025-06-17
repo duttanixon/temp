@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   CityEyeFilterState,
   FrontendAnalyticsFilters,
-} from "@/types/cityEyeAnalytics";
+} from "@/types/cityeye/cityEyeAnalytics";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
 
 // Default filter state with sensible defaults

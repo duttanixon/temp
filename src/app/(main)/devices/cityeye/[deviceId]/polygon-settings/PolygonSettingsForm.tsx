@@ -9,11 +9,13 @@ import {
   Polyline,
   useMap,
 } from "react-leaflet";
-import { Eye, EyeOff, Trash2, Plus, RefreshCw, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Trash2, Plus, RefreshCw, Loader2, Save } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Device } from "@/types/device";
 import { deviceService } from "@/services/deviceService";
+import { polygonService } from "@/services/cityeye/cityEyePolygonSettings";
+import { XLinesConfigPayload } from "@/types/cityeye/cityEyePolygon";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -287,6 +289,10 @@ export default function PolygonEditor({ device }: { device: Device }) {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [isLoadingImage, setIsLoadingImage] = useState(true);
 
+  // --- states for backend integration ---
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
   // Function to load image
   const loadDeviceImage = async () => {
     try {
@@ -304,9 +310,56 @@ export default function PolygonEditor({ device }: { device: Device }) {
     }
   };
 
+  // Load existing polygon configuration
+  const loadPolygonConfig = async () => {
+    try {
+      setIsLoadingConfig(true);
+      const config = await polygonService.getPolygonConfig(device.device_id);
+      
+      if (config && config.detectionZones && config.detectionZones.length > 0) {
+        // Convert from backend format to frontend format
+        const loadedPolygons: PolygonWithRoute[] = config.detectionZones.map((zone) => ({
+          polygonId: zone.polygonId,
+          name: zone.name,
+          vertices: zone.vertices.map((v) => ({
+            vertexId: v.vertexId,
+            position: convertPosition({
+              position: v.position,
+              inputWidth: 1280,
+              inputHeight: 720,
+              targetWidth: 1000,
+              targetHeight: 563,
+            }),
+          })),
+          center: zone.center,
+        }));
+
+        setPolygons(loadedPolygons);
+        
+        // Initialize polygon states
+        const newState: Record<string, PolygonState> = {};
+        loadedPolygons.forEach((poly) => {
+          newState[poly.polygonId] = { visible: true, active: false };
+        });
+        setPolygonsState(newState);
+        
+        toast.success("Polygon configuration loaded successfully");
+      }
+    } catch (error) {
+      console.error("Failed to load polygon config:", error);
+      // Don't show error toast for 404, just start with empty polygons
+      if (error instanceof Error && !error.message.includes("404")) {
+        toast.error("Failed to load polygon configuration");
+      }
+    } finally {
+      setIsLoadingConfig(false);
+    }
+  };
+ 
   // Load initial image
   useEffect(() => {
     loadDeviceImage();
+    loadPolygonConfig();
 
     // Cleanup function to revoke the blob URL when component unmounts
     return () => {
@@ -437,26 +490,47 @@ export default function PolygonEditor({ device }: { device: Device }) {
     );
   };
 
-  // Submit handler
-  const handleSubmit = () => {
-    const dataToSend = {
-      detectionZones: polygons.map((poly) => ({
-        ...poly,
-        vertices: poly.vertices.map((v) => ({
-          ...v,
-          position: convertPosition({
-            position: v.position,
-            inputWidth: 1000,
-            inputHeight: 563,
-            targetWidth: 1280,
-            targetHeight: 720,
-          }),
-        })),
-      })),
-    };
+  // Submit handler - Updated with backend integration
+  const handleSubmit = async () => {
+    try {
+      setIsSaving(true);
 
-    console.log("Submitting data:", JSON.stringify(dataToSend, null, 2));
-    alert("Check console for JSON data that would be sent to API");
+      const payload: XLinesConfigPayload = {
+        device_id: device.device_id,
+        detectionZones: polygons.map((poly) => ({
+          polygonId: poly.polygonId,
+          name: poly.name,
+          vertices: poly.vertices.map((v) => ({
+            vertexId: v.vertexId,
+            position: convertPosition({
+              position: v.position,
+              inputWidth: 1000,
+              inputHeight: 563,
+              targetWidth: 1280,
+              targetHeight: 720,
+            }),
+          })),
+          center: poly.center,
+        })),
+      };
+
+      const response = await polygonService.updatePolygonConfig(payload);
+      
+      toast.success(`Configuration updated successfully! Message ID: ${response.message_id}`);
+      
+      // Optional: You can monitor the command status here if needed
+      // Similar to the image capture functionality
+
+    } catch (error) {
+      console.error("Failed to save polygon config:", error);
+      toast.error(
+        error instanceof Error 
+          ? error.message 
+          : "Failed to update polygon configuration"
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCaptureImage = async () => {
@@ -569,12 +643,19 @@ export default function PolygonEditor({ device }: { device: Device }) {
     }
   };
   
-
-  const mapCenter: LatLngLiteral = { lat: 36.5287, lng: 139.8147 };
+  // Show loading state while fetching config
+  if (isLoadingConfig) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full p-4">
-      <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+    <div className="container mx-auto">
+      {/* <div className="bg-white rounded-xl shadow-2xl overflow-hidden"> */}
+      <div className="bg-white shadow-lg rounded-lg">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 justify-between">
           <h2 className="text-2xl font-bold text-gray-800">
             {device.location} {device.name}
@@ -706,9 +787,9 @@ export default function PolygonEditor({ device }: { device: Device }) {
                 <DndContext onDragEnd={handleDragEnd}>
                   <div className="relative h-[563px] w-[1000px] bg-black rounded-lg overflow-hidden">
                     {isLoadingImage ? (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-white">Loading image...</div>
-                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    </div>
                     ) : imageUrl ? (
                       <img
                         src={imageUrl}
@@ -731,19 +812,19 @@ export default function PolygonEditor({ device }: { device: Device }) {
                   </div>
                 </DndContext>
               ) : (
-                <div className="relative">
-                  <div className="absolute right-4 top-4 z-[1000] bg-white rounded-lg shadow-lg">
+                <div className="w-[1000px]">
+                  <div className="mb-4">
                     <ToggleButton
                       checked={isOsm}
                       onChange={setIsOsm}
-                      uncheckedLabel="国土地理院"
-                      checkedLabel="OpenStreetMap"
+                      uncheckedLabel="地理院地図"
+                      checkedLabel="OSM"
                     />
                   </div>
                   <MapContainer
-                    center={mapCenter}
-                    zoom={18}
-                    className="h-[563px] w-[1000px] rounded-lg"
+                    center={[36.5287, 139.8147]}
+                    zoom={15}
+                    style={{ height: "500px", width: "100%" }}
                   >
                     <TileLayer
                       attribution={
@@ -806,9 +887,20 @@ export default function PolygonEditor({ device }: { device: Device }) {
         <div className="p-6 bg-gray-50 border-t border-gray-200">
           <button
             onClick={handleSubmit}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors"
+            disabled={isSaving}
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Update Detection Zones
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Saving Configuration...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-5 w-5" />
+                Update Detection Zones
+              </>
+            )}
           </button>
         </div>
       </div>

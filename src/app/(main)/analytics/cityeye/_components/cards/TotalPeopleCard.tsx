@@ -1,6 +1,6 @@
 import React from "react";
 import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
-import { DeviceCountData } from "@/types/cityEyeAnalytics";
+import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Ensure Card components are imported
 

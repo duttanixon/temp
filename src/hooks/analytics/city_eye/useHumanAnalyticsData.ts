@@ -23,8 +23,8 @@ import { useState, useEffect, useCallback } from "react";
 import {
   FrontendAnalyticsFilters,
   FrontendCityEyeAnalyticsPerDeviceResponse,
-} from "@/types/cityEyeAnalytics";
-import { analyticsService } from "@/services/cityEyeAnalyticsService";
+} from "@/types/cityeye/cityEyeAnalytics";
+import { analyticsService } from "@/services/cityeye/cityEyeAnalyticsService";
 import { toast } from "sonner";
 
 // ============================================================================

@@ -10,7 +10,7 @@ import { AgesFilter } from "./AgesFilter";
 import { GenderFilter } from "./GenderFilter";
 import { TrafficFilter } from "./TrafficFilter";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CityEyeFilterState } from "@/types/cityEyeAnalytics"; // Import the centralized filter state type
+import { CityEyeFilterState } from "@/types/cityeye/cityEyeAnalytics"; // Import the centralized filter state type
 import { DateRange } from "react-day-picker";
 
 interface FilterGroupProps {

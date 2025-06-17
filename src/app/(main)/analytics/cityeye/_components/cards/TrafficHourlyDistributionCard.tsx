@@ -2,7 +2,7 @@
 
 import React from "react";
 import ShadcnAreaChartCard from "@/components/charts/areachart-card";
-import { ProcessedHourlyDataPoint } from "@/types/cityEyeAnalytics";
+import { ProcessedHourlyDataPoint } from "@/types/cityeye/cityEyeAnalytics";
 
 interface TrafficHourlyDistributionCardProps {
   title: string;

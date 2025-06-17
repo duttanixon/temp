@@ -35,3 +35,25 @@ export interface PolygonCommandResponse {
     message_id: string;
     detail: string;
   }
+
+export interface Route {
+    center: {
+      startPoint: Point;
+      endPoint: Point;
+    }
+}
+
+export type Polygon = {
+    polygonId: string;
+    name: string;
+    vertices: Vertex[];
+  };
+
+export type PolygonState = {
+    visible: boolean;
+    active: boolean;
+  };
+
+export type PolygonStates = Record<string, PolygonState>;
+
+export type PolygonWithRoute = Polygon & Route;

@@ -17,7 +17,7 @@ import { Device } from "@/types/device";
 import { deviceService } from "@/services/deviceService";
 // import PolygonEditor from "./PolygonSettingsForm";
 // Dynamically import the PolygonEditor with SSR turned off
-const PolygonEditor = dynamic(() => import("./PolygonSettingsForm"), {
+const PolygonEditor = dynamic(() => import("./PolygonSettingsClient"), {
   ssr: false,
   loading: () => <p>Loading map...</p>, // Optional loading component
 });

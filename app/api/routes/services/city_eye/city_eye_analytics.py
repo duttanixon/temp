@@ -1,13 +1,24 @@
 from typing import Any, List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Depends, HTTPException, Query, APIRouter, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.models import User, UserRole, Device as DeviceModel # Renamed to avoid conflict
+import uuid
+import json
+from app.models import User, UserRole, Device as DeviceModel, CommandType, CommandStatus # Renamed to avoid conflict
 from app.crud import device as crud_device # Alias crud operations
-from app.crud import solution as crud_solution
+from app.crud import solution as crud_solution,  device, device_solution, device_command
 from app.crud import customer_solution as crud_customer_solution
 from app.crud import device_solution as crud_device_solution
-from app.crud.crud_city_eye_analytics import crud_city_eye_analytics # Explicitly import
+from app.api.routes.sse import notify_command_update
+from app.utils.util import check_device_access, validate_device_for_commands
+from app.utils.aws_iot_commands import iot_command_service
+from app.schemas.device_command import (
+    DeviceCommandCreate,
+    DeviceCommandResponse,
+)
+from app.schemas.services.city_eye_settings import XLinesConfigPayload, UpdateXLinesConfigCommand, Vertex, Point, Center, DetectionZone, Position
+from app.crud.crud_city_eye_analytics import crud_city_eye_analytics
+from app.utils.audit import log_action
 from app.schemas.services.city_eye_analytics import (
     AnalyticsFilters,
     TrafficAnalyticsFilters,
@@ -25,12 +36,13 @@ from app.schemas.services.city_eye_analytics import (
     CityEyeAnalyticsPerDeviceResponse,
     CityEyeTrafficAnalyticsPerDeviceResponse
 )
+from app.utils.util import transform_to_device_shadow_format
 from app.utils.logger import get_logger
 from datetime import datetime, timedelta
-import uuid
 
 logger = get_logger("api.city_eye_analytics")
 router = APIRouter()
+
 
 @router.post("/human-flow", response_model=CityEyeAnalyticsPerDeviceResponse) # Updated response_model
 def get_human_flow_analytics(
@@ -321,3 +333,279 @@ def get_traffic_flow_analytics(
         f"Successfully processed traffic analytics request by {current_user.email} for {len(analytics_results)} out of {len(filters.device_ids or [])} initially requested devices."
     )
     return analytics_results
+
+@router.post("/polygon-xlines-config", response_model=DeviceCommandResponse)
+def polygon_xlines_config(
+    *,
+    db: Session = Depends(deps.get_db),
+    command_in: XLinesConfigPayload,
+    current_user: User = Depends(deps.get_current_active_user),
+    background_tasks: BackgroundTasks,
+    request: Request,
+) -> Any:
+    """
+    Send X-lines configuration update to device via AWS IoT Device Shadow.
+
+    This endpoint allows authorized users to update the X-lines configuration for a device.
+    The configuration defines coordinate points that form lines on the device's video feed,
+    typically used for creating virtual boundaries or counting zones in computer vision applications.
+
+    The update is sent via AWS IoT Device Shadows, which means:
+    1. The configuration persists even if the device is offline
+    2. The device will receive the update when it comes back online
+    3. We can track the desired vs. reported state of the configuration
+
+    Security considerations:
+    - Users can only update devices they have access to (based on customer association)
+    - Admin and Engineer roles can update any device
+    - Customer users can only update devices belonging to their organization
+    - The device must be in an active state and properly provisioned in AWS IoT
+
+    Args:
+        command_in: The X-lines configuration data including device ID and coordinate points
+        current_user: The authenticated user making the request
+        background_tasks: FastAPI background tasks for async operations
+        request: The HTTP request object for audit logging
+
+    Returns:
+        DeviceCommandResponse: Contains the device name, message ID, and status details
+
+    Raises:
+        HTTPException: Various HTTP errors for validation failures, permission issues, etc.
+    """
+    logger.info(
+        f"X-lines config update requested for device {command_in.device_id} by user {current_user.email}"
+    )
+
+    # Step 1: Get and validate the target device
+    # This ensures the device exists and the user has permission to modify it
+    db_device = device.get_by_id(db, device_id=command_in.device_id)
+    check_device_access(current_user, db_device, action="update configuration for")
+    thing_name = validate_device_for_commands(db_device)
+
+    # Step 2: Verify that an active solution is running on the device
+    # We only allow configuration updates for devices that have active solutions deployed
+    # This ensures that there's actually software running on the device that can process the config
+    active_solutions = device_solution.get_active_by_device(
+        db, device_id=command_in.device_id
+    )
+
+    if not active_solutions:
+        raise HTTPException(
+            status_code=400,
+            detail="No active solution is running on this device. Configuration updates require an active solution.",
+        )
+
+    solution_id = active_solutions[0].solution_id
+
+    transformed_payload = transform_to_device_shadow_format(command_in)
+    command_in = UpdateXLinesConfigCommand(**transformed_payload)
+    xlines_config_data = [item.model_dump() for item in command_in.xlines_config]
+
+    # Step 4: Create a command record in our database for tracking and audit purposes
+    # This allows us to track the status of configuration updates and provides audit trail
+    command_create = DeviceCommandCreate(
+        device_id=command_in.device_id,
+        command_type=CommandType.UPDATE_POLYGON,
+        payload={
+            "xlines_config": xlines_config_data,
+        },
+        user_id=current_user.user_id,
+        solution_id=solution_id,
+    )
+
+    db_command = device_command.create(db, obj_in=command_create)
+
+    # Step 5: Send the configuration update to the device via AWS IoT Device Shadow
+    # This is the actual communication with AWS IoT Core to update the device's shadow
+    success = iot_command_service.send_xlines_config_update(
+        thing_name=thing_name,
+        message_id=db_command.message_id,
+        xlines_config=xlines_config_data,
+    )
+
+    # Step 6: Handle the result of the shadow update operation
+    if not success:
+        # If the shadow update failed, we need to update our command record to reflect this failure
+        # This ensures our audit trail accurately reflects what actually happened
+        device_command.update_status(
+            db,
+            message_id=db_command.message_id,
+            status=CommandStatus.FAILED,
+            error_message="Failed to update device shadow in AWS IoT Core",
+        )
+
+        # Also notify any SSE connections waiting for updates about this command
+        notify_command_update(
+            message_id=str(db_command.message_id),
+            status=CommandStatus.FAILED.value,
+            error_message="Failed to update device shadow in AWS IoT Core",
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send configuration update to device. Please try again or contact support.",
+        )
+
+    # Step 7: Log this action for audit and compliance purposes
+    # Enterprise applications need comprehensive audit trails for security and compliance
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="DEVICE_COMMAND_UPDATE_POLYGON",
+        resource_type="DEVICE_COMMAND",
+        resource_id=str(db_command.message_id),
+        details={
+            "device_id": str(command_in.device_id),
+            "device_name": db_device.name,
+            "command_type": "UPDATE_POLYGON",
+            "total_lines": len(xlines_config_data),
+            "total_points": sum(len(line["content"]) for line in xlines_config_data),
+            "thing_name": thing_name,
+        },
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    # Step 8: Return success response with tracking information
+    # The client can use the message_id to track the status of this configuration update
+    return DeviceCommandResponse(
+        device_name=db_device.name,
+        message_id=db_command.message_id,
+        detail="X-lines configuration update sent successfully",
+    )
+
+
+@router.get("/polygon-xlines-config/{device_id}", response_model=XLinesConfigPayload)
+def get_polygon_xlines_config(
+    *,
+    db: Session = Depends(deps.get_db),
+    device_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Retrieve the current polygon X-lines configuration from the device shadow.
+    
+    This endpoint fetches the X-lines configuration from AWS IoT Device Shadow and transforms
+    it into the polygon format used by the frontend. The data is retrieved from the "accepted"
+    state in the shadow, which represents the configuration that has been successfully applied
+    to the device.
+    
+    The transformation includes:
+    - Converting the x,y coordinates from the shadow format to polygon vertices
+    - Assigning polygon IDs and vertex IDs
+    - Adding placeholder names for each zone
+    - Including center coordinates
+    
+    Args:
+        device_id: The UUID of the device to retrieve configuration for
+        current_user: The authenticated user making the request
+        
+    Returns:
+        XLinesConfigPayload: The polygon configuration in the frontend-expected format
+        
+    Raises:
+        HTTPException: For permission issues, missing devices, or shadow retrieval failures
+    """
+    logger.info(
+        f"Polygon config retrieval requested for device {device_id} by user {current_user.email}"
+    )
+    
+    # Get and validate the device
+    db_device = device.get_by_id(db, device_id=device_id)
+    if not db_device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    
+    # Check access permissions
+    check_device_access(current_user, db_device, action="retrieve configuration from")
+    
+    # Validate device has a thing_name for AWS IoT
+    if not db_device.thing_name:
+        raise HTTPException(
+            status_code=400, 
+            detail="Device is not provisioned in AWS IoT Core"
+        )
+    
+    # Retrieve the shadow from AWS IoT
+    shadow_document = iot_command_service.get_xlines_config_shadow(db_device.thing_name)
+    
+    if not shadow_document:
+        raise HTTPException(
+            status_code=404,
+            detail="No configuration found in device shadow"
+        )
+    
+    # Extract the xlines configuration from the shadow
+    # The accepted state contains the configuration that was successfully applied
+    state = shadow_document.get("state", {})
+
+    # Check accepted states
+    xlines_cfg_content = None
+
+    reported = state.get("reported", {})
+    if reported and "xlines_cfg_content" in reported:
+        xlines_cfg_content = reported.get("xlines_cfg_content")
+        logger.info("Using xlines configuration from reported state")
+
+    if not xlines_cfg_content:
+        raise HTTPException(
+            status_code=404,
+            detail="No X-lines configuration found in device shadow"
+        )
+
+    # Parse the JSON string
+    try:
+        xlines_data = json.loads(xlines_cfg_content)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse xlines configuration: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Invalid configuration format in device shadow"
+        )
+    
+    # Transform to the frontend format
+    detection_zones = []
+    
+    for idx, polygon in enumerate(xlines_data, 1):
+        vertices = []
+        content = polygon.get("content", [])
+        
+        for vertex_idx, point in enumerate(content, 1):
+            x = int(round(point.get("x", 0)))
+            y = int(round(point.get("y", 0)))
+
+            vertex = Vertex(
+                vertexId=f"{idx}-{vertex_idx}",
+                position=Position(x=x, y=y)
+            )
+
+            vertices.append(vertex)
+            
+        start_point = polygon.get("center", {}).get("startPoint", {})
+        end_point = polygon.get("center", {}).get("endPoint", {})
+
+        zone = DetectionZone(
+            polygonId=str(idx),
+            name=polygon.get("name", f"Zone {idx}"),  # Default name since it's not stored in shadow
+            vertices=vertices,
+            center=Center(
+                startPoint=Point(lat=start_point.get("lat", 36.5287), lng=start_point.get("lng",139.8147)),
+                endPoint=Point(lat=end_point.get("lat", 36.5285), lng=end_point.get("lng",139.8144)),
+            )
+        )
+        detection_zones.append(zone)
+
+
+
+    # Create and return the response
+    response = XLinesConfigPayload(
+        device_id=str(device_id),
+        detectionZones=detection_zones
+    )
+    
+    logger.info(
+        f"Successfully retrieved polygon configuration for device {device_id}. "
+        f"Found {len(detection_zones)} zones."
+    )
+    
+    return response

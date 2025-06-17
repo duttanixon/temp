@@ -38,7 +38,7 @@ class CRUDSolution(CRUDBase[Solution, SolutionCreate, SolutionUpdate]):
         ]
         return compatible_solutions[skip:skip+limit]
 
-    def get_with_customer_count(self, db: Session, *, solution_id: uuid.UUID) -> Dict:
+    def get_with_customer_count(self, db: Session, *, solution_id: uuid.UUID) -> Optional[Dict]:
         """Get solution with count of customers using it"""
         solution = self.get_by_id(db, solution_id=solution_id)
         if not solution:

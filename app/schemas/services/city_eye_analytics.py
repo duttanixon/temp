@@ -26,27 +26,27 @@ class TimeSeriesData(BaseModel):
 # =============================================================================
 
 class AgeDistribution(BaseModel):
-    under_18: int
-    age_18_to_29: int
-    age_30_to_49: int
-    age_50_to_64: int
-    over_64: int
+    under_18: Optional[int] = 0
+    age_18_to_29: Optional[int] = 0
+    age_30_to_49: Optional[int] = 0
+    age_50_to_64: Optional[int] = 0
+    over_64: Optional[int] = 0
 
 class GenderDistribution(BaseModel):
-    male: int
-    female: int
+    male: Optional[int] = 0
+    female: Optional[int] = 0
 
 class AgeGenderDistribution(BaseModel):
-    male_under_18: int
-    female_under_18: int
-    male_18_to_29: int
-    female_18_to_29: int
-    male_30_to_49: int
-    female_30_to_49: int
-    male_50_to_64: int
-    female_50_to_64: int
-    male_65_plus: int
-    female_65_plus: int
+    male_under_18: Optional[int] = 0
+    female_under_18: Optional[int] = 0
+    male_18_to_29: Optional[int] = 0
+    female_18_to_29: Optional[int] = 0
+    male_30_to_49: Optional[int] = 0
+    female_30_to_49: Optional[int] = 0
+    male_50_to_64: Optional[int] = 0
+    female_50_to_64: Optional[int] = 0
+    male_65_plus: Optional[int] = 0
+    female_65_plus: Optional[int] = 0
 
 class AnalyticsFilters(BaseModel):
     device_ids: Optional[List[uuid.UUID]] = None

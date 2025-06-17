@@ -2,6 +2,8 @@ from typing import Any, List, Optional, Dict
 from fastapi import Depends, HTTPException, Query, APIRouter, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.api import deps
+import uuid
+import json
 from app.models import User, UserRole, Device as DeviceModel, CommandType, CommandStatus # Renamed to avoid conflict
 from app.crud import device as crud_device # Alias crud operations
 from app.crud import solution as crud_solution,  device, device_solution, device_command
@@ -14,7 +16,7 @@ from app.schemas.device_command import (
     DeviceCommandCreate,
     DeviceCommandResponse,
 )
-from app.schemas.services.city_eye_settings import XLinesConfigPayload, UpdateXLinesConfigCommand
+from app.schemas.services.city_eye_settings import XLinesConfigPayload, UpdateXLinesConfigCommand, Vertex, Point, Center, DetectionZone, Position
 from app.crud.crud_city_eye_analytics import crud_city_eye_analytics
 from app.utils.audit import log_action
 from app.schemas.services.city_eye_analytics import (
@@ -37,7 +39,6 @@ from app.schemas.services.city_eye_analytics import (
 from app.utils.util import transform_to_device_shadow_format
 from app.utils.logger import get_logger
 from datetime import datetime, timedelta
-import uuid
 
 logger = get_logger("api.city_eye_analytics")
 router = APIRouter()
@@ -473,3 +474,138 @@ def polygon_xlines_config(
         message_id=db_command.message_id,
         detail="X-lines configuration update sent successfully",
     )
+
+
+@router.get("/polygon-xlines-config/{device_id}", response_model=XLinesConfigPayload)
+def get_polygon_xlines_config(
+    *,
+    db: Session = Depends(deps.get_db),
+    device_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Retrieve the current polygon X-lines configuration from the device shadow.
+    
+    This endpoint fetches the X-lines configuration from AWS IoT Device Shadow and transforms
+    it into the polygon format used by the frontend. The data is retrieved from the "accepted"
+    state in the shadow, which represents the configuration that has been successfully applied
+    to the device.
+    
+    The transformation includes:
+    - Converting the x,y coordinates from the shadow format to polygon vertices
+    - Assigning polygon IDs and vertex IDs
+    - Adding placeholder names for each zone
+    - Including center coordinates
+    
+    Args:
+        device_id: The UUID of the device to retrieve configuration for
+        current_user: The authenticated user making the request
+        
+    Returns:
+        XLinesConfigPayload: The polygon configuration in the frontend-expected format
+        
+    Raises:
+        HTTPException: For permission issues, missing devices, or shadow retrieval failures
+    """
+    logger.info(
+        f"Polygon config retrieval requested for device {device_id} by user {current_user.email}"
+    )
+    
+    # Get and validate the device
+    db_device = device.get_by_id(db, device_id=device_id)
+    if not db_device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    
+    # Check access permissions
+    check_device_access(current_user, db_device, action="retrieve configuration from")
+    
+    # Validate device has a thing_name for AWS IoT
+    if not db_device.thing_name:
+        raise HTTPException(
+            status_code=400, 
+            detail="Device is not provisioned in AWS IoT Core"
+        )
+    
+    # Retrieve the shadow from AWS IoT
+    shadow_document = iot_command_service.get_xlines_config_shadow(db_device.thing_name)
+    
+    if not shadow_document:
+        raise HTTPException(
+            status_code=404,
+            detail="No configuration found in device shadow"
+        )
+    
+    # Extract the xlines configuration from the shadow
+    # The accepted state contains the configuration that was successfully applied
+    state = shadow_document.get("state", {})
+
+    # Check accepted states
+    xlines_cfg_content = None
+
+    reported = state.get("reported", {})
+    if reported and "xlines_cfg_content" in reported:
+        xlines_cfg_content = reported.get("xlines_cfg_content")
+        logger.info("Using xlines configuration from reported state")
+
+    if not xlines_cfg_content:
+        raise HTTPException(
+            status_code=404,
+            detail="No X-lines configuration found in device shadow"
+        )
+
+    # Parse the JSON string
+    try:
+        xlines_data = json.loads(xlines_cfg_content)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse xlines configuration: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Invalid configuration format in device shadow"
+        )
+    
+    # Transform to the frontend format
+    detection_zones = []
+    
+    for idx, polygon in enumerate(xlines_data, 1):
+        vertices = []
+        content = polygon.get("content", [])
+        
+        for vertex_idx, point in enumerate(content, 1):
+            x = int(round(point.get("x", 0)))
+            y = int(round(point.get("y", 0)))
+
+            vertex = Vertex(
+                vertexId=f"{idx}-{vertex_idx}",
+                position=Position(x=x, y=y)
+            )
+
+            vertices.append(vertex)
+            
+        start_point = polygon.get("center", {}).get("startPoint", {})
+        end_point = polygon.get("center", {}).get("endPoint", {})
+
+        zone = DetectionZone(
+            polygonId=str(idx),
+            name=polygon.get("name", f"Zone {idx}"),  # Default name since it's not stored in shadow
+            vertices=vertices,
+            center=Center(
+                startPoint=Point(lat=start_point.get("lat", 36.5287), lng=start_point.get("lng",139.8147)),
+                endPoint=Point(lat=end_point.get("lat", 36.5285), lng=end_point.get("lng",139.8144)),
+            )
+        )
+        detection_zones.append(zone)
+
+
+
+    # Create and return the response
+    response = XLinesConfigPayload(
+        device_id=str(device_id),
+        detectionZones=detection_zones
+    )
+    
+    logger.info(
+        f"Successfully retrieved polygon configuration for device {device_id}. "
+        f"Found {len(detection_zones)} zones."
+    )
+    
+    return response

@@ -39,11 +39,12 @@ class XLinePoint(BaseModel):
 
 
 class XLineContent(BaseModel):
-    """Represents a single X-line containing multiple points."""
-
+    """Represents a single X-line containing multiple points with name and center."""
     content: List[XLinePoint] = Field(
         ..., min_items=2, description="List of points that make up the line"
     )
+    name: str = Field(..., description="Name of the detection zone")
+    center: Center = Field(..., description="Center coordinates of the detection zone")
 
     @validator("content")
     def validate_minimum_points(cls, v):
@@ -55,7 +56,6 @@ class XLineContent(BaseModel):
 
 class XLinesConfigCommand(BaseModel):
     """Schema for X-lines configuration command."""
-
     device_id: UUID
     xlines_config: List[XLineContent] = Field(
         ..., min_items=1, description="List of X-line configurations"

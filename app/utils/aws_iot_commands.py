@@ -131,15 +131,9 @@ class IoTCommandService:
 
         return self._publish_message(topic, message)
 
-    def send_xlines_config_update(
-        self,
-        thing_name: str,
-        message_id: uuid.UUID,
-        xlines_config: List[Dict[str, Any]],
-    ) -> bool:
+    def send_xlines_config_update(self, thing_name: str, message_id: str, xlines_config: List[Dict]) -> bool:
         """
-        Send X-lines configuration update to device via IoT Device Shadow.
-
+        Send X-lines configuration update to device shadow.
         This method uses Device Shadows instead of direct messaging because configuration
         updates need to be persistent. Even if the device is offline when we send the
         update, it should receive the new configuration when it comes back online.

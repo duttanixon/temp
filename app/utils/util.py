@@ -34,6 +34,15 @@ def validate_device_for_commands(db_device) -> str:
     return db_device.thing_name
 
 def transform_to_device_shadow_format(payload: XLinesConfigPayload) -> dict:
+    """
+    Transform the new payload format to include name and center in device shadow.
+    
+    Args:
+        payload: payload with detectionZones
+        
+    Returns:
+        Dictionary in the device shadow format with name and center included
+    """
     xlines_config = []
 
     for zone in payload.detectionZones:
@@ -45,8 +54,20 @@ def transform_to_device_shadow_format(payload: XLinesConfigPayload) -> dict:
             })
         
         xlines_config.append({
-            "content": content
+            "content": content,
+            "name": zone.name,
+            "center": {
+                "startPoint": {
+                    "lat": zone.center.startPoint.lat,
+                    "lng": zone.center.startPoint.lng
+                },
+                "endPoint": {
+                    "lat": zone.center.endPoint.lat,
+                    "lng": zone.center.endPoint.lng
+                }
+            }
         })
+    
     return {
         "device_id": payload.device_id,
         "xlines_config": xlines_config

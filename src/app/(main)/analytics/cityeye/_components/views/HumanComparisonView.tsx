@@ -10,7 +10,6 @@ import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
-import HoursAveragePeopleCard from "../cards/HoursAveragePeopleCard";
 import DaysAveragePeopleCard from "../cards/DaysAveragePeopleCard";
 
 interface ComparisonViewProps {
@@ -27,10 +26,7 @@ interface ComparisonViewProps {
   mainPeriodDateRange?: DateRange;
   comparisonPeriodDateRange?: DateRange;
 
-  activeFiltersMain?: {
-    hours: number[];
-    days: number[];
-  };
+  daysCount?: number | null;
 }
 
 const formatDateRange = (dateRange?: DateRange): string => {
@@ -52,7 +48,7 @@ export default function HumanComparisonView({
   hasAttemptedFetchComparison,
   mainPeriodDateRange,
   comparisonPeriodDateRange,
-  activeFiltersMain,
+  daysCount,
 }: ComparisonViewProps) {
   return (
     <div className="p-1 bg-slate-50 rounded-lg shadow-inner mt-4">
@@ -73,6 +69,16 @@ export default function HumanComparisonView({
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
+          />
+          <DaysAveragePeopleCard
+            title="日平均人数 (分析期間)"
+            daysCountData={
+              mainPeriodProcessedData?.totalPeople?.totalCount ?? null
+            }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            daysCount={daysCount ?? null}
           />
           <PerDevicePeopleCard
             title="デバイス別人数 (分析期間)"
@@ -120,26 +126,6 @@ export default function HumanComparisonView({
             hasAttemptedFetch={hasAttemptedFetchMain}
             data={mainPeriodProcessedData?.ageGenderDistribution ?? null}
           />
-          <HoursAveragePeopleCard
-            title="時間平均人数 (分析期間)"
-            humanCountData={
-              mainPeriodProcessedData?.totalPeople?.totalCount ?? null
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-            hoursCount={activeFiltersMain?.hours.length || 0}
-          />
-          <DaysAveragePeopleCard
-            title="日平均人数 (分析期間)"
-            daysCountData={
-              mainPeriodProcessedData?.totalPeople?.totalCount ?? null
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-            daysCount={activeFiltersMain?.days.length || 0}
-          />
         </div>
 
         {/* Comparison Period Section */}
@@ -158,6 +144,16 @@ export default function HumanComparisonView({
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
+          />
+          <DaysAveragePeopleCard
+            title="日平均人数 (比較期間)"
+            daysCountData={
+              comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
+            }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            daysCount={daysCount ?? null}
           />
           <PerDevicePeopleCard
             title="デバイス別人数 (比較期間)"
@@ -204,26 +200,6 @@ export default function HumanComparisonView({
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
             data={comparisonPeriodProcessedData?.ageGenderDistribution ?? null}
-          />
-          <HoursAveragePeopleCard
-            title="時間平均人数 (比較期間)"
-            humanCountData={
-              comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-            hoursCount={activeFiltersMain?.hours.length || 0}
-          />
-          <DaysAveragePeopleCard
-            title="日平均人数 (比較期間)"
-            daysCountData={
-              comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-            daysCount={activeFiltersMain?.days.length || 0}
           />
         </div>
       </div>

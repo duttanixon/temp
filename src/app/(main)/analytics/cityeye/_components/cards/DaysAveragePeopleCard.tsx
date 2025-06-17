@@ -42,8 +42,9 @@ export default function DaysAveragePeopleCard({
             <div className="text-center mb-3">
               <p className="text-3xl font-bold text-primary">
                 {daysCountData && daysCount !== null
-                  ? `${daysCountData.toLocaleString()} / ${daysCount.toLocaleString()}`
+                  ? Math.round(daysCountData / daysCount)
                   : "N/A"}
+                <span className="text-sm text-muted-foreground">人/日</span>
               </p>
             </div>
           </div>

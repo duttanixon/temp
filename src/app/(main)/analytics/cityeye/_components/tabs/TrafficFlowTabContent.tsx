@@ -3,10 +3,9 @@
 import React from "react";
 import TrafficOverviewView from "../views/TrafficOverviewView";
 import TrafficComparisonView from "../views/TrafficComparisonView"; // Can reuse if structure is similar
-import {
-  ProcessedTrafficAnalyticsData,
-} from "@/types/cityEyeAnalytics";
+import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
+import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 
 interface TrafficTabContentProps {
   verticalTab: string;
@@ -17,10 +16,12 @@ interface TrafficTabContentProps {
   hasAttemptedFetchMain: boolean;
   mainPeriodDateRange?: DateRange;
   comparisonProcessedData?: ProcessedTrafficAnalyticsData | null;
-  isLoadingComparison?: boolean; 
+  isLoadingComparison?: boolean;
   errorComparison?: string | null;
   hasAttemptedFetchComparison?: boolean;
   comparisonPeriodDateRange?: DateRange;
+  peopleMainProcessedData?: ProcessedAnalyticsData | null;
+  daysCount?: number | null;
 }
 
 export default function TrafficFlowTabContent({
@@ -35,6 +36,8 @@ export default function TrafficFlowTabContent({
   errorComparison,
   hasAttemptedFetchComparison,
   comparisonPeriodDateRange,
+  peopleMainProcessedData,
+  daysCount,
 }: TrafficTabContentProps) {
   // Placeholder implementation
   if (verticalTab === "overview") {
@@ -44,6 +47,8 @@ export default function TrafficFlowTabContent({
         isLoading={isLoadingMain}
         error={errorMain}
         hasAttemptedFetch={hasAttemptedFetchMain}
+        peopleProcessedData={peopleMainProcessedData || null}
+        daysCount={daysCount || null}
       />
     );
   }
@@ -60,6 +65,7 @@ export default function TrafficFlowTabContent({
         errorComparison={errorComparison || null}
         hasAttemptedFetchComparison={hasAttemptedFetchComparison || false}
         comparisonPeriodDateRange={comparisonPeriodDateRange}
+        daysCount={daysCount || null}
       />
     );
   }

@@ -43,6 +43,7 @@ export default function TotalPeopleCard({
             <div className="text-center mb-3">
               <p className="text-3xl font-bold text-primary">
                 {totalCountData?.toLocaleString() ?? "N/A"}
+                <span className="text-sm text-muted-foreground"> 人</span>
               </p>
             </div>
           </div>

@@ -254,6 +254,30 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       : isLoadingTrafficMain ||
         (verticalTab === "comparison" && isLoadingTrafficComparison);
 
+  const startDate = filters.analysisPeriod?.from;
+  const endDate = filters.analysisPeriod?.to;
+  const selectedDays = activeFilters.main?.days || [];
+
+  const countSelectedDaysInRange = (start: Date, end: Date, days: string[]) => {
+    let count = 0;
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dayName = d
+        .toLocaleDateString("en-US", { weekday: "long" })
+        .toLowerCase();
+      if (days.includes(dayName)) {
+        count++;
+      }
+    }
+
+    return count;
+  };
+
+  const daysCount =
+    startDate && endDate && selectedDays.length > 0
+      ? countSelectedDaysInRange(startDate, endDate, selectedDays)
+      : 0;
+
   // Render appropriate content based on current tab
   const renderContent = () => {
     switch (horizontalTab) {
@@ -271,7 +295,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             errorComparison={errorComparison}
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
-            activeFiltersMain={activeFilters.main}
+            daysCount={daysCount}
           />
         );
       case "traffic":
@@ -288,6 +312,8 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             errorComparison={errorTrafficComparison}
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
+            peopleMainProcessedData={processedMainData}
+            daysCount={daysCount}
           />
         );
       case "monthly":

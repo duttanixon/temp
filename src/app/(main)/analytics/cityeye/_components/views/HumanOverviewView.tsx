@@ -8,7 +8,6 @@ import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
-import HoursAveragePeopleCard from "../cards/HoursAveragePeopleCard";
 import DaysAveragePeopleCard from "../cards/DaysAveragePeopleCard";
 
 interface OverviewViewProps {
@@ -16,11 +15,7 @@ interface OverviewViewProps {
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
-  activeFiltersMain?: {
-    hours: number[];
-    days: number[];
-    // Add other filter properties as needed
-  };
+  daysCount?: number | null;
 }
 
 export default function OverviewView({
@@ -28,7 +23,7 @@ export default function OverviewView({
   isLoading,
   error,
   hasAttemptedFetch,
-  activeFiltersMain,
+  daysCount,
 }: OverviewViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
@@ -40,14 +35,13 @@ export default function OverviewView({
           error={error}
           hasAttemptedFetch={hasAttemptedFetch}
         />
-        <PerDevicePeopleCard
-          title="デバイス別人数"
-          perDeviceCountsData={
-            processedData?.totalPeople?.perDeviceCounts ?? []
-          }
+        <DaysAveragePeopleCard
+          title="日平均人数"
           isLoading={isLoading}
           error={error}
           hasAttemptedFetch={hasAttemptedFetch}
+          daysCountData={processedData?.totalPeople?.totalCount || null}
+          daysCount={daysCount ?? null}
         />
       </div>
       <AnalyticsCard title="カメラマップ">
@@ -65,6 +59,13 @@ export default function OverviewView({
           )}
         </div>
       </AnalyticsCard>
+      <PerDevicePeopleCard
+        title="デバイス別人数"
+        perDeviceCountsData={processedData?.totalPeople?.perDeviceCounts ?? []}
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+      />
       <AgeDistributionCard
         title="年齢層別分析"
         isLoading={isLoading}
@@ -103,22 +104,6 @@ export default function OverviewView({
           data={processedData?.ageGenderDistribution ?? null}
         />
       </div>
-      <HoursAveragePeopleCard
-        title="時間平均人数"
-        isLoading={isLoading}
-        error={error}
-        hasAttemptedFetch={hasAttemptedFetch}
-        humanCountData={processedData?.totalPeople?.totalCount || null}
-        hoursCount={activeFiltersMain?.hours.length || 0}
-      />
-      <DaysAveragePeopleCard
-        title="日平均人数"
-        isLoading={isLoading}
-        error={error}
-        hasAttemptedFetch={hasAttemptedFetch}
-        daysCountData={processedData?.totalPeople?.totalCount || null}
-        daysCount={activeFiltersMain?.days.length || 0}
-      />
     </div>
   );
 }

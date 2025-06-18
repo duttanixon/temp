@@ -1,8 +1,13 @@
+/*
+/devices/detail/[deviceId]:
+- This is the device detail page. It's a dynamic route that shows detailed information for a specific device (`deviceId`).
+- This page is generic and can display details for any device, regardless of its solution.
+*/
+
+
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
-import DeviceActions from "../_components/DeviceActions";
-import DeviceInfoCard from "../_components/DeviceInfoCard";
-import DeviceDetailsTabs from "../_components/DeviceDetailsTabs";
+import DeviceDetailsTabs from "./_components/DeviceDetailsTabs";
 import type { Metadata, ResolvingMetadata } from "next";
 import {
   Breadcrumb,
@@ -85,10 +90,8 @@ export default async function DeviceDetailsPage(
             )}
           </h2>
         </div>
-        <DeviceActions device={device} />
+        {/* <DeviceActions device={device} /> */}
       </div>
-
-      <DeviceInfoCard device={device} />
       <DeviceDetailsTabs />
     </div>
   );

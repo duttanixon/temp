@@ -6,7 +6,7 @@ import AgeDistributionCard from "../cards/AgeDistributionCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 

@@ -5,7 +5,7 @@ import TrafficOverviewView from "../views/TrafficOverviewView";
 import TrafficComparisonView from "../views/TrafficComparisonView"; // Can reuse if structure is similar
 import {
   ProcessedTrafficAnalyticsData,
-} from "@/types/cityEyeAnalytics";
+} from "@/types/cityeye/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 
 interface TrafficTabContentProps {

@@ -5,7 +5,7 @@ import {
   ProcessedGenderSegment,
   ProcessedHourlyDataPoint,
   ButterflyChartDataPoint,
-} from "@/types/cityEyeAnalytics";
+} from "@/types/cityeye/cityEyeAnalytics";
 
 // Consolidated configuration for all data types
 const CONFIG = {

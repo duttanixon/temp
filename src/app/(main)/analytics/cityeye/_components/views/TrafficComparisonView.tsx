@@ -4,7 +4,7 @@ import React from "react";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
-import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
+import { ProcessedTrafficAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 

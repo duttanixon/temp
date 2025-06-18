@@ -6,7 +6,7 @@ import OverviewView from "../views/HumanOverviewView";
 import HumanComparisonView from "../views/HumanComparisonView";
 import {
   ProcessedAnalyticsData,
-} from "@/types/cityEyeAnalytics";
+} from "@/types/cityeye/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 
 interface PeopleFlowTabContentProps {

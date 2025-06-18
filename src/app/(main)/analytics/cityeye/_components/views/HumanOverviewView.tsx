@@ -7,7 +7,7 @@ import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import AnalyticsCard from "../cards/AnalyticsCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 
 interface OverviewViewProps {
   processedData: ProcessedAnalyticsData | null;

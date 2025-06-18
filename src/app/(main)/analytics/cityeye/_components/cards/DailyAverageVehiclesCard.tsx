@@ -1,23 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
-interface DaysAverageVehiclesCardProps {
+interface DailyAverageVehiclesCardProps {
   title: string;
   daysCountData: number | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
-  daysCount: number | null;
 }
 
-export default function DaysAverageVehiclesCard({
+export default function DailyAverageVehiclesCard({
   title,
   daysCountData,
   isLoading,
   error,
   hasAttemptedFetch,
-  daysCount,
-}: DaysAverageVehiclesCardProps) {
+}: DailyAverageVehiclesCardProps) {
   const hasData = hasAttemptedFetch && daysCountData !== null;
 
   return (
@@ -41,9 +39,6 @@ export default function DaysAverageVehiclesCard({
           <div className="h-full flex flex-col">
             <div className="text-center mb-3">
               <p className="text-3xl font-bold text-primary">
-                {daysCountData && daysCount !== null
-                  ? Math.round(daysCountData / daysCount)
-                  : "N/A"}
                 <span className="text-sm text-muted-foreground">台/日</span>
               </p>
             </div>

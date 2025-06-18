@@ -119,16 +119,30 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         : {},
   });
 
+  const filterContext = useMemo(
+    () => ({
+      dateRange: {
+        from: filters.analysisPeriod?.from,
+        to: filters.analysisPeriod?.to,
+      },
+      selectedDays: filters.selectedDays,
+    }),
+    [
+      filters.analysisPeriod?.from,
+      filters.analysisPeriod?.to,
+      filters.selectedDays,
+    ]
+  );
+
   // Process data using appropriate utilities
   const processedMainData = useMemo(
-    () => processHumanAnalyticsData(mainRawData),
-    [mainRawData]
+    () => processHumanAnalyticsData(mainRawData, filterContext),
+    [mainRawData, filterContext]
   );
-  console.log("Processed Main Data:", processedMainData);
 
   const processedComparisonData = useMemo(
-    () => processHumanAnalyticsData(comparisonRawData),
-    [comparisonRawData]
+    () => processHumanAnalyticsData(comparisonRawData, filterContext),
+    [comparisonRawData, filterContext]
   );
 
   const processedTrafficMainData = useMemo(
@@ -254,30 +268,6 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       : isLoadingTrafficMain ||
         (verticalTab === "comparison" && isLoadingTrafficComparison);
 
-  const startDate = filters.analysisPeriod?.from;
-  const endDate = filters.analysisPeriod?.to;
-  const selectedDays = activeFilters.main?.days || [];
-
-  const countSelectedDaysInRange = (start: Date, end: Date, days: string[]) => {
-    let count = 0;
-
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dayName = d
-        .toLocaleDateString("en-US", { weekday: "long" })
-        .toLowerCase();
-      if (days.includes(dayName)) {
-        count++;
-      }
-    }
-
-    return count;
-  };
-
-  const daysCount =
-    startDate && endDate && selectedDays.length > 0
-      ? countSelectedDaysInRange(startDate, endDate, selectedDays)
-      : 0;
-
   // Render appropriate content based on current tab
   const renderContent = () => {
     switch (horizontalTab) {
@@ -295,7 +285,6 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             errorComparison={errorComparison}
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
-            daysCount={daysCount}
           />
         );
       case "traffic":
@@ -313,7 +302,6 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
             peopleMainProcessedData={processedMainData}
-            daysCount={daysCount}
           />
         );
       case "monthly":

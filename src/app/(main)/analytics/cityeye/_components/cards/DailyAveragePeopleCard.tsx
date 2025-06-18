@@ -1,24 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
-interface DaysAveragePeopleCardProps {
+interface DailyAveragePeopleCardProps {
   title: string;
   daysCountData: number | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
-  daysCount: number | null;
 }
 
-export default function DaysAveragePeopleCard({
+export default function DailyAveragePeopleCard({
   title,
   daysCountData,
   isLoading,
   error,
   hasAttemptedFetch,
-  daysCount,
-}: DaysAveragePeopleCardProps) {
+}: DailyAveragePeopleCardProps) {
   const hasData = hasAttemptedFetch && daysCountData !== null;
+  console.log("daysCountData:", daysCountData);
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
@@ -34,17 +33,17 @@ export default function DaysAveragePeopleCard({
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "時間ごとの平均人数データがありません。"
-              : "フィルターを適用して時間ごとの平均人数データを表示します。"
+              ? "日平均人数データがありません。"
+              : "フィルターを適用して日平均人数データを表示します。"
           }
         >
           <div className="h-full flex flex-col">
             <div className="text-center mb-3">
               <p className="text-3xl font-bold text-primary">
-                {daysCountData && daysCount !== null
-                  ? Math.round(daysCountData / daysCount)
-                  : "N/A"}
-                <span className="text-sm text-muted-foreground">人/日</span>
+                {daysCountData?.toLocaleString() ?? "N/A"}
+                <span className="text-sm text-muted-foreground pl-1">
+                  人/日
+                </span>
               </p>
             </div>
           </div>

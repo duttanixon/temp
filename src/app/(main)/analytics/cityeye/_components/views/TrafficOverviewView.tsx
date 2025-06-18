@@ -10,7 +10,7 @@ import {
   ProcessedTrafficAnalyticsData,
 } from "@/types/cityEyeAnalytics";
 import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
-import DaysAverageVehiclesCard from "../cards/DaysAverageVehiclesCard";
+import DailyAverageVehiclesCard from "../cards/DailyAverageVehiclesCard";
 
 interface TrafficOverviewViewProps {
   processedData: ProcessedTrafficAnalyticsData | null;
@@ -18,7 +18,6 @@ interface TrafficOverviewViewProps {
   error: string | null;
   hasAttemptedFetch: boolean;
   peopleProcessedData?: ProcessedAnalyticsData | null;
-  daysCount?: number | null;
 }
 
 // Placeholder cards for future features
@@ -33,7 +32,6 @@ export default function TrafficOverviewView({
   isLoading,
   error,
   hasAttemptedFetch,
-  daysCount,
 }: TrafficOverviewViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
@@ -45,13 +43,12 @@ export default function TrafficOverviewView({
           error={error}
           hasAttemptedFetch={hasAttemptedFetch}
         />
-        <DaysAverageVehiclesCard
+        <DailyAverageVehiclesCard
           title="日平均台数"
           isLoading={isLoading}
           error={error}
           hasAttemptedFetch={hasAttemptedFetch}
           daysCountData={processedData?.totalVehicles?.totalCount ?? null}
-          daysCount={daysCount ?? null}
         />
         <PerDeviceTrafficCard
           title="デバイス別交通量"

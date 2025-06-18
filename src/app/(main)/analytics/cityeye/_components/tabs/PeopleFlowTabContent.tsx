@@ -21,7 +21,6 @@ interface PeopleFlowTabContentProps {
   errorComparison?: string | null;
   hasAttemptedFetchComparison?: boolean;
   comparisonPeriodDateRange?: DateRange;
-  daysCount?: number | null;
 }
 
 export default function PeopleFlowTabContent({
@@ -36,7 +35,6 @@ export default function PeopleFlowTabContent({
   errorComparison,
   hasAttemptedFetchComparison,
   comparisonPeriodDateRange,
-  daysCount,
 }: PeopleFlowTabContentProps) {
   if (verticalTab === "overview") {
     return (
@@ -45,7 +43,6 @@ export default function PeopleFlowTabContent({
         isLoading={isLoadingMain}
         error={errorMain}
         hasAttemptedFetch={hasAttemptedFetchMain}
-        daysCount={daysCount || null}
       />
     );
   }
@@ -63,7 +60,6 @@ export default function PeopleFlowTabContent({
         errorComparison={errorComparison || null}
         hasAttemptedFetchComparison={hasAttemptedFetchComparison || false}
         comparisonPeriodDateRange={comparisonPeriodDateRange}
-        daysCount={daysCount || null}
       />
     );
   }

@@ -8,14 +8,13 @@ import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
-import DaysAveragePeopleCard from "../cards/DaysAveragePeopleCard";
+import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 
 interface OverviewViewProps {
   processedData: ProcessedAnalyticsData | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
-  daysCount?: number | null;
 }
 
 export default function OverviewView({
@@ -23,25 +22,37 @@ export default function OverviewView({
   isLoading,
   error,
   hasAttemptedFetch,
-  daysCount,
 }: OverviewViewProps) {
+  console.log("OverviewView processedData:", processedData);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-      <div className="flex flex-col gap-3">
-        <TotalPeopleCard
-          title="総人数"
-          totalCountData={processedData?.totalPeople?.totalCount ?? null}
+      <div className="grid grid-rows-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <TotalPeopleCard
+            title="総人数"
+            totalCountData={processedData?.totalPeople?.totalCount ?? null}
+            isLoading={isLoading}
+            error={error}
+            hasAttemptedFetch={hasAttemptedFetch}
+          />
+          <DailyAveragePeopleCard
+            title="日平均人数"
+            isLoading={isLoading}
+            error={error}
+            hasAttemptedFetch={hasAttemptedFetch}
+            daysCountData={
+              processedData?.dailyAveragePeople?.averageCount || null
+            }
+          />
+        </div>
+        <PerDevicePeopleCard
+          title="デバイス別人数"
+          perDeviceCountsData={
+            processedData?.totalPeople?.perDeviceCounts ?? []
+          }
           isLoading={isLoading}
           error={error}
           hasAttemptedFetch={hasAttemptedFetch}
-        />
-        <DaysAveragePeopleCard
-          title="日平均人数"
-          isLoading={isLoading}
-          error={error}
-          hasAttemptedFetch={hasAttemptedFetch}
-          daysCountData={processedData?.totalPeople?.totalCount || null}
-          daysCount={daysCount ?? null}
         />
       </div>
       <AnalyticsCard title="カメラマップ">
@@ -59,13 +70,6 @@ export default function OverviewView({
           )}
         </div>
       </AnalyticsCard>
-      <PerDevicePeopleCard
-        title="デバイス別人数"
-        perDeviceCountsData={processedData?.totalPeople?.perDeviceCounts ?? []}
-        isLoading={isLoading}
-        error={error}
-        hasAttemptedFetch={hasAttemptedFetch}
-      />
       <AgeDistributionCard
         title="年齢層別分析"
         isLoading={isLoading}

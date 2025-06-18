@@ -10,7 +10,7 @@ import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
-import DaysAveragePeopleCard from "../cards/DaysAveragePeopleCard";
+import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 
 interface ComparisonViewProps {
   mainPeriodProcessedData: ProcessedAnalyticsData | null;
@@ -25,8 +25,6 @@ interface ComparisonViewProps {
 
   mainPeriodDateRange?: DateRange;
   comparisonPeriodDateRange?: DateRange;
-
-  daysCount?: number | null;
 }
 
 const formatDateRange = (dateRange?: DateRange): string => {
@@ -48,7 +46,6 @@ export default function HumanComparisonView({
   hasAttemptedFetchComparison,
   mainPeriodDateRange,
   comparisonPeriodDateRange,
-  daysCount,
 }: ComparisonViewProps) {
   return (
     <div className="p-1 bg-slate-50 rounded-lg shadow-inner mt-4">
@@ -70,7 +67,7 @@ export default function HumanComparisonView({
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
           />
-          <DaysAveragePeopleCard
+          <DailyAveragePeopleCard
             title="日平均人数 (分析期間)"
             daysCountData={
               mainPeriodProcessedData?.totalPeople?.totalCount ?? null
@@ -78,7 +75,6 @@ export default function HumanComparisonView({
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
-            daysCount={daysCount ?? null}
           />
           <PerDevicePeopleCard
             title="デバイス別人数 (分析期間)"
@@ -145,7 +141,7 @@ export default function HumanComparisonView({
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
           />
-          <DaysAveragePeopleCard
+          <DailyAveragePeopleCard
             title="日平均人数 (比較期間)"
             daysCountData={
               comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
@@ -153,7 +149,6 @@ export default function HumanComparisonView({
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
-            daysCount={daysCount ?? null}
           />
           <PerDevicePeopleCard
             title="デバイス別人数 (比較期間)"

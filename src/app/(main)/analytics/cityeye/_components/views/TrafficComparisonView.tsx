@@ -8,7 +8,7 @@ import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
 import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
-import DaysAverageVehiclesCard from "../cards/DaysAverageVehiclesCard";
+import DailyAverageVehiclesCard from "../cards/DailyAverageVehiclesCard";
 
 interface TrafficComparisonViewProps {
   mainPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
@@ -23,7 +23,6 @@ interface TrafficComparisonViewProps {
 
   mainPeriodDateRange?: DateRange;
   comparisonPeriodDateRange?: DateRange;
-  daysCount?: number | null;
 }
 
 const formatDateRange = (dateRange?: DateRange): string => {
@@ -45,7 +44,6 @@ export default function TrafficComparisonView({
   hasAttemptedFetchComparison,
   mainPeriodDateRange,
   comparisonPeriodDateRange,
-  daysCount,
 }: TrafficComparisonViewProps) {
   return (
     <div className="p-1 bg-slate-50 rounded-lg shadow-inner mt-4">
@@ -67,7 +65,7 @@ export default function TrafficComparisonView({
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
           />
-          <DaysAverageVehiclesCard
+          <DailyAverageVehiclesCard
             title="日平均台数 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
@@ -75,7 +73,6 @@ export default function TrafficComparisonView({
             daysCountData={
               mainPeriodProcessedData?.totalVehicles?.totalCount ?? null
             }
-            daysCount={daysCount ?? null}
           />
           <PerDeviceTrafficCard
             title="デバイス別交通量 (分析期間)"
@@ -125,7 +122,7 @@ export default function TrafficComparisonView({
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
           />
-          <DaysAverageVehiclesCard
+          <DailyAverageVehiclesCard
             title="日平均台数 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
@@ -133,7 +130,6 @@ export default function TrafficComparisonView({
             daysCountData={
               comparisonPeriodProcessedData?.totalVehicles?.totalCount ?? null
             }
-            daysCount={daysCount ?? null}
           />
           <PerDeviceTrafficCard
             title="デバイス別交通量 (比較期間)"

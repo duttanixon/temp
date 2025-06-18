@@ -412,6 +412,11 @@ export interface ProcessedAnalyticsData {
     perDeviceCounts: DeviceCountData[];
   } | null;
 
+  dailyAveragePeople: {
+    averageCount: number;
+    days: number;
+  } | null;
+
   /** Age distribution analysis */
   ageDistribution: ProcessedAgeDistributionData | null;
 
@@ -424,7 +429,6 @@ export interface ProcessedAnalyticsData {
   /** Cross-demographic analysis */
   ageGenderDistribution: ProcessedAgeGenderDistributionData | null;
 }
-
 
 /**
  * Master processed traffic analytics data container

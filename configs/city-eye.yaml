@@ -3,7 +3,8 @@ platform:
     display: false
     network: yolov8m
     postprocess_dir: /usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/
-    source_type: file
+    # source_type: file
+    source_type: ipcamera
     detection_model_path: /opt/models/detection/yolov8m.hef
     attribute_model_path: /opt/models/classification/person_attr_resnet_v1_18_2.hef
     postprocess_so_path: /usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/libyolo_hailortpp_postprocess.so
@@ -44,12 +45,25 @@ solution:
         video_format: "RGB"
         # type: rpi
         # file_path: rpi
-        type: file
-        file_path: resources/data/cam9001_20241029_09.mp4
+        # type: file
+        # file_path: resources/data/cam9001_20241029_09.mp4
+        # IP Camera configuration
+        type: ipcamera
+        camera_url: "rtsp://192.168.111.155/axis-media/media.amp"  # Base URL of Axis camera
+        username: "root"
+        password: "12San456"  
+        # Axis camera specific settings
+        use_rtsp: true  # Use RTSP stream (recommended) or HTTP MJPEG
+        rtsp_port: 554  # Default RTSP port
+        fps: 45
+        compression: 45  # H.264 compression level (0-100, lower = better quality)
+        stream_profile: "quality"  # Axis stream profile name
+
+
     output:
         type: default
         streaming: true
-        streaming_fps: 0.5
+        streaming_fps: 5
         streaming_host: "0.0.0.0"
         streaming_port: 7000
         

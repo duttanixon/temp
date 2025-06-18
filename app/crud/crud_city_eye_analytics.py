@@ -385,22 +385,46 @@ class CRUDCityEyeAnalytics:
         return result or 0
 
     def get_vehicle_type_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> Dict[str, int]:
-        query = db.query(
-            func.sum(CityEyeTrafficTable.large).label("large"),
-            func.sum(CityEyeTrafficTable.normal).label("normal"),
-            func.sum(CityEyeTrafficTable.bicycle).label("bicycle"),
-            func.sum(CityEyeTrafficTable.motorcycle).label("motorcycle")
-        )
+        # Get vehicle columns map
+        vehicle_columns_map = {
+            "large": CityEyeTrafficTable.large,
+            "normal": CityEyeTrafficTable.normal,
+            "bicycle": CityEyeTrafficTable.bicycle,
+            "motorcycle": CityEyeTrafficTable.motorcycle,
+        }
+        
+        # Determine which vehicle types to include (respect vehicle_types filter)
+        # Convert to lowercase for case-insensitive matching
+        vehicle_types_to_sum = [vt.lower() for vt in filters.vehicle_types] if filters.vehicle_types else ["large", "normal", "bicycle", "motorcycle"]
+        
+        # Build query with dynamic columns based on filters
+        sum_expressions = {}
+        for vehicle_type in ["large", "normal", "bicycle", "motorcycle"]:
+            if vehicle_type in vehicle_types_to_sum:
+                column = vehicle_columns_map.get(vehicle_type)
+                if column is not None:
+                    sum_expressions[vehicle_type] = func.sum(column).label(vehicle_type)
+        
+        if not sum_expressions:
+            # Return all zeros if no valid columns
+            return {
+                "large": 0, "normal": 0, "bicycle": 0, "motorcycle": 0
+            }
+        
+        query = db.query(*sum_expressions.values())
         query = self._apply_traffic_filters(query, filters)
         result = query.first()
-        return {
-            "large": result.large or 0,
-            "normal": result.normal or 0,
-            "bicycle": result.bicycle or 0,
-            "motorcycle": result.motorcycle or 0,
-        } if result else {
+        
+        # Build result dict with all vehicle types, defaulting to 0 for excluded ones
+        output = {
             "large": 0, "normal": 0, "bicycle": 0, "motorcycle": 0
         }
+        
+        if result:
+            for vehicle_type in sum_expressions.keys():
+                output[vehicle_type] = getattr(result, vehicle_type, 0) or 0
+        
+        return output
 
     def get_hourly_traffic_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> List[Dict[str, Any]]:
         hour_part = func.extract('hour', CityEyeTrafficTable.timestamp).label("hour")

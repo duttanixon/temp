@@ -154,7 +154,6 @@ def get_human_flow_analytics(
 
         try:
             if include_total_count:
-                print(single_device_filters)
                 total = crud_city_eye_analytics.get_total_count(db, filters=single_device_filters)
                 per_device_data_obj.total_count = TotalCount(total_count=total)
             if include_age_distribution:

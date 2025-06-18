@@ -72,10 +72,10 @@ class PerDeviceAnalyticsData(BaseModel):
 # =============================================================================
 
 class VehicleTypeDistribution(BaseModel):
-    large: int
-    normal: int
-    bicycle: int
-    motorcycle: int
+    large: Optional[int] = 0
+    normal: Optional[int] = 0
+    bicycle: Optional[int] = 0
+    motorcycle: Optional[int] = 0
 
 class TrafficAnalyticsFilters(BaseModel):
     device_ids: Optional[List[uuid.UUID]] = None

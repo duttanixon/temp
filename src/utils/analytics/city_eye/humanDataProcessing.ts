@@ -5,6 +5,7 @@ import {
   ProcessedGenderSegment,
   ProcessedHourlyDataPoint,
   ButterflyChartDataPoint,
+  FilterContext,
 } from "@/types/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import { isValid, eachDayOfInterval } from "date-fns";
@@ -40,11 +41,6 @@ const CONFIG = {
     saturday: 6,
   } as const,
 };
-
-interface FilterContext {
-  dateRange?: DateRange;
-  selectedDays?: string[];
-}
 
 /**
  * Main data processing function that handles all analytics data types

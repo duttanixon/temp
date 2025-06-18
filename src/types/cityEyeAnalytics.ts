@@ -38,6 +38,11 @@ export interface FrontendAnalyticsFilters {
   age_groups?: string[];
 }
 
+export interface FilterContext {
+  dateRange?: DateRange;
+  selectedDays?: string[];
+}
+
 /**
  * Traffic-specific API filter parameters
  */

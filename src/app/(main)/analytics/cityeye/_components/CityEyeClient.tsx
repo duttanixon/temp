@@ -14,7 +14,10 @@ import { useTrafficAnalyticsData } from "@/hooks/analytics/city_eye/useTrafficAn
 import { processHumanAnalyticsData } from "@/utils/analytics/city_eye/humanDataProcessing";
 import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
 
-import { FrontendAnalyticsFilters } from "@/types/cityEyeAnalytics";
+import {
+  FilterContext,
+  FrontendAnalyticsFilters,
+} from "@/types/cityEyeAnalytics";
 import MonthlyTabContent from "./tabs/MonthlyTabContent";
 import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
@@ -43,6 +46,10 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   const [activeFilters, setActiveFilters] = useState<{
     main: FrontendAnalyticsFilters | null;
     comparison: FrontendAnalyticsFilters | null;
+  }>({ main: null, comparison: null });
+  const [appliedFilterContext, setAppliedFilterContext] = useState<{
+    main: FilterContext | null;
+    comparison: FilterContext | null;
   }>({ main: null, comparison: null });
 
   // Query parameters based on current tab
@@ -119,30 +126,19 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         : {},
   });
 
-  const filterContext = useMemo(
-    () => ({
-      dateRange: {
-        from: filters.analysisPeriod?.from,
-        to: filters.analysisPeriod?.to,
-      },
-      selectedDays: filters.selectedDays,
-    }),
-    [
-      filters.analysisPeriod?.from,
-      filters.analysisPeriod?.to,
-      filters.selectedDays,
-    ]
-  );
-
   // Process data using appropriate utilities
   const processedMainData = useMemo(
-    () => processHumanAnalyticsData(mainRawData, filterContext),
-    [mainRawData, filterContext]
+    () => processHumanAnalyticsData(mainRawData, appliedFilterContext.main),
+    [mainRawData, appliedFilterContext.main]
   );
 
   const processedComparisonData = useMemo(
-    () => processHumanAnalyticsData(comparisonRawData, filterContext),
-    [comparisonRawData, filterContext]
+    () =>
+      processHumanAnalyticsData(
+        comparisonRawData,
+        appliedFilterContext.comparison
+      ),
+    [comparisonRawData, appliedFilterContext.comparison]
   );
 
   const processedTrafficMainData = useMemo(
@@ -175,6 +171,17 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       comparison: null,
     };
 
+    const newAppliedFilterContext = {
+      main: {
+        dateRange: filters.analysisPeriod,
+        selectedDays: filters.selectedDays,
+      },
+      comparison: {
+        dateRange: filters.comparisonPeriod,
+        selectedDays: filters.selectedDays,
+      },
+    };
+
     // Handle comparison filters if in comparison view
     if (verticalTab === "comparison") {
       if (!filters.comparisonPeriod?.from || !filters.comparisonPeriod?.to) {
@@ -194,9 +201,14 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       }
 
       newActiveFilters.comparison = comparisonApiFilters;
+      newAppliedFilterContext.comparison = {
+        dateRange: filters.comparisonPeriod,
+        selectedDays: filters.selectedDays,
+      };
     }
 
     setActiveFilters(newActiveFilters);
+    setAppliedFilterContext(newAppliedFilterContext);
   }, [filters, horizontalTab, verticalTab, validateAndPrepareApiFilters]);
 
   // Auto-apply for overview tab on initial load
@@ -255,6 +267,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   // Reset states when horizontal tab changes
   useEffect(() => {
     setActiveFilters({ main: null, comparison: null });
+    setAppliedFilterContext({ main: null, comparison: null });
     setAutoApplyState({ overview: false, comparison: false });
   }, [horizontalTab]);
 

@@ -14,6 +14,10 @@ def get_source_type(input_source):
         return "libcamera"
     elif input_source.startswith("0x"):
         return "ximage"
+    elif input_source.startswith("rtsp://") or input_source.startswith("rtsps://"):
+        return "rtsp"
+    elif input_source.startswith("http://") or input_source.startswith("https://"):
+        return "http"
     else:
         return "file"
 
@@ -57,6 +61,8 @@ def SOURCE_PIPELINE(
     video_format="RGB",
     name="source",
     no_webcam_compression=False,
+    auth_username=None,
+    auth_password=None,
 ):
     """
     Creates a GStreamer pipeline string for the video source.
@@ -67,6 +73,8 @@ def SOURCE_PIPELINE(
         video_height (int, optional): The height of the video. Defaults to 640.
         video_format (str, optional): The video format. Defaults to 'RGB'.
         name (str, optional): The prefix name for the pipeline elements. Defaults to 'source'.
+        auth_username (str, optional): Username for authentication (IP cameras).
+        auth_password (str, optional): Password for authentication (IP cameras).
 
     Returns:
         str: A string representing the GStreamer pipeline for the video source.
@@ -107,12 +115,51 @@ def SOURCE_PIPELINE(
             f"{QUEUE(name=f'{name}queue_scale_')} ! "
             f"videoscale ! "
         )
+    elif source_type == "rtsp":
+        # RTSP source for IP cameras
+        # Add authentication to URL if provided
+        if auth_username and auth_password:
+            # Parse URL and add authentication
+            from urllib.parse import urlparse, urlunparse
+            parsed = urlparse(video_source)
+            netloc_with_auth = f"{auth_username}:{auth_password}@{parsed.netloc}"
+            auth_url = urlunparse((parsed.scheme, netloc_with_auth, parsed.path, 
+                                   parsed.params, parsed.query, parsed.fragment))
+            rtsp_location = auth_url
+        else:
+            rtsp_location = video_source
+            
+        source_element = (
+            f"rtspsrc name={name} location=\"{rtsp_location}\" "
+            f"latency=200 buffer-mode=auto drop-on-latency=true "
+            f"protocols=tcp timeout=5000000 tcp-timeout=5000000 "
+            f"retry=5 do-retransmission=true ! "
+            f"{QUEUE(name=f'{name}_rtsp_queue', leaky='downstream', max_size_buffers=5)} ! "
+            f"rtph264depay ! h264parse ! "
+            f"{QUEUE(name=f'{name}_queue_decoder', leaky='downstream', max_size_buffers=3)} ! "
+            f"decodebin name={name}_decodebin ! "
+        )
+    elif source_type == "http":
+        # HTTP source for IP cameras (MJPEG streams)
+        # Add authentication if provided
+        auth_str = ""
+        if auth_username and auth_password:
+            auth_str = f"user-id=\"{auth_username}\" user-pw=\"{auth_password}\" "
+            
+        source_element = (
+            f"souphttpsrc name={name} location=\"{video_source}\" "
+            f"{auth_str}is-live=true do-timestamp=true ! "
+            f"{QUEUE(name=f'{name}_http_queue', leaky='downstream', max_size_buffers=10)} ! "
+            f"multipartdemux ! "
+            f"{QUEUE(name=f'{name}_demux_queue', leaky='downstream', max_size_buffers=3)} ! "
+        )
     else:
         source_element = (
             f'filesrc location="{video_source}" name={name} ! '
             f"{QUEUE(name=f'{name}_queue_decode')} ! "
             f"decodebin name={name}_decodebin ! "
         )
+
     source_pipeline = (
         f"{source_element} "
         f"{QUEUE(name=f'{name}_scale_q')} ! "

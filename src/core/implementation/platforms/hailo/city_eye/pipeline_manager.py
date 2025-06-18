@@ -412,10 +412,20 @@ class PipelineManager:
             ) from e
 
     def _get_city_eye_pipeline_string(self) -> str:
-        """
-        Generate the complete GStreamer pipeline string for CityEye.
-        
-        Returns:
-            The pipeline string
-        """
-        return build_city_eye_pipeline_string(self)
+            """
+            Generate the complete GStreamer pipeline string for CityEye.
+            
+            Returns:
+                The pipeline string
+            """
+            # Get authentication credentials if IP camera
+            auth_username = None
+            auth_password = None
+            if self.video_source_type == "ipcamera":
+                input_props = self.solution.input_source.get_properties()
+                if input_props.get("auth_required"):
+                    # Get credentials from input source config
+                    auth_username = self.solution.input_source.username
+                    auth_password = self.solution.input_source.password
+                    
+            return build_city_eye_pipeline_string(self, auth_username, auth_password)

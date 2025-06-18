@@ -380,6 +380,9 @@ def polygon_xlines_config(
     # Step 1: Get and validate the target device
     # This ensures the device exists and the user has permission to modify it
     db_device = device.get_by_id(db, device_id=command_in.device_id)
+    if not db_device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
     check_device_access(current_user, db_device, action="update configuration for")
     thing_name = validate_device_for_commands(db_device)
 

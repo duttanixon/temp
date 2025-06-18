@@ -14,12 +14,12 @@ class CRUDCityEyeAnalytics:
     # HUMAN ANALYTICS METHODS
     # =============================================================================
 
-    def _get_people_sum_expression(self, filters: AnalyticsFilters) -> ColumnElement:
+    def _get_people_columns_map(self) -> Dict[tuple, Any]:
         """
-        Dynamically creates a SQLAlchemy sum expression based on gender and age_group filters.
+        Returns the mapping of (gender, age_group) tuples to database columns.
+        Extracted to follow DRY principle.
         """
-        
-        people_columns_map = {
+        return {
             ("male", "under_18"): CityEyeHumanTable.male_less_than_18,
             ("female", "under_18"): CityEyeHumanTable.female_less_than_18,
             ("male", "18_to_29"): CityEyeHumanTable.male_18_to_29,
@@ -28,9 +28,16 @@ class CRUDCityEyeAnalytics:
             ("female", "30_to_49"): CityEyeHumanTable.female_30_to_49,
             ("male", "50_to_64"): CityEyeHumanTable.male_50_to_64,
             ("female", "50_to_64"): CityEyeHumanTable.female_50_to_64,
-            ("male", "over_64"): CityEyeHumanTable.male_65_plus, # Assuming "over_64" maps to "65_plus" columns
+            ("male", "over_64"): CityEyeHumanTable.male_65_plus,
             ("female", "over_64"): CityEyeHumanTable.female_65_plus,
         }
+
+    def _get_people_sum_expression(self, filters: AnalyticsFilters) -> ColumnElement:
+        """
+        Dynamically creates a SQLAlchemy sum expression based on gender and age_group filters.
+        """
+        
+        people_columns_map = self._get_people_columns_map()
 
         selected_columns = []
 
@@ -107,80 +114,152 @@ class CRUDCityEyeAnalytics:
         return result or 0
 
     def get_age_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
-        query = db.query(
-            func.sum(CityEyeHumanTable.male_less_than_18 + CityEyeHumanTable.female_less_than_18).label("under_18"),
-            func.sum(CityEyeHumanTable.male_18_to_29 + CityEyeHumanTable.female_18_to_29).label("age_18_to_29"),
-            func.sum(CityEyeHumanTable.male_30_to_49 + CityEyeHumanTable.female_30_to_49).label("age_30_to_49"),
-            func.sum(CityEyeHumanTable.male_50_to_64 + CityEyeHumanTable.female_50_to_64).label("age_50_to_64"),
-            func.sum(CityEyeHumanTable.male_65_plus + CityEyeHumanTable.female_65_plus).label("over_64")
-        )
+        # Get columns map for reuse
+        people_columns_map = self._get_people_columns_map()
+        
+        # Determine which genders to include (respect gender filter)
+        genders_to_sum = filters.genders if filters.genders else ["male", "female"]
+        
+        # Determine which age groups to include (respect age_groups filter)
+        age_groups_to_sum = filters.age_groups if filters.age_groups else ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"]
+        
+        # Build query with dynamic columns based on filters
+        sum_expressions = {}
+        for age_group in ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"]:
+            if age_group in age_groups_to_sum:
+                columns_to_sum = []
+                for gender in genders_to_sum:
+                    column = people_columns_map.get((gender.lower(), age_group.lower()))
+                    if column is not None:
+                        columns_to_sum.append(column)
+                
+                if columns_to_sum:
+                    sum_expr = columns_to_sum[0]
+                    for col in columns_to_sum[1:]:
+                        sum_expr += col
+                    # Map age group names for output
+                    output_key = f"age_{age_group}" if age_group != "under_18" and age_group != "over_64" else age_group
+                    sum_expressions[output_key] = func.sum(sum_expr).label(output_key)
+        
+        if not sum_expressions:
+            # Return all zeros if no valid columns
+            return {
+                "under_18": 0, "age_18_to_29": 0, "age_30_to_49": 0, "age_50_to_64": 0, "over_64": 0
+            }
+        
+        query = db.query(*sum_expressions.values())
         query = self._apply_filters(query, filters)
         result = query.first()
-        return {
-            "under_18": result.under_18 or 0,
-            "age_18_to_29": result.age_18_to_29 or 0,
-            "age_30_to_49": result.age_30_to_49 or 0,
-            "age_50_to_64": result.age_50_to_64 or 0,
-            "over_64": result.over_64 or 0,
-        } if result else {
+        
+        # Build result dict with all age groups, defaulting to 0 for excluded ones
+        output = {
             "under_18": 0, "age_18_to_29": 0, "age_30_to_49": 0, "age_50_to_64": 0, "over_64": 0
         }
+        
+        if result:
+            for key in sum_expressions.keys():
+                output[key] = getattr(result, key, 0) or 0
+        
+        return output
 
     def get_gender_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
-        query = db.query(
-            func.sum(
-                CityEyeHumanTable.male_less_than_18 +
-                CityEyeHumanTable.male_18_to_29 +
-                CityEyeHumanTable.male_30_to_49 +
-                CityEyeHumanTable.male_50_to_64 +
-                CityEyeHumanTable.male_65_plus
-            ).label("male"),
-            func.sum(
-                CityEyeHumanTable.female_less_than_18 +
-                CityEyeHumanTable.female_18_to_29 +
-                CityEyeHumanTable.female_30_to_49 +
-                CityEyeHumanTable.female_50_to_64 +
-                CityEyeHumanTable.female_65_plus
-            ).label("female")
-        )
+        # Get columns map for reuse
+        people_columns_map = self._get_people_columns_map()
+        
+        # Determine which genders to include (respect gender filter)
+        genders_to_sum = filters.genders if filters.genders else ["male", "female"]
+        
+        # Determine which age groups to include (respect age_groups filter)
+        age_groups_to_sum = filters.age_groups if filters.age_groups else ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"]
+        
+        # Build query with dynamic columns based on filters
+        sum_expressions = {}
+        for gender in ["male", "female"]:
+            if gender in genders_to_sum:
+                columns_to_sum = []
+                for age_group in age_groups_to_sum:
+                    column = people_columns_map.get((gender.lower(), age_group.lower()))
+                    if column is not None:
+                        columns_to_sum.append(column)
+                
+                if columns_to_sum:
+                    sum_expr = columns_to_sum[0]
+                    for col in columns_to_sum[1:]:
+                        sum_expr += col
+                    sum_expressions[gender] = func.sum(sum_expr).label(gender)
+        
+        if not sum_expressions:
+            # Return all zeros if no valid columns
+            return {"male": 0, "female": 0}
+        
+        query = db.query(*sum_expressions.values())
         query = self._apply_filters(query, filters)
         result = query.first()
-        return {
-            "male": result.male or 0,
-            "female": result.female or 0,
-        } if result else {"male": 0, "female": 0}
+        
+        # Build result dict with all genders, defaulting to 0 for excluded ones
+        output = {"male": 0, "female": 0}
+        
+        if result:
+            for gender in sum_expressions.keys():
+                output[gender] = getattr(result, gender, 0) or 0
+        
+        return output
 
     def get_age_gender_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
-        query = db.query(
-            func.sum(CityEyeHumanTable.male_less_than_18).label("male_under_18"),
-            func.sum(CityEyeHumanTable.female_less_than_18).label("female_under_18"),
-            func.sum(CityEyeHumanTable.male_18_to_29).label("male_18_to_29"),
-            func.sum(CityEyeHumanTable.female_18_to_29).label("female_18_to_29"),
-            func.sum(CityEyeHumanTable.male_30_to_49).label("male_30_to_49"),
-            func.sum(CityEyeHumanTable.female_30_to_49).label("female_30_to_49"),
-            func.sum(CityEyeHumanTable.male_50_to_64).label("male_50_to_64"),
-            func.sum(CityEyeHumanTable.female_50_to_64).label("female_50_to_64"),
-            func.sum(CityEyeHumanTable.male_65_plus).label("male_65_plus"),
-            func.sum(CityEyeHumanTable.female_65_plus).label("female_65_plus")
-        )
+        # Get columns map for reuse
+        people_columns_map = self._get_people_columns_map()
+        
+        # Determine which genders and age groups to include
+        genders_to_sum = filters.genders if filters.genders else ["male", "female"]
+        age_groups_to_sum = filters.age_groups if filters.age_groups else ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"]
+        
+        # Build query with dynamic columns based on filters
+        sum_expressions = {}
+        
+        # Define all possible combinations for consistent output structure
+        all_combinations = [
+            ("male", "under_18", "male_under_18", "male_less_than_18"),
+            ("female", "under_18", "female_under_18", "female_less_than_18"),
+            ("male", "18_to_29", "male_18_to_29", "male_18_to_29"),
+            ("female", "18_to_29", "female_18_to_29", "female_18_to_29"),
+            ("male", "30_to_49", "male_30_to_49", "male_30_to_49"),
+            ("female", "30_to_49", "female_30_to_49", "female_30_to_49"),
+            ("male", "50_to_64", "male_50_to_64", "male_50_to_64"),
+            ("female", "50_to_64", "female_50_to_64", "female_50_to_64"),
+            ("male", "over_64", "male_65_plus", "male_65_plus"),
+            ("female", "over_64", "female_65_plus", "female_65_plus"),
+        ]
+        
+        for gender, age_group, output_key, _ in all_combinations:
+            if gender in genders_to_sum and age_group in age_groups_to_sum:
+                column = people_columns_map.get((gender.lower(), age_group.lower()))
+                if column is not None:
+                    sum_expressions[output_key] = func.sum(column).label(output_key)
+        
+        if not sum_expressions:
+            # Return all zeros if no valid columns
+            return {
+                "male_under_18": 0, "female_under_18": 0, "male_18_to_29": 0, "female_18_to_29": 0,
+                "male_30_to_49": 0, "female_30_to_49": 0, "male_50_to_64": 0, "female_50_to_64": 0,
+                "male_65_plus": 0, "female_65_plus": 0
+            }
+        
+        query = db.query(*sum_expressions.values())
         query = self._apply_filters(query, filters)
         result = query.first()
-        return {
-            "male_under_18": result.male_under_18 or 0,
-            "female_under_18": result.female_under_18 or 0,
-            "male_18_to_29": result.male_18_to_29 or 0,
-            "female_18_to_29": result.female_18_to_29 or 0,
-            "male_30_to_49": result.male_30_to_49 or 0,
-            "female_30_to_49": result.female_30_to_49 or 0,
-            "male_50_to_64": result.male_50_to_64 or 0,
-            "female_50_to_64": result.female_50_to_64 or 0,
-            "male_65_plus": result.male_65_plus or 0,
-            "female_65_plus": result.female_65_plus or 0,
-        } if result else {
+        
+        # Build result dict with all combinations, defaulting to 0 for excluded ones
+        output = {
             "male_under_18": 0, "female_under_18": 0, "male_18_to_29": 0, "female_18_to_29": 0,
             "male_30_to_49": 0, "female_30_to_49": 0, "male_50_to_64": 0, "female_50_to_64": 0,
             "male_65_plus": 0, "female_65_plus": 0
         }
+        
+        if result:
+            for key in sum_expressions.keys():
+                output[key] = getattr(result, key, 0) or 0
+        
+        return output
 
     def get_hourly_distribution(self, db: Session, *, filters: AnalyticsFilters) -> List[Dict[str, Any]]:
         hour_part = func.extract('hour', CityEyeHumanTable.timestamp).label("hour")
@@ -306,22 +385,46 @@ class CRUDCityEyeAnalytics:
         return result or 0
 
     def get_vehicle_type_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> Dict[str, int]:
-        query = db.query(
-            func.sum(CityEyeTrafficTable.large).label("large"),
-            func.sum(CityEyeTrafficTable.normal).label("normal"),
-            func.sum(CityEyeTrafficTable.bicycle).label("bicycle"),
-            func.sum(CityEyeTrafficTable.motorcycle).label("motorcycle")
-        )
+        # Get vehicle columns map
+        vehicle_columns_map = {
+            "large": CityEyeTrafficTable.large,
+            "normal": CityEyeTrafficTable.normal,
+            "bicycle": CityEyeTrafficTable.bicycle,
+            "motorcycle": CityEyeTrafficTable.motorcycle,
+        }
+        
+        # Determine which vehicle types to include (respect vehicle_types filter)
+        # Convert to lowercase for case-insensitive matching
+        vehicle_types_to_sum = [vt.lower() for vt in filters.vehicle_types] if filters.vehicle_types else ["large", "normal", "bicycle", "motorcycle"]
+        
+        # Build query with dynamic columns based on filters
+        sum_expressions = {}
+        for vehicle_type in ["large", "normal", "bicycle", "motorcycle"]:
+            if vehicle_type in vehicle_types_to_sum:
+                column = vehicle_columns_map.get(vehicle_type)
+                if column is not None:
+                    sum_expressions[vehicle_type] = func.sum(column).label(vehicle_type)
+        
+        if not sum_expressions:
+            # Return all zeros if no valid columns
+            return {
+                "large": 0, "normal": 0, "bicycle": 0, "motorcycle": 0
+            }
+        
+        query = db.query(*sum_expressions.values())
         query = self._apply_traffic_filters(query, filters)
         result = query.first()
-        return {
-            "large": result.large or 0,
-            "normal": result.normal or 0,
-            "bicycle": result.bicycle or 0,
-            "motorcycle": result.motorcycle or 0,
-        } if result else {
+        
+        # Build result dict with all vehicle types, defaulting to 0 for excluded ones
+        output = {
             "large": 0, "normal": 0, "bicycle": 0, "motorcycle": 0
         }
+        
+        if result:
+            for vehicle_type in sum_expressions.keys():
+                output[vehicle_type] = getattr(result, vehicle_type, 0) or 0
+        
+        return output
 
     def get_hourly_traffic_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> List[Dict[str, Any]]:
         hour_part = func.extract('hour', CityEyeTrafficTable.timestamp).label("hour")

@@ -875,20 +875,42 @@ class BusMessageHandler:
                     seqnum = message.get_seqnum()
                     self.log_to_file(f"  Message sequence number: {seqnum}")
 
+                if msg_type == self.context.gst.MessageType.STREAM_STATUS and hasattr(message, "get_stream_status_object"):
+                    try:
+                        status_obj = message.get_stream_status_object()
+                        self.log_to_file(f"  Stream status object: {status_obj}")
+                    except Exception:
+                        pass
+
+                if msg_type == self.context.gst.MessageType.STREAM_START and hasattr(message, "parse_group_id"):
+                    try:
+                        has_group_id, group_id = message.parse_group_id()
+                        if has_group_id:
+                            self.log_to_file(f"  Group ID: {group_id}")
+                    except Exception:
+                        pass
+                        
+                if msg_type == self.context.gst.MessageType.NEED_CONTEXT and hasattr(message, "parse_context_type"):
+                    try:
+                        context_type = message.parse_context_type()
+                        self.log_to_file(f"  Context type: {context_type}")
+                    except Exception:
+                        pass
+
                 # Try to get other common attributes
-                for attr in [
-                    "get_stream_status_object",
-                    "parse_group_id",
-                    "parse_context_type",
-                ]:
-                    if hasattr(message, attr):
-                        try:
-                            value = getattr(message, attr)()
-                            self.log_to_file(
-                                f"  {attr.replace('get_', '').replace('parse_', '')}: {value}"
-                            )
-                        except Exception:
-                            pass
+                # for attr in [
+                #     "get_stream_status_object",
+                #     "parse_group_id",
+                #     "parse_context_type",
+                # ]:
+                #     if hasattr(message, attr):
+                #         try:
+                #             value = getattr(message, attr)()
+                #             self.log_to_file(
+                #                 f"  {attr.replace('get_', '').replace('parse_', '')}: {value}"
+                #             )
+                #         except Exception:
+                #             pass
 
             except Exception as e:
                 self.log_to_file(f"  Error extracting additional message info: {e}")

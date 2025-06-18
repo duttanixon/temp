@@ -13,7 +13,7 @@ from .pipeline_helper import (
 )
 
 
-def build_city_eye_pipeline_string(pipe):
+def build_city_eye_pipeline_string(pipe, auth_username=None, auth_password=None):
     """Build city eye pipeline"""
 
     sink_key = getattr(pipe, "sink_type", "file")
@@ -28,7 +28,12 @@ def build_city_eye_pipeline_string(pipe):
     sink_segment = sink_factory()
 
     source_segment = SOURCE_PIPELINE(
-        pipe.video_source, pipe.video_width, pipe.video_height, video_format="RGB"
+        pipe.video_source, 
+        pipe.video_width, 
+        pipe.video_height, 
+        video_format="RGB",
+        auth_username=auth_username,
+        auth_password=auth_password
     )
 
     detection_segment = INFERENCE_PIPELINE(

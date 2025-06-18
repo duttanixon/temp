@@ -1,6 +1,7 @@
 from typing import Dict, Any
 from core.implementation.io.rpi_input import RPIInputSource
 from core.implementation.io.file_input import FileInputSource
+from core.implementation.io.ipcamera_input import IPCameraInputSource
 from core.interfaces.io.input_source import IInputSource
 from core.implementation.common.logger import get_logger
 from core.implementation.common.exceptions import ConfigurationError
@@ -40,7 +41,9 @@ class InputSourceFactory:
         input_types = {
             "file": FileInputSource,
             "rpi": RPIInputSource,
-            # "rtsp": RTSPInputSource  # Commented out as it's not implemented yet
+            "ipcamera": IPCameraInputSource,
+            "rtsp": IPCameraInputSource,  # Alias for IP camera
+            "http": IPCameraInputSource,  # Alias for IP camera
         }
 
         # Look up the input class in the registry

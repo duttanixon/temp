@@ -129,16 +129,25 @@ def SOURCE_PIPELINE(
         else:
             rtsp_location = video_source
             
+        # source_element = (
+        #     f"rtspsrc name={name} location=\"{rtsp_location}\" "
+        #     f"latency=200 buffer-mode=auto drop-on-latency=true "
+        #     f"protocols=tcp timeout=5000000 tcp-timeout=5000000 "
+        #     f"retry=5 do-retransmission=true ! "
+        #     f"{QUEUE(name=f'{name}_rtsp_queue', leaky='downstream', max_size_buffers=5)} ! "
+        #     f"rtph264depay ! h264parse ! "
+        #     f"{QUEUE(name=f'{name}_queue_decoder', leaky='downstream', max_size_buffers=3)} ! "
+        #     f"decodebin name={name}_decodebin ! "
+        # )
+
         source_element = (
             f"rtspsrc name={name} location=\"{rtsp_location}\" "
-            f"latency=200 buffer-mode=auto drop-on-latency=true "
-            f"protocols=tcp timeout=5000000 tcp-timeout=5000000 "
-            f"retry=5 do-retransmission=true ! "
-            f"{QUEUE(name=f'{name}_rtsp_queue', leaky='downstream', max_size_buffers=5)} ! "
+            f"latency=200 "
+            f"protocols=tcp !"
             f"rtph264depay ! h264parse ! "
-            f"{QUEUE(name=f'{name}_queue_decoder', leaky='downstream', max_size_buffers=3)} ! "
             f"decodebin name={name}_decodebin ! "
         )
+
     elif source_type == "http":
         # HTTP source for IP cameras (MJPEG streams)
         # Add authentication if provided

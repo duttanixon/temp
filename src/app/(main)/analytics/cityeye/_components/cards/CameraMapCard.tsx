@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeviceCountData } from "@/types/cityEyeAnalytics";
+import "leaflet/dist/leaflet.css";
+import { RefreshCcw } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
+  CircleMarker,
   MapContainer,
   TileLayer,
-  CircleMarker,
   Tooltip,
   useMap,
 } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import { DeviceCountData } from "@/types/cityEyeAnalytics";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
-import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
 
 interface CameraMapCardProps {
   title: string;
@@ -59,8 +59,7 @@ function ResetButton({ onClick }: { onClick: () => void }) {
     <Button
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
-      onClick={onClick}
-    >
+      onClick={onClick}>
       <RefreshCcw />
     </Button>
   );
@@ -134,8 +133,7 @@ export default function CameraMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }
-        >
+          }>
           <div className="h-72 w-full cursor-pointer relative">
             {/* 地図上に配置するリセットボタン */}
             <div className="absolute top-20 left-2 z-[1000]">
@@ -145,9 +143,7 @@ export default function CameraMapCard({
               key={resetKey}
               center={[33.5597, 133.5311]}
               zoom={16}
-              scrollWheelZoom={false}
-              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-            >
+              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -163,15 +159,13 @@ export default function CameraMapCard({
                     fillOpacity: 0.6,
                   }}
                   interactive={true}
-                  className="cursor-pointer"
-                >
+                  className="cursor-pointer">
                   <Tooltip
                     direction="top"
                     offset={[0, -10]}
                     opacity={1}
                     permanent={false}
-                    sticky={true}
-                  >
+                    sticky={true}>
                     {device.count.toLocaleString()} 人
                   </Tooltip>
                 </CircleMarker>

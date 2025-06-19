@@ -5,7 +5,7 @@ import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import AnalyticsCard from "../cards/AnalyticsCard";
-import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
+import { ProcessedTrafficAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 
 interface TrafficOverviewViewProps {
   processedData: ProcessedTrafficAnalyticsData | null;

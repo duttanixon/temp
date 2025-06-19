@@ -1,6 +1,12 @@
+/*
+/devices/[solution_name]/[deviceId]/[action]:
+- This represents solution-specific device action pages. For example, `/devices/cityeye/[deviceId]/edit` is used for editing a device within the CityEye solution.
+- These pages handle actions that are unique to a particular solution.
+*/
+
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
-import DeviceEditForm from "../../_components/DeviceEditForm";
+import DeviceEditForm from "./DeviceEditForm";
 import type { Metadata, ResolvingMetadata } from "next";
 import {
   Breadcrumb,
@@ -76,11 +82,7 @@ export default async function EditDevicePage(
               <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
-            <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href={`/devices/${deviceId}`}>
-                {device.name}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
+            <BreadcrumbItem>{device.name}</BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem>編集</BreadcrumbItem>
           </BreadcrumbList>

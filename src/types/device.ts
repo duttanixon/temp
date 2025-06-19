@@ -29,6 +29,8 @@ export interface Device {
   last_connected?: string;
   created_at: string;
   updated_at?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Types for create/update operations
@@ -48,4 +50,10 @@ export type DeviceUpdateData = {
   location?: string;
   firmware_version?: string;
   ip_address?: string;
+};
+
+export type DeviceCommandResponse = {
+  device_name: string;
+  message_id: string;
+  detail: string;
 };

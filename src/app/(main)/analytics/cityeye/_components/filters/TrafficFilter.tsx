@@ -7,8 +7,8 @@ import { FilterCard } from "./FilterCard";
 
 const ALL_TRAFFIC = [
   { id: "Large", label: "大型" }, // Assuming these IDs match backend expectations
-  { id: "Car", label: "車" }, // "normal" in backend schema, might need mapping if these are directly used
-  { id: "Bike", label: "二輪車" }, // "motorcycle" in backend
+  { id: "Normal", label: "車" }, // "normal" in backend schema, might need mapping if these are directly used
+  { id: "Motorcycle", label: "二輪車" }, // "motorcycle" in backend
   { id: "Bicycle", label: "自転車" },
 ];
 

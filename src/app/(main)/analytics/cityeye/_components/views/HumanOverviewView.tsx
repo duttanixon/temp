@@ -11,7 +11,7 @@ import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import AnalyticsCard from "../cards/AnalyticsCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 
 // ✅ Dynamically import map card client-side only
 const CameraMapCard = dynamic(() => import("../cards/CameraMapCard"), {

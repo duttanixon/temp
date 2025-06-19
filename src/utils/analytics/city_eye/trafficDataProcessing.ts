@@ -6,7 +6,7 @@ import {
     DeviceCountData,
     ProcessedVehicleTypeDistributionData,
     ProcessedHourlyDistributionData,
-  } from "@/types/cityEyeAnalytics";
+  } from "@/types/cityeye/cityEyeAnalytics";
   
   // Configuration for vehicle types
   const VEHICLE_TYPE_CONFIG = {

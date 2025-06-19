@@ -2,7 +2,7 @@
 
 import React from "react";
 import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
-import { ProcessedGenderSegment } from "@/types/cityEyeAnalytics";
+import { ProcessedGenderSegment } from "@/types/cityeye/cityEyeAnalytics";
 
 interface GenderDistributionCardProps {
   title: string;

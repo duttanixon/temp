@@ -3,8 +3,8 @@ import {
   FrontendCityEyeAnalyticsPerDeviceResponse,
   FrontendTrafficAnalyticsFilters,
   FrontendCityEyeTrafficAnalyticsPerDeviceResponse,
-} from "@/types/cityEyeAnalytics";
-import { apiClient, handleApiError } from "./baseApiClient"; // Assuming baseApiClient exists
+} from "@/types/cityeye/cityEyeAnalytics";
+import { apiClient, handleApiError } from "../baseApiClient"; // Assuming baseApiClient exists
 
 export const analyticsService = {
   async getHumanFlowAnalytics(

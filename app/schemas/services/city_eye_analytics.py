@@ -101,6 +101,7 @@ class DeviceAnalyticsItem(BaseModel):
     device_id: uuid.UUID
     device_name: Optional[str] = None # Helpful for the frontend
     device_location: Optional[str] = None # Optional location info for the device
+    device_position: List[float] = []
     analytics_data: PerDeviceAnalyticsData
     error: Optional[str] = None # In case processing for this device fails
 
@@ -108,6 +109,7 @@ class DeviceTrafficAnalyticsItem(BaseModel):
     device_id: uuid.UUID
     device_name: Optional[str] = None
     device_location: Optional[str] = None
+    device_position: List[float] = []
     analytics_data: PerDeviceTrafficAnalyticsData
     error: Optional[str] = None
 

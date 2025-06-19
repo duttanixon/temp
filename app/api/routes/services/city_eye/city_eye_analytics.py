@@ -86,6 +86,7 @@ def get_human_flow_analytics(
                 processed_device_details[device_uuid] = {}
                 processed_device_details[device_uuid]["device_name"] = db_device.name
                 processed_device_details[device_uuid]["device_location"] = db_device.location
+                processed_device_details[device_uuid]["device_position"] = [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
             except ValueError:
                 logger.warning(f"Admin/Engineer query: Invalid device UUID format: {device_id_str}")
                 continue
@@ -124,6 +125,7 @@ def get_human_flow_analytics(
                 processed_device_details[device_uuid] = {}
                 processed_device_details[device_uuid]["device_name"] = db_device.name
                 processed_device_details[device_uuid]["device_location"] = db_device.location
+                processed_device_details[device_uuid]["device_position"] = [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
             except ValueError:
                 logger.warning(f"Customer query: Invalid device UUID format: {device_id_str}")
                 continue
@@ -144,6 +146,7 @@ def get_human_flow_analytics(
     for device_id_to_process in final_device_ids_to_process:
         device_name = processed_device_details.get(device_id_to_process).get("device_name")
         device_location = processed_device_details.get(device_id_to_process).get("device_location")
+        device_position = processed_device_details.get(device_id_to_process).get("device_position")
         logger.info(f"Processing analytics for device: {device_name} ({device_id_to_process})")
         
         single_device_filters = filters.model_copy(deep=True) # Use deep copy
@@ -186,6 +189,7 @@ def get_human_flow_analytics(
                 device_id=device_id_to_process,
                 device_name=device_name,
                 device_location=device_location,
+                device_position=device_position,
                 analytics_data=per_device_data_obj,
                 error=error_message_for_device
             )
@@ -236,6 +240,7 @@ def get_traffic_flow_analytics(
                 processed_device_details[device_uuid] = {}
                 processed_device_details[device_uuid]["device_name"] = db_device.name
                 processed_device_details[device_uuid]["device_location"] = db_device.location
+                processed_device_details[device_uuid]["device_position"] = [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
             except ValueError:
                 logger.warning(f"Admin/Engineer query: Invalid device UUID format: {device_id_str}")
                 continue
@@ -274,6 +279,7 @@ def get_traffic_flow_analytics(
                 processed_device_details[device_uuid] = {}
                 processed_device_details[device_uuid]["device_name"] = db_device.name
                 processed_device_details[device_uuid]["device_location"] = db_device.location
+                processed_device_details[device_uuid]["device_position"] = [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
             except ValueError:
                 logger.warning(f"Customer query: Invalid device UUID format: {device_id_str}")
                 continue
@@ -290,6 +296,7 @@ def get_traffic_flow_analytics(
     for device_id_to_process in final_device_ids_to_process:
         device_name = processed_device_details.get(device_id_to_process).get("device_name")
         device_location = processed_device_details.get(device_id_to_process).get("device_location")
+        device_position = processed_device_details.get(device_id_to_process).get("device_position")
         logger.info(f"Processing traffic analytics for device: {device_name} ({device_id_to_process})")
         
         single_device_filters = filters.model_copy(deep=True) # Use deep copy
@@ -324,6 +331,7 @@ def get_traffic_flow_analytics(
                 device_id=device_id_to_process,
                 device_name=device_name,
                 device_location=device_location,
+                device_position=device_position,
                 analytics_data=per_device_data_obj,
                 error=error_message_for_device
             )

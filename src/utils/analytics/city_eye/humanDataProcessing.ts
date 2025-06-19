@@ -1,10 +1,10 @@
 import {
+  ButterflyChartDataPoint,
   FrontendCityEyeAnalyticsPerDeviceResponse,
-  ProcessedAnalyticsData,
   ProcessedAgeGroup,
+  ProcessedAnalyticsData,
   ProcessedGenderSegment,
   ProcessedHourlyDataPoint,
-  ButterflyChartDataPoint,
 } from "@/types/cityeye/cityEyeAnalytics";
 
 // Consolidated configuration for all data types
@@ -62,6 +62,8 @@ function processTotalPeople(data: FrontendCityEyeAnalyticsPerDeviceResponse) {
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
+      lat: item.device_position?.[0],
+      lng: item.device_position?.[1],
       count,
       error:
         item.error ||
@@ -101,6 +103,8 @@ function processAgeDistribution(
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
+      lat: item.device_position?.[0],
+      lng: item.device_position?.[1],
       count: 0,
       ageDistribution: item.analytics_data?.age_distribution
         ? transformToAgeGroups(item.analytics_data.age_distribution)
@@ -150,6 +154,8 @@ function processGenderDistribution(
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
+      lat: item.device_position?.[0],
+      lng: item.device_position?.[1],
       count: deviceTotal,
       genderDistribution: item.analytics_data?.gender_distribution
         ? transformToGenderSegments(item.analytics_data.gender_distribution)

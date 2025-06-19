@@ -2,16 +2,15 @@
 
 "use client";
 
-import React from "react";
 import dynamic from "next/dynamic";
 
-import TotalPeopleCard from "../cards/TotalPeopleCard";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
+import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
+import AnalyticsCard from "../cards/AnalyticsCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
-import AnalyticsCard from "../cards/AnalyticsCard";
-import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
+import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 // ✅ Dynamically import map card client-side only
 const CameraMapCard = dynamic(() => import("../cards/CameraMapCard"), {

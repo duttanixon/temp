@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DeviceCountData } from "@/types/cityEyeAnalytics";
+import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
 import "leaflet/dist/leaflet.css";
 import { RefreshCcw } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -166,7 +166,12 @@ export default function CameraMapCard({
                     opacity={1}
                     permanent={false}
                     sticky={true}>
-                    {device.count.toLocaleString()} 人
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
+                        {device.deviceLocation}_{device.deviceName}
+                      </span>
+                      {device.count.toLocaleString()} 人
+                    </div>
                   </Tooltip>
                 </CircleMarker>
               ))}

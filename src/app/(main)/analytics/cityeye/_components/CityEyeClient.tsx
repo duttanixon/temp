@@ -45,7 +45,10 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   }>({ main: null, comparison: null });
 
   // Query parameters based on current tab
-  const queryParams: Record<string, boolean> = useMemo((): Record<string, boolean> => {
+  const queryParams: Record<string, boolean> = useMemo((): Record<
+    string,
+    boolean
+  > => {
     if (horizontalTab === "people") {
       return {
         include_total_count: true,
@@ -81,10 +84,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     error: errorComparison,
   } = useHumanAnalyticsData({
     activeApiFilters:
-      horizontalTab === "people" && verticalTab === "comparison" 
-        ? activeFilters.comparison 
+      horizontalTab === "people" && verticalTab === "comparison"
+        ? activeFilters.comparison
         : null,
-    queryParams: horizontalTab === "people" && verticalTab === "comparison" ? queryParams : {},
+    queryParams:
+      horizontalTab === "people" && verticalTab === "comparison"
+        ? queryParams
+        : {},
   });
 
   // Fetch data for traffic analytics
@@ -106,7 +112,10 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       horizontalTab === "traffic" && verticalTab === "comparison"
         ? activeFilters.comparison
         : null,
-    queryParams: horizontalTab === "traffic" && verticalTab === "comparison" ? queryParams : {},
+    queryParams:
+      horizontalTab === "traffic" && verticalTab === "comparison"
+        ? queryParams
+        : {},
   });
 
   // Process data using appropriate utilities
@@ -235,11 +244,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
   // Check if filters are needed for current tab
   const showFilters = horizontalTab === "people" || horizontalTab === "traffic";
-  
+
   // Determine loading state based on current tab
-  const isLoading = horizontalTab === "people" 
-    ? (isLoadingMain || (verticalTab === "comparison" && isLoadingComparison))
-    : (isLoadingTrafficMain || (verticalTab === "comparison" && isLoadingTrafficComparison));
+  const isLoading =
+    horizontalTab === "people"
+      ? isLoadingMain || (verticalTab === "comparison" && isLoadingComparison)
+      : isLoadingTrafficMain ||
+        (verticalTab === "comparison" && isLoadingTrafficComparison);
 
   // Render appropriate content based on current tab
   const renderContent = () => {

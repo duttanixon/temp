@@ -1,6 +1,6 @@
 "use client";
 
-import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
 import AnalyticsCard from "../cards/AnalyticsCard";

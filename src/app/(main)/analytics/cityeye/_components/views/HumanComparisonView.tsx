@@ -1,16 +1,15 @@
 "use client";
 
-import React from "react";
-import TotalPeopleCard from "../cards/TotalPeopleCard";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
+import { formatISO } from "date-fns";
+import { DateRange } from "react-day-picker";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
+import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
+import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
-import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
-import { DateRange } from "react-day-picker";
-import { formatISO } from "date-fns";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
-import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
+import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 interface ComparisonViewProps {
   mainPeriodProcessedData: ProcessedAnalyticsData | null;
@@ -70,7 +69,7 @@ export default function HumanComparisonView({
           <DailyAveragePeopleCard
             title="日平均人数 (分析期間)"
             daysCountData={
-              mainPeriodProcessedData?.totalPeople?.totalCount ?? null
+              mainPeriodProcessedData?.dailyAveragePeople?.averageCount ?? null
             }
             isLoading={isLoadingMain}
             error={errorMain}
@@ -144,7 +143,8 @@ export default function HumanComparisonView({
           <DailyAveragePeopleCard
             title="日平均人数 (比較期間)"
             daysCountData={
-              comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
+              comparisonPeriodProcessedData?.dailyAveragePeople?.averageCount ??
+              null
             }
             isLoading={isLoadingMain}
             error={errorMain}

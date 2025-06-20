@@ -17,7 +17,7 @@ import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficD
 import {
   FilterContext,
   FrontendAnalyticsFilters,
-} from "@/types/cityEyeAnalytics";
+} from "@/types/cityeye/cityEyeAnalytics";
 import MonthlyTabContent from "./tabs/MonthlyTabContent";
 import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
@@ -142,13 +142,21 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   );
 
   const processedTrafficMainData = useMemo(
-    () => processTrafficAnalyticsData(mainTrafficRawData),
-    [mainTrafficRawData]
+    () =>
+      processTrafficAnalyticsData(
+        mainTrafficRawData,
+        appliedFilterContext.main
+      ),
+    [mainTrafficRawData, appliedFilterContext.main]
   );
 
   const processedTrafficComparisonData = useMemo(
-    () => processTrafficAnalyticsData(comparisonTrafficRawData),
-    [comparisonTrafficRawData]
+    () =>
+      processTrafficAnalyticsData(
+        comparisonTrafficRawData,
+        appliedFilterContext.comparison
+      ),
+    [comparisonTrafficRawData, appliedFilterContext.comparison]
   );
 
   // Filter application handler
@@ -339,16 +347,14 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           <Tabs
             value={verticalTab}
             onValueChange={setVerticalTab}
-            className="w-full"
-          >
+            className="w-full">
             <TabsList className="h-auto grid grid-cols-2 gap-2 rounded-xl bg-white/80 backdrop-blur-sm p-1 w-full shadow-sm border border-gray-200/50">
               <TabsTrigger
                 value="overview"
                 className={cn(
                   "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
-              >
+                )}>
                 分析表示
               </TabsTrigger>
               <TabsTrigger
@@ -356,8 +362,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
                 className={cn(
                   "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
-              >
+                )}>
                 比較表示
               </TabsTrigger>
             </TabsList>
@@ -376,8 +381,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           <Button
             onClick={handleApplyFilters}
             className="mt-3 group flex w-full items-center justify-center rounded-full bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 text-neutral-50 shadow-[inset_0_1px_0px_0px_#93c5fd] hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 active:[box-shadow:none] cursor-pointer"
-            disabled={isLoading}
-          >
+            disabled={isLoading}>
             <div className="flex items-center justify-center gap-2.5">
               {isLoading ? (
                 <>
@@ -399,15 +403,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         <Tabs
           value={horizontalTab}
           onValueChange={setHorizontalTab}
-          className="w-full mb-3"
-        >
+          className="w-full mb-3">
           <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 gap-1 bg-muted p-0.5 rounded-md">
             {["people", "traffic", "monthly", "quarterly"].map((tabVal) => (
               <TabsTrigger
                 key={tabVal}
                 value={tabVal}
-                className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm cursor-pointer"
-              >
+                className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm cursor-pointer">
                 {tabVal === "people" && "人流"}
                 {tabVal === "traffic" && "交通量"}
                 {tabVal === "monthly" && "人流(方向)"}

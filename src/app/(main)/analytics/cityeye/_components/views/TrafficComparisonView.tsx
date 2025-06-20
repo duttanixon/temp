@@ -1,14 +1,13 @@
 "use client";
 
-import React from "react";
-import TotalVehiclesCard from "../cards/TotalVehiclesCard";
-import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
-import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import { ProcessedTrafficAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
-import { DateRange } from "react-day-picker";
 import { formatISO } from "date-fns";
-import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
+import { DateRange } from "react-day-picker";
 import DailyAverageVehiclesCard from "../cards/DailyAverageVehiclesCard";
+import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
+import TotalVehiclesCard from "../cards/TotalVehiclesCard";
+import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
+import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 
 interface TrafficComparisonViewProps {
   mainPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
@@ -66,12 +65,12 @@ export default function TrafficComparisonView({
             hasAttemptedFetch={hasAttemptedFetchMain}
           />
           <DailyAverageVehiclesCard
-            title="日平均台数 (分析期間)"
+            title="日平均交通量 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
             daysCountData={
-              mainPeriodProcessedData?.totalVehicles?.totalCount ?? null
+              mainPeriodProcessedData?.dailyAverageVehicle?.averageCount ?? null
             }
           />
           <PerDeviceTrafficCard
@@ -84,7 +83,7 @@ export default function TrafficComparisonView({
             hasAttemptedFetch={hasAttemptedFetchMain}
           />
           <VehicleTypeDistributionCard
-            title="車種別分析 (分析期間)"
+            title="交通種別分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
@@ -123,12 +122,13 @@ export default function TrafficComparisonView({
             hasAttemptedFetch={hasAttemptedFetchComparison}
           />
           <DailyAverageVehiclesCard
-            title="日平均台数 (比較期間)"
+            title="日平均交通量 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
             daysCountData={
-              comparisonPeriodProcessedData?.totalVehicles?.totalCount ?? null
+              comparisonPeriodProcessedData?.dailyAverageVehicle
+                ?.averageCount ?? null
             }
           />
           <PerDeviceTrafficCard
@@ -142,7 +142,7 @@ export default function TrafficComparisonView({
             hasAttemptedFetch={hasAttemptedFetchComparison}
           />
           <VehicleTypeDistributionCard
-            title="車種別分析 (比較期間)"
+            title="交通種別分析 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}

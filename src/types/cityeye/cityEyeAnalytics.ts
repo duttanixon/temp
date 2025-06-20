@@ -446,6 +446,11 @@ export interface ProcessedTrafficAnalyticsData {
     perDeviceCounts: DeviceCountData[];
   } | null;
 
+  dailyAverageVehicle: {
+    averageCount: number;
+    days: number;
+  } | null;
+
   /** Vehicle type distribution analysis */
   vehicleTypeDistribution: ProcessedVehicleTypeDistributionData | null;
 

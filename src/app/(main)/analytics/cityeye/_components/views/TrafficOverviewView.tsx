@@ -34,21 +34,25 @@ export default function TrafficOverviewView({
 }: TrafficOverviewViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-      <div className="flex flex-col gap-3">
-        <TotalVehiclesCard
-          title="総交通量"
-          totalCountData={processedData?.totalVehicles?.totalCount ?? null}
-          isLoading={isLoading}
-          error={error}
-          hasAttemptedFetch={hasAttemptedFetch}
-        />
-        <DailyAverageVehiclesCard
-          title="日平均台数"
-          isLoading={isLoading}
-          error={error}
-          hasAttemptedFetch={hasAttemptedFetch}
-          daysCountData={processedData?.totalVehicles?.totalCount ?? null}
-        />
+      <div className="grid grid-rows-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <TotalVehiclesCard
+            title="総交通量"
+            totalCountData={processedData?.totalVehicles?.totalCount ?? null}
+            isLoading={isLoading}
+            error={error}
+            hasAttemptedFetch={hasAttemptedFetch}
+          />
+          <DailyAverageVehiclesCard
+            title="日平均交通量"
+            isLoading={isLoading}
+            error={error}
+            hasAttemptedFetch={hasAttemptedFetch}
+            daysCountData={
+              processedData?.dailyAverageVehicle?.averageCount ?? null
+            }
+          />
+        </div>
         <PerDeviceTrafficCard
           title="デバイス別交通量"
           perDeviceCountsData={
@@ -60,7 +64,7 @@ export default function TrafficOverviewView({
         />
       </div>
       <VehicleTypeDistributionCard
-        title="車種別分析"
+        title="交通種別分析"
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}

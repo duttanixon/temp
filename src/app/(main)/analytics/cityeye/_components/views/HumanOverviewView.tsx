@@ -4,11 +4,11 @@ import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
 import AnalyticsCard from "../cards/AnalyticsCard";
+import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
-import TotalPeopleCard from "../cards/TotalPeopleCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
-import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
+import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 interface OverviewViewProps {
   processedData: ProcessedAnalyticsData | null;

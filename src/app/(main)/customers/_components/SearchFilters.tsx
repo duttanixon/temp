@@ -27,7 +27,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
 
         <div className="relative w-40">
           <select
-            className="w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="cursor-pointer w-full bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -40,7 +40,7 @@ export default function SearchFilters({ onSearch }: SearchFiltersProps) {
         <div className="relative flex-grow min-w-[150px]">
           <Input
             placeholder="顧客を検索…"
-            className="h-[30px] w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="cursor-pointer h-[30px] w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

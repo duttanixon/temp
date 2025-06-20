@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Loader2, AlertTriangle, Info } from "lucide-react";
 import ButterflyChart from "@/components/charts/butterfly-chart"; // Adjusted path
-import { ProcessedAgeGenderDistributionData } from "@/types/cityEyeAnalytics";
+import { ProcessedAgeGenderDistributionData } from "@/types/cityeye/cityEyeAnalytics";
 
 interface AgeGenderButterflyChartCardProps {
   title: string;

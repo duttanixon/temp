@@ -2,7 +2,7 @@
 
 import React from "react";
 import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
-import { ProcessedVehicleType } from "@/types/cityEyeAnalytics";
+import { ProcessedVehicleType } from "@/types/cityeye/cityEyeAnalytics";
 
 interface VehicleTypeDistributionCardProps {
   title: string;

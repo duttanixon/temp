@@ -1,11 +1,10 @@
 "use client";
 
-import React from "react";
-import TrafficOverviewView from "../views/TrafficOverviewView";
-import TrafficComparisonView from "../views/TrafficComparisonView"; // Can reuse if structure is similar
-import { ProcessedTrafficAnalyticsData } from "@/types/cityEyeAnalytics";
-import { DateRange } from "react-day-picker";
+import { ProcessedTrafficAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import { ProcessedAnalyticsData } from "@/types/cityEyeAnalytics";
+import { DateRange } from "react-day-picker";
+import TrafficComparisonView from "../views/TrafficComparisonView"; // Can reuse if structure is similar
+import TrafficOverviewView from "../views/TrafficOverviewView";
 
 interface TrafficTabContentProps {
   verticalTab: string;

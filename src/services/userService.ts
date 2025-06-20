@@ -1,73 +1,12 @@
 import { User, UserCreateData, UserUpdateData } from "@/types/user";
-import axios, { AxiosError } from "axios";
-import { getSession } from "next-auth/react";
-
-// Create an axios instance
-const apiClient = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}`,
-});
-
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.accessToken}`;
-  }
-  return config;
-});
-
-export class ApiError extends Error {
-  statusCode?: number;
-  responseData?: any;
-
-  constructor(message: string, statusCode?: number, responseData?: any) {
-    super(message);
-    this.name = "ApiError";
-    this.statusCode = statusCode;
-    this.responseData = responseData;
-  }
-}
-
-// Helper for consistent error handling
-function handleApiError(error: any): never {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>;
-    let message: string;
-
-    if (axiosError?.message) {
-      message = axiosError.message;
-    } else {
-      message = "An unexpected error occurred";
-    }
-
-    console.log("API Error:", message);
-    throw new Error(message);
-  }
-
-  // For non-axios errors
-  if (error instanceof Error) {
-    throw error;
-  }
-
-  throw new Error("An unexpected error occurred");
-}
-
-// Helper to clean empty fields
-function cleanEmptyFields<T extends Record<string, any>>(data: T): T {
-  const cleanData = { ...data };
-  Object.keys(cleanData).forEach((key) => {
-    if (cleanData[key] === "") {
-      delete cleanData[key];
-    }
-  });
-  return cleanData;
-}
+import axios from "axios";
+import { apiClient, cleanData, handleApiError } from "./baseApiClient";
 
 export const userService = {
   // Get all users
   async getUsers(customerId?: string): Promise<User[]> {
     try {
-      const params: Record<string, any> = {};
+      const params: Record<string, unknown> = {};
       if (customerId) {
         params.customer_id = customerId;
       }
@@ -94,8 +33,8 @@ export const userService = {
   // Create a new user
   async createUser(data: UserCreateData): Promise<User> {
     try {
-      const cleanData = cleanEmptyFields(data);
-      const response = await apiClient.post<User>("/users", cleanData);
+      const cleaned = cleanData(data);
+      const response = await apiClient.post<User>("/users", cleaned);
       return response.data;
     } catch (error) {
       return handleApiError(error);

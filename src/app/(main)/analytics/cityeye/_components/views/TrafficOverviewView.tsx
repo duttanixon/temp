@@ -1,16 +1,15 @@
 "use client";
 
-import React from "react";
-import TotalVehiclesCard from "../cards/TotalVehiclesCard";
-import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
-import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
-import AnalyticsCard from "../cards/AnalyticsCard";
 import {
   ProcessedAnalyticsData,
   ProcessedTrafficAnalyticsData,
-} from "@/types/cityEyeAnalytics";
-import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
+} from "@/types/cityeye/cityEyeAnalytics";
+import AnalyticsCard from "../cards/AnalyticsCard";
 import DailyAverageVehiclesCard from "../cards/DailyAverageVehiclesCard";
+import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
+import TotalVehiclesCard from "../cards/TotalVehiclesCard";
+import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
+import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 
 interface TrafficOverviewViewProps {
   processedData: ProcessedTrafficAnalyticsData | null;

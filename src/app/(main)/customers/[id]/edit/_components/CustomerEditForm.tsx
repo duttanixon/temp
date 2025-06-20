@@ -1,18 +1,18 @@
 import { FormField, ToggleField } from "@/components/forms/FormField";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CustomerEditFormValues,
   customerEditSchema,
 } from "@/schemas/customerSchemas";
-import { ApiError, customerService } from "@/services/customerService";
+import { customerService } from "@/services/customerService";
 import { Customer } from "@/types/customer";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cva } from "class-variance-authority";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const formVariants = cva("", {
   variants: {
@@ -70,38 +70,13 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
       router.push(`/customers/${customerId}`);
       router.refresh();
     } catch (error) {
-      console.log("Error creating customer:", error);
-
-      if (error instanceof ApiError) {
-        const statusCode = error.statusCode;
-
-        // ステータスコードに基づいた処理
-        let description = "";
-
-        switch (statusCode) {
-          case 400:
-            description =
-              "この会社名またはメールアドレスは既に登録されています。";
-            break;
-          case 403:
-            description = "この操作を実行する権限がありません。";
-            break;
-          case 422:
-            description =
-              "入力内容に問題があります。必須項目を確認してください。";
-            break;
-          default:
-            description = error.message || "予期せぬエラーが発生しました。";
-        }
-        toast.error("更新エラー", { description });
-      } else {
-        toast.error("更新エラー", {
-          description:
-            error instanceof Error
-              ? error.message
-              : "予期せぬエラーが発生しました",
-        });
-      }
+      console.error("Error updating customer:", error);
+      toast.error("更新エラー", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "予期せぬエラーが発生しました",
+      });
     }
   };
 
@@ -126,14 +101,12 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
         <TabsList className="grid w-fit h-full grid-cols-2 bg-white border border-[#BDC3C7] overflow-hidden">
           <TabsTrigger
             value="basic"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
-          >
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2">
             基本情報
           </TabsTrigger>
           <TabsTrigger
             value="subscription"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
-          >
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2">
             サブスクリプション
           </TabsTrigger>
         </TabsList>
@@ -199,15 +172,13 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
               className={buttonVariants({ variant: "cancel" })}
               type="button"
               onClick={() => router.push(`/customers/${customerId}`)}
-              disabled={isSubmitting}
-            >
+              disabled={isSubmitting}>
               キャンセル
             </Button>
             <Button
               className={buttonVariants({ variant: "default" })}
               type="submit"
-              disabled={isSubmitting}
-            >
+              disabled={isSubmitting}>
               {isSubmitting ? "保存中..." : "保存"}
             </Button>
           </div>

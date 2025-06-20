@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   CityEyeFilterState,
   FrontendAnalyticsFilters,
-} from "@/types/cityEyeAnalytics";
+} from "@/types/cityeye/cityEyeAnalytics";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
 
 // Default filter state with sensible defaults
@@ -31,7 +31,7 @@ const createDefaultFilters = (): CityEyeFilterState => ({
   selectedDevices: [],
   selectedAges: ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"],
   selectedGenders: ["male", "female"],
-  selectedTrafficTypes: ["Large", "Car", "Bike", "Bicycle"],
+  selectedTrafficTypes: ["Large", "Normal", "Motorcycle", "Bicycle"],
 });
 
 /**
@@ -92,6 +92,9 @@ export function useAnalyticsFilters() {
         ...(horizontalTab === "people" && {
           genders: currentFilters.selectedGenders,
           age_groups: currentFilters.selectedAges,
+        }),
+        ...(horizontalTab === "traffic" && {
+          vehicle_types: currentFilters.selectedTrafficTypes,
         }),
       };
     },

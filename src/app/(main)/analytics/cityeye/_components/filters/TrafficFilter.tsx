@@ -6,9 +6,9 @@ import React from "react";
 import { FilterCard } from "./FilterCard";
 
 const ALL_TRAFFIC = [
-  { id: "Large", label: "大型" },
-  { id: "Car", label: "車" },
-  { id: "Bike", label: "二輪車" },
+  { id: "Large", label: "大型" }, // Assuming these IDs match backend expectations
+  { id: "Normal", label: "車" }, // "normal" in backend schema, might need mapping if these are directly used
+  { id: "Motorcycle", label: "二輪車" }, // "motorcycle" in backend
   { id: "Bicycle", label: "自転車" },
 ];
 
@@ -71,8 +71,7 @@ export function TrafficFilter({
           />
           <Label
             htmlFor="select-all-traffic"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
-          >
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
             すべて
           </Label>
         </div>
@@ -86,8 +85,7 @@ export function TrafficFilter({
             {ALL_TRAFFIC.map((traffic) => (
               <div
                 key={traffic.id}
-                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
-              >
+                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
                 <Checkbox
                   id={`traffic-${traffic.id}`}
                   checked={selectedTrafficTypes.includes(traffic.id)}
@@ -96,8 +94,7 @@ export function TrafficFilter({
                 />
                 <Label
                   htmlFor={`traffic-${traffic.id}`}
-                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors"
-                >
+                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors">
                   {traffic.label}
                 </Label>
               </div>

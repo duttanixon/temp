@@ -1,17 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ApiError, userService } from "@/services/userService";
-import { toast } from "sonner";
-import { cva } from "class-variance-authority";
-import { useEffect, useState } from "react";
+import { FormField } from "@/components/forms/FormField";
+import { Button } from "@/components/ui/button";
 import { UserCreateFormValues, userCreateSchema } from "@/schemas/userSchemas";
 import { customerService } from "@/services/customerService";
-import { Button } from "@/components/ui/button";
+import { userService } from "@/services/userService";
 import { UserRole } from "@/types/user";
-import { FormField } from "@/components/forms/FormField";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { cva } from "class-variance-authority";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type Props = {
   role: UserRole;
@@ -86,32 +86,9 @@ export default function UserCreateForm({ role }: Props) {
       router.refresh();
     } catch (error) {
       console.error("Error creating user:", error);
-
-      if (error instanceof ApiError) {
-        const statusCode = error.statusCode;
-
-        let description = "";
-
-        switch (statusCode) {
-          case 400:
-            description = "このメールアドレスは既に登録されています。";
-            break;
-          case 403:
-            description = "この操作を実行する権限がありません。";
-            break;
-          case 422:
-            description =
-              "入力内容に問題があります。必須項目を確認してください。";
-            break;
-          default:
-            description = "予期しないエラーが発生しました。";
-        }
-        toast.error("作成エラー", { description });
-      } else {
-        toast.error("作成エラー", {
-          description: "予期しないエラーが発生しました。",
-        });
-      }
+      toast.error("作成エラー", {
+        description: "予期しないエラーが発生しました。",
+      });
     }
   };
 
@@ -249,15 +226,13 @@ export default function UserCreateForm({ role }: Props) {
           className="w-35 bg-white border border-[#BDC3C7] text-[#7F8C8D] hover:bg-[#ECF0F1] active:bg-[#BDC3C7] hover:cursor-pointer"
           type="button"
           onClick={() => router.push("/users")}
-          disabled={isSubmitting}
-        >
+          disabled={isSubmitting}>
           キャンセル
         </Button>
         <Button
           className="w-35 bg-[#27AE60] text-[#FFFFFF] hover:bg-[#219653] active:bg-[#27AE60] focus:bg-[#219653] hover:cursor-pointer"
           type="submit"
-          disabled={isSubmitting}
-        >
+          disabled={isSubmitting}>
           {isSubmitting ? "作成中..." : "作成"}
         </Button>
       </div>

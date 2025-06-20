@@ -2,7 +2,7 @@
 
 import React from "react";
 import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
-import { ProcessedAgeGroup } from "@/types/cityEyeAnalytics";
+import { ProcessedAgeGroup } from "@/types/cityeye/cityEyeAnalytics";
 
 interface AgeDistributionCardProps {
   title: string;

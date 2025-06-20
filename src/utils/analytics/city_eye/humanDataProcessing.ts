@@ -1,14 +1,14 @@
 import {
-  FrontendCityEyeAnalyticsPerDeviceResponse,
-  ProcessedAnalyticsData,
-  ProcessedAgeGroup,
-  ProcessedGenderSegment,
-  ProcessedHourlyDataPoint,
   ButterflyChartDataPoint,
   FilterContext,
-} from "@/types/cityEyeAnalytics";
+  FrontendCityEyeAnalyticsPerDeviceResponse,
+  ProcessedAgeGroup,
+  ProcessedAnalyticsData,
+  ProcessedGenderSegment,
+  ProcessedHourlyDataPoint,
+} from "@/types/cityeye/cityEyeAnalytics";
+import { eachDayOfInterval, isValid } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { isValid, eachDayOfInterval } from "date-fns";
 
 // Consolidated configuration for all data types
 const CONFIG = {

@@ -1,6 +1,5 @@
-import React from "react";
-import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
 interface TotalVehiclesCardProps {
   title: string;
@@ -35,8 +34,7 @@ export default function TotalVehiclesCard({
             hasAttemptedFetch
               ? "交通量データがありません。"
               : "フィルターを適用して交通量データを表示します。"
-          }
-        >
+          }>
           {/* Actual content to display when data is available */}
           <div className="h-full flex flex-col">
             <div className="text-center mb-3">

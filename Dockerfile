@@ -34,7 +34,7 @@ RUN yarn install --immutable
 
 # Copy built assests and public directory from builder stage
 COPY --from=builder /app/.next ./.next
-# COPY --from=builder /app/public ./public
+COPY --from=builder /app/public ./public
 
 # Add a non-root user and set ownership
 RUN addgroup --system --gid 1001 nodejs && \

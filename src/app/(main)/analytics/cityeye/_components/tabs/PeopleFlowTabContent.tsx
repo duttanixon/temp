@@ -1,13 +1,10 @@
 // src/app/(main)/analytics/cityeye/_components/tabs/PeopleFlowTabContent.tsx
 "use client";
 
-import React from "react";
-import OverviewView from "../views/HumanOverviewView";
-import HumanComparisonView from "../views/HumanComparisonView";
-import {
-  ProcessedAnalyticsData,
-} from "@/types/cityeye/cityEyeAnalytics";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
+import HumanComparisonView from "../views/HumanComparisonView";
+import OverviewView from "../views/HumanOverviewView";
 
 interface PeopleFlowTabContentProps {
   verticalTab: string;

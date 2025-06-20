@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import ShadcnAreaChartCard from "@/components/charts/areachart-card";
 import { ProcessedHourlyDataPoint } from "@/types/cityeye/cityEyeAnalytics";
 
@@ -23,7 +22,7 @@ export default function TrafficHourlyDistributionCard({
     {
       name: "交通量", // "Traffic Volume"
       dataKey: "count",
-      color: "var(--chart-4)", // Different color from people analytics
+      color: "var(--chart-analysis-1)", // Different color from people analytics
       label: "時間別交通量", // "Hourly Traffic Volume"
     },
   ];

@@ -1,50 +1,61 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { FilterCard } from "./FilterCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { deviceSolutionService } from "@/services/deviceSolutionService";
+import { AlertCircle, Loader2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { FilterCard } from "./FilterCard";
 
 interface DeviceInfo {
-  // Local type for fetched devices
   device_id: string;
   device_name?: string;
   device_location?: string;
 }
 
 interface DevicesFilterProps {
-  solutionId: string; // solutionId is crucial for fetching relevant devices
+  solutionId: string;
   selectedDevices: string[];
   onSelectionChange: (selectedDevices: string[]) => void;
+  icon?: React.ReactNode;
+  iconBgColor?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 }
 
 export function DevicesFilter({
   solutionId,
   selectedDevices,
   onSelectionChange,
+  icon,
+  iconBgColor,
+  collapsible = false,
+  defaultExpanded = true,
 }: DevicesFilterProps) {
   const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // isAllSelected can be derived directly
+  const [error, setError] = useState<string | null>(null);
+
   const isAllSelected =
     availableDevices.length > 0 &&
     selectedDevices.length === availableDevices.length;
+
+  const selectionSummary = `(${selectedDevices.length}/${availableDevices.length})`;
 
   useEffect(() => {
     const fetchDevicesForSolution = async () => {
       if (!solutionId) {
         setIsLoading(false);
         setAvailableDevices([]);
-        // If solutionId is not yet available, do not clear selected devices from parent
-        // onSelectionChange([]); // Potentially clears selection if solutionId briefly becomes null
-        // Do not clear selectedDevices here, parent (CityEyeClient) will manage reset on solutionId change
+        setError(null);
         return;
       }
+
       setIsLoading(true);
+      setError(null);
+
       try {
-        // getDevicesBySolution return a list of devices relevant to the solution.
         const devicesData =
           await deviceSolutionService.getDevicesBySolution(solutionId);
         const mappedDevicesData = devicesData.map((d) => ({
@@ -54,30 +65,32 @@ export function DevicesFilter({
         }));
         setAvailableDevices(mappedDevicesData);
 
-        // If devices were fetched and no devices are currently selected from parent state,
-        // auto-select all fetched devices.
         if (mappedDevicesData.length > 0 && selectedDevices.length === 0) {
           console.log("DevicesFilter: Auto-selecting all available devices.");
           onSelectionChange(mappedDevicesData.map((d) => d.device_id));
-        } else if (mappedDevicesData.length === 0 && selectedDevices.length > 0) {
-          // If no devices are available for the new solutionId, clear any existing selection.
-          console.log("DevicesFilter: No devices available for this solution, clearing selection.");
+        } else if (
+          mappedDevicesData.length === 0 &&
+          selectedDevices.length > 0
+        ) {
+          console.log(
+            "DevicesFilter: No devices available for this solution, clearing selection."
+          );
           onSelectionChange([]);
         }
-
-
       } catch (error) {
         console.error("Failed to fetch devices for solution:", error);
+        setError("デバイスの読み込みに失敗しました");
         setAvailableDevices([]);
-        if (selectedDevices.length > 0) { // Clear selection if fetch fails
-           onSelectionChange([]);
+        if (selectedDevices.length > 0) {
+          onSelectionChange([]);
         }
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchDevicesForSolution();
-  }, [solutionId]); // Re-fetch if solutionId changes
+  }, [solutionId]);
 
   const handleDeviceToggle = (deviceId: string) => {
     const newSelectedDevices = selectedDevices.includes(deviceId)
@@ -94,38 +107,72 @@ export function DevicesFilter({
     }
   };
 
-  if (isLoading) {
-    return (
-      <FilterCard title="デバイス">
-        <div className="text-sm text-gray-500">デバイスを読み込み中...</div>
-      </FilterCard>
-    );
-  }
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+            <span className="text-sm text-slate-500">
+              デバイスを読み込み中...
+            </span>
+          </div>
+        </div>
+      );
+    }
 
-  return (
-    <FilterCard title="デバイス">
-      <div className="space-y-2">
-        {availableDevices.length > 0 ? (
-          <>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="select-all-devices"
-                checked={isAllSelected}
-                onCheckedChange={handleSelectAllToggle}
-              />
-              <Label
-                htmlFor="select-all-devices"
-                className="text-sm font-medium"
-              >
-                すべて
-              </Label>
-            </div>
-            <ScrollArea className="h-32">
-              <div className="space-y-1 pr-3">
-                {availableDevices.map((device) => (
+    if (error) {
+      return (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+          <span className="text-sm text-red-700">{error}</span>
+        </div>
+      );
+    }
+
+    if (availableDevices.length === 0) {
+      return (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+          <span className="text-sm text-amber-700">
+            このソリューションに紐づく利用可能なデバイスがありません。
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {/* Select All Option */}
+        <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+          <Checkbox
+            id="select-all-devices"
+            checked={isAllSelected}
+            onCheckedChange={handleSelectAllToggle}
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+          />
+          <Label
+            htmlFor="select-all-devices"
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
+            すべて
+          </Label>
+        </div>
+
+        {/* Individual Device Options */}
+        <div>
+          <div className="text-xs text-slate-500 font-medium mb-2">
+            個別選択:
+          </div>
+          <ScrollArea className="max-h-40">
+            <div className="space-y-1 pr-3">
+              {availableDevices.map((device) => {
+                const displayName = `${device.device_location || "N/A"}_${device.device_name || "Unknown"}`;
+
+                return (
                   <div
                     key={device.device_id}
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
                   >
                     <Checkbox
                       id={`device-${device.device_id}`}
@@ -133,25 +180,35 @@ export function DevicesFilter({
                       onCheckedChange={() =>
                         handleDeviceToggle(device.device_id)
                       }
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
                     />
                     <Label
                       htmlFor={`device-${device.device_id}`}
-                      className="text-sm font-normal truncate"
-                      title={`${device.device_location || "N/A"}_${device.device_name || "Unknown"}`}
+                      className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors truncate"
+                      title={displayName}
                     >
-                      {`${device.device_location || "N/A"}_${device.device_name || "Unknown"}`}
+                      {displayName}
                     </Label>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </>
-        ) : (
-          <div className="text-sm text-gray-500">
-            このソリューションに紐づく利用可能なデバイスがありません。
-          </div>
-        )}
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
+    );
+  };
+
+  return (
+    <FilterCard
+      title="デバイス"
+      icon={icon}
+      iconBgColor={iconBgColor}
+      collapsible={collapsible}
+      defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
+    >
+      {renderContent()}
     </FilterCard>
   );
 }

@@ -5,9 +5,6 @@ import {
   type ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
 
-import { cn } from "@/lib/utils";
-import { formatCompactSI } from "@/utils/common/format";
-
 type CustomTooltipContentProps = {
   label?: string;
   seriesName: NameType;
@@ -30,13 +27,14 @@ export const CustomTooltipContent: FC<CustomTooltipContentProps> = ({
       {label != null && <div className="text-foreground truncate">{label}</div>}
       <div className="flex justify-between gap-1 w-full">
         <div className="flex items-center gap-1 min-w-0 flex-1">
-          <div className={cn("size-2 shrink-0 rounded-xs", indicatorClass)} />
+          <div
+            className="size-2 shrink-0 rounded-xs"
+            style={{ backgroundColor: indicatorClass }}
+          />
           <span className="text-foreground-alt truncate">{seriesName}</span>
         </div>
         <div className="flex">
-          <span className="text-foreground">
-            {formatCompactSI(Number(value))}
-          </span>
+          <span className="text-foreground">{value}</span>
           <span className="text-foreground-alt">{unit}</span>
         </div>
       </div>

@@ -19,6 +19,7 @@ export default function GenderDistributionCard({
   error,
   hasAttemptedFetch,
 }: GenderDistributionCardProps) {
+  const chartColors = ["var(--chart-male)", "var(--chart-female)"];
   return (
     <ShadcnPieChartDonutCard
       title={title}
@@ -28,10 +29,12 @@ export default function GenderDistributionCard({
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
+      chartColors={chartColors}
       // chartHeight={300}
       emptyDataMessage="性別データがありません。"
       dataKey="value" // Key in ProcessedGenderSegment that holds the count
       nameKey="name" // Key in ProcessedGenderSegment that holds the display label (e.g., "男性")
+      unit="人"
     />
   );
 }

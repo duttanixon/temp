@@ -1,25 +1,26 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
-interface TotalVehiclesCardProps {
+interface DailyAveragePeopleCardProps {
   title: string;
-  totalCountData: number | null;
+  daysCountData: number | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
 }
 
-export default function TotalVehiclesCard({
+export default function DailyAveragePeopleCard({
   title,
-  totalCountData,
+  daysCountData,
   isLoading,
   error,
   hasAttemptedFetch,
-}: TotalVehiclesCardProps) {
-  const hasData = hasAttemptedFetch && totalCountData !== null;
+}: DailyAveragePeopleCardProps) {
+  const hasData = hasAttemptedFetch && daysCountData !== null;
+  console.log("daysCountData:", daysCountData);
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
@@ -32,15 +33,17 @@ export default function TotalVehiclesCard({
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "交通量データがありません。"
-              : "フィルターを適用して交通量データを表示します。"
-          }>
-          {/* Actual content to display when data is available */}
+              ? "日平均人数データがありません。"
+              : "フィルターを適用して日平均人数データを表示します。"
+          }
+        >
           <div className="h-full flex flex-col">
             <div className="text-center mb-3">
               <p className="text-3xl font-bold text-primary">
-                {totalCountData?.toLocaleString() ?? "N/A"}
-                <span className="text-sm text-muted-foreground"> 台</span>
+                {daysCountData?.toLocaleString() ?? "N/A"}
+                <span className="text-sm text-muted-foreground pl-1">
+                  人/日
+                </span>
               </p>
             </div>
           </div>

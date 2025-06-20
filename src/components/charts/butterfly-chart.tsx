@@ -8,7 +8,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
 import {
   ChartContainer,
   ChartTooltip,
@@ -17,6 +16,7 @@ import {
 import { formatCompactSI } from "@/utils/common/format";
 
 import CustomTooltipContent from "./custom-tooltip-content";
+import CustomChartLegend from "./custom-chart-legend";
 
 type ButterflyChartProps = {
   groupALabel: string;
@@ -94,13 +94,13 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
   const groupAConfig = {
     value: {
       label: "name",
-      color: "var(--chart-1)",
+      color: "var(--chart-male)",
     },
   };
   const groupBConfig = {
     value: {
       label: "name",
-      color: "var(--chart-2)",
+      color: "var(--chart-female)",
     },
   };
 
@@ -148,15 +148,15 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
                     value,
                     _name,
                     item,
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     _index
-                    // eslint-disable-next-line max-params
                   ) => (
                     <CustomTooltipContent
                       label={item?.payload.category}
                       seriesName={groupALabel}
                       value={value}
                       unit={unit}
-                      indicatorClass="bg-chart-1"
+                      indicatorClass="var(--chart-male)"
                     />
                   )}
                 />
@@ -191,7 +191,10 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
         </div>
 
         {/* 右側のグラフ */}
-        <ChartContainer config={groupBConfig} className="h-full flex-grow">
+        <ChartContainer
+          config={groupBConfig}
+          className="flex items-center h-full flex-grow"
+        >
           <BarChart
             accessibilityLayer
             data={normalizedGroupBData}
@@ -226,15 +229,15 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
                     value,
                     _name,
                     item,
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     _index
-                    // eslint-disable-next-line max-params
                   ) => (
                     <CustomTooltipContent
                       label={item?.payload.category}
                       seriesName={groupBLabel}
                       value={value}
                       unit={unit}
-                      indicatorClass="bg-chart-2"
+                      indicatorClass="var(--chart-female)"
                     />
                   )}
                 />
@@ -259,21 +262,18 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
           </BarChart>
         </ChartContainer>
       </div>
-      {/* 疑似凡例 */}
-      <div className="flex items-center justify-center gap-4 px-4">
-        <div className="flex items-center gap-1.5 max-w-1/2">
-          <div className="size-2 shrink-0 rounded-xs bg-chart-1"></div>
-          <div data-testid="groupALabel" className="text-xs truncate">
-            {groupALabel}
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 max-w-1/2">
-          <div className="size-2 shrink-0 rounded-xs bg-chart-2"></div>
-          <div data-testid="groupBLabel" className="text-xs truncate">
-            {groupBLabel}
-          </div>
-        </div>
-      </div>
+      <CustomChartLegend
+        seriesStyles={[
+          {
+            name: groupALabel,
+            cssVarColor: "var(--chart-male)",
+          },
+          {
+            name: groupBLabel,
+            cssVarColor: "var(--chart-female)",
+          },
+        ]}
+      />
     </div>
   );
 };

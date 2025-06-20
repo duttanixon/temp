@@ -1,13 +1,9 @@
-import React from "react";
-import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
-import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Ensure Card components are imported
+import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
 interface TotalPeopleCardProps {
   title: string;
   totalCountData: number | null;
-  perDeviceCountsData: DeviceCountData[];
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -16,7 +12,6 @@ interface TotalPeopleCardProps {
 export default function TotalPeopleCard({
   title,
   totalCountData,
-  perDeviceCountsData,
   isLoading,
   error,
   hasAttemptedFetch,
@@ -41,57 +36,15 @@ export default function TotalPeopleCard({
             hasAttemptedFetch
               ? "人流データがありません。"
               : "フィルターを適用して総人数データを表示します。"
-          }
-        >
+          }>
           {/* Actual content to display when data is available */}
           <div className="h-full flex flex-col">
             <div className="text-center mb-3">
-              <p className="text-xs text-muted-foreground">総計</p>
               <p className="text-3xl font-bold text-primary">
                 {totalCountData?.toLocaleString() ?? "N/A"}
+                <span className="text-sm text-muted-foreground pl-1">人</span>
               </p>
             </div>
-            <p className="text-xs text-muted-foreground mb-1 text-center">
-              デバイス別人数:
-            </p>
-            <ScrollArea className="flex-grow pr-3">
-              {perDeviceCountsData.length > 0 ? (
-                <ul className="space-y-1 text-xs">
-                  {perDeviceCountsData.map((device) => (
-                    <li
-                      key={device.deviceId}
-                      className="flex justify-between items-center p-1.5 bg-muted/50 rounded-sm"
-                    >
-                      <span
-                        className="truncate text-foreground"
-                        title={
-                          device.error
-                            ? `Error: ${device.error}`
-                            : `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
-                        }
-                      >
-                        {device.error ? (
-                          <span className="text-destructive">
-                            {device.deviceName || device.deviceId} - エラー
-                          </span>
-                        ) : (
-                          `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
-                        )}
-                      </span>
-                      <span
-                        className={`font-medium ${device.error ? "text-destructive" : "text-primary"}`}
-                      >
-                        {device.error ? "N/A" : device.count.toLocaleString()}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-4">
-                  デバイス別のデータはありません。
-                </p>
-              )}
-            </ScrollArea>
           </div>
         </GenericAnalyticsCard>
       </CardContent>

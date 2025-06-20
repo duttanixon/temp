@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { FilterGroup } from "./filters/FilterGroup";
-import { Loader2 } from "lucide-react";
+import { Funnel, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { FilterGroup } from "./filters/FilterGroup";
 
 import { useAnalyticsFilters } from "@/hooks/analytics/city_eye/useAnalyticsFilters";
 import { useHumanAnalyticsData } from "@/hooks/analytics/city_eye/useHumanAnalyticsData";
@@ -14,10 +14,14 @@ import { useTrafficAnalyticsData } from "@/hooks/analytics/city_eye/useTrafficAn
 import { processHumanAnalyticsData } from "@/utils/analytics/city_eye/humanDataProcessing";
 import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
 
-import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
-import TrafficFlowTabContent from "./tabs/TrafficFlowTabContent";
+import {
+  FilterContext,
+  FrontendAnalyticsFilters,
+} from "@/types/cityeye/cityEyeAnalytics";
 import MonthlyTabContent from "./tabs/MonthlyTabContent";
+import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
 import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
+import TrafficFlowTabContent from "./tabs/TrafficFlowTabContent";
 
 interface CityEyeClientProps {
   solutionId: string;
@@ -40,12 +44,19 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
   // Active API filters state
   const [activeFilters, setActiveFilters] = useState<{
-    main: any | null;
-    comparison: any | null;
+    main: FrontendAnalyticsFilters | null;
+    comparison: FrontendAnalyticsFilters | null;
+  }>({ main: null, comparison: null });
+  const [appliedFilterContext, setAppliedFilterContext] = useState<{
+    main: FilterContext | null;
+    comparison: FilterContext | null;
   }>({ main: null, comparison: null });
 
   // Query parameters based on current tab
-  const queryParams: Record<string, boolean> = useMemo((): Record<string, boolean> => {
+  const queryParams: Record<string, boolean> = useMemo((): Record<
+    string,
+    boolean
+  > => {
     if (horizontalTab === "people") {
       return {
         include_total_count: true,
@@ -81,10 +92,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     error: errorComparison,
   } = useHumanAnalyticsData({
     activeApiFilters:
-      horizontalTab === "people" && verticalTab === "comparison" 
-        ? activeFilters.comparison 
+      horizontalTab === "people" && verticalTab === "comparison"
+        ? activeFilters.comparison
         : null,
-    queryParams: horizontalTab === "people" && verticalTab === "comparison" ? queryParams : {},
+    queryParams:
+      horizontalTab === "people" && verticalTab === "comparison"
+        ? queryParams
+        : {},
   });
 
   // Fetch data for traffic analytics
@@ -106,28 +120,43 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       horizontalTab === "traffic" && verticalTab === "comparison"
         ? activeFilters.comparison
         : null,
-    queryParams: horizontalTab === "traffic" && verticalTab === "comparison" ? queryParams : {},
+    queryParams:
+      horizontalTab === "traffic" && verticalTab === "comparison"
+        ? queryParams
+        : {},
   });
 
   // Process data using appropriate utilities
   const processedMainData = useMemo(
-    () => processHumanAnalyticsData(mainRawData),
-    [mainRawData]
+    () => processHumanAnalyticsData(mainRawData, appliedFilterContext.main),
+    [mainRawData, appliedFilterContext.main]
   );
 
   const processedComparisonData = useMemo(
-    () => processHumanAnalyticsData(comparisonRawData),
-    [comparisonRawData]
+    () =>
+      processHumanAnalyticsData(
+        comparisonRawData,
+        appliedFilterContext.comparison
+      ),
+    [comparisonRawData, appliedFilterContext.comparison]
   );
 
   const processedTrafficMainData = useMemo(
-    () => processTrafficAnalyticsData(mainTrafficRawData),
-    [mainTrafficRawData]
+    () =>
+      processTrafficAnalyticsData(
+        mainTrafficRawData,
+        appliedFilterContext.main
+      ),
+    [mainTrafficRawData, appliedFilterContext.main]
   );
 
   const processedTrafficComparisonData = useMemo(
-    () => processTrafficAnalyticsData(comparisonTrafficRawData),
-    [comparisonTrafficRawData]
+    () =>
+      processTrafficAnalyticsData(
+        comparisonTrafficRawData,
+        appliedFilterContext.comparison
+      ),
+    [comparisonTrafficRawData, appliedFilterContext.comparison]
   );
 
   // Filter application handler
@@ -150,6 +179,17 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       comparison: null,
     };
 
+    const newAppliedFilterContext = {
+      main: {
+        dateRange: filters.analysisPeriod,
+        selectedDays: filters.selectedDays,
+      },
+      comparison: {
+        dateRange: filters.comparisonPeriod,
+        selectedDays: filters.selectedDays,
+      },
+    };
+
     // Handle comparison filters if in comparison view
     if (verticalTab === "comparison") {
       if (!filters.comparisonPeriod?.from || !filters.comparisonPeriod?.to) {
@@ -169,9 +209,14 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       }
 
       newActiveFilters.comparison = comparisonApiFilters;
+      newAppliedFilterContext.comparison = {
+        dateRange: filters.comparisonPeriod,
+        selectedDays: filters.selectedDays,
+      };
     }
 
     setActiveFilters(newActiveFilters);
+    setAppliedFilterContext(newAppliedFilterContext);
   }, [filters, horizontalTab, verticalTab, validateAndPrepareApiFilters]);
 
   // Auto-apply for overview tab on initial load
@@ -230,16 +275,19 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   // Reset states when horizontal tab changes
   useEffect(() => {
     setActiveFilters({ main: null, comparison: null });
+    setAppliedFilterContext({ main: null, comparison: null });
     setAutoApplyState({ overview: false, comparison: false });
   }, [horizontalTab]);
 
   // Check if filters are needed for current tab
   const showFilters = horizontalTab === "people" || horizontalTab === "traffic";
-  
+
   // Determine loading state based on current tab
-  const isLoading = horizontalTab === "people" 
-    ? (isLoadingMain || (verticalTab === "comparison" && isLoadingComparison))
-    : (isLoadingTrafficMain || (verticalTab === "comparison" && isLoadingTrafficComparison));
+  const isLoading =
+    horizontalTab === "people"
+      ? isLoadingMain || (verticalTab === "comparison" && isLoadingComparison)
+      : isLoadingTrafficMain ||
+        (verticalTab === "comparison" && isLoadingTrafficComparison);
 
   // Render appropriate content based on current tab
   const renderContent = () => {
@@ -274,6 +322,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             errorComparison={errorTrafficComparison}
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
+            peopleMainProcessedData={processedMainData}
           />
         );
       case "monthly":
@@ -292,37 +341,34 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-full gap-4">
+    <div className="flex flex-col md:flex-row gap-4">
       {showFilters && (
-        <div className="w-full md:w-[360px] border-b md:border-b-0 md:border-r bg-[#F8F9FA] flex flex-col p-2 rounded-lg shadow-sm">
+        <div className="w-full h-full md:w-[300px] border-b md:border-b-0 md:border-r bg-[#F8F9FA] flex flex-col p-2 rounded-lg shadow-sm items-center">
           <Tabs
             value={verticalTab}
             onValueChange={setVerticalTab}
-            className="w-full"
-          >
+            className="w-full">
             <TabsList className="h-auto grid grid-cols-2 gap-2 rounded-xl bg-white/80 backdrop-blur-sm p-1 w-full shadow-sm border border-gray-200/50">
               <TabsTrigger
                 value="overview"
                 className={cn(
-                  "flex-1 md:justify-start rounded-sm text-xs py-2 px-3",
+                  "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
-              >
+                )}>
                 分析表示
               </TabsTrigger>
               <TabsTrigger
                 value="comparison"
                 className={cn(
-                  "flex-1 md:justify-start rounded-sm text-xs py-2 px-3",
+                  "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
                   "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
-              >
+                )}>
                 比較表示
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <div className="flex-grow overflow-y-auto mt-2">
+          <div className="overflow-y-auto mt-2 w-full">
             <FilterGroup
               verticalTab={verticalTab}
               horizontalTab={horizontalTab}
@@ -334,11 +380,21 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
           <Button
             onClick={handleApplyFilters}
-            className="mt-3 w-full bg-primary hover:bg-primary/90"
-            disabled={isLoading}
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            フィルター適用
+            className="mt-3 group flex w-full items-center justify-center rounded-full bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 text-neutral-50 shadow-[inset_0_1px_0px_0px_#93c5fd] hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 active:[box-shadow:none] cursor-pointer"
+            disabled={isLoading}>
+            <div className="flex items-center justify-center gap-2.5">
+              {isLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>適用中...</span>
+                </>
+              ) : (
+                <>
+                  <Funnel className="size-4" />
+                  <span>フィルター適用</span>
+                </>
+              )}
+            </div>
           </Button>
         </div>
       )}
@@ -347,15 +403,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         <Tabs
           value={horizontalTab}
           onValueChange={setHorizontalTab}
-          className="w-full mb-3"
-        >
+          className="w-full mb-3">
           <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 gap-1 bg-muted p-0.5 rounded-md">
             {["people", "traffic", "monthly", "quarterly"].map((tabVal) => (
               <TabsTrigger
                 key={tabVal}
                 value={tabVal}
-                className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm"
-              >
+                className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm cursor-pointer">
                 {tabVal === "people" && "人流"}
                 {tabVal === "traffic" && "交通量"}
                 {tabVal === "monthly" && "人流(方向)"}

@@ -53,6 +53,22 @@ class IoTCore:
             logger.error(f"Error attaching policy to thing group: {str(e)}")
             raise
 
+    def attach_policy_to_certificate(self, certificate_arn, policy_name):
+        """
+        Attach a policy to a certificate.
+        """
+        try:
+            self.iot_client.attach_policy(
+                policyName=policy_name,
+                target=certificate_arn
+            )
+            logger.info(f"Attached policy {policy_name} to certificate {certificate_arn}")
+            return True
+        except Exception as e:
+            logger.error(f"Error attaching policy to certificate: {str(e)}")
+            raise
+
+
     def create_customer_thing_group(self, customer_name, customer_id):
         """
         Create a thing group for a customer and attach the required policy
@@ -232,8 +248,9 @@ class IoTCore:
         1. Create a Thing
         2. Create a certificate
         3. Attach certificate to the Thing
-        4. Add Thing to customer Thing Group
-        5. Upload certificate files to S3
+        4. Attach policy to the certificate
+        5. Add Thing to customer Thing Group
+        6. Upload certificate files to S3
         """
         try:
             # 1. First, create a certificate 
@@ -255,11 +272,14 @@ class IoTCore:
             
             # Attach certificate to the thing
             self.attach_certificate_to_thing(certificate_arn, thing_name)
-            
-            # Add thing to customer thing group
+
+            # 4. Attach the policy to the certificate
+            self.attach_policy_to_certificate(certificate_arn, settings.IOT_DEVICE_POLICY_NAME)
+
+            # 5. Add thing to customer thing group
             self.add_thing_to_group(thing_name, customer_group_name)
             
-            # Upload certificate files to S3
+            # 6. Upload certificate files to S3
             s3_info = self.upload_certificate_to_s3(
                 certificate_id, 
                 certificate_pem, 
@@ -283,6 +303,22 @@ class IoTCore:
             raise
 
 
+    def detach_policy_from_certificate(self, certificate_arn, policy_name):
+        """
+        Detach a policy from a certificate.
+        """
+        try:
+            self.iot_client.detach_policy(
+                policyName=policy_name,
+                target=certificate_arn
+            )
+            logger.info(f"Detached policy {policy_name} from certificate {certificate_arn}")
+            return True
+        except Exception as e:
+            logger.error(f"Error detaching policy from certificate: {str(e)}")
+            raise
+
+
 
     def delete_thing_certificate(self, thing_name, certificate_arn):
         """
@@ -291,6 +327,9 @@ class IoTCore:
         try:
             # Get the certificate ID from ARN
             certificate_id = certificate_arn.split('/')[-1]
+
+            # 1. Detach policy from certificate
+            self.detach_policy_from_certificate(certificate_arn, settings.IOT_DEVICE_POLICY_NAME)
             
             # Detach certificate from thing
             self.iot_client.detach_thing_principal(

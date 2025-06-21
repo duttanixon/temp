@@ -19,6 +19,15 @@ output "device_policy_name" {
   value       = aws_iot_policy.device_policy.name
 }
 
+output "device_common_group_policy_arn" {
+  description = "The ARN of the IoT device communication policy"
+  value       = aws_iot_policy.device_common_policy.arn
+}
+
+output "device_common_group_policy_name" {
+  description = "The name of the IoT device communication policy"
+  value       = aws_iot_policy.device_common_policy.name
+}
 
 # Add certificate bucket information to outputs
 output "certificate_bucket_name" {

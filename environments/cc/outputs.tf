@@ -42,6 +42,16 @@ output "device_certificate_policy_name" {
     value = module.iot.device_policy_name
 }
 
+output "device_common_group_policy_arn" {
+    description = "ARN of the policy needed for device communication to IOT CORE"
+    value = module.iot.device_common_group_policy_arn
+}
+
+output "device_common_group_policy_name" {
+    description = "Name of the policy that is needed for device communication to IOT CORE"
+    value = module.iot.device_common_group_policy_name
+}
+
 output "ec2_instance_ip_address" {
     description = "Dev instance IP address"
     value = module.ec2.instance_ip

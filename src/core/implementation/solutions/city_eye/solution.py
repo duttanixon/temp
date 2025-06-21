@@ -437,7 +437,7 @@ class CityEyeSolution(ISolution):
         filepath = os.path.join("/tmp", filename)
         
         # Define S3 object key with a structured path
-        s3_object_name = f"captures/{self.cloud_connector.solution_type}/{self.cloud_connector.client_id}/capture.jpg"
+        s3_object_name = f"captures/{self.cloud_connector.solution_type}/{self.cloud_connector.thing_name}/capture.jpg"
 
         try:
             # Save the frame locally as a JPEG image

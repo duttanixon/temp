@@ -78,7 +78,7 @@ class AWSIoTCoreConnector(ICloudConnector):
         try:
             # Extract configuration
             self.endpoint = config.get("endpoint")
-            self.certificate_id, self.client_id = self._load_certificates_and_extract_id(config)
+            self.certificate_id, self.client_id, self.thing_name = self._load_certificates_and_extract_id(config)
             
             # Create event fomatter
             self.solution_type = solution_type
@@ -113,7 +113,6 @@ class AWSIoTCoreConnector(ICloudConnector):
 
             # Hnadle Shadow Configuration
             if config.get("shadow_enabled", False):
-                self.thing_name = self.client_id
                 self.config_shadow_name = config.get("config_shadow_name")
                 if not self.thing_name or not self.config_shadow_name:
                     raise ConfigurationError(
@@ -312,7 +311,9 @@ class AWSIoTCoreConnector(ICloudConnector):
         self.connected_event.set()
         self._resubscribe() # Resubscribe to topics on successful new connection
 
-    def _on_connection_failure(self, connection, error):
+    def _on_connection_failure(self, connection, callback_data, **kwargs):
+        # Extract error from callback_data if it exists
+        error = callback_data.get('error') if isinstance(callback_data, dict) else callback_data
         logger.error(f"Connection failed to AWS IoT Core: {error}", component="AWSIoTConnector")
         self.is_connected = False
         self.connected_event.clear()
@@ -397,7 +398,8 @@ class AWSIoTCoreConnector(ICloudConnector):
                     self.cert_path = filepath
                     if cert_id is None:
                         filename_without_extention = os.path.splitext(filename)[0]
-                        cert_id, client_id = filename_without_extention.split("_")
+                        cert_id, thing_name = filename_without_extention.split("_")
+                        client_id = f"{thing_name}_sdk"
                 elif "rootca" in filename.lower():
                     self.ca_path = filepath
 
@@ -424,7 +426,7 @@ class AWSIoTCoreConnector(ICloudConnector):
                     recoverable = False
                 )
             logger.info(f"Certificates loaded: client_id={client_id}", component="AWSIoTConnector")
-            return cert_id, client_id
+            return cert_id, client_id, thing_name
 
         except Exception as e:
             if not isinstance(e, AuthenticationError):

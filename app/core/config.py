@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     AWS_ACCOUNT_ID: Optional[str] = None
     IOT_CUSTOMER_POLICY_NAME: Optional[str] = None
     IOT_CUSTOMER_POLICY_ARN: Optional[str] = None
+    IOT_DEVICE_POLICY_NAME: Optional[str] = None
+    IOT_DEVICE_POLICY_ARN: Optional[str] = None
     IOT_ENABLED: bool = True  # Flag to enable/disable IoT integration
     
     # S3 Settings

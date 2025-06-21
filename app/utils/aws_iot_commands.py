@@ -120,9 +120,9 @@ class IoTCommandService:
     ) -> bool:
         """
         Send capture image command to device via IoT Core
-        Topic: devices/<thing_name>/command/capture_image
+        Topic: devices/<thing_name>_sdk/command/capture_image
         """
-        topic = f"devices/{thing_name}/command/capture_image"
+        topic = f"devices/{thing_name}_sdk/command/capture_image"
 
         message = {
             "messageId": str(message_id),

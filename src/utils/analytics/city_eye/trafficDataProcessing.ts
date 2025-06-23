@@ -68,6 +68,14 @@ function processTotalVehicles(
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
+      lat:
+        item.device_position?.[0] !== undefined
+          ? Number(item.device_position[0])
+          : undefined, // <-- set lat like in humanDataProcessing.ts
+      lng:
+        item.device_position?.[1] !== undefined
+          ? Number(item.device_position[1])
+          : undefined, // <-- set lng like in humanDataProcessing.ts
       count,
       error:
         item.error ||
@@ -145,6 +153,7 @@ function calculateValidDays({
   });
   return validDays.length;
 }
+
 /**
  * Process vehicle type distribution
  */
@@ -176,6 +185,8 @@ function processVehicleTypeDistribution(
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
+      lat: item.device_position?.[0],
+      lng: item.device_position?.[1],
       count: deviceTotal,
       vehicleTypeDistribution: item.analytics_data?.vehicle_type_distribution
         ? transformToVehicleTypes(item.analytics_data.vehicle_type_distribution)
@@ -229,6 +240,14 @@ function processHourlyDistribution(
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
+      lat:
+        item.device_position?.[0] !== undefined
+          ? Number(item.device_position[0])
+          : undefined,
+      lng:
+        item.device_position?.[1] !== undefined
+          ? Number(item.device_position[1])
+          : undefined,
       hourlyData: item.analytics_data?.hourly_distribution
         ? transformToHourlyData(item.analytics_data.hourly_distribution)
         : null,

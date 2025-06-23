@@ -57,33 +57,38 @@ export default function HumanComparisonView({
               ({formatDateRange(mainPeriodDateRange)})
             </span>
           </div>
-          <TotalPeopleCard
-            title="総人数 (分析期間)"
-            totalCountData={
-              mainPeriodProcessedData?.totalPeople?.totalCount ?? null
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-          />
-          <DailyAveragePeopleCard
-            title="日平均人数 (分析期間)"
-            daysCountData={
-              mainPeriodProcessedData?.dailyAveragePeople?.averageCount ?? null
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-          />
-          <PerDevicePeopleCard
-            title="デバイス別人数 (分析期間)"
-            perDeviceCountsData={
-              mainPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-          />
+          <div className="grid grid-rows-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <TotalPeopleCard
+                title="総人数 (分析期間)"
+                totalCountData={
+                  mainPeriodProcessedData?.totalPeople?.totalCount ?? null
+                }
+                isLoading={isLoadingMain}
+                error={errorMain}
+                hasAttemptedFetch={hasAttemptedFetchMain}
+              />
+              <DailyAveragePeopleCard
+                title="日平均人数 (分析期間)"
+                daysCountData={
+                  mainPeriodProcessedData?.dailyAveragePeople?.averageCount ??
+                  null
+                }
+                isLoading={isLoadingMain}
+                error={errorMain}
+                hasAttemptedFetch={hasAttemptedFetchMain}
+              />
+            </div>
+            <PerDevicePeopleCard
+              title="デバイス別人数 (分析期間)"
+              perDeviceCountsData={
+                mainPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
+              }
+              isLoading={isLoadingMain}
+              error={errorMain}
+              hasAttemptedFetch={hasAttemptedFetchMain}
+            />
+          </div>
           <AgeDistributionCard
             title="年齢層別分析 (分析期間)"
             isLoading={isLoadingMain}
@@ -131,34 +136,39 @@ export default function HumanComparisonView({
               ({formatDateRange(comparisonPeriodDateRange)})
             </span>
           </div>
-          <TotalPeopleCard
-            title="総人数 (比較期間)"
-            totalCountData={
-              comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
-            }
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
-          />
-          <DailyAveragePeopleCard
-            title="日平均人数 (比較期間)"
-            daysCountData={
-              comparisonPeriodProcessedData?.dailyAveragePeople?.averageCount ??
-              null
-            }
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
-          />
-          <PerDevicePeopleCard
-            title="デバイス別人数 (比較期間)"
-            perDeviceCountsData={
-              comparisonPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
-            }
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
-          />
+          <div className="grid grid-rows-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <TotalPeopleCard
+                title="総人数 (比較期間)"
+                totalCountData={
+                  comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
+                }
+                isLoading={isLoadingComparison}
+                error={errorComparison}
+                hasAttemptedFetch={hasAttemptedFetchComparison}
+              />
+              <DailyAveragePeopleCard
+                title="日平均人数 (比較期間)"
+                daysCountData={
+                  comparisonPeriodProcessedData?.dailyAveragePeople
+                    ?.averageCount ?? null
+                }
+                isLoading={isLoadingMain}
+                error={errorMain}
+                hasAttemptedFetch={hasAttemptedFetchMain}
+              />
+            </div>
+            <PerDevicePeopleCard
+              title="デバイス別人数 (比較期間)"
+              perDeviceCountsData={
+                comparisonPeriodProcessedData?.totalPeople?.perDeviceCounts ??
+                []
+              }
+              isLoading={isLoadingComparison}
+              error={errorComparison}
+              hasAttemptedFetch={hasAttemptedFetchComparison}
+            />
+          </div>
           <AgeDistributionCard
             title="年齢層別分析 (比較期間)"
             isLoading={isLoadingComparison}

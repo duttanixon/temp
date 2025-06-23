@@ -260,7 +260,12 @@ class KVSStreamHandler():
             self.appsrc = self.pipeline.get_by_name("appsrc")
             if not self.appsrc:
                 raise ConfigurationError("Failed to get appsrc element", code="APPSRC_NOT_FOUND")
-            
+
+            # Configure appsrc for live streaming
+            self.appsrc.set_property("is-live", True)
+            self.appsrc.set_property("block", False)
+            self.appsrc.set_property("format", Gst.Format.TIME)
+
             # Set up bus watch
             bus = self.pipeline.get_bus()
             bus.add_signal_watch()
@@ -270,7 +275,10 @@ class KVSStreamHandler():
             ret = self.pipeline.set_state(Gst.State.PLAYING)
             if ret == Gst.StateChangeReturn.FAILURE:
                 raise ConfigurationError("Failed to start pipeline", code="PIPELINE_START_FAILED")
-            
+
+            # Record start time for timestamps
+            self._start_time = time.time()
+
             return True
             
         except Exception as e:

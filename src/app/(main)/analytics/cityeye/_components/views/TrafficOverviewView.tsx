@@ -5,6 +5,7 @@ import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import AnalyticsCard from "../cards/AnalyticsCard";
+import TrafficMapCard from "../cards/TrafficMapCard";
 import { ProcessedTrafficAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 
 interface TrafficOverviewViewProps {
@@ -15,7 +16,7 @@ interface TrafficOverviewViewProps {
 }
 
 // Placeholder cards for future features
-const placeholderCardTitles = ["交通密度マップ", "ピーク時間分析", "車線別統計"];
+const placeholderCardTitles = ["ピーク時間分析", "車線別統計"];
 
 export default function TrafficOverviewView({
   processedData,
@@ -31,7 +32,9 @@ export default function TrafficOverviewView({
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
         totalCountData={processedData?.totalVehicles?.totalCount ?? null}
-        perDeviceCountsData={processedData?.totalVehicles?.perDeviceCounts ?? []}
+        perDeviceCountsData={
+          processedData?.totalVehicles?.perDeviceCounts ?? []
+        }
       />
       <VehicleTypeDistributionCard
         title="車種別分析"
@@ -39,7 +42,8 @@ export default function TrafficOverviewView({
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
         vehicleTypeDistributionData={
-          processedData?.vehicleTypeDistribution?.overallVehicleTypeDistribution ?? null
+          processedData?.vehicleTypeDistribution
+            ?.overallVehicleTypeDistribution ?? null
         }
       />
       <TrafficHourlyDistributionCard
@@ -51,10 +55,18 @@ export default function TrafficOverviewView({
           processedData?.hourlyDistribution?.overallHourlyDistribution ?? null
         }
       />
-      
-      {/* Render placeholder cards */}
-      {placeholderCardTitles.map((title, index) => (
-        <AnalyticsCard key={index} title={title}>
+      <TrafficMapCard
+        title="交通密度マップ"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        perDeviceCountsData={
+          processedData?.totalVehicles?.perDeviceCounts ?? []
+        }
+      />
+      {/* Render placeholder cards except the map card */}
+      {placeholderCardTitles.map((title) => (
+        <AnalyticsCard key={title} title={title}>
           <div className="flex flex-col items-center justify-center h-full">
             <p className="text-sm text-muted-foreground p-4 text-center">
               {hasAttemptedFetch

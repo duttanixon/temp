@@ -210,6 +210,8 @@ export interface FrontendDeviceTrafficAnalyticsItem {
   /** Device physical location description */
   device_location?: string;
   /** All traffic analytics data for this device */
+  device_position?: Array<number>; // [lat, lng]
+  /** All traffic analytics data for this device */
   analytics_data: FrontendPerDeviceTrafficAnalyticsData;
   /** Error message if analytics failed for this device */
   error?: string;

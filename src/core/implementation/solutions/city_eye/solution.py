@@ -25,6 +25,7 @@ from core.implementation.common.error_handler import handle_errors
 
 from .models import HumanResult, TrafficResult, TestResult
 from .sync_handler import BatchSyncHandler
+from .kvs_stream_handler import  KVSStreamHandler
 import traceback
 
 logger = get_logger()
@@ -117,6 +118,7 @@ class CityEyeSolution(ISolution):
         self.batch_size = config["batch_size"]
         self.frame_width = config["input"]["video_width"]
         self.frame_height = config["input"]["video_height"]
+        self.config = config
 
         # initialize bytetrack
         try:
@@ -220,6 +222,20 @@ class CityEyeSolution(ISolution):
                             context={"topic": capture_images_command_topic},
                             component=self.component_name
                         )
+                    stream_command_topic = self.cloud_connector.get_kvs_stream_command_topic()
+                    if stream_command_topic:
+                        self.cloud_connector.subscribe(
+                            stream_command_topic,
+                            self._handle_stream_command
+                        )
+                        logger.info(
+                            f"Subscribed to stream command topic {stream_command_topic}",
+                            context={"topic": stream_command_topic},
+                            component=self.component_name
+                        )
+
+
+
                 else:
                     logger.warning("Cloud connector creation failed or disabled", component=self.component_name)
             except Exception as e:
@@ -333,22 +349,178 @@ class CityEyeSolution(ISolution):
         This method is always executed in the context of the worker thread,
         so blocking calls (like publishing) are safe.
         """
+        command_type = command_data.get("type")
+        
+        if command_type == "stream_command":
+            # Handle stream start/stop commands
+            self._process_stream_command(command_data.get("data", {}))
+
+        else:
+
+            command = command_data.get("command")
+            message_id = command_data.get("messageId")
+
+            if not message_id:
+                logger.warning("Received command without a 'messageId'. Ignoring.", component=self.component_name)
+                return
+
+            if command == "capture_image":
+                logger.info(f"Image capture command queued with messageId: {message_id}", component=self.component_name)
+                # Use the existing mechanism to signal the frame processing part of the worker
+                self._current_capture_request = {"messageId": message_id}
+                self._capture_requested.set()
+            else:
+                # THE FIX: This blocking call is now safely made from the worker thread, not the MQTT callback thread.
+                logger.warning(f"Received unknown command '{command}' on capture topic.", component=self.component_name)
+                self._publish_capture_status(message_id, "failed", error_message=f"Unknown command: {command}")
+
+    def _initialize_kvs_handler(self):
+        """Initialize KVS output handler if not already initialized"""
+        if not hasattr(self, 'kvs_handler') or self.kvs_handler is None:
+            try:
+                # Use the same config as the main solution
+                self.kvs_handler = KVSStreamHandler(self.config)
+                logger.info("KVS output handler initialized", component=self.component_name)
+                return True
+            except Exception as e:
+                logger.error("Failed to initialize KVS handler", exception=e, component=self.component_name)
+                self.kvs_handler = None
+                return False
+        return True
+
+    def _handle_stream_command(self, topic: str, payload_str: str):
+        """
+        Handle live stream start/stop commands from IoT Core
+        This callback is executed by MQTT thread so should be fast
+        """
+        try:
+            command_data = json.loads(payload_str)
+            # Queue the stream command for processing by worker thread
+            self.command_queue.put({
+                "type": "stream_command",
+                "data": command_data,
+                "topic": topic
+            }, block=False)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Received non-JSON message on stream command topic",
+                context={"topic": topic, "payload": payload_str[:100]},
+                component=self.component_name
+            )
+        except Exception as e:
+            logger.error(
+                "Unexpected error processing stream command",exception=e,
+                component=self.component_name
+            )
+
+    def _process_stream_command(self, command_data: Dict[str, Any]):
+        """
+        Process stream command in worker thread
+        """
         command = command_data.get("command")
         message_id = command_data.get("messageId")
+        
+        logger.info(
+            f"Processing stream command: {command}",
+            context={"message_id": message_id},
+            component=self.component_name
+        )
+        
+        if command == "start_live_stream":
+            # Initialize KVS handler if needed
+            if not self._initialize_kvs_handler():
+                self._publish_stream_status(
+                    message_id=message_id,
+                    status="failed",
+                    error_message="Failed to initialize KVS handler"
+                )
+                return
+            
+            payload = command_data.get("payload", {})
+            stream_name = payload.get("stream_name")
+            duration_seconds = payload.get("duration_seconds", 240)
+            stream_quality = payload.get("stream_quality", "medium")
+            
+            # Start KVS streaming
+            success = self.kvs_handler.start_streaming(
+                stream_name=stream_name,
+                duration_seconds=duration_seconds,
+                stream_quality=stream_quality
+            )
+            
+            if success:
+                self.kvs_streaming_active = True
+                logger.info(
+                    f"KVS streaming started successfully",
+                    context={
+                        "stream_name": stream_name,
+                        "duration": duration_seconds,
+                        "quality": stream_quality
+                    },
+                    component=self.component_name
+                )
+            
+            # Publish status
+            self._publish_stream_status(
+                message_id=message_id,
+                status="started" if success else "failed",
+                stream_name=stream_name if success else None,
+                error_message=None if success else "Failed to start stream"
+            )
+            
+        elif command == "stop_live_stream":
+            if hasattr(self, 'kvs_handler') and self.kvs_handler:
+                success = self.kvs_handler.stop_streaming()
+                self.kvs_streaming_active = False
+                
+                self._publish_stream_status(
+                    message_id=message_id,
+                    status="stopped" if success else "failed",
+                    error_message=None if success else "Failed to stop stream"
+                )
+            else:
+                self._publish_stream_status(
+                    message_id=message_id,
+                    status="failed",
+                    error_message="No active stream to stop"
+                )
 
-        if not message_id:
-            logger.warning("Received command without a 'messageId'. Ignoring.", component=self.component_name)
+
+    def _publish_stream_status(self, message_id: str, status: str, 
+                            stream_name: Optional[str] = None,
+                            error_message: Optional[str] = None):
+        """Publish stream command status back to cloud"""
+        if not self.cloud_connector:
+            logger.warning("No cloud connector available to publish status", component=self.component_name)
             return
-
-        if command == "capture_image":
-            logger.info(f"Image capture command queued with messageId: {message_id}", component=self.component_name)
-            # Use the existing mechanism to signal the frame processing part of the worker
-            self._current_capture_request = {"messageId": message_id}
-            self._capture_requested.set()
-        else:
-            # THE FIX: This blocking call is now safely made from the worker thread, not the MQTT callback thread.
-            logger.warning(f"Received unknown command '{command}' on capture topic.", component=self.component_name)
-            self._publish_capture_status(message_id, "failed", error_message=f"Unknown command: {command}")
+        
+        try:
+            status_topic = self.cloud_connector.get_kvs_stream_status_topic()
+            status_payload = {
+                "messageId": message_id,
+                "status": status,
+                "timestamp": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat()
+            }
+            
+            if stream_name:
+                status_payload["streamName"] = stream_name
+            if error_message:
+                status_payload["error"] = error_message
+            
+            self.cloud_connector.publish(status_topic, status_payload)
+            
+            logger.info(
+                f"Published stream status",
+                context={
+                    "message_id": message_id,
+                    "status": status,
+                    "topic": status_topic
+                },
+                component=self.component_name
+            )
+            
+        except Exception as e:
+            logger.error("Failed to publish stream status", exception=e, component=self.component_name)
 
 
     def _process_frames_worker(self) -> None:
@@ -393,6 +565,16 @@ class CityEyeSolution(ISolution):
                 # Handle output
                 try:
                     self.output_handler.handle_result(frame_data)
+    
+                    # Add KVS streaming if active
+                    if hasattr(self, 'kvs_streaming_active') and self.kvs_streaming_active:
+                        if hasattr(self, 'kvs_handler') and self.kvs_handler:
+                            try:
+                                self.kvs_handler.process_frame(frame_data)
+                            except Exception as e:
+                                logger.error("Error sending frame to KVS", exception=e, component=self.component_name)
+                                # Don't stop main processing if KVS fails
+
                 except Exception as e:
                     logger.error("Error in output handler", exception=e, component=self.component_name)
 
@@ -437,7 +619,7 @@ class CityEyeSolution(ISolution):
         filepath = os.path.join("/tmp", filename)
         
         # Define S3 object key with a structured path
-        s3_object_name = f"captures/{self.cloud_connector.solution_type}/{self.cloud_connector.thing_name}/capture.jpg"
+        s3_object_name = self.cloud_connector.get_s3_object_name()
 
         try:
             # Save the frame locally as a JPEG image
@@ -679,5 +861,12 @@ class CityEyeSolution(ISolution):
                 self.sync_handler.stop()
             except Exception as e:
                 logger.warning(f"Failed to stop sync handler: {str(e)}", component=self.component_name)
+
+        if hasattr(self, 'kvs_handler') and self.kvs_handler:
+            try:
+                self.kvs_handler.cleanup()
+                logger.info("KVS handler cleaned up", component=self.component_name)
+            except Exception as e:
+                logger.error("Error cleaning up KVS handler", exception=e, component=self.component_name)
         
         logger.info("CityEyeSolution cleanup completed", component=self.component_name)

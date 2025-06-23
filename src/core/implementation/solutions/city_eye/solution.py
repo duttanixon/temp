@@ -339,7 +339,8 @@ class CityEyeSolution(ISolution):
             self.frame_queue.put(frame_data, block=False)
         except Full:
             # Log that we're dropping a frame
-            logger.warning("Processing queue full, dropping frame", component=self.component_name)
+            # logger.warning("Processing queue full, dropping frame", component=self.component_name)
+            pass
         except Exception as e:
             logger.error("Error putting frame data into queue", exception=e, component=self.component_name)
 
@@ -440,13 +441,17 @@ class CityEyeSolution(ISolution):
             stream_name = payload.get("stream_name")
             duration_seconds = payload.get("duration_seconds", 240)
             stream_quality = payload.get("stream_quality", "medium")
-            
+
+            # Clear any existing frames in KVS handler queue before starting
+            if hasattr(self.kvs_handler, '_clear_frame_queue'):
+                self.kvs_handler._clear_frame_queue()
+
             # Start KVS streaming
             success = self.kvs_handler.start_streaming(
                 stream_name=stream_name,
                 duration_seconds=duration_seconds,
                 stream_quality=stream_quality
-            )
+            ) # this block the frame processing thread until the stream is started or failed
             
             if success:
                 self.kvs_streaming_active = True
@@ -459,6 +464,11 @@ class CityEyeSolution(ISolution):
                     },
                     component=self.component_name
                 )
+            else:
+                # Failed to start - ensure flag is false
+                self.kvs_streaming_active = False
+                # Clear the KVS handler to prevent further attempts
+                self.kvs_handler = None
             
             # Publish status
             self._publish_stream_status(

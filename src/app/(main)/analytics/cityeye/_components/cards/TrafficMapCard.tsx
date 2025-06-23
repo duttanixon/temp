@@ -11,6 +11,7 @@ import {
   Tooltip,
   useMap,
 } from "react-leaflet";
+import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
 interface TrafficMapCardProps {
   title: string;
@@ -62,6 +63,9 @@ function ResetButton({ onClick }: { onClick: () => void }) {
 export default function TrafficMapCard({
   title,
   perDeviceCountsData,
+  isLoading,
+  error,
+  hasAttemptedFetch,
 }: TrafficMapCardProps) {
   const [resetKey, setResetKey] = useState(0);
   const handleReset = () => setResetKey((k) => k + 1);
@@ -83,73 +87,82 @@ export default function TrafficMapCard({
   const min = counts.length > 0 ? Math.min(...counts) : 0;
   const max = counts.length > 0 ? Math.max(...counts) : 0;
 
-  // Always show the map, even if there is no data
+  const hasData = hasAttemptedFetch;
+
   if (title !== "カメラマップ") return null;
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
-      <CardHeader className="pb-2 pt-3 px-4 flex justify-between items-center">
+      <CardHeader className="pb-2 pt-3 px-4 flex justify-between">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col text-right text-xs text-muted-foreground">
-            <span>交通量</span>
-            <span className="text-[10px]">
-              {min.toLocaleString()} - {max.toLocaleString()}
-            </span>
-            <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
-          </div>
+        <div className="flex flex-col text-right text-xs text-muted-foreground">
+          <span>交通量</span>
+          <span className="text-[10px]">
+            {min.toLocaleString()} - {max.toLocaleString()}
+          </span>
+          <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-3">
-        <div className="h-72 w-full cursor-pointer">
-          {/* Place the reset button above the map, not absolutely positioned */}
-          <div className="mb-2">
-            <ResetButton onClick={handleReset} />
+        <GenericAnalyticsCard
+          isLoading={isLoading}
+          error={hasAttemptedFetch ? error : null}
+          hasData={hasData}
+          emptyMessage={
+            hasAttemptedFetch
+              ? undefined
+              : "フィルターを適用してカメラマップを表示します。"
+          }>
+          <div className="h-72 w-full cursor-pointer relative z-[1]">
+            {/* Place the reset button above the map, not absolutely positioned */}
+            <div className="absolute top-20 left-2 z-[1000]">
+              <ResetButton onClick={handleReset} />
+            </div>
+            <MapContainer
+              key={resetKey}
+              center={coordinatesForZoom[0] || [33.5597, 133.5311]}
+              zoom={16}
+              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+              aria-label="カメラマップ">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <AutoZoom coordinates={coordinatesForZoom} />
+              {validDevices.map((device) => (
+                <CircleMarker
+                  key={device.deviceId}
+                  center={[device.lat as number, device.lng as number]}
+                  radius={20}
+                  pathOptions={{
+                    color: getColor(device.count, min, max),
+                    fillOpacity: 0.6,
+                  }}
+                  interactive={true}
+                  className="cursor-pointer"
+                  aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}>
+                  <Tooltip
+                    direction="top"
+                    offset={[0, -10]}
+                    opacity={1}
+                    permanent={false}
+                    sticky={true}>
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
+                        {(device.deviceLocation || "サンプル") +
+                          "_" +
+                          (device.deviceName || device.deviceId)}
+                      </span>
+                      {device.count.toLocaleString()} 台
+                    </div>
+                  </Tooltip>
+                </CircleMarker>
+              ))}
+            </MapContainer>
           </div>
-          <MapContainer
-            key={resetKey}
-            center={coordinatesForZoom[0] || [33.5597, 133.5311]}
-            zoom={16}
-            style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-            aria-label="交通密度マップ">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <AutoZoom coordinates={coordinatesForZoom} />
-            {validDevices.map((device) => (
-              <CircleMarker
-                key={device.deviceId}
-                center={[device.lat as number, device.lng as number]}
-                radius={20}
-                pathOptions={{
-                  color: getColor(device.count, min, max),
-                  fillOpacity: 0.6,
-                }}
-                interactive={true}
-                className="cursor-pointer"
-                aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}>
-                <Tooltip
-                  direction="top"
-                  offset={[0, -10]}
-                  opacity={1}
-                  permanent={false}
-                  sticky={true}>
-                  <div className="flex flex-col">
-                    <span className="font-semibold">
-                      {(device.deviceLocation || "サンプル") +
-                        "_" +
-                        (device.deviceName || device.deviceId)}
-                    </span>
-                    {device.count.toLocaleString()} 台
-                  </div>
-                </Tooltip>
-              </CircleMarker>
-            ))}
-          </MapContainer>
-        </div>
+        </GenericAnalyticsCard>
       </CardContent>
     </Card>
   );

@@ -1,11 +1,7 @@
 "use client";
 
-import {
-  ProcessedAnalyticsData,
-  ProcessedTrafficAnalyticsData,
-} from "@/types/cityeye/cityEyeAnalytics";
+import { ProcessedTrafficAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import dynamic from "next/dynamic";
-import AnalyticsCard from "../cards/AnalyticsCard";
 import DailyAverageVehiclesCard from "../cards/DailyAverageVehiclesCard";
 import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
@@ -22,11 +18,7 @@ interface TrafficOverviewViewProps {
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
-  peopleProcessedData?: ProcessedAnalyticsData | null;
 }
-
-// Placeholder cards for future features
-const placeholderCardTitles = ["ピーク時間分析", "車線別統計"];
 
 export default function TrafficOverviewView({
   processedData,
@@ -93,25 +85,6 @@ export default function TrafficOverviewView({
           processedData?.hourlyDistribution?.overallHourlyDistribution ?? null
         }
       />
-
-      {/* Render placeholder cards */}
-      {placeholderCardTitles.map((title, index) => (
-        <AnalyticsCard key={index} title={title}>
-          <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-sm text-muted-foreground p-4 text-center">
-              {hasAttemptedFetch
-                ? `データ表示エリア (${title})`
-                : "フィルターを適用してください。"}
-            </p>
-            {isLoading && hasAttemptedFetch && (
-              <p className="text-xs text-muted-foreground">更新中...</p>
-            )}
-            {error && hasAttemptedFetch && (
-              <p className="text-xs text-destructive">エラー: {error}</p>
-            )}
-          </div>
-        </AnalyticsCard>
-      ))}
     </div>
   );
 }

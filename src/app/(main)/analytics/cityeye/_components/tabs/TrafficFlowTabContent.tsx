@@ -36,7 +36,6 @@ export default function TrafficFlowTabContent({
   errorComparison,
   hasAttemptedFetchComparison,
   comparisonPeriodDateRange,
-  peopleMainProcessedData,
 }: TrafficTabContentProps) {
   // Placeholder implementation
   if (verticalTab === "overview") {
@@ -46,7 +45,6 @@ export default function TrafficFlowTabContent({
         isLoading={isLoadingMain}
         error={errorMain}
         hasAttemptedFetch={hasAttemptedFetchMain}
-        peopleProcessedData={peopleMainProcessedData || null}
       />
     );
   }

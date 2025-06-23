@@ -191,6 +191,38 @@ class AWSIoTCoreConnector(ICloudConnector):
             logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
             return None
         return f"devices/{self.client_id}/command/capture_image"
+    
+    @handle_errors(component="AWSIoTConnector")
+    def get_kvs_stream_command_topic(self) -> Optional[str]:
+        """
+        Get the topic for receiving commands from the cloud.
+        """
+        if not self.client_id or not self.solution_type:
+            logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
+            return None
+        return f"devices/{self.client_id}/command/stream/+"
+
+    @handle_errors(component="AWSIoTConnector")
+    def get_kvs_stream_status_topic(self) -> Optional[str]:
+        """
+        Get the topic for publishing commands to the cloud.
+        """
+        if not self.client_id or not self.solution_type:
+            logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
+            return None
+        return f"devices/{self.client_id}/stream/status"
+
+    @handle_errors(component="AWSIoTConnector")
+    def get_s3_object_name(self) -> Optional[str]:
+        """
+        Define S3 object key with a structured path
+        """
+        if not self.client_id or not self.solution_type:
+            logger.warning("Client ID or Solution Type not set, cannot s3 object name.", component="AWSIoTConnector")
+            return None
+        return f"captures/{self.solution_type}/{self.thing_name}/capture.jpg"
+
+
 
     @handle_errors(component="AWSIoTConnector")
     def upload_file_to_s3(self, file_path: str, object_name: Optional[str] = None) -> bool:

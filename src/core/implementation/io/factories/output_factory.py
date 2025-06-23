@@ -1,5 +1,6 @@
 from typing import Dict, Any
 from core.implementation.io.default_output import DefaultOutputHandler
+from core.implementation.io.webrtc_output import WebRTCOutputHandler
 from core.interfaces.io.output_handler import IOutputHandler
 from core.implementation.common.logger import get_logger
 from core.implementation.common.exceptions import ConfigurationError
@@ -39,7 +40,7 @@ class OutputHandlerFactory:
         # Registry of available output types
         output_types = {
             "default": DefaultOutputHandler,
-            # "api": APIOutputHandler,      # Not implemented yet
+            "webrtc": WebRTCOutputHandler,
         }
 
         # Look up the output class in the registry

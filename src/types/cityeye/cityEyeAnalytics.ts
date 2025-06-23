@@ -196,6 +196,8 @@ export interface FrontendDeviceAnalyticsItem {
   device_name?: string;
   /** Device physical location description */
   device_location?: string;
+  /** Device latitude and longitude for mapping */
+  device_position?: number[]; // [lat, lng]
   /** All analytics data for this device */
   analytics_data: FrontendPerDeviceAnalyticsData;
   /** Error message if analytics failed for this device */
@@ -212,6 +214,8 @@ export interface FrontendDeviceTrafficAnalyticsItem {
   device_name?: string;
   /** Device physical location description */
   device_location?: string;
+  /** All traffic analytics data for this device */
+  device_position?: Array<number>; // [lat, lng]
   /** All traffic analytics data for this device */
   analytics_data: FrontendPerDeviceTrafficAnalyticsData;
   /** Error message if analytics failed for this device */
@@ -243,6 +247,8 @@ export interface DeviceCountData {
   deviceName?: string;
   deviceLocation?: string;
   count: number;
+  lat: number | undefined;
+  lng: number | undefined;
   /** Device-specific error if analytics failed */
   error?: string;
 }

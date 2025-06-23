@@ -1,14 +1,22 @@
+// src/app/(main)/analytics/cityeye/_components/views/HumanOverviewView.tsx
+
 "use client";
+
+import dynamic from "next/dynamic";
 
 import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import AnalyticsCard from "../cards/AnalyticsCard";
 import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
+
+// ✅ Dynamically import map card client-side only
+const CameraMapCard = dynamic(() => import("../cards/CameraMapCard"), {
+  ssr: false,
+});
 
 interface OverviewViewProps {
   processedData: ProcessedAnalyticsData | null;
@@ -55,21 +63,13 @@ export default function OverviewView({
           hasAttemptedFetch={hasAttemptedFetch}
         />
       </div>
-      <AnalyticsCard title="カメラマップ">
-        <div className="flex flex-col items-center justify-center w-full h-full">
-          <p className="text-sm text-muted-foreground p-4 text-center">
-            {hasAttemptedFetch
-              ? "データ表示エリア (カメラマップ)"
-              : "フィルターを適用してください。"}
-          </p>
-          {isLoading && hasAttemptedFetch && (
-            <p className="text-xs text-muted-foreground">更新中...</p>
-          )}
-          {error && hasAttemptedFetch && (
-            <p className="text-xs text-destructive">エラー: {error}</p>
-          )}
-        </div>
-      </AnalyticsCard>
+      <CameraMapCard
+        title="カメラマップ"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        perDeviceCountsData={processedData?.totalPeople?.perDeviceCounts ?? []}
+      />
       <AgeDistributionCard
         title="年齢層別分析"
         isLoading={isLoading}
@@ -79,7 +79,7 @@ export default function OverviewView({
           processedData?.ageDistribution?.overallAgeDistribution ?? null
         }
       />
-      <GenderDistributionCard // Added
+      <GenderDistributionCard
         title="性別分析"
         isLoading={isLoading}
         error={error}

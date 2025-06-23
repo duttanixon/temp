@@ -1,8 +1,7 @@
-import React from "react";
-import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
-import { DeviceCountData } from "@/types/cityEyeAnalytics";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
+import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
 interface PerDeviceTrafficCardProps {
   title: string;
@@ -37,23 +36,20 @@ export default function PerDeviceTrafficCard({
             hasAttemptedFetch
               ? "デバイス別交通量データがありません。"
               : "フィルターを適用してデバイス別交通量データを表示します。"
-          }
-        >
+          }>
           <ScrollArea className="flex-grow pr-3">
             <ul className="space-y-1 text-xs">
               {perDeviceCountsData.map((device) => (
                 <li
                   key={device.deviceId}
-                  className="flex justify-between items-center p-1.5 bg-muted/50 rounded-sm"
-                >
+                  className="flex justify-between items-center p-1.5 bg-muted/50 rounded-sm">
                   <span
                     className="truncate text-foreground"
                     title={
                       device.error
                         ? `Error: ${device.error}`
                         : `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
-                    }
-                  >
+                    }>
                     {device.error ? (
                       <span className="text-destructive">
                         {device.deviceName || device.deviceId} - エラー
@@ -63,8 +59,7 @@ export default function PerDeviceTrafficCard({
                     )}
                   </span>
                   <span
-                    className={`font-medium ${device.error ? "text-destructive" : "text-primary"}`}
-                  >
+                    className={`font-medium ${device.error ? "text-destructive" : "text-primary"}`}>
                     {device.error ? "N/A" : device.count.toLocaleString()} 台
                   </span>
                 </li>

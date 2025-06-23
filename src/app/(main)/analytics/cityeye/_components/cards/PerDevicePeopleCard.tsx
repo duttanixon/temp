@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DeviceCountData } from "@/types/cityEyeAnalytics";
+import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
+import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
 interface PerDevicePeopleCardProps {
   title: string;
@@ -35,8 +35,7 @@ export default function PerDevicePeopleCard({
             hasAttemptedFetch
               ? "デバイスデータがありません。"
               : "フィルターを適用してデバイスデータを表示します。"
-          }
-        >
+          }>
           {/* Actual content to display when data is available */}
           <ScrollArea className="flex-grow pr-3">
             {perDeviceCountsData.length > 0 ? (
@@ -44,16 +43,14 @@ export default function PerDevicePeopleCard({
                 {perDeviceCountsData.map((device) => (
                   <li
                     key={device.deviceId}
-                    className="flex justify-between items-center p-1.5 bg-muted/50 rounded-sm"
-                  >
+                    className="flex justify-between items-center p-1.5 bg-muted/50 rounded-sm">
                     <span
                       className="truncate text-foreground"
                       title={
                         device.error
                           ? `Error: ${device.error}`
                           : `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
-                      }
-                    >
+                      }>
                       {device.error ? (
                         <span className="text-destructive">
                           {device.deviceName || device.deviceId} - エラー
@@ -63,8 +60,7 @@ export default function PerDevicePeopleCard({
                       )}
                     </span>
                     <span
-                      className={`font-medium ${device.error ? "text-destructive" : "text-primary"}`}
-                    >
+                      className={`font-medium ${device.error ? "text-destructive" : "text-primary"}`}>
                       {device.error ? "N/A" : device.count.toLocaleString()}
                     </span>
                   </li>

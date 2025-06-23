@@ -1,6 +1,6 @@
 "use client";
 
-import { CityEyeFilterState } from "@/types/cityEyeAnalytics";
+import { CityEyeFilterState } from "@/types/cityeye/cityEyeAnalytics";
 import {
   Calendar,
   CalendarDays,

@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react"; // Removed useState, useEffect
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import React from "react";
 import { FilterCard } from "./FilterCard";
 
 const ALL_GENDERS = [
@@ -13,11 +13,19 @@ const ALL_GENDERS = [
 interface GenderFilterProps {
   selectedGenders: string[];
   onSelectionChange: (selectedGenders: string[]) => void;
+  icon?: React.ReactNode;
+  iconBgColor?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 }
 
 export function GenderFilter({
   selectedGenders,
   onSelectionChange,
+  icon,
+  iconBgColor,
+  collapsible = false,
+  defaultExpanded = true,
 }: GenderFilterProps) {
   const isAllSelected =
     ALL_GENDERS.length > 0 && selectedGenders.length === ALL_GENDERS.length;
@@ -37,34 +45,61 @@ export function GenderFilter({
     }
   };
 
+  const selectionSummary = `(${selectedGenders.length}/${ALL_GENDERS.length})`;
+
   return (
-    <FilterCard title="性別">
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
+    <FilterCard
+      title="性別"
+      icon={icon}
+      iconBgColor={iconBgColor}
+      collapsible={collapsible}
+      defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
+    >
+      <div className="space-y-3">
+        {/* Select All Option */}
+        <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
           <Checkbox
             id="select-all-genders"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
-          <Label htmlFor="select-all-genders" className="text-sm font-medium">
+          <Label
+            htmlFor="select-all-genders"
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて
           </Label>
         </div>
-        {ALL_GENDERS.map((gender) => (
-          <div key={gender.id} className="flex items-center space-x-2">
-            <Checkbox
-              id={`gender-${gender.id}`}
-              checked={selectedGenders.includes(gender.id)}
-              onCheckedChange={() => handleGenderToggle(gender.id)}
-            />
-            <Label
-              htmlFor={`gender-${gender.id}`}
-              className="text-sm font-normal"
-            >
-              {gender.label}
-            </Label>
+
+        {/* Individual Gender Options */}
+        <div>
+          <div className="text-xs text-slate-500 font-medium mb-2">
+            個別選択:
           </div>
-        ))}
+          <div className="flex gap-2">
+            {ALL_GENDERS.map((gender) => (
+              <div
+                key={gender.id}
+                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+              >
+                <Checkbox
+                  id={`gender-${gender.id}`}
+                  checked={selectedGenders.includes(gender.id)}
+                  onCheckedChange={() => handleGenderToggle(gender.id)}
+                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+                />
+                <Label
+                  htmlFor={`gender-${gender.id}`}
+                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors"
+                >
+                  {gender.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </FilterCard>
   );

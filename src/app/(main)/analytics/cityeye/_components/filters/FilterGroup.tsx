@@ -1,17 +1,25 @@
 "use client";
 
+import { CityEyeFilterState } from "@/types/cityeye/cityEyeAnalytics";
+import {
+  Calendar,
+  CalendarDays,
+  Car,
+  Clock,
+  MapPin,
+  User,
+  Users,
+} from "lucide-react";
 import React from "react";
+import { DateRange } from "react-day-picker";
+import { AgesFilter } from "./AgesFilter";
 import { AnalysisPeriodFilter } from "./AnalysisPeriodFilter";
 import { ComparisonPeriodFilter } from "./ComparisonPeriodFilter";
 import { DaysFilter } from "./DaysFilter";
-import { HoursFilter } from "./HoursFilter";
 import { DevicesFilter } from "./DevicesFilter";
-import { AgesFilter } from "./AgesFilter";
 import { GenderFilter } from "./GenderFilter";
+import { HoursFilter } from "./HoursFilter";
 import { TrafficFilter } from "./TrafficFilter";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { CityEyeFilterState } from "@/types/cityeye/cityEyeAnalytics"; // Import the centralized filter state type
-import { DateRange } from "react-day-picker";
 
 interface FilterGroupProps {
   verticalTab: string;
@@ -19,8 +27,6 @@ interface FilterGroupProps {
   solutionId: string;
   currentFilters: CityEyeFilterState;
   onFilterChange: (newFilterValues: Partial<CityEyeFilterState>) => void;
-  // customerId is part of currentFilters if needed by a sub-component,
-  // but DevicesFilter now uses solutionId primarily.
 }
 
 export function FilterGroup({
@@ -38,8 +44,6 @@ export function FilterGroup({
   const handleAnalysisPeriodChange: React.Dispatch<
     React.SetStateAction<DateRange | undefined>
   > = (value) => {
-    // If value is a function, it's a functional update. Apply it to the current state.
-    // Otherwise, it's a direct new value.
     const newDate =
       typeof value === "function"
         ? value(currentFilters.analysisPeriod)
@@ -58,42 +62,62 @@ export function FilterGroup({
   };
 
   return (
-    <ScrollArea className="h-full py-4 pr-2">
-      <div className="space-y-3">
+    <div className="bg-gradient-to-br from-slate-50 to-white flex flex-col gap-3">
+      <div className="space-y-4">
         <AnalysisPeriodFilter
           currentDateRange={currentFilters.analysisPeriod}
           onDateChange={handleAnalysisPeriodChange}
+          icon={<CalendarDays className="w-4 h-4 text-blue-600" />}
+          iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+          collapsible={true}
+          defaultExpanded={false}
         />
+
         {showComparisonFilter && (
           <ComparisonPeriodFilter
             currentDateRange={currentFilters.comparisonPeriod}
             onDateChange={handleComparisonPeriodChange}
-            // You might want to disable comparison if analysis period is not set
-            disabled={
-              !currentFilters.analysisPeriod?.from ||
-              !currentFilters.analysisPeriod?.to
-            }
+            icon={<CalendarDays className="w-4 h-4 text-blue-600" />}
+            iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+            collapsible={true}
+            defaultExpanded={false}
           />
         )}
+
         <DaysFilter
           selectedDays={currentFilters.selectedDays}
           onSelectionChange={(newDays) =>
             onFilterChange({ selectedDays: newDays })
           }
+          icon={<Calendar className="w-4 h-4 text-blue-600" />}
+          iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+          collapsible={true}
+          defaultExpanded={false}
         />
+
         <HoursFilter
           selectedHours={currentFilters.selectedHours}
           onSelectionChange={(newHours) =>
             onFilterChange({ selectedHours: newHours })
           }
+          icon={<Clock className="w-4 h-4 text-blue-600" />}
+          iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+          collapsible={true}
+          defaultExpanded={false}
         />
+
         <DevicesFilter
-          solutionId={solutionId} // Pass solutionId directly
+          solutionId={solutionId}
           selectedDevices={currentFilters.selectedDevices}
           onSelectionChange={(newDevices) =>
             onFilterChange({ selectedDevices: newDevices })
           }
+          icon={<MapPin className="w-4 h-4 text-blue-600" />}
+          iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+          collapsible={true}
+          defaultExpanded={false}
         />
+
         {showPeopleFilters && (
           <>
             <AgesFilter
@@ -101,24 +125,37 @@ export function FilterGroup({
               onSelectionChange={(newAges) =>
                 onFilterChange({ selectedAges: newAges })
               }
+              icon={<Users className="w-4 h-4 text-blue-600" />}
+              iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+              collapsible={true}
+              defaultExpanded={false}
             />
             <GenderFilter
               selectedGenders={currentFilters.selectedGenders}
               onSelectionChange={(newGenders) =>
                 onFilterChange({ selectedGenders: newGenders })
               }
+              icon={<User className="w-4 h-4 text-blue-600" />}
+              iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+              collapsible={true}
+              defaultExpanded={false}
             />
           </>
         )}
+
         {showTrafficFilters && (
           <TrafficFilter
             selectedTrafficTypes={currentFilters.selectedTrafficTypes}
             onSelectionChange={(newTrafficTypes) =>
               onFilterChange({ selectedTrafficTypes: newTrafficTypes })
             }
+            icon={<Car className="w-4 h-4 text-blue-600" />}
+            iconBgColor="bg-blue-100 group-hover:bg-blue-200"
+            collapsible={true}
+            defaultExpanded={false}
           />
         )}
       </div>
-    </ScrollArea>
+    </div>
   );
 }

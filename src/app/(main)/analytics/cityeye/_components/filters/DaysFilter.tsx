@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import React from "react";
 import { FilterCard } from "./FilterCard";
 
 const ALL_DAYS = [
@@ -16,15 +16,22 @@ const ALL_DAYS = [
 ];
 
 interface DaysFilterProps {
-  selectedDays: string[]; // Receives current selection
-  onSelectionChange: (selectedDays: string[]) => void; // Callback to update parent state
+  selectedDays: string[];
+  onSelectionChange: (selectedDays: string[]) => void;
+  icon?: React.ReactNode;
+  iconBgColor?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 }
 
 export function DaysFilter({
   selectedDays,
   onSelectionChange,
+  icon,
+  iconBgColor,
+  collapsible = false,
+  defaultExpanded = true,
 }: DaysFilterProps) {
-  // isAllSelected can be derived or be local UI state for convenience
   const isAllSelected = ALL_DAYS.length === selectedDays.length;
 
   const handleDayToggle = (dayId: string) => {
@@ -42,32 +49,108 @@ export function DaysFilter({
     }
   };
 
+  // Quick select buttons for common day ranges
+  const quickSelectRanges = [
+    {
+      label: "平日",
+      days: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    },
+    { label: "週末", days: ["saturday", "sunday"] },
+  ];
+
+  const handleQuickSelect = (days: string[]) => {
+    const allSelected = days.every((day) => selectedDays.includes(day));
+    if (allSelected) {
+      // Deselect all days in this range
+      onSelectionChange(selectedDays.filter((d) => !days.includes(d)));
+      return;
+    } else {
+      // Select all days in this range
+      const newSelectedDays = [...new Set([...selectedDays, ...days])];
+      onSelectionChange(newSelectedDays);
+    }
+  };
+
+  const isQuickSelected = (days: string[]) => {
+    return days.every((day) => selectedDays.includes(day));
+  };
+
+  const selectionSummary = `(${selectedDays.length}/${ALL_DAYS.length})`;
+
   return (
-    <FilterCard title="曜日">
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
+    <FilterCard
+      title="曜日"
+      icon={icon}
+      iconBgColor={iconBgColor}
+      collapsible={collapsible}
+      defaultExpanded={defaultExpanded}
+      selectionSummary={selectionSummary}
+    >
+      <div className="space-y-4">
+        {/* Select All Option */}
+        <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
           <Checkbox
             id="select-all-days"
             checked={isAllSelected}
             onCheckedChange={handleSelectAllToggle}
+            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
           />
-          <Label htmlFor="select-all-days" className="text-sm font-medium">
+          <Label
+            htmlFor="select-all-days"
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて
           </Label>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {ALL_DAYS.map((day) => (
-            <div key={day.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={day.id}
-                checked={selectedDays.includes(day.id)}
-                onCheckedChange={() => handleDayToggle(day.id)}
-              />
-              <Label htmlFor={day.id} className="text-sm font-normal">
-                {day.label}
-              </Label>
-            </div>
-          ))}
+
+        {/* Quick Select Buttons */}
+        <div className="space-y-2">
+          <div className="text-xs text-slate-500 font-medium">
+            クイック選択:
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {quickSelectRanges.map((range) => (
+              <button
+                key={range.label}
+                onClick={() => handleQuickSelect(range.days)}
+                className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
+                  isQuickSelected(range.days)
+                    ? "bg-blue-100 text-blue-700 border border-blue-300"
+                    : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Individual Day Options */}
+        <div>
+          <div className="text-xs text-slate-500 font-medium mb-2">
+            個別選択:
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {ALL_DAYS.map((day) => (
+              <div
+                key={day.id}
+                className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+              >
+                <Checkbox
+                  id={day.id}
+                  checked={selectedDays.includes(day.id)}
+                  onCheckedChange={() => handleDayToggle(day.id)}
+                  className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
+                />
+                <Label
+                  htmlFor={day.id}
+                  className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors"
+                >
+                  {day.label}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </FilterCard>

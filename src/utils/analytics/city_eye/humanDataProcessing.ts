@@ -1,20 +1,23 @@
 import {
   ButterflyChartDataPoint,
+  FilterContext,
   FrontendCityEyeAnalyticsPerDeviceResponse,
   ProcessedAgeGroup,
   ProcessedAnalyticsData,
   ProcessedGenderSegment,
   ProcessedHourlyDataPoint,
 } from "@/types/cityeye/cityEyeAnalytics";
+import { eachDayOfInterval, isValid } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 // Consolidated configuration for all data types
 const CONFIG = {
   AGE_GROUPS: [
-    { backendKey: "under_18", configKey: "under18", label: "<18" },
-    { backendKey: "age_18_to_29", configKey: "age18to29", label: "18-29" },
-    { backendKey: "age_30_to_49", configKey: "age30to49", label: "30-49" },
-    { backendKey: "age_50_to_64", configKey: "age50to64", label: "50-64" },
-    { backendKey: "over_64", configKey: "over64", label: "65+" },
+    { backendKey: "under_18", configKey: "under18", label: "18歳未満" },
+    { backendKey: "age_18_to_29", configKey: "age18to29", label: "18-29歳" },
+    { backendKey: "age_30_to_49", configKey: "age30to49", label: "30-49歳" },
+    { backendKey: "age_50_to_64", configKey: "age50to64", label: "50-64歳" },
+    { backendKey: "over_64", configKey: "over64", label: "65歳以上" },
   ],
   GENDER: {
     male: { label: "男性", configKey: "male" },
@@ -28,18 +31,34 @@ const CONFIG = {
     age_50_to_64: "50_to_64",
     over_64: "65_plus",
   } as const,
+  DAYS_MAPPING: {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  } as const,
 };
 
 /**
  * Main data processing function that handles all analytics data types
  */
 export function processHumanAnalyticsData(
-  data: FrontendCityEyeAnalyticsPerDeviceResponse | null
+  data: FrontendCityEyeAnalyticsPerDeviceResponse | null,
+  filterContext: FilterContext | null
 ): ProcessedAnalyticsData | null {
   if (!data) return null;
 
+  const totalPeopleData = processTotalPeople(data);
+
   return {
     totalPeople: processTotalPeople(data),
+    dailyAveragePeople: processDailyAveragePeople({
+      totalPeopleData,
+      filterContext,
+    }),
     ageDistribution: processAgeDistribution(data),
     genderDistribution: processGenderDistribution(data),
     hourlyDistribution: processHourlyDistribution(data),
@@ -74,6 +93,72 @@ function processTotalPeople(data: FrontendCityEyeAnalyticsPerDeviceResponse) {
   });
 
   return { totalCount, perDeviceCounts };
+}
+
+function processDailyAveragePeople({
+  totalPeopleData,
+  filterContext,
+}: {
+  totalPeopleData: { totalCount: number; perDeviceCounts: any[] };
+  filterContext?: FilterContext | null;
+}) {
+  console.log(
+    "Processing daily average people with filter context:",
+    filterContext
+  );
+  console.log("filterContext?.dateRange?.from", filterContext?.dateRange?.from);
+  console.log("filterContext?.dateRange?.to", filterContext?.dateRange?.to);
+  if (!filterContext?.dateRange?.from || !filterContext?.dateRange?.to) {
+    return null;
+  }
+  if (
+    !isValid(filterContext.dateRange.from) ||
+    !isValid(filterContext.dateRange.to)
+  ) {
+    return null;
+  }
+
+  const calculatedDays = calculateValidDays({
+    dateRange: filterContext.dateRange,
+    selectedDays: filterContext.selectedDays || [],
+  });
+
+  const totalDailyAverage = totalPeopleData.totalCount / calculatedDays;
+
+  return {
+    averageCount: Math.round(totalDailyAverage),
+    days: calculatedDays,
+  };
+}
+
+function calculateValidDays({
+  dateRange,
+  selectedDays = [],
+}: {
+  dateRange: DateRange;
+  selectedDays?: string[];
+}): number {
+  if (!dateRange.from || !dateRange.to) return 0;
+  if (selectedDays.length === 0) return 0;
+
+  const allDaysInRange = eachDayOfInterval({
+    start: dateRange.from,
+    end: dateRange.to,
+  });
+
+  const selectedDaysNumbers: number[] = selectedDays
+    .map((dayName) => {
+      return CONFIG.DAYS_MAPPING[dayName as keyof typeof CONFIG.DAYS_MAPPING];
+    })
+    .filter((dayNum) => dayNum !== undefined);
+
+  if (selectedDaysNumbers.length === 0) return 0;
+
+  const validDays = allDaysInRange.filter((date) => {
+    const dayOfWeek = date.getDay();
+    return selectedDaysNumbers.includes(dayOfWeek);
+  });
+  return validDays.length;
 }
 
 /**

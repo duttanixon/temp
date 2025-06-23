@@ -1,14 +1,15 @@
 "use client";
 
-import React from "react";
-import TotalPeopleCard from "../cards/TotalPeopleCard";
+import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
+import { formatISO } from "date-fns";
+import { DateRange } from "react-day-picker";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
+import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
+import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
-import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
-import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
-import { DateRange } from "react-day-picker";
-import { formatISO } from "date-fns";
+import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
+import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 interface ComparisonViewProps {
   mainPeriodProcessedData: ProcessedAnalyticsData | null;
@@ -58,15 +59,30 @@ export default function HumanComparisonView({
           </div>
           <TotalPeopleCard
             title="総人数 (分析期間)"
-            isLoading={isLoadingMain}
-            error={errorMain}
-            hasAttemptedFetch={hasAttemptedFetchMain}
             totalCountData={
               mainPeriodProcessedData?.totalPeople?.totalCount ?? null
             }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+          />
+          <DailyAveragePeopleCard
+            title="日平均人数 (分析期間)"
+            daysCountData={
+              mainPeriodProcessedData?.dailyAveragePeople?.averageCount ?? null
+            }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+          />
+          <PerDevicePeopleCard
+            title="デバイス別人数 (分析期間)"
             perDeviceCountsData={
               mainPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
             }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
           />
           <AgeDistributionCard
             title="年齢層別分析 (分析期間)"
@@ -89,7 +105,7 @@ export default function HumanComparisonView({
             }
           />
           <HumanHourlyDistributionCard
-            title="時間別分析 (分析期間)"
+            title="時系列分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
@@ -117,15 +133,31 @@ export default function HumanComparisonView({
           </div>
           <TotalPeopleCard
             title="総人数 (比較期間)"
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
             totalCountData={
               comparisonPeriodProcessedData?.totalPeople?.totalCount ?? null
             }
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+          />
+          <DailyAveragePeopleCard
+            title="日平均人数 (比較期間)"
+            daysCountData={
+              comparisonPeriodProcessedData?.dailyAveragePeople?.averageCount ??
+              null
+            }
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+          />
+          <PerDevicePeopleCard
+            title="デバイス別人数 (比較期間)"
             perDeviceCountsData={
               comparisonPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
             }
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
           />
           <AgeDistributionCard
             title="年齢層別分析 (比較期間)"
@@ -148,7 +180,7 @@ export default function HumanComparisonView({
             }
           />
           <HumanHourlyDistributionCard // Added
-            title="時間別分析 (比較期間)"
+            title="時系列分析 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}

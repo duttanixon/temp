@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import ShadcnAreaChartCard from "@/components/charts/areachart-card";
 import { ProcessedHourlyDataPoint } from "@/types/cityeye/cityEyeAnalytics";
 
@@ -23,7 +22,7 @@ export default function HumanHourlyDistributionCard({
     {
       name: "人数", // "Number of People"
       dataKey: "count",
-      color: "var(--chart-3)", // Or any other suitable chart color
+      color: "var(--chart-analysis-1)", // Or any other suitable chart color
       label: "時間別人数", // "Hourly People Count"
     },
   ];

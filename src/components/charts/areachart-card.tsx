@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Area, AreaChart, XAxis, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -19,6 +19,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { Loader2, AlertTriangle, Info, TrendingUp } from "lucide-react";
+import CustomTooltipContent from "@/components/charts/custom-tooltip-content";
 
 interface AreaChartDataItem {
   [key: string]: string | number | undefined; // Allow undefined for property values
@@ -178,17 +179,49 @@ export default function ShadcnAreaChartCard({
           />
           <ChartTooltip
             cursor={false}
-            content={<ChartTooltipContent indicator="line" />}
+            content={
+              <ChartTooltipContent
+                hideLabel
+                hideIndicator
+                formatter={(
+                  value,
+                  _name,
+                  item,
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  _index
+                ) => {
+                  const dataKey = item?.dataKey ?? "";
+                  const getIndicatorClass = chartConfig?.[dataKey]?.color;
+                  return (
+                    <CustomTooltipContent
+                      label={item?.payload?.[categoryKey]}
+                      seriesName={String(
+                        chartConfig?.[dataKey]?.label ?? dataKey
+                      )}
+                      value={value}
+                      unit={unit}
+                      indicatorClass={getIndicatorClass}
+                    />
+                  );
+                }}
+              />
+            }
           />
           {dataKeys.map((dk) => (
             <Area
               key={dk.dataKey}
               dataKey={dk.dataKey}
-              type="natural"
+              type="linear"
               fill={dk.color}
               fillOpacity={0.4}
               stroke={dk.color}
-              stackId="a" // All areas will stack on top of each other
+              stackId="a"
+              activeDot={{
+                r: 4,
+                fill: dk.color,
+                stroke: dk.color,
+                strokeWidth: 0,
+              }}
               name={dk.label || dk.name} // For legend and tooltip
             />
           ))}
@@ -202,7 +235,7 @@ export default function ShadcnAreaChartCard({
   return (
     <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
       <CardHeader className="items-center pb-0 pt-3 px-4">
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-gray-700">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="flex-1 pb-0">{renderContent()}</CardContent>

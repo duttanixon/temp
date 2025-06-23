@@ -38,6 +38,11 @@ export interface FrontendAnalyticsFilters {
   age_groups?: string[];
 }
 
+export interface FilterContext {
+  dateRange?: DateRange;
+  selectedDays?: string[];
+}
+
 /**
  * Traffic-specific API filter parameters
  */
@@ -418,6 +423,11 @@ export interface ProcessedAnalyticsData {
     perDeviceCounts: DeviceCountData[];
   } | null;
 
+  dailyAveragePeople: {
+    averageCount: number;
+    days: number;
+  } | null;
+
   /** Age distribution analysis */
   ageDistribution: ProcessedAgeDistributionData | null;
 
@@ -440,6 +450,11 @@ export interface ProcessedTrafficAnalyticsData {
   totalVehicles: {
     totalCount: number;
     perDeviceCounts: DeviceCountData[];
+  } | null;
+
+  dailyAverageVehicle: {
+    averageCount: number;
+    days: number;
   } | null;
 
   /** Vehicle type distribution analysis */

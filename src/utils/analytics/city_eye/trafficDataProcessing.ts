@@ -1,19 +1,33 @@
 import {
+  DeviceCountData,
+  FilterContext,
   FrontendCityEyeTrafficAnalyticsPerDeviceResponse,
+  ProcessedHourlyDataPoint,
+  ProcessedHourlyDistributionData,
   ProcessedTrafficAnalyticsData,
   ProcessedVehicleType,
-  ProcessedHourlyDataPoint,
-  DeviceCountData,
   ProcessedVehicleTypeDistributionData,
-  ProcessedHourlyDistributionData,
 } from "@/types/cityeye/cityEyeAnalytics";
+import { eachDayOfInterval, isValid } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 // Configuration for vehicle types
-const VEHICLE_TYPE_CONFIG = {
-  large: { label: "大型", configKey: "large" },
-  normal: { label: "普通車", configKey: "normal" },
-  bicycle: { label: "自転車", configKey: "bicycle" },
-  motorcycle: { label: "二輪車", configKey: "motorcycle" },
+const CONFIG = {
+  VEHICLE_TYPE_CONFIG: {
+    large: { label: "大型", configKey: "large" },
+    normal: { label: "普通車", configKey: "normal" },
+    bicycle: { label: "自転車", configKey: "bicycle" },
+    motorcycle: { label: "二輪車", configKey: "motorcycle" },
+  },
+  DAYS_MAPPING: {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  } as const,
 };
 
 /**
@@ -21,12 +35,17 @@ const VEHICLE_TYPE_CONFIG = {
  * Processes raw traffic analytics data into UI-ready format
  */
 export function processTrafficAnalyticsData(
-  data: FrontendCityEyeTrafficAnalyticsPerDeviceResponse | null
+  data: FrontendCityEyeTrafficAnalyticsPerDeviceResponse | null,
+  filterContext?: FilterContext | null
 ): ProcessedTrafficAnalyticsData | null {
   if (!data) return null;
 
   return {
     totalVehicles: processTotalVehicles(data),
+    dailyAverageVehicle: processDailyAverageVehicle({
+      totalVehicleData: processTotalVehicles(data),
+      filterContext,
+    }),
     vehicleTypeDistribution: processVehicleTypeDistribution(data),
     hourlyDistribution: processHourlyDistribution(data),
   };
@@ -69,6 +88,72 @@ function processTotalVehicles(
   return { totalCount, perDeviceCounts };
 }
 
+function processDailyAverageVehicle({
+  totalVehicleData,
+  filterContext,
+}: {
+  totalVehicleData: { totalCount: number; perDeviceCounts: any[] };
+  filterContext?: FilterContext | null;
+}) {
+  console.log(
+    "Processing daily average vehicle with filter context:",
+    filterContext
+  );
+  console.log("filterContext?.dateRange?.from", filterContext?.dateRange?.from);
+  console.log("filterContext?.dateRange?.to", filterContext?.dateRange?.to);
+  if (!filterContext?.dateRange?.from || !filterContext?.dateRange?.to) {
+    return null;
+  }
+  if (
+    !isValid(filterContext.dateRange.from) ||
+    !isValid(filterContext.dateRange.to)
+  ) {
+    return null;
+  }
+
+  const calculatedDays = calculateValidDays({
+    dateRange: filterContext.dateRange,
+    selectedDays: filterContext.selectedDays || [],
+  });
+
+  const totalDailyAverage = totalVehicleData.totalCount / calculatedDays;
+
+  return {
+    averageCount: Math.round(totalDailyAverage),
+    days: calculatedDays,
+  };
+}
+
+function calculateValidDays({
+  dateRange,
+  selectedDays = [],
+}: {
+  dateRange: DateRange;
+  selectedDays?: string[];
+}): number {
+  if (!dateRange.from || !dateRange.to) return 0;
+  if (selectedDays.length === 0) return 0;
+
+  const allDaysInRange = eachDayOfInterval({
+    start: dateRange.from,
+    end: dateRange.to,
+  });
+
+  const selectedDaysNumbers: number[] = selectedDays
+    .map((dayName) => {
+      return CONFIG.DAYS_MAPPING[dayName as keyof typeof CONFIG.DAYS_MAPPING];
+    })
+    .filter((dayNum) => dayNum !== undefined);
+
+  if (selectedDaysNumbers.length === 0) return 0;
+
+  const validDays = allDaysInRange.filter((date) => {
+    const dayOfWeek = date.getDay();
+    return selectedDaysNumbers.includes(dayOfWeek);
+  });
+  return validDays.length;
+}
+
 /**
  * Process vehicle type distribution
  */
@@ -100,14 +185,8 @@ function processVehicleTypeDistribution(
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
-      lat:
-        item.device_position?.[0] !== undefined
-          ? Number(item.device_position[0])
-          : undefined,
-      lng:
-        item.device_position?.[1] !== undefined
-          ? Number(item.device_position[1])
-          : undefined,
+      lat: item.device_position?.[0],
+      lng: item.device_position?.[1],
       count: deviceTotal,
       vehicleTypeDistribution: item.analytics_data?.vehicle_type_distribution
         ? transformToVehicleTypes(item.analytics_data.vehicle_type_distribution)
@@ -128,7 +207,7 @@ function processVehicleTypeDistribution(
  * Transform vehicle type data to chart-ready format
  */
 function transformToVehicleTypes(data: any): ProcessedVehicleType[] {
-  return Object.entries(VEHICLE_TYPE_CONFIG)
+  return Object.entries(CONFIG.VEHICLE_TYPE_CONFIG)
     .map(([key, { label, configKey }]) => ({
       name: label,
       value: data[key] || 0,
@@ -161,6 +240,14 @@ function processHourlyDistribution(
       deviceId: item.device_id,
       deviceName: item.device_name,
       deviceLocation: item.device_location,
+      lat:
+        item.device_position?.[0] !== undefined
+          ? Number(item.device_position[0])
+          : undefined,
+      lng:
+        item.device_position?.[1] !== undefined
+          ? Number(item.device_position[1])
+          : undefined,
       hourlyData: item.analytics_data?.hourly_distribution
         ? transformToHourlyData(item.analytics_data.hourly_distribution)
         : null,

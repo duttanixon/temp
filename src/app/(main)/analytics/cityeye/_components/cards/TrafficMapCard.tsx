@@ -53,8 +53,7 @@ function ResetButton({ onClick }: { onClick: () => void }) {
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
       onClick={onClick}
-      aria-label="地図をリセット"
-    >
+      aria-label="地図をリセット">
       <RefreshCcw />
     </Button>
   );
@@ -85,7 +84,7 @@ export default function TrafficMapCard({
   const max = counts.length > 0 ? Math.max(...counts) : 0;
 
   // Always show the map, even if there is no data
-  if (title !== "交通密度マップ") return null;
+  if (title !== "カメラマップ") return null;
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
@@ -114,8 +113,7 @@ export default function TrafficMapCard({
             center={coordinatesForZoom[0] || [33.5597, 133.5311]}
             zoom={16}
             style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-            aria-label="交通密度マップ"
-          >
+            aria-label="交通密度マップ">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -132,15 +130,13 @@ export default function TrafficMapCard({
                 }}
                 interactive={true}
                 className="cursor-pointer"
-                aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}
-              >
+                aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}>
                 <Tooltip
                   direction="top"
                   offset={[0, -10]}
                   opacity={1}
                   permanent={false}
-                  sticky={true}
-                >
+                  sticky={true}>
                   <div className="flex flex-col">
                     <span className="font-semibold">
                       {(device.deviceLocation || "サンプル") +

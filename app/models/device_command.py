@@ -11,6 +11,8 @@ class CommandType(str, enum.Enum):
     RESTART_SERVICE = "RESTART_SERVICE"
     UPDATE_POLYGON = "UPDATE_POLYGON"
     GET_STATUS = "GET_STATUS"
+    START_LIVE_STREAM = "START_LIVE_STREAM"
+    STOP_LIVE_STREAM = "STOP_LIVE_STREAM"
 
 class CommandStatus(str, enum.Enum):
     PENDING = "PENDING"

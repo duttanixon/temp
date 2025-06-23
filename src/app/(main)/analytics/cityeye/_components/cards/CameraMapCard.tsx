@@ -59,7 +59,8 @@ function ResetButton({ onClick }: { onClick: () => void }) {
     <Button
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
-      onClick={onClick}>
+      onClick={onClick}
+    >
       <RefreshCcw />
     </Button>
   );
@@ -78,14 +79,6 @@ export default function CameraMapCard({
     setResetKey((k) => k + 1);
   };
 
-  const sampleDevices: DeviceCountData[] = [
-    { deviceId: "sample-1", count: 76189, lat: 33.5596, lng: 133.5311 },
-    { deviceId: "sample-2", count: 151502, lat: 33.5598, lng: 133.532 },
-    { deviceId: "sample-3", count: 120000, lat: 33.5594, lng: 133.5309 },
-    { deviceId: "sample-4", count: 86000, lat: 33.5595, lng: 133.5322 },
-    { deviceId: "sample-5", count: 92000, lat: 33.5597, lng: 133.5308 },
-  ];
-
   const validDevices = perDeviceCountsData.filter(
     (d): d is DeviceCountData & { lat: number; lng: number } =>
       typeof d.lat === "number" &&
@@ -94,14 +87,14 @@ export default function CameraMapCard({
       !d.error
   );
 
-  const devicesToShow = validDevices.length > 0 ? validDevices : sampleDevices;
+  const devicesToShow = validDevices;
   const coordinatesForZoom: [number, number][] = devicesToShow
     .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
     .map((d) => [d.lat as number, d.lng as number]);
 
   const counts = devicesToShow.map((d) => d.count);
-  const min = Math.min(...counts);
-  const max = Math.max(...counts);
+  const min = counts.length > 0 ? Math.min(...counts) : 0;
+  const max = counts.length > 0 ? Math.max(...counts) : 0;
 
   const hasData = hasAttemptedFetch;
 
@@ -133,7 +126,8 @@ export default function CameraMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }>
+          }
+        >
           <div className="h-72 w-full cursor-pointer relative">
             {/* 地図上に配置するリセットボタン */}
             <div className="absolute top-20 left-2 z-[1000]">
@@ -141,9 +135,10 @@ export default function CameraMapCard({
             </div>
             <MapContainer
               key={resetKey}
-              center={[33.5597, 133.5311]}
+              center={coordinatesForZoom[0] || [33.5597, 133.5311]}
               zoom={16}
-              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}>
+              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+            >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -159,13 +154,15 @@ export default function CameraMapCard({
                     fillOpacity: 0.6,
                   }}
                   interactive={true}
-                  className="cursor-pointer">
+                  className="cursor-pointer"
+                >
                   <Tooltip
                     direction="top"
                     offset={[0, -10]}
                     opacity={1}
                     permanent={false}
-                    sticky={true}>
+                    sticky={true}
+                  >
                     <div className="flex flex-col">
                       <span className="font-semibold">
                         {device.deviceLocation}_{device.deviceName}

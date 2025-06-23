@@ -29,6 +29,7 @@ class DefaultOutputHandler(IOutputHandler):
         self._stream_fps = None
         self._last_update_time = 0
         self._streaming_enabled = config.get("streaming", False)
+        self.kvs_handler = None
         
         logger.info(
             "DefaultOutputHandler created",
@@ -193,7 +194,8 @@ class DefaultOutputHandler(IOutputHandler):
         if time_since_update >= 1.0 / self._stream_fps:
             try:
                 # Make a copy of the frame to avoid race condition
-                display_frame = cv2.cvtColor(frame.copy(), cv2.COLOR_RGB2BGR)
+                # display_frame = cv2.cvtColor(frame.copy(), cv2.COLOR_RGB2BGR)
+                display_frame = frame.copy()
                 age_groups = {"less_than_18":"<18", "18_to_29":"18-29", "30_to_49":"30-49", "50_to_64":"50-64", "65_plus":"65+"}
                 gender_groups = {"female":"f","male":"m"}
                 # Draw objects if available
@@ -225,6 +227,20 @@ class DefaultOutputHandler(IOutputHandler):
                                 context={"detection": str(detection)},
                                 component="DefaultOutputHandler"
                             )
+
+                if self.kvs_handler and self.kvs_handler.is_streaming:
+                    try:
+                        # The KVS pipeline expects an RGB frame, but display_frame is BGR.
+                        # Convert it back to RGB before sending.
+                        # kvs_frame_rgb = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+
+                        # The KVS handler expects a dictionary with a 'frame' key.
+                        kvs_frame_data = {'frame': display_frame, 'timestamp': current_time}
+                        self.kvs_handler.process_frame(kvs_frame_data)
+                    except Exception as e:
+                        logger.error("Error processing frame for KVS stream", exception=e, component="DefaultOutputHandler")
+
+
 
                 with self._frame_lock:
                     self._latest_frame = display_frame

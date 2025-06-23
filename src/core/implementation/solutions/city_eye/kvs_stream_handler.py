@@ -64,7 +64,7 @@ class KVSStreamHandler():
         # Video properties from config
         self.video_width = config.get('input', {}).get('video_width', 1280)
         self.video_height = config.get('input', {}).get('video_height', 720)
-        self.fps = config.get('input', {}).get('fps', 30)
+        self.fps = config.get('output', {}).get('streaming_fps', 2)
         
         # Quality profiles for encoding
         self.quality_profiles = {

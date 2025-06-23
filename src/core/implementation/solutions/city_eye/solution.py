@@ -61,6 +61,7 @@ class CityEyeSolution(ISolution):
         # Create input/output handler
         self.input_source = input_source
         self.output_handler = output_handler
+        self.output_handler.kvs_handler = None
         self.use_frame = config.get("use_frame", True)
 
         # Check if running in test mode
@@ -455,6 +456,7 @@ class CityEyeSolution(ISolution):
             
             if success:
                 self.kvs_streaming_active = True
+                self.output_handler.kvs_handler = self.kvs_handler
                 logger.info(
                     f"KVS streaming started successfully",
                     context={
@@ -482,6 +484,7 @@ class CityEyeSolution(ISolution):
             if hasattr(self, 'kvs_handler') and self.kvs_handler:
                 success = self.kvs_handler.stop_streaming()
                 self.kvs_streaming_active = False
+                self.output_handler.kvs_handler = None
                 
                 self._publish_stream_status(
                     message_id=message_id,
@@ -575,16 +578,6 @@ class CityEyeSolution(ISolution):
                 # Handle output
                 try:
                     self.output_handler.handle_result(frame_data)
-    
-                    # Add KVS streaming if active
-                    if hasattr(self, 'kvs_streaming_active') and self.kvs_streaming_active:
-                        if hasattr(self, 'kvs_handler') and self.kvs_handler:
-                            try:
-                                self.kvs_handler.process_frame(frame_data)
-                            except Exception as e:
-                                logger.error("Error sending frame to KVS", exception=e, component=self.component_name)
-                                # Don't stop main processing if KVS fails
-
                 except Exception as e:
                     logger.error("Error in output handler", exception=e, component=self.component_name)
 

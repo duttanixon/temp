@@ -183,6 +183,8 @@ def start_live_stream_command(
     1. Creates a KVS stream in AWS if it doesn't exist
     2. Sends command to device to start streaming
     3. Returns the HLS URL for viewing the stream
+
+    The same stream name is used per device, allowing multiple users to share the stream.
     """
     logger.info(
         f"Start live stream requested for device {command_in.device_id} by user {current_user.email}"
@@ -205,19 +207,17 @@ def start_live_stream_command(
     solution_id = active_solutions[0].solution_id
 
     # Generate stream name if not provided
-    stream_name = command_in.stream_name
-    if not stream_name:
-        stream_name = kvs_manager.generate_stream_name(db_device.name)
+    stream_name = kvs_manager.generate_stream_name_for_device(db_device.name)
 
-    # Create KVS stream if it doesn't exist
-    if not kvs_manager.create_stream_if_not_exists(stream_name):
+    # Create KVS stream if it doesn't exist and wait for it to be active
+    success, is_new_stream = kvs_manager.create_stream_if_not_exists(stream_name)
+    if not success:
         raise HTTPException(
             status_code=500, 
-            detail="Failed to create KVS stream. Please try again."
+            detail="Failed to create or access KVS stream. Please try again."
         )
-    
 
-    # Create command record in database
+    # Create command record in database for audit trail
     command_create = DeviceCommandCreate(
         device_id=command_in.device_id,
         command_type=CommandType.START_LIVE_STREAM,
@@ -230,11 +230,10 @@ def start_live_stream_command(
         solution_id=solution_id,
     )
 
-
     db_command = device_command.create(db, obj_in=command_create)
 
-
     # Send command to IoT Core
+    # The device will handle if it's already streaming
     success = iot_command_service.send_start_live_stream_command(
         thing_name=thing_name,
         message_id=db_command.message_id,
@@ -242,7 +241,6 @@ def start_live_stream_command(
         duration_seconds=command_in.duration_seconds,
         stream_quality=command_in.stream_quality
     )
-
 
     if not success:
         # Update command status to failed
@@ -253,17 +251,16 @@ def start_live_stream_command(
             error_message="Failed to send command to IoT Core",
         )
 
-        notify_command_update(
-            message_id=str(db_command.message_id),
-            status=CommandStatus.FAILED.value,
-            error_message="Failed to publish command to AWS IoT Core",
-        )
+        # notify_command_update(
+        #     message_id=str(db_command.message_id),
+        #     status=CommandStatus.FAILED.value,
+        #     error_message="Failed to publish command to AWS IoT Core",
+        # )
 
         raise HTTPException(status_code=500, detail="Failed to send command to device")
-    
 
-
-    # Get HLS URL for the stream
+    # Try to get HLS URL immediately
+    # Since the stream might already exist and be active
     hls_info = kvs_manager.get_hls_streaming_url(stream_name)
     kvs_url = hls_info.get("hls_url") if hls_info else None
 
@@ -279,20 +276,22 @@ def start_live_stream_command(
             "device_name": db_device.name,
             "stream_name": stream_name,
             "duration_seconds": command_in.duration_seconds,
-            "stream_quality": command_in.stream_quality
+            "stream_quality": command_in.stream_quality,
+            "is_new_stream": is_new_stream
         },
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent"),
     )
 
+    # Return response
+    # If kvs_url is None, the frontend will get it via SSE when device confirms
     return StreamStatusResponse(
         device_name=db_device.name,
         message_id=db_command.message_id,
         stream_name=stream_name,
         kvs_url=kvs_url,
-        details=f"Live stream starting. Duration: {command_in.duration_seconds}s, Quality: {command_in.stream_quality}"
+        details=f"Live stream {'starting' if is_new_stream else 'requested'}. Duration: {command_in.duration_seconds}s, Quality: {command_in.stream_quality}"
     )
-
 
 
 @router.post("/stop-live-stream", response_model=DeviceCommandResponse)
@@ -352,11 +351,11 @@ def stop_live_stream_command(
             error_message="Failed to send command to IoT Core",
         )
 
-        notify_command_update(
-            message_id=str(db_command.message_id),
-            status=CommandStatus.FAILED.value,
-            error_message="Failed to publish command to AWS IoT Core",
-        )
+        # notify_command_update(
+        #     message_id=str(db_command.message_id),
+        #     status=CommandStatus.FAILED.value,
+        #     error_message="Failed to publish command to AWS IoT Core",
+        # )
 
         raise HTTPException(status_code=500, detail="Failed to send command to device")
 

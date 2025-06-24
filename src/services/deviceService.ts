@@ -182,6 +182,48 @@ export const deviceService = {
     }
   },
 
+
+  // Start live stream
+  async startLiveStream(
+    deviceId: string,
+    duration?: number,
+    quality?: string
+  ): Promise<{
+    device_name: string;
+    message_id: string;
+    stream_name: string;
+    kvs_url: string | null;
+    details: string;
+  }> {
+    try {
+      const response = await apiClient.post(
+        "/device-commands/start-live-stream",
+        {
+          device_id: deviceId,
+          duration_seconds: duration || 240, // Default 4 minutes
+          stream_quality: quality || "medium"
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Stop live stream
+  async stopLiveStream(deviceId: string): Promise<DeviceCommandResponse> {
+    try {
+      const response = await apiClient.post<DeviceCommandResponse>(
+        "/device-commands/stop-live-stream",
+        { device_id: deviceId }
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+
   // Clean up object URL to prevent memory leaks
   revokeImageUrl(url: string): void {
     if (url.startsWith("blob:")) {

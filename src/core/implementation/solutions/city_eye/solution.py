@@ -61,7 +61,8 @@ class CityEyeSolution(ISolution):
         # Create input/output handler
         self.input_source = input_source
         self.output_handler = output_handler
-        self.output_handler.kvs_handler = None
+        self.kvs_handler = None
+        self.kvs_streaming_active = False
         self.use_frame = config.get("use_frame", True)
 
         # Check if running in test mode
@@ -429,6 +430,22 @@ class CityEyeSolution(ISolution):
         )
         
         if command == "start_live_stream":
+            # Check if already streaming
+            if self.kvs_streaming_active and hasattr(self, 'kvs_handler') and self.kvs_handler and self.kvs_handler.is_streaming:
+                # Already streaming, return the current stream info
+                logger.info(
+                    "Stream already active, returning current stream info",
+                    context={"current_stream": self.kvs_handler.stream_name},
+                    component=self.component_name
+                )
+                self._publish_stream_status(
+                    message_id=message_id,
+                    status="already_streaming",
+                    stream_name=self.kvs_handler.stream_name,
+                    error_message=None
+                )
+                return
+
             # Initialize KVS handler if needed
             if not self._initialize_kvs_handler():
                 self._publish_stream_status(
@@ -437,7 +454,7 @@ class CityEyeSolution(ISolution):
                     error_message="Failed to initialize KVS handler"
                 )
                 return
-            
+
             payload = command_data.get("payload", {})
             stream_name = payload.get("stream_name")
             duration_seconds = payload.get("duration_seconds", 240)
@@ -482,14 +499,30 @@ class CityEyeSolution(ISolution):
             
         elif command == "stop_live_stream":
             if hasattr(self, 'kvs_handler') and self.kvs_handler:
+                # Store the stream name before stopping
+                stopped_stream_name = self.kvs_handler.stream_name
+                
                 success = self.kvs_handler.stop_streaming()
                 self.kvs_streaming_active = False
+
+                # Clear KVS handler from output handler
                 self.output_handler.kvs_handler = None
+                self.kvs_handler = None
                 
                 self._publish_stream_status(
                     message_id=message_id,
                     status="stopped" if success else "failed",
+                    stream_name=stopped_stream_name if success else None,
                     error_message=None if success else "Failed to stop stream"
+                )
+                
+                logger.info(
+                    f"KVS streaming stopped",
+                    context={
+                        "stream_name": stopped_stream_name,
+                        "success": success
+                    },
+                    component=self.component_name
                 )
             else:
                 self._publish_stream_status(
@@ -497,6 +530,18 @@ class CityEyeSolution(ISolution):
                     status="failed",
                     error_message="No active stream to stop"
                 )
+                logger.warning("No active stream to stop", component=self.component_name)
+        else:
+            logger.warning(
+                f"Unknown stream command: {command}",
+                context={"message_id": message_id},
+                component=self.component_name
+            )
+            self._publish_stream_status(
+                message_id=message_id,
+                status="failed",
+                error_message=f"Unknown command: {command}"
+            )
 
 
     def _publish_stream_status(self, message_id: str, status: str, 

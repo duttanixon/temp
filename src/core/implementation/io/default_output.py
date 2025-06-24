@@ -52,7 +52,7 @@ class DefaultOutputHandler(IOutputHandler):
             object_meta = frame_data.get("object_meta", [])
             frame = frame_data.get("frame")
 
-            # update the streamer with the latest frame and bouding boxes
+            # update the streamer with the latest frame and bounding boxes
             if frame is not None and self._streaming_enabled:
                 self._streamer_update_frame(frame, object_meta)
         except Exception as e:

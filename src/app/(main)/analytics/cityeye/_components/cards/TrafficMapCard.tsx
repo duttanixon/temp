@@ -54,7 +54,8 @@ function ResetButton({ onClick }: { onClick: () => void }) {
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
       onClick={onClick}
-      aria-label="地図をリセット">
+      aria-label="地図をリセット"
+    >
       <RefreshCcw />
     </Button>
   );
@@ -89,8 +90,6 @@ export default function TrafficMapCard({
 
   const hasData = hasAttemptedFetch;
 
-  if (title !== "カメラマップ") return null;
-
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
       <CardHeader className="pb-2 pt-3 px-4 flex justify-between">
@@ -114,7 +113,8 @@ export default function TrafficMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }>
+          }
+        >
           <div className="h-72 w-full cursor-pointer relative z-[1]">
             {/* Place the reset button above the map, not absolutely positioned */}
             <div className="absolute top-20 left-2 z-[1000]">
@@ -125,7 +125,8 @@ export default function TrafficMapCard({
               center={coordinatesForZoom[0] || [33.5597, 133.5311]}
               zoom={16}
               style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-              aria-label="カメラマップ">
+              aria-label="カメラマップ"
+            >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -142,13 +143,15 @@ export default function TrafficMapCard({
                   }}
                   interactive={true}
                   className="cursor-pointer"
-                  aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}>
+                  aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}
+                >
                   <Tooltip
                     direction="top"
                     offset={[0, -10]}
                     opacity={1}
                     permanent={false}
-                    sticky={true}>
+                    sticky={true}
+                  >
                     <div className="flex flex-col">
                       <span className="font-semibold">
                         {(device.deviceLocation || "サンプル") +

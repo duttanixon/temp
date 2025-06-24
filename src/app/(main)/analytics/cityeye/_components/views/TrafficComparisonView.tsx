@@ -8,6 +8,7 @@ import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
+import TrafficMapCard from "../cards/TrafficMapCard";
 
 interface TrafficComparisonViewProps {
   mainPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
@@ -87,6 +88,15 @@ export default function TrafficComparisonView({
               hasAttemptedFetch={hasAttemptedFetchMain}
             />
           </div>
+          <TrafficMapCard
+            title="カメラマップ (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            perDeviceCountsData={
+              mainPeriodProcessedData?.totalVehicles?.perDeviceCounts ?? []
+            }
+          />
           <VehicleTypeDistributionCard
             title="交通種別分析 (分析期間)"
             isLoading={isLoadingMain}
@@ -151,6 +161,16 @@ export default function TrafficComparisonView({
               hasAttemptedFetch={hasAttemptedFetchComparison}
             />
           </div>
+          <TrafficMapCard
+            title="カメラマップ (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            perDeviceCountsData={
+              comparisonPeriodProcessedData?.totalVehicles?.perDeviceCounts ??
+              []
+            }
+          />
           <VehicleTypeDistributionCard
             title="交通種別分析 (比較期間)"
             isLoading={isLoadingComparison}

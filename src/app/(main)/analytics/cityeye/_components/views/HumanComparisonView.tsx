@@ -10,6 +10,7 @@ import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
+import CameraMapCard from "../cards/CameraMapCard";
 
 interface ComparisonViewProps {
   mainPeriodProcessedData: ProcessedAnalyticsData | null;
@@ -89,6 +90,15 @@ export default function HumanComparisonView({
               hasAttemptedFetch={hasAttemptedFetchMain}
             />
           </div>
+          <CameraMapCard
+            title="カメラマップ (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            perDeviceCountsData={
+              mainPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
+            }
+          />
           <AgeDistributionCard
             title="年齢層別分析 (分析期間)"
             isLoading={isLoadingMain}
@@ -169,6 +179,15 @@ export default function HumanComparisonView({
               hasAttemptedFetch={hasAttemptedFetchComparison}
             />
           </div>
+          <CameraMapCard
+            title="カメラマップ (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            perDeviceCountsData={
+              comparisonPeriodProcessedData?.totalPeople?.perDeviceCounts ?? []
+            }
+          />
           <AgeDistributionCard
             title="年齢層別分析 (比較期間)"
             isLoading={isLoadingComparison}

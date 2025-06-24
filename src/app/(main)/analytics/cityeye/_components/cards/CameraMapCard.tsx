@@ -22,6 +22,8 @@ interface CameraMapCardProps {
 }
 
 const getColor = (count: number, min: number, max: number) => {
+  // If only one device, always return red
+  if (max === min) return "rgb(255,0,0)";
   const ratio = Math.min(Math.max((count - min) / (max - min), 0), 1);
   // RGB値を使った滑らかなグラデーション
   // 緑(0,255,0) → 黄(255,255,0) → 赤(255,0,0)
@@ -40,6 +42,14 @@ const getColor = (count: number, min: number, max: number) => {
     b = 0;
   }
   return `rgb(${r}, ${g}, ${b})`;
+};
+
+const getRadius = (count: number, min: number, max: number) => {
+  if (max === min) return 16; // fallback if all values are the same
+  const minRadius = 8;
+  const maxRadius = 30;
+  const ratio = Math.min(Math.max((count - min) / (max - min), 0), 1);
+  return minRadius + (maxRadius - minRadius) * ratio;
 };
 
 function AutoZoom({ coordinates }: { coordinates: [number, number][] }) {
@@ -110,7 +120,11 @@ export default function CameraMapCard({
           <span className="text-[10px]">
             {min.toLocaleString()} - {max.toLocaleString()}
           </span>
-          <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
+          {min === max ? (
+            <div className="h-2 w-24 bg-red-500 rounded-sm mt-0.5" />
+          ) : (
+            <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-3">
@@ -142,7 +156,7 @@ export default function CameraMapCard({
                 <CircleMarker
                   key={idx}
                   center={[device.lat!, device.lng!]}
-                  radius={20}
+                  radius={getRadius(device.count, min, max)}
                   pathOptions={{
                     color: getColor(device.count, min, max),
                     fillOpacity: 0.6,

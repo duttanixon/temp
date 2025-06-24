@@ -22,6 +22,8 @@ interface TrafficMapCardProps {
 }
 
 const getColor = (count: number, min: number, max: number) => {
+  // If only one device, always return red
+  if (max === min) return "rgb(255,0,0)";
   const ratio = Math.min(Math.max((count - min) / (max - min), 0), 1);
   let r, g, b;
   if (ratio <= 0.5) {
@@ -36,6 +38,14 @@ const getColor = (count: number, min: number, max: number) => {
     b = 0;
   }
   return `rgb(${r}, ${g}, ${b})`;
+};
+
+const getRadius = (count: number, min: number, max: number) => {
+  if (max === min) return 16; // fallback if all values are the same
+  const minRadius = 8;
+  const maxRadius = 30;
+  const ratio = Math.min(Math.max((count - min) / (max - min), 0), 1);
+  return minRadius + (maxRadius - minRadius) * ratio;
 };
 
 function AutoZoom({ coordinates }: { coordinates: [number, number][] }) {
@@ -54,7 +64,8 @@ function ResetButton({ onClick }: { onClick: () => void }) {
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
       onClick={onClick}
-      aria-label="地図をリセット">
+      aria-label="地図をリセット"
+    >
       <RefreshCcw />
     </Button>
   );
@@ -102,7 +113,11 @@ export default function TrafficMapCard({
           <span className="text-[10px]">
             {min.toLocaleString()} - {max.toLocaleString()}
           </span>
-          <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
+          {min === max ? (
+            <div className="h-2 w-24 bg-red-500 rounded-sm mt-0.5" />
+          ) : (
+            <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-3">
@@ -114,7 +129,8 @@ export default function TrafficMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }>
+          }
+        >
           <div className="h-72 w-full cursor-pointer relative z-[1]">
             {/* Place the reset button above the map, not absolutely positioned */}
             <div className="absolute top-20 left-2 z-[1000]">
@@ -125,7 +141,8 @@ export default function TrafficMapCard({
               center={coordinatesForZoom[0] || [33.5597, 133.5311]}
               zoom={16}
               style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-              aria-label="カメラマップ">
+              aria-label="カメラマップ"
+            >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -135,20 +152,22 @@ export default function TrafficMapCard({
                 <CircleMarker
                   key={device.deviceId}
                   center={[device.lat as number, device.lng as number]}
-                  radius={20}
+                  radius={getRadius(device.count, min, max)}
                   pathOptions={{
                     color: getColor(device.count, min, max),
                     fillOpacity: 0.6,
                   }}
                   interactive={true}
                   className="cursor-pointer"
-                  aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}>
+                  aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}
+                >
                   <Tooltip
                     direction="top"
                     offset={[0, -10]}
                     opacity={1}
                     permanent={false}
-                    sticky={true}>
+                    sticky={true}
+                  >
                     <div className="flex flex-col">
                       <span className="font-semibold">
                         {(device.deviceLocation || "サンプル") +

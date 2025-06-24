@@ -346,6 +346,15 @@ class KVSStreamHandler():
                 if self.is_streaming:  # Only log if we're still streaming
                     logger.error("Error processing frame", exception=e, component=self.component_name)
 
+
+    def _clear_frame_queue(self):
+        """Clear any pending frames in the queue"""
+        while not self.frame_queue.empty():
+            try:
+                self.frame_queue.get_nowait()
+            except queue.Empty:
+                break
+        logger.debug("Cleared frame queue", component=self.component_name)
     
     def _on_bus_message(self, bus, message):
         """

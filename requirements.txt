@@ -10,4 +10,6 @@ awsiotsdk
 ruff
 pandas
 shapely
-boto3
+boto3==1.38.5
+flask_cors
+aiortc

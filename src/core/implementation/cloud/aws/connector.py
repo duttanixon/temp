@@ -667,33 +667,6 @@ class AWSIoTCoreConnector(ICloudConnector):
             return None
         return f"devices/{self.client_id}/data/{self.solution_type}"
 
-
-    @handle_errors(component="AWSIoTConnector")
-    def send_metrics(self, metrics: Dict[str, Any]) -> bool:
-        """
-        Send metrics to AWS IoT Core
-
-        Args:
-            metrics: Metrics to send
-
-        Returns:
-            bool: True if metrics were sent successfully
-        """
-        try:
-            logger.debug(
-                "Sending metrics to AWS IoT Core",
-                context={"metrics_keys": list(metrics.keys())},
-                component="AWSIoTConnector"
-            )
-            # Publish to a generic metrics topic or a more specific one if defined
-            metrics_topic = f"devices/{self.client_id}/metrics" 
-            return self.publish(metrics_topic, metrics) # Payload is dict, EventFormatter will handle
-
-        except Exception as e:
-            logger.error("Failed to send metrics", exception=e, component="AWSIoTConnector")
-            # Do not raise CloudError, allow caller to decide.
-            return False
-
     def cleanup(self) -> None:
         """
         Clean up resources

@@ -195,5 +195,51 @@ class IoTCommandService:
             return False
 
 
+    def send_start_live_stream_command(
+        self,
+        thing_name: str,
+        message_id: uuid.UUID,
+        stream_name: str,
+        duration_seconds: int = 240,
+        stream_quality: str = "medium"
+    ) -> bool:
+        """
+        Send start live stream command to device via IoT Core
+        Topic: devices/<thing_name>_sdk/command/stream/start
+        """
+        topic = f"devices/{thing_name}_sdk/command/stream/start"
+
+        message = {
+            "messageId": str(message_id),
+            "command": "start_live_stream",
+            "payload": {
+                "stream_name": stream_name,
+                "duration_seconds": duration_seconds,
+                "stream_quality": stream_quality
+            }
+        }
+
+        return self._publish_message(topic, message)
+    
+
+    def send_stop_live_stream_command(
+        self,
+        thing_name: str,
+        message_id: uuid.UUID
+    ) -> bool:
+        """
+        Send stop live stream command to device via IoT Core
+        Topic: devices/<thing_name>_sdk/command/stream/stop
+        """
+        topic = f"devices/{thing_name}_sdk/command/stream/stop"
+
+        message = {
+            "messageId": str(message_id),
+            "command": "stop_live_stream"
+        }
+
+        return self._publish_message(topic, message)
+
+
 # Initialize the IoT Command Service
 iot_command_service = IoTCommandService()

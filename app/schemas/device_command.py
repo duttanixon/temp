@@ -61,3 +61,25 @@ class CaptureImageCommand(BaseModel):
     """Specific schema for capture image command."""
 
     device_id: UUID
+
+
+# Add these schemas to app/schemas/device_command.py
+
+class StartLiveStreamCommand(BaseModel):
+    """Schema for starting KVS live stream"""
+    device_id: UUID
+    stream_name: Optional[str] = None  # If None, backend will generate
+    duration_seconds: Optional[int] = Field(default=240, ge=60, le=3600)  # 1 min to 1 hour
+    stream_quality: Optional[str] = Field(default="medium", pattern="^(low|medium|high)$")
+
+class StopLiveStreamCommand(BaseModel):
+    """Schema for stopping KVS live stream"""
+    device_id: UUID
+
+class StreamStatusResponse(BaseModel):
+    """Schema for stream command response"""
+    device_name: str
+    message_id: UUID
+    stream_name: Optional[str] = None
+    kvs_url: Optional[str] = None
+    details: str

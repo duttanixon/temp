@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
 import { ProcessedAgeGroup } from "@/types/cityeye/cityEyeAnalytics";
+import ShadcnPieChartLabelCard from "@/components/charts/piechart-label";
 
 interface AgeDistributionCardProps {
   title: string;
@@ -28,7 +28,7 @@ export default function AgeDistributionCard({
   ];
 
   return (
-    <ShadcnPieChartDonutCard
+    <ShadcnPieChartLabelCard
       title={title}
       fontSize={10}
       description=""

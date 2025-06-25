@@ -1,5 +1,6 @@
 from typing import Dict, Any
 from core.implementation.io.default_output import DefaultOutputHandler
+from core.implementation.io.cityeye_output import CityEyeOutputHandler
 from core.implementation.io.webrtc_output import WebRTCOutputHandler
 from core.interfaces.io.output_handler import IOutputHandler
 from core.implementation.common.logger import get_logger
@@ -40,7 +41,8 @@ class OutputHandlerFactory:
         # Registry of available output types
         output_types = {
             "default": DefaultOutputHandler,
-            "webrtc": WebRTCOutputHandler,
+            "cityeye": CityEyeOutputHandler,
+            "webrtc": WebRTCOutputHandler
         }
 
         # Look up the output class in the registry

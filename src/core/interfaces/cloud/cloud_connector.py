@@ -11,11 +11,6 @@ class ICloudConnector(ABC):
         pass
 
     @abstractmethod
-    def send_metrics(self, metrics: Dict[str, Any]) -> bool:
-        """Send metrics to cloud"""
-        pass
-
-    @abstractmethod
     def subscribe(self, topic: str) -> bool:
         """Subscribe to a topic"""
 

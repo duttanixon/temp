@@ -69,7 +69,8 @@ function ResetButton({ onClick }: { onClick: () => void }) {
     <Button
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
-      onClick={onClick}>
+      onClick={onClick}
+    >
       <RefreshCcw />
     </Button>
   );
@@ -136,7 +137,8 @@ export default function CameraMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }>
+          }
+        >
           <div className="h-72 w-full cursor-pointer relative z-[1]">
             {/* 地図上に配置するリセットボタン */}
             <div className="absolute top-20 left-2 z-[1000]">
@@ -146,7 +148,8 @@ export default function CameraMapCard({
               key={resetKey}
               center={coordinatesForZoom[0] || [33.5597, 133.5311]}
               zoom={16}
-              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}>
+              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+            >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -162,14 +165,16 @@ export default function CameraMapCard({
                     fillOpacity: 0.6,
                   }}
                   interactive={true}
-                  className="cursor-pointer">
+                  className="cursor-pointer"
+                >
                   <Tooltip
-                    direction="top"
-                    offset={[0, -10]}
+                    direction="auto"
+                    offset={[5, -5]}
                     opacity={1}
                     permanent={false}
-                    sticky={true}>
-                    <div className="flex flex-col">
+                    sticky={true}
+                  >
+                    <div className="flex flex-col whitespace-nowrap">
                       <span className="font-semibold">
                         {device.deviceLocation}_{device.deviceName}
                       </span>

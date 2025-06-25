@@ -162,17 +162,15 @@ export default function TrafficMapCard({
                   aria-label={`${device.deviceLocation || ""}_${device.deviceName || ""}`}
                 >
                   <Tooltip
-                    direction="top"
-                    offset={[0, -10]}
+                    direction="auto"
+                    offset={[5, -5]}
                     opacity={1}
                     permanent={false}
                     sticky={true}
                   >
-                    <div className="flex flex-col">
+                    <div className="flex flex-col whitespace-nowrap">
                       <span className="font-semibold">
-                        {(device.deviceLocation || "サンプル") +
-                          "_" +
-                          (device.deviceName || device.deviceId)}
+                        {device.deviceLocation}_{device.deviceName}
                       </span>
                       {device.count.toLocaleString()} 台
                     </div>

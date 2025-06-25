@@ -10,12 +10,12 @@ from core.implementation.common.error_handler import handle_errors
 
 logger = get_logger()
 
-class DefaultOutputHandler(IOutputHandler):
+class CityEyeOutputHandler(IOutputHandler):
     """Write to database with web streaming capabilitiers"""
 
     def __init__(self, config: Dict[str, Any]):
         """
-        Initialize the default output handler with configuration.
+        Initialize the city output handler with configuration.
 
         Args:
             config: Dictionary containing output configuration.
@@ -28,14 +28,15 @@ class DefaultOutputHandler(IOutputHandler):
         self._stream_fps = None
         self._last_update_time = 0
         self._streaming_enabled = config.get("streaming", False)
+        self.kvs_handler = None
         
         logger.info(
-            "DefaultOutputHandler created",
+            "CityEyeOutputHandler created",
             context={"streaming_enabled": self._streaming_enabled},
-            component="DefaultOutputHandler"
+            component="CityEyeOutputHandler"
         )
 
-    @handle_errors(component="DefaultOutputHandler")
+    @handle_errors(component="CityEyeOutputHandler")
     def handle_result(self, frame_data: Dict[str, Any]) -> None:
         """
         Function that's called after every frame is processed.
@@ -58,16 +59,16 @@ class DefaultOutputHandler(IOutputHandler):
             logger.error(
                 error_msg,
                 exception=e,
-                component="DefaultOutputHandler"
+                component="CityEyeOutputHandler"
             )
             raise OutputHandlerError(
                 error_msg,
                 code="FRAME_HANDLING_ERROR",
                 details={"error": str(e)},
-                source="DefaultOutputHandler"
+                source="CityEyeOutputHandler"
             ) from e
 
-    @handle_errors(component="DefaultOutputHandler")
+    @handle_errors(component="CityEyeOutputHandler")
     def initialize_streaming(self) -> None:
         """
         Initialize the streaming server if streaming is enabled.
@@ -77,7 +78,7 @@ class DefaultOutputHandler(IOutputHandler):
         """
 
         if not self._streaming_enabled:
-            logger.info("Streaming not enabled, skipping initialization", component="DefaultOutputHandler")
+            logger.info("Streaming not enabled, skipping initialization", component="CityEyeOutputHandler")
             return
 
         try:
@@ -93,7 +94,7 @@ class DefaultOutputHandler(IOutputHandler):
             host = self.config.get("streaming_host", "0.0.0.0")
             port = self.config.get("streaming_port", 7000)
             self._start(host=host, port=port)
-            logger.info(f"Frame streaming enabled at http://{host}:{port}", component="DefaultOutputHandler")
+            logger.info(f"Frame streaming enabled at http://{host}:{port}", component="CityEyeOutputHandler")
     
         except Exception as e:
             error_msg = "Error initializing streaming server"
@@ -101,13 +102,13 @@ class DefaultOutputHandler(IOutputHandler):
                 error_msg,
                 exception=e,
                 context={"host": self.config.get("streaming_host"), "port": self.config.get("streaming_port")},
-                component="DefaultOutputHandler"
+                component="CityEyeOutputHandler"
             )
             raise OutputHandlerError(
                 error_msg,
                 code="STREAMING_INIT_ERROR",
                 details={"error": str(e)},
-                source="DefaultOutputHandler",
+                source="CityEyeOutputHandler",
                 recoverable=False
             ) from e
 
@@ -133,7 +134,7 @@ class DefaultOutputHandler(IOutputHandler):
                 "Failed to start streaming server",
                 exception=e,
                 context={"host":host, "port": port},
-                component="DefaultOutputHandler"
+                component="CityEyeOutputHandler"
             )
             raise
 
@@ -156,7 +157,7 @@ class DefaultOutputHandler(IOutputHandler):
                     _, buffer = cv2.imencode(".jpg", self._latest_frame)
                     frame_bytes = buffer.tobytes()
                 except Exception as e:
-                    logger.error("Error encoding frame", exception=e, component="DefaultOutputHandler")
+                    logger.error("Error encoding frame", exception=e, component="CityEyeOutputHandler")
                     continue
 
             # Yield the frame in the format expected by the streaming protocol
@@ -194,12 +195,57 @@ class DefaultOutputHandler(IOutputHandler):
                 # Make a copy of the frame to avoid race condition
                 # display_frame = cv2.cvtColor(frame.copy(), cv2.COLOR_RGB2BGR)
                 display_frame = frame.copy()
+                age_groups = {"less_than_18":"<18", "18_to_29":"18-29", "30_to_49":"30-49", "50_to_64":"50-64", "65_plus":"65+"}
+                gender_groups = {"female":"f","male":"m"}
+                # Draw objects if available
+                if object_meta:
+                    for detection in object_meta:
+                        try:
+                            if detection.label != "person":
+                                label = f"{detection.track_id} -{detection.label}: {detection.confidence: .2f}"
+                            else:
+                                if detection.classifications:
+                                    gender, gender_conf = detection.classifications[0]
+                                    age, age_conf = detection.classifications[1]
+                                    if age in age_groups:
+                                        age = age_groups[age]
+                                    if gender in gender_groups:
+                                        gender = gender_groups[gender]
+                                    label = f"{detection.track_id}:{gender}:{age}"
+                                else:
+                                    label = f"{detection.track_id} - {detection.label}: {detection.confidence:.2f}"
+                            x1, y1, x2, y2 = detection.bbox
+                            color = (0, 0, 255) if detection.label == "person" else (255, 0, 0)
+                            cv2.rectangle(display_frame, (x1, y1), (x2, y2), color, 2)
+                            y_offset = y1 - 10 if y1 - 10 > 10 else y1 + 20
+                            self.draw_label(display_frame, label, (x1, y_offset), bg_color=color)
+                        except Exception as e:
+                            logger.error(
+                                "Error drawing detection",
+                                exception=e,
+                                context={"detection": str(detection)},
+                                component="CityEyeOutputHandler"
+                            )
+
+                if self.kvs_handler and self.kvs_handler.is_streaming:
+                    try:
+                        # The KVS pipeline expects an RGB frame, but display_frame is BGR.
+                        # Convert it back to RGB before sending.
+                        # kvs_frame_rgb = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+
+                        # The KVS handler expects a dictionary with a 'frame' key.
+                        kvs_frame_data = {'frame': display_frame, 'timestamp': current_time}
+                        self.kvs_handler.process_frame(kvs_frame_data)
+                    except Exception as e:
+                        logger.error("Error processing frame for KVS stream", exception=e, component="CityEyeOutputHandler")
+
+
 
                 with self._frame_lock:
                     self._latest_frame = display_frame
                     self._last_update_time = current_time
             except Exception as e:
-                logger.error("Error updating frame for streaming", exception=e, component="DefaultOutputHandler")
+                logger.error("Error updating frame for streaming", exception=e, component="CityEyeOutputHandler")
 
 
     def _setup_routes(self):

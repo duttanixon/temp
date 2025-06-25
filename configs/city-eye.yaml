@@ -61,7 +61,7 @@ solution:
 
 
     output:
-        type: default
+        type: cityeye
         streaming: true
         streaming_fps: 5
         streaming_host: "0.0.0.0"

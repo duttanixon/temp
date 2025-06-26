@@ -2,7 +2,7 @@
 
 import React from "react";
 import { ProcessedGenderSegment } from "@/types/cityeye/cityEyeAnalytics";
-import ShadcnPieChartLabelCard from "@/components/charts/piechart-label";
+import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
 
 interface GenderDistributionCardProps {
   title: string;
@@ -21,7 +21,7 @@ export default function GenderDistributionCard({
 }: GenderDistributionCardProps) {
   const chartColors = ["var(--chart-male)", "var(--chart-female)"];
   return (
-    <ShadcnPieChartLabelCard
+    <ShadcnPieChartDonutCard
       title={title}
       fontSize={14}
       description=""

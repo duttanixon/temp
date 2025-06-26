@@ -11,7 +11,7 @@ import {
   Tooltip,
   useMap,
 } from "react-leaflet";
-import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
+import { GenericAnalyticsCard } from "@/app/(main)/analytics/cityeye/_components/cards/GenericAnalyticsCard";
 
 interface CameraMapCardProps {
   title: string;

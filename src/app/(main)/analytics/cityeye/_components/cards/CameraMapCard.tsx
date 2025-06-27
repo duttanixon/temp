@@ -113,19 +113,26 @@ export default function CameraMapCard({
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
-        <div className="flex flex-col text-right text-xs text-muted-foreground">
-          <span>人数</span>
-          <span className="text-[10px]">
-            {min.toLocaleString()} - {max.toLocaleString()}
-          </span>
-          {min === max ? (
-            <div className="h-2 w-24 bg-red-500 rounded-sm mt-0.5" />
-          ) : (
-            <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
-          )}
+        <div className="flex flex-col text-xs text-muted-foreground w-40">
+          <div className="flex items-center gap-2">
+            <span>人数</span>
+            <div
+              className={`flex-grow h-2 ${min === max ? "bg-red-500" : "bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"} rounded-sm relative`}>
+              <span
+                className="absolute left-0 text-[10px] text-muted-foreground"
+                style={{ transform: "translateY(-150%)" }}>
+                {min.toLocaleString()}
+              </span>
+              <span
+                className="absolute right-0 text-[10px] text-muted-foreground"
+                style={{ transform: "translateY(-150%)" }}>
+                {max.toLocaleString()}
+              </span>
+            </div>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-3">
+      <CardContent className="flex-grow px-3">
         <GenericAnalyticsCard
           isLoading={isLoading}
           error={hasAttemptedFetch ? error : null}

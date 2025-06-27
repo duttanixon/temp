@@ -28,8 +28,8 @@ export default function TrafficOverviewView({
 }: TrafficOverviewViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-      <div className="grid grid-rows-2 gap-3">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-rows-2 gap-3">
           <TotalVehiclesCard
             title="総交通量"
             totalCountData={processedData?.totalVehicles?.totalCount ?? null}

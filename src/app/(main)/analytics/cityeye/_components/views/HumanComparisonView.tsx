@@ -10,7 +10,11 @@ import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
-import CameraMapCard from "../cards/CameraMapCard";
+import dynamic from "next/dynamic";
+
+const CameraMapCard = dynamic(() => import("../cards/CameraMapCard"), {
+  ssr: false,
+});
 
 interface ComparisonViewProps {
   mainPeriodProcessedData: ProcessedAnalyticsData | null;

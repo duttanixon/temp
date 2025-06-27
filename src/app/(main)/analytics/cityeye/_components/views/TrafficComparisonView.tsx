@@ -8,7 +8,7 @@ import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
-import TrafficMapCard from "../cards/TrafficMapCard";
+import dynamic from "next/dynamic";
 
 interface TrafficComparisonViewProps {
   mainPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
@@ -32,6 +32,10 @@ const formatDateRange = (dateRange?: DateRange): string => {
   const toDate = formatISO(dateRange.to, { representation: "date" });
   return `${fromDate} - ${toDate}`;
 };
+
+const TrafficMapCard = dynamic(() => import("../cards/TrafficMapCard"), {
+  ssr: false,
+});
 
 export default function TrafficComparisonView({
   mainPeriodProcessedData,

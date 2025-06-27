@@ -163,7 +163,7 @@ export default function ShadcnAreaChartCard({
             tickFormatter={xAxisTickFormatter || ((value) => value.toString())} // Use value directly if no formatter
             angle={-45} // Angle ticks for better readability if labels are long
             textAnchor="end" // Anchor angled ticks at the end
-            height={50} // Increase height to accommodate angled ticks
+            height={90} // Increased height for more label space
             interval="preserveStartEnd" // Ensure first and last ticks are shown
           />
           <YAxis

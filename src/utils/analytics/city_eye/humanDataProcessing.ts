@@ -48,7 +48,11 @@ const CONFIG = {
 export function processHumanAnalyticsData(
   data: FrontendCityEyeAnalyticsPerDeviceResponse | null,
   filterContext: FilterContext | null
-): ProcessedAnalyticsData | null {
+):
+  | (ProcessedAnalyticsData & {
+      periodAnalysisData: { datetime: string; count: number }[];
+    })
+  | null {
   if (!data) return null;
 
   const totalPeopleData = processTotalPeople(data);
@@ -63,6 +67,7 @@ export function processHumanAnalyticsData(
     genderDistribution: processGenderDistribution(data),
     hourlyDistribution: processHourlyDistribution(data),
     ageGenderDistribution: processAgeGenderDistribution(data),
+    periodAnalysisData: processPeriodAnalysisData(data),
   };
 }
 
@@ -385,4 +390,29 @@ function processAgeGenderDistribution(
       ? "該当するデータがありません。"
       : null,
   };
+}
+
+/**
+ * Process period analysis data for area chart (no aggregation, all hours for all dates)
+ */
+export function processPeriodAnalysisData(
+  data: FrontendCityEyeAnalyticsPerDeviceResponse
+): { datetime: string; count: number }[] {
+  if (!data) return [];
+
+  const allEntries: { datetime: string; count: number }[] = [];
+  data.forEach((device) => {
+    const timeSeries = device.analytics_data?.time_series_data;
+    if (timeSeries && Array.isArray(timeSeries)) {
+      timeSeries.forEach((entry: { timestamp: string; count: number }) => {
+        if (entry.timestamp && typeof entry.count === "number") {
+          allEntries.push({ datetime: entry.timestamp, count: entry.count });
+        }
+      });
+    }
+  });
+
+  // Sort by datetime ascending
+  allEntries.sort((a, b) => a.datetime.localeCompare(b.datetime));
+  return allEntries;
 }

@@ -40,9 +40,15 @@ export default function HumanPeriodAnalysisCard({
     const dateMap = new Map<string, number>();
     periodAnalysisData.forEach(({ datetime, count }) => {
       const date = datetime.slice(0, 10); // YYYY-MM-DD
-      dateMap.set(date, (dateMap.get(date) || 0) + (typeof count === 'number' ? count : 0));
+      dateMap.set(
+        date,
+        (dateMap.get(date) || 0) + (typeof count === "number" ? count : 0)
+      );
     });
-    return Array.from(dateMap.entries()).map(([date, count]) => ({ date, count }));
+    return Array.from(dateMap.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
   }, [periodAnalysisData]);
 
   // X-axis: show only the date (no hour)
@@ -75,7 +81,7 @@ export default function HumanPeriodAnalysisCard({
     <div style={{ paddingBottom: 40 }}>
       <ShadcnAreaChartCard
         title={title}
-        description="People count per day across the selected period"
+        description="選択した期間中の1日あたりの人数"
         data={aggregatedByDate}
         isLoading={isLoading}
         error={error}

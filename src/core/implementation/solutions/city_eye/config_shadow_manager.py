@@ -6,37 +6,37 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from core.implementation.common.logger import get_logger
-from core.interfaces.cloud.cloud_connector import ICloudConnector
+from .cloud_manager import CloudManager
 
 logger = get_logger()
 
 class ShadowConfigManager:
     def __init__(
         self,
-        cloud_connector: ICloudConnector, 
-        config_update_callback: Callable[[str, Any], bool], 
-        xlines_config_path: str
-        ):
-        self.cloud_connector = cloud_connector
-        self.config_update_callback = config_update_callback
-        self.xlines_config_path = xlines_config_path
+        cloud_manager: CloudManager,
+        config: Dict[str, Any], 
+        xlines_config_path: str ):
+    
         self.component_name = "ShadowConfigManager"
+        self.connector = cloud_manager.cloud_connector
+        self.xlines_config_path = xlines_config_path
+        self.config = config
 
-        if not self.cloud_connector.is_shadow_enabled():
-            logger.warning("Shadow is not enabled in cloud_connector. ShadowConfigManager will not function.", component=self.component_name)
-            return
+        self._config_update_callback = None
 
-        self._subscribe_to_delta()
-        # Optionally, get the initial shadow state on startup
-        self.get_initial_config_from_shadow()
+    
+    def set_update_config_callback(self, callback: Callable):
+        """Set callback for updating the configuration."""
+        self._config_update_callback = callback
+    
 
-    def _subscribe_to_delta(self):
-        delta_topic = self.cloud_connector.get_shadow_delta_topic()
+    def subscribe_to_delta(self):
+        delta_topic = self.connector.shadow_delta_topic_template.format(thingName=self.connector.thing_name, shadowName=self.config.get("cloud", {}).get("config_shadow_name"))
         if delta_topic:
             logger.info(f"Subscribing to shadow delta topic: {delta_topic}", component=self.component_name)
             # The callback for AWSIoTCoreConnector.subscribe takes (topic, payload_str)
             # Assuming qos=1 for delta messages.
-            self.cloud_connector.subscribe(delta_topic, self._handle_delta_message, qos=1)
+            self.connector.subscribe(delta_topic, self._handle_delta_message, qos=1)
         else:
             logger.error("Could not get shadow delta topic. Cannot subscribe", component= self.component_name)
 
@@ -55,7 +55,6 @@ class ShadowConfigManager:
         )
         worker_thread.daemon = True
         worker_thread.start()
-
 
     def _process_delta_update_worker(self, topic: str, payload_str: str):
         """
@@ -87,27 +86,28 @@ class ShadowConfigManager:
                             json.dump(parsed_json, f, indent=4)
                         else:
                             logger.error(f"Unsupported type for xlines_cfg_content: {type(new_xlines_content)}.", component=self.component_name)
-                            self.update_reported_status("failed", message_id, version, error=f"Unsupported xlines_cfg_content type: {type(new_xlines_content)}")
+                            self._update_reported_status("failed", message_id, version, error=f"Unsupported xlines_cfg_content type: {type(new_xlines_content)}")
                             return
 
                     logger.info(f"Successfully updated local xlines_cfg.json at {self.xlines_config_path}", component=self.component_name)
 
                     # Notify the application to reload the configuration
-                    success = self.config_update_callback(self.xlines_config_path, new_xlines_content)
+                    success = self._config_update_callback(self.xlines_config_path, new_xlines_content)
                     
                     if success:
                         # Update reported state - this blocking call is now safe
-                        self.update_reported_status("successful", message_id, version, content=new_xlines_content)
+                        self._update_reported_status("successful", message_id, version, content=new_xlines_content)
                     else:
-                        self.update_reported_status("failed", message_id, version, error="Application failed to reload config.")
+                        self._update_reported_status("failed", message_id, version, error="Application failed to reload config.")
 
                 except Exception as e:
                     logger.error("Error processing and applying xlines delta", exception=e, component=self.component_name)
-                    self.update_reported_status("failed", message_id, version, error=str(e))
+                    self._update_reported_status("failed", message_id, version, error=str(e))
         except Exception as e:
             logger.error("Fatal error in delta processing worker thread", exception=e, component=self.component_name)
 
-    def update_reported_status(self, status: str, message_id: Optional[str] = None, version: Optional[int] = None, details: Optional[str] = None, error: Optional[str] = None, content: Optional[str]=None):
+
+    def _update_reported_status(self, status: str, message_id: Optional[str] = None, version: Optional[int] = None, details: Optional[str] = None, error: Optional[str] = None, content: Optional[str]=None):
         reported_payload = {
             "xlines_config_management": {
                 "status": status,
@@ -125,7 +125,7 @@ class ShadowConfigManager:
         if content is not None:
             reported_payload["xlines_cfg_content"] = content
 
-        success = self.cloud_connector.update_device_shadow_reported_state(reported_payload)
+        success = self._update_device_shadow_reported_state(reported_payload)
 
         if success:
             logger.info(f"Successfully reported xlines status: {status}", component=self.component_name)
@@ -134,40 +134,29 @@ class ShadowConfigManager:
             logger.error(f"Failed to report xlines status: {status}", component=self.component_name)
             return False
 
-    def clear_desired_shadow_key(self, key_to_clear: str, version: Optional[int] = None):
-        """Explicitly report the desired state for a key as null to clear it."""
-        payload_to_clear_desired = {
-            "state": {
-                "desired": {
-                    key_to_clear: None
-                }
-                # Optionally, also report current state here if needed
-                # "reported": { ... current status ... }
-            }
-        }
-        # if version: # Including version for clearing desired might be needed
-        #     payload_to_clear_desired["version"] = version
 
-        update_topic = self.cloud_connector.get_shadow_update_topic()
-        if update_topic:
-            # Use the generic publish method, as this is a full shadow document update
-            # Ensure the payload is a JSON string.
-            success = self.cloud_connector.publish(update_topic, json.dumps(payload_to_clear_desired), is_shadow_update=True)
-            if success:
-                logger.info(f"Successfully published request to clear desired key '{key_to_clear}'.", component=self.component_name)
-            else:
-                logger.error(f"Failed to publish request to clear desired key '{key_to_clear}'.", component=self.component_name)
+    def _update_device_shadow_reported_state(self, reported_state: Dict[str, Any], message_id: Optional[str] = None, qos: int = 1) -> bool:
+
+        topic = self.connector.shadow_update_topic_template.format(thingName=self.connector.thing_name, shadowName=self.config.get("cloud", {}).get("config_shadow_name"))
+
+        if not topic:
+            return False # Should not happen if is_shadow_enabled is true
+
+        desired_null_state = {key: None for key in reported_state.keys()}
+        shadow_payload_dict = {"state": {"reported": reported_state, "desired": desired_null_state}}
+        if message_id:
+            shadow_payload_dict["message_id"] = message_id
+        
+        payload_str = json.dumps(shadow_payload_dict)
+        return self.connector.publish(topic, payload_str, qos, is_shadow_update=True)
 
 
     def get_initial_config_from_shadow(self):
         """Optional: Fetch the current shadow state on startup."""
-        if not self.cloud_connector.is_shadow_enabled():
-            logger.info("Shadow not enabled, skipping initial config fetch.", component=self.component_name)
-            return
-
-        get_topic = self.cloud_connector.get_shadow_get_topic()
-        accepted_topic = self.cloud_connector.get_shadow_get_accepted_topic()
-        rejected_topic = self.cloud_connector.get_shadow_get_rejected_topic()
+        shadow_name = self.config.get("cloud", {}).get("config_shadow_name")
+        get_topic = self.connector.shadow_get_topic_template.format(thingName=self.connector.thing_name, shadowName=shadow_name)
+        accepted_topic = self.connector.shadow_get_accepted_topic_template.format(thingName=self.connector.thing_name, shadowName=shadow_name)
+        rejected_topic = self.connector.shadow_get_rejected_topic_template.format(thingName=self.connector.thing_name, shadowName=shadow_name)
 
         if not all([get_topic, accepted_topic, rejected_topic]):
             logger.error("Could not formulate all necessary shadow GET topics.", component=self.component_name)
@@ -213,19 +202,17 @@ class ShadowConfigManager:
             finally:
                 pass
 
-        self.cloud_connector.subscribe(accepted_topic, _handle_get_accepted, qos=1)
-        self.cloud_connector.subscribe(rejected_topic, _handle_get_rejected, qos=1)
+        self.connector.subscribe(accepted_topic, _handle_get_accepted, qos=1)
+        self.connector.subscribe(rejected_topic, _handle_get_rejected, qos=1)
         
-        success = self.cloud_connector.publish(get_topic, "{}", qos=1, is_shadow_update=True) # Empty payload for GET
+        success = self.connector.publish(get_topic, "{}", qos=1, is_shadow_update=True) # Empty payload for GET
         if success:
             logger.info(f"Requested current shadow state from {get_topic}", component=self.component_name)
         else:
             logger.error(f"Failed to publish GET request to {get_topic}", component=self.component_name)
             # Unsubscribe if publish failed, as we won't get a response
-            self.cloud_connector.unsubscribe(accepted_topic)
-            self.cloud_connector.unsubscribe(rejected_topic)
-
-    # In ShadowConfigManager class
+            self.connector.unsubscribe(accepted_topic)
+            self.connector.unsubscribe(rejected_topic)
 
     def _report_initial_state(self):
         """
@@ -248,7 +235,7 @@ class ShadowConfigManager:
                 local_config_content = json.load(f)
             
             # 2. Build and publish the reported state (this call is now safe)
-            success = self.update_reported_status(
+            success = self._update_reported_status(
                 "created_from_local", 
                 details=f"Initial state reported from {self.xlines_config_path}",  
                 content=json.dumps(local_config_content)
@@ -262,8 +249,8 @@ class ShadowConfigManager:
         except FileNotFoundError:
             logger.warning(f"Local config file not found at {self.xlines_config_path}. Reporting empty initial state.", component=self.component_name)
             local_config_content = []
-            self.update_reported_status("created_from_local", details="Local config not found, reported empty state", content=json.dumps(local_config_content))
+            self._update_reported_status("created_from_local", details="Local config not found, reported empty state", content=json.dumps(local_config_content))
         except Exception as e:
             logger.error("Failed to report initial shadow state", exception=e, component=self.component_name)
-            self.update_reported_status("failed", error=f"Failed to report initial state: {str(e)}")
+            self._update_reported_status("failed", error=f"Failed to report initial state: {str(e)}")
 

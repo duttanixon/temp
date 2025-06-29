@@ -40,7 +40,6 @@ class AWSIoTCoreConnector(ICloudConnector):
 
         # Shadow specific attributes
         self.thing_name: Optional[str] = None
-        self.config_shadow_name: Optional[str] = None
         self.shadow_update_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/update"
         self.shadow_delta_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/update/delta"
         self.shadow_get_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/get"
@@ -59,13 +58,12 @@ class AWSIoTCoreConnector(ICloudConnector):
         logger.info("AWSIoTCoreConnector created", component="AWSIoTConnector")
 
     @handle_errors(component="AWSIoTConnector")    
-    def initialize(self, config: Dict[str, Any], solution_type:str) -> bool:
+    def initialize(self, config: Dict[str, Any]) -> bool:
         """
         Initialize the AWS IoT Core connection
         
         Args:
             config: Configuration dictionary with AWS IoT Core settings
-            solution_type: The type of solution (e.g., "city-eye")
             
         Returns:
             bool: True if initialization is successful
@@ -81,7 +79,7 @@ class AWSIoTCoreConnector(ICloudConnector):
             self.certificate_id, self.client_id, self.thing_name = self._load_certificates_and_extract_id(config)
             
             # Create event fomatter
-            self.solution_type = solution_type
+            self.solution_type = config.get("solution_type")
             compression_enabled = config.get("enable_compression", True)
             self.event_formatter = EventFormatter(self.certificate_id, self.solution_type, compression_enabled)
             
@@ -111,17 +109,6 @@ class AWSIoTCoreConnector(ICloudConnector):
                         source="AWSIoTConnector"
                     )
 
-            # Hnadle Shadow Configuration
-            if config.get("shadow_enabled", False):
-                self.config_shadow_name = config.get("config_shadow_name")
-                if not self.thing_name or not self.config_shadow_name:
-                    raise ConfigurationError(
-                        "thing_name and shadow_name are required when shadow_enabled is true",
-                        code="MISSING_SHADOW_CONFIG",
-                        source="AWSIoTConnector"
-                    )
-                logger.info(f"AWS IoT Device Shadow enabled for Thing: {self.thing_name}, Shadow: {self.config_shadow_name}", component="AWSIoTConnector")
-
             # Handle S3 configuration
             self.s3_bucket_name = config.get("s3_bucket_name")
             if self.s3_bucket_name:
@@ -133,7 +120,7 @@ class AWSIoTCoreConnector(ICloudConnector):
             if success:
                 logger.info(
                     "AWSIoTCoreConnector initialized successfully",
-                    context={"endpoint": self.endpoint, "client_id": self.client_id, "shadow_enabled": self.is_shadow_enabled()},
+                    context={"endpoint": self.endpoint, "client_id": self.client_id},
                     component="AWSIoTConnector"
                 )
 
@@ -153,126 +140,6 @@ class AWSIoTCoreConnector(ICloudConnector):
                 details={"error": str(e)},
                 source="AWSIoTConnector"
             ) from e
-
-    def is_shadow_enabled(self) -> bool:
-        return bool(self.thing_name and self.config_shadow_name)
-
-    def get_shadow_update_topic(self) -> Optional[str]:
-        if not self.is_shadow_enabled():
-            return None
-        return self.shadow_update_topic_template.format(thingName=self.thing_name, shadowName=self.config_shadow_name)
-
-    def get_shadow_delta_topic(self) -> Optional[str]:
-        if not self.is_shadow_enabled():
-            return None
-        return self.shadow_delta_topic_template.format(thingName=self.thing_name, shadowName=self.config_shadow_name)
-
-    def get_shadow_get_topic(self) -> Optional[str]:
-        if not self.is_shadow_enabled():
-            return None
-        return self.shadow_get_topic_template.format(thingName=self.thing_name, shadowName=self.config_shadow_name)
-
-    def get_shadow_get_accepted_topic(self) -> Optional[str]:
-        if not self.is_shadow_enabled():
-            return None
-        return self.shadow_get_accepted_topic_template.format(thingName=self.thing_name, shadowName=self.config_shadow_name)
-
-    def get_shadow_get_rejected_topic(self) -> Optional[str]:
-        if not self.is_shadow_enabled():
-            return None
-        return self.shadow_get_rejected_topic_template.format(thingName=self.thing_name, shadowName=self.config_shadow_name)
-
-    @handle_errors(component="AWSIoTConnector")
-    def get_capture_image_command_topic(self) -> Optional[str]:
-        """
-        Get the topic for receiving commands from the cloud.
-        """
-        if not self.client_id or not self.solution_type:
-            logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
-            return None
-        return f"devices/{self.client_id}/command/capture_image"
-    
-    @handle_errors(component="AWSIoTConnector")
-    def get_kvs_stream_command_topic(self) -> Optional[str]:
-        """
-        Get the topic for receiving commands from the cloud.
-        """
-        if not self.client_id or not self.solution_type:
-            logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
-            return None
-        return f"devices/{self.client_id}/command/stream/+"
-
-    @handle_errors(component="AWSIoTConnector")
-    def get_kvs_stream_status_topic(self) -> Optional[str]:
-        """
-        Get the topic for publishing commands to the cloud.
-        """
-        if not self.client_id or not self.solution_type:
-            logger.warning("Client ID or Solution Type not set, cannot get command topic.", component="AWSIoTConnector")
-            return None
-        return f"devices/{self.client_id}/stream/status"
-
-    @handle_errors(component="AWSIoTConnector")
-    def get_s3_object_name(self) -> Optional[str]:
-        """
-        Define S3 object key with a structured path
-        """
-        if not self.client_id or not self.solution_type:
-            logger.warning("Client ID or Solution Type not set, cannot s3 object name.", component="AWSIoTConnector")
-            return None
-        return f"captures/{self.solution_type}/{self.thing_name}/capture.jpg"
-
-
-
-    @handle_errors(component="AWSIoTConnector")
-    def upload_file_to_s3(self, file_path: str, object_name: Optional[str] = None) -> bool:
-        """
-        Upload a file to an s3 bucket
-
-        Args:
-            file_path (str): Path to the file to upload
-            object_name (str, optional): The S3 object name. If not specified, the file_path's base name is used.
-
-        Returns:
-            bool: True if the file was uploaded successfully, False otherwise.
-        """
-        if not self.s3_client:
-            logger.error("S3 client not initialized. Cannot upload file.", component="AWSIoTConnector")
-            return False
-
-
-        if object_name is None:
-            logger.error("No object. Cannot upload file.", component="AWSIoTConnector")
-            return False
-
-        try:
-            self.s3_client.upload_file(file_path, self.s3_bucket_name, object_name)
-            logger.info(
-                "File uploaded to S3 successfully",
-                context={"bucket": self.s3_bucket_name, "object_name": object_name},
-                component="AWSIoTConnector"
-            )
-            return True
-        except FileNotFoundError:
-            logger.error(f"The file was not found: {file_path}", component="AWSIoTConnector")
-            return False
-        except (NoCredentialsError, PartialCredentialsError):
-            logger.error("AWS credentials not found or incomplete.", component="AWSIoTConnector")
-            return False
-        except ClientError as e:
-            logger.error(
-                f"An error occurred during S3 upload: {e}",
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            return False
-        except Exception as e:
-            logger.error(
-                f"An unexpected error occurred during S3 upload: {e}",
-                exception=e,
-                component="AWSIoTConnector"
-            )
-            return False
 
     @handle_errors(component="AWSIoTConnector")
     def _connect(self) -> bool:
@@ -337,41 +204,7 @@ class AWSIoTCoreConnector(ICloudConnector):
                 ) from e
             raise # Re-raise if it's already a ConnectionError
 
-    def _on_connection_success(self, connection, **kwargs):
-        logger.info(f"Successfully connected to AWS IoT Core as {self.client_id}", component="AWSIoTConnector")
-        self.is_connected = True
-        self.connected_event.set()
-        self._resubscribe() # Resubscribe to topics on successful new connection
 
-    def _on_connection_failure(self, connection, callback_data, **kwargs):
-        # Extract error from callback_data if it exists
-        error = callback_data.get('error') if isinstance(callback_data, dict) else callback_data
-        logger.error(f"Connection failed to AWS IoT Core: {error}", component="AWSIoTConnector")
-        self.is_connected = False
-        self.connected_event.clear()
-
-    def _on_connection_closed(self, connection, **kwargs):
-        logger.info("Connection closed with AWS IoT Core", component="AWSIoTConnector")
-        self.is_connected = False
-        self.connected_event.clear()
-
-    def _resubscribe(self):
-        """Resubscribe to all topics after reconnection"""
-        if not self.is_connected:
-            logger.warning("Cannot resubscribe, not connected.", component="AWSIoTConnector")
-            return
-        
-        logger.info(f"Resubscribing to {len(self.subscriptions)} topics.", component="AWSIoTConnector")
-        for topic, (callback, qos_level) in self.subscriptions.items(): # Store qos too
-            try:
-                self._subscribe_to_topic(topic, callback, qos_level)
-            except Exception as e:
-                logger.error(
-                    f"Failed to resubscribe to {topic}",
-                    exception=e,
-                    component="AWSIoTConnector"
-                )
-    
     def _on_connection_interrupted(self, connection, error, **kwargs):
         """Callback when connection is interrupted"""
         logger.warning(
@@ -381,7 +214,8 @@ class AWSIoTCoreConnector(ICloudConnector):
         )
         self.is_connected = False
         self.connected_event.clear()
-    
+
+
     def _on_connection_resumed(self, connection, return_code, session_present, **kwargs):
         """Callback when connection is resumed"""
         logger.info(
@@ -472,6 +306,132 @@ class AWSIoTCoreConnector(ICloudConnector):
                 ) from e
             raise
 
+    def _on_connection_success(self, connection, **kwargs):
+        logger.info(f"Successfully connected to AWS IoT Core as {self.client_id}", component="AWSIoTConnector")
+        self.is_connected = True
+        self.connected_event.set()
+        self._resubscribe() # Resubscribe to topics on successful new connection
+
+    def _on_connection_failure(self, connection, callback_data, **kwargs):
+        # Extract error from callback_data if it exists
+        error = callback_data.get('error') if isinstance(callback_data, dict) else callback_data
+        logger.error(f"Connection failed to AWS IoT Core: {error}", component="AWSIoTConnector")
+        self.is_connected = False
+        self.connected_event.clear()
+
+    def _on_connection_closed(self, connection, **kwargs):
+        logger.info("Connection closed with AWS IoT Core", component="AWSIoTConnector")
+        self.is_connected = False
+        self.connected_event.clear()
+
+    def _resubscribe(self):
+        """Resubscribe to all topics after reconnection"""
+        if not self.is_connected:
+            logger.warning("Cannot resubscribe, not connected.", component="AWSIoTConnector")
+            return
+        
+        logger.info(f"Resubscribing to {len(self.subscriptions)} topics.", component="AWSIoTConnector")
+        for topic, (callback, qos_level) in self.subscriptions.items(): # Store qos too
+            try:
+                self._subscribe_to_topic(topic, callback, qos_level)
+            except Exception as e:
+                logger.error(
+                    f"Failed to resubscribe to {topic}",
+                    exception=e,
+                    component="AWSIoTConnector"
+                )
+
+    def _subscribe_to_topic(self, topic: str, callback: Callable, qos_level: int) -> None:
+        """Internal helper to perform the actual subscription."""
+        mqtt_qos = mqtt.QoS.AT_MOST_ONCE if qos_level == 0 else mqtt.QoS.AT_LEAST_ONCE
+
+        def on_message_received(topic, payload, **kwargs):
+            try:
+                payload_str = payload.decode('utf-8')
+                callback(topic, payload_str) # Pass the string payload
+            except Exception as e:
+                logger.error(
+                    f"Error processing message from {topic}",
+                    exception=e,
+                    component="AWSIoTConnector"
+                )
+        
+        subscribe_future, _ = self.mqtt_connection.subscribe(
+            topic=topic,
+            qos=mqtt_qos,
+            callback=on_message_received
+        )
+        subscribe_result = subscribe_future.result(timeout=10) # Increased timeout
+        # SDKv2's subscribe_future result is the QOS granted or an exception.
+        logger.info(
+            f"Subscribed to {topic} with QoS {subscribe_result['qos'].name}", # Access qos from result
+            component="AWSIoTConnector"
+        )
+
+    @handle_errors(component="AWSIoTConnector")
+    def subscribe(self, topic: str, callback: Callable, qos: int = 1) -> bool:
+        """
+        Subscribe to a topic
+        
+        Args:
+            topic: Topic to subscribe to
+            callback: Callback function to handle messages (receives topic, payload_str)
+            qos: Quality of Service (0, 1)
+            
+        Returns:
+            bool: True if subscription was successful
+        
+        Raises:
+            CloudError: If subscription fails
+        """
+        try:
+            if not self.is_connected:
+                logger.warning("Not connected to AWS IoT Core. Will attempt to connect and subscribe.", component="AWSIoTConnector")
+                if not self._connect():
+                    logger.error("Failed to connect to AWS IoT Core for subscription.", component="AWSIoTConnector")
+                    return False
+            
+            self._subscribe_to_topic(topic, callback, qos)
+            self.subscriptions[topic] = (callback, qos) # Store callback and QoS for resubscription
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to subscribe to {topic}", exception=e, component="AWSIoTConnector")
+            # Do not raise CloudError here, allow the caller to decide based on the False return.
+            return False
+
+    @handle_errors(component="AWSIoTConnector")
+    def unsubscribe(self, topic: str) -> bool:
+        """
+        Unsubscribe from a topic
+
+        Args:
+            topic: Topic to unsubscribe from
+
+        Returns:
+            bool: True if unsubscription was successful
+        """
+        try:
+            if not self.is_connected:
+                logger.warning(f"Not connected, cannot unsubscribe from {topic}. Assuming unsubscribed.", component="AWSIoTConnector")
+                if topic in self.subscriptions:
+                    del self.subscriptions[topic]
+                return True
+
+            logger.debug(f"Unsubscribing from topic {topic}", component="AWSIoTConnector")
+            unsubscribe_future, _ = self.mqtt_connection.unsubscribe(topic)
+            unsubscribe_future.result(timeout=0.5)
+
+            if topic in self.subscriptions:
+                del self.subscriptions[topic]
+
+            logger.info(f"Unsubscribed from {topic}", component="AWSIoTConnector")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to unsubscribe from {topic}", exception=e, component="AWSIoTConnector")
+            # Do not raise CloudError, allow caller to decide.
+            return False
 
     @handle_errors(component="AWSIoTConnector")
     def publish(self, topic: str, payload: Any, qos: int = 1, is_shadow_update: bool = False) -> bool:
@@ -543,129 +503,14 @@ class AWSIoTCoreConnector(ICloudConnector):
             # The caller should check the boolean return.
             # However, if it's a critical publish, the caller might decide to raise.
             return False # Indicate failure
-    
-    @handle_errors(component="AWSIoTConnector")
-    def update_device_shadow_reported_state(self, reported_state: Dict[str, Any], message_id: Optional[str] = None, qos: int = 1) -> bool:
-        if not self.is_shadow_enabled():
-            logger.warning("Shadow not enabled, cannot update reported state.", component="AWSIoTConnector")
-            return False
 
-        topic = self.get_shadow_update_topic()
-        if not topic:
-            return False # Should not happen if is_shadow_enabled is true
-
-        desired_null_state = {key: None for key in reported_state.keys()}
-        shadow_payload_dict = {"state": {"reported": reported_state, "desired": desired_null_state}}
-        if message_id:
-            shadow_payload_dict["message_id"] = message_id
-        
-        payload_str = json.dumps(shadow_payload_dict)
-        return self.publish(topic, payload_str, qos, is_shadow_update=True)
-
-    def _subscribe_to_topic(self, topic: str, callback: Callable, qos_level: int) -> None:
-        """Internal helper to perform the actual subscription."""
-        mqtt_qos = mqtt.QoS.AT_MOST_ONCE if qos_level == 0 else mqtt.QoS.AT_LEAST_ONCE
-
-        def on_message_received(topic, payload, **kwargs):
-            try:
-                payload_str = payload.decode('utf-8')
-                callback(topic, payload_str) # Pass the string payload
-            except Exception as e:
-                logger.error(
-                    f"Error processing message from {topic}",
-                    exception=e,
-                    component="AWSIoTConnector"
-                )
-        
-        subscribe_future, _ = self.mqtt_connection.subscribe(
-            topic=topic,
-            qos=mqtt_qos,
-            callback=on_message_received
-        )
-        subscribe_result = subscribe_future.result(timeout=10) # Increased timeout
-        # SDKv2's subscribe_future result is the QOS granted or an exception.
-        logger.info(
-            f"Subscribed to {topic} with QoS {subscribe_result['qos'].name}", # Access qos from result
-            component="AWSIoTConnector"
-        )
-
-
-    @handle_errors(component="AWSIoTConnector")
-    def subscribe(self, topic: str, callback: Callable, qos: int = 1) -> bool:
+    def get_client_id(self) -> str:
         """
-        Subscribe to a topic
-        
-        Args:
-            topic: Topic to subscribe to
-            callback: Callback function to handle messages (receives topic, payload_str)
-            qos: Quality of Service (0, 1)
-            
-        Returns:
-            bool: True if subscription was successful
-        
-        Raises:
-            CloudError: If subscription fails
+        Get the client ID for the MQTT connection
         """
-        try:
-            if not self.is_connected:
-                logger.warning("Not connected to AWS IoT Core. Will attempt to connect and subscribe.", component="AWSIoTConnector")
-                if not self._connect():
-                    logger.error("Failed to connect to AWS IoT Core for subscription.", component="AWSIoTConnector")
-                    return False
-            
-            self._subscribe_to_topic(topic, callback, qos)
-            self.subscriptions[topic] = (callback, qos) # Store callback and QoS for resubscription
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to subscribe to {topic}", exception=e, component="AWSIoTConnector")
-            # Do not raise CloudError here, allow the caller to decide based on the False return.
-            return False
-
-
-    @handle_errors(component="AWSIoTConnector")
-    def unsubscribe(self, topic: str) -> bool:
-        """
-        Unsubscribe from a topic
-
-        Args:
-            topic: Topic to unsubscribe from
-
-        Returns:
-            bool: True if unsubscription was successful
-        """
-        try:
-            if not self.is_connected:
-                logger.warning(f"Not connected, cannot unsubscribe from {topic}. Assuming unsubscribed.", component="AWSIoTConnector")
-                if topic in self.subscriptions:
-                    del self.subscriptions[topic]
-                return True
-
-            logger.debug(f"Unsubscribing from topic {topic}", component="AWSIoTConnector")
-            unsubscribe_future, _ = self.mqtt_connection.unsubscribe(topic)
-            unsubscribe_future.result(timeout=0.5)
-
-            if topic in self.subscriptions:
-                del self.subscriptions[topic]
-
-            logger.info(f"Unsubscribed from {topic}", component="AWSIoTConnector")
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to unsubscribe from {topic}", exception=e, component="AWSIoTConnector")
-            # Do not raise CloudError, allow caller to decide.
-            return False
-
-
-    @handle_errors(component="AWSIoTConnector")
-    def get_sync_topic(self) -> Optional[str]: # Added Optional
-        """
-        get publish topic for syncing data to cloud
-        """
-        if not self.client_id or not self.solution_type:
-            logger.warning("Client ID or Solution Type not set, cannot get sync topic.", component="AWSIoTConnector")
-            return None
-        return f"devices/{self.client_id}/data/{self.solution_type}"
+        if not self.client_id:
+            raise ConfigurationError("Client ID is not set", code="CLIENT_ID_NOT_SET", source="AWSIoTConnector")
+        return self.client_id
 
     def cleanup(self) -> None:
         """

@@ -347,7 +347,7 @@ class KVSStreamHandler():
                     logger.error("Error processing frame", exception=e, component=self.component_name)
 
 
-    def _clear_frame_queue(self):
+    def clear_frame_queue(self):
         """Clear any pending frames in the queue"""
         while not self.frame_queue.empty():
             try:

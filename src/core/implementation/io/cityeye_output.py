@@ -247,6 +247,16 @@ class CityEyeOutputHandler(IOutputHandler):
             except Exception as e:
                 logger.error("Error updating frame for streaming", exception=e, component="CityEyeOutputHandler")
 
+    def set_kvs_handler(self, kvs_handler):
+        """
+        Set the KVS handler for processing frames.
+
+        Args:
+            kvs_handler: The KVS handler instance to use for processing frames.
+        """
+        self.kvs_handler = kvs_handler
+        logger.info("KVS handler set for CityEyeOutputHandler", component="CityEyeOutputHandler")
+
 
     def _setup_routes(self):
         """Set up Flask routes for the streaming server"""

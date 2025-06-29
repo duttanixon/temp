@@ -378,10 +378,6 @@ class CallbackHandler:
                 frame = self.video_processor.process_buffer(buffer, pad)
                 if frame is not None:
                     frame_data["frame"] = frame
-
-                    # Pass frame data to solution
-                    self.solution.on_frame_processed(frame_data)
-
                     frame_data["object_meta"] = detections
                 
                     # Pass frame data to solution
@@ -665,7 +661,7 @@ class CallbackHandler:
                 class_ids[i] = det.get_class_id()
 
             # Track objects using the solution's tracker
-            t_ids, t_bboxes, t_scores, t_class_ids = self.solution.tracker(
+            t_ids, t_bboxes, t_scores, t_class_ids = self.solution.tracking_manager.tracker(
                 frame, bboxes, confidences, class_ids
             )
             # Assign detections to tracks

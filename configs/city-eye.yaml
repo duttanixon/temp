@@ -30,15 +30,6 @@ solution:
     sync_interval_seconds: 10
     test: true
 
-
-
-    tracking:
-        track_fps: 30
-        track_thresh: 0.4
-        track_buffer: 30
-        match_thresh: 0.75
-        min_box_area: 300
-
     input: 
         video_width: 1280
         video_height: 720
@@ -75,6 +66,7 @@ solution:
         certs_dir: "/opt/certificates"
         solution_type: "cityeye"
         enable_compression: true
-        shadow_enabled: true
         config_shadow_name: "XLinesConfigShadow"
         s3_bucket_name: cc-captured-images
+        capture_image_command_suffix: capture_image 
+        stream_command_suffix: stream/+

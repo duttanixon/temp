@@ -19,18 +19,7 @@ resource "aws_iam_policy" "kinesis_video_streaming" {
           # Also allow actions on the service itself for operations like CreateStream
           "arn:aws:kinesisvideo:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
         ]
-      },
-        {
-            Effect = "Allow"
-            Action = [
-                "iot:Connect",
-                "iot:Publish",
-                "iot:Subscribe",
-                "iot:Receive",
-
-            ]
-            Resource = "*"
-        }
+      }
     ]
   })
 }

@@ -18,8 +18,6 @@ from core.implementation.common.exceptions import ConfigurationError
 
 logger = get_logger()
 
-
-
 class KVSStreamHandler():
     """
     Output handler for streaming to AWS Kinesis Video Streams

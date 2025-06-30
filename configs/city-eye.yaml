@@ -26,8 +26,9 @@ solution:
     xlines_cfg_path: /opt/configs/xlines_cfg.json
     count_output_path: /opt/configs/resources/data/count_result.json
     sqlite_base_dir: /opt/db
-    sync_batch_size: 40
-    sync_interval_seconds: 10
+    sync_batch_size: 100
+    sync_interval_seconds: 600
+    db_credential_secret_name: cc-platform_database_credentials
     test: true
 
     input: 
@@ -62,6 +63,7 @@ solution:
     # Cloud configuration
     cloud:
         provider: aws_iot
+        region: ap-northeast-1
         endpoint: "a23bd20ty64577-ats.iot.ap-northeast-1.amazonaws.com"
         certs_dir: "/opt/certificates"
         solution_type: "cityeye"

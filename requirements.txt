@@ -13,3 +13,4 @@ shapely
 boto3==1.38.5
 flask_cors
 aiortc
+psycopg2-binary

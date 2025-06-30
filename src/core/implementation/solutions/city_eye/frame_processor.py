@@ -251,6 +251,3 @@ class FrameProcessor:
             component=self.component_name
         )
         self._capture_requested.set()
-
-
-

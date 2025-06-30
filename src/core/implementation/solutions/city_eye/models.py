@@ -121,5 +121,3 @@ class TestResult(Base):
             "bus": self.bus,
             "truck": self.truck
         }
-
-    

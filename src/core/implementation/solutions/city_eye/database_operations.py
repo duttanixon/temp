@@ -33,8 +33,6 @@ class DatabaseOperations:
         if self.test_mode:
             self.video_file_name = self._get_video_file_name()
             self.test_counts = self._get_test_counts()
-            print("#"*50)
-            print(f"Running in test mode for video: {self.video_file_name}")
 
         
         logger.info(

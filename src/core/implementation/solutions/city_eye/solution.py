@@ -17,7 +17,8 @@ from .frame_processor import FrameProcessor
 from .cloud_manager import CloudManager
 from .stream_manager import StreamManager
 from .config_shadow_manager import ShadowConfigManager
-from .sync_handler import BatchSyncHandler
+# from .sync_handler import BatchSyncHandler
+from .datasync_handler import DataSyncHandler
 
 
 logger = get_logger()
@@ -116,12 +117,23 @@ class CityEyeSolution(ISolution):
         self.stream_manager = StreamManager(self.config)
 
         # Initialize sync handler if cloud is enabled
+        # self.sync_handler = None
+        # if self.cloud_manager.cloud_connector:
+        #     self.sync_handler = BatchSyncHandler(
+        #         self.db_manager,
+        #         self.cloud_manager.cloud_connector,
+        #         self.config
+        #     )
         self.sync_handler = None
-        if self.cloud_manager.cloud_connector:
-            self.sync_handler = BatchSyncHandler(
+        try:
+            self.sync_handler = DataSyncHandler(
                 self.db_manager,
-                self.cloud_manager.cloud_connector,
                 self.config
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed to initialize data sync handler: {str(e)}",
+                component=self.component_name
             )
 
 

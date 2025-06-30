@@ -52,6 +52,11 @@ module "common" {
 
     # Pass ant required variables to the module
     environment = var.environment
+    database_host = var.database_host
+    database_port = var.database_port
+    database_name = var.database_name
+    database_username = var.database_username
+    database_password = var.database_password
 }
 
 module "metrics" {

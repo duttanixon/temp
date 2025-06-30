@@ -39,3 +39,8 @@ output "device_service_user_name" {
   description = "Name of the iot device service user"
   value       = aws_iam_user.device_service_user.name
 }
+
+output "database_secret_name" {
+  description = "Name of the database credentials secret"
+  value       = aws_secretsmanager_secret.platform_database_credentials.name
+}

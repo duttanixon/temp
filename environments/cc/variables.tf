@@ -23,6 +23,32 @@ variable "database_url" {
     sensitive = true
 }
 
+variable "database_host" {
+    description = "Database host"
+    type        = string
+}
+
+variable "database_port" {
+    description = "Database port"
+    type        = number
+}
+
+variable "database_name" {
+    description = "Database name"
+    type        = string
+}
+
+variable "database_username" {
+    description = "Database username"
+    type        = string
+}
+
+variable "database_password" {
+    description = "Database password"
+    type        = string
+    sensitive   = true
+}
+
 variable "api_base_url" {
   description = "backend api url"
   type        = string

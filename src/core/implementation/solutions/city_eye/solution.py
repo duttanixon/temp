@@ -6,7 +6,10 @@ from core.interfaces.solutions.solution import ISolution
 from core.interfaces.io.input_source import IInputSource
 from core.interfaces.io.output_handler import IOutputHandler
 
+from core.implementation.common.sqlite_manager import DatabaseManager
+from core.implementation.solutions.city_eye.database_operations import DatabaseOperations
 from core.implementation.common.logger import get_logger
+from core.implementation.common.exceptions import SolutionError, ProcessingError, TrackingError, DatabaseError
 
 # import helper modules
 from .tracking_manager import TrackingManager
@@ -14,6 +17,7 @@ from .frame_processor import FrameProcessor
 from .cloud_manager import CloudManager
 from .stream_manager import StreamManager
 from .config_shadow_manager import ShadowConfigManager
+from .sync_handler import BatchSyncHandler
 
 
 logger = get_logger()
@@ -60,6 +64,36 @@ class CityEyeSolution(ISolution):
 
 
     def _initialize_components(self):
+
+        # Initialize input source
+        try:
+            logger.debug("Initializing input source", component=self.component_name)
+            self.input_source.initialize()
+        except Exception as e:
+            logger.error("Failed to initialize input source", exception=e, component=self.component_name)
+            raise SolutionError(
+                "Failed to initialize input source",
+                code="INPUT_INIT_FAILED",
+                details={"error": str(e)},
+                source=self.component_name
+            ) from e
+
+        # Initialize database
+        try:
+            logger.debug("Initializing database", component=self.component_name)
+            basedb_dir = self.config.get("sqlite_base_dir", "/opt/db")
+            self.db_manager = DatabaseManager(basedb_dir)
+            self.db_operations = DatabaseOperations(self.config, self.db_manager, self.input_source)
+
+        except Exception as e:
+            logger.error("Failed to initialize database", exception=e, component=self.component_name)
+            raise DatabaseError(
+                "Failed to initialize database",
+                code="DB_INIT_FAILED",
+                details={"error": str(e)},
+                source="CityEyeSolution"
+            ) from e
+
         # Intitialize default streaming
         self.output_handler.initialize_streaming()
 
@@ -81,18 +115,14 @@ class CityEyeSolution(ISolution):
         # Initialize stream manager
         self.stream_manager = StreamManager(self.config)
 
-        # Initialize input source
-        try:
-            logger.debug("Initializing input source", component=self.component_name)
-            self.input_source.initialize()
-        except Exception as e:
-            logger.error("Failed to initialize input source", exception=e, component=self.component_name)
-            raise SolutionError(
-                "Failed to initialize input source",
-                code="INPUT_INIT_FAILED",
-                details={"error": str(e)},
-                source=self.component_name
-            ) from e
+        # Initialize sync handler if cloud is enabled
+        self.sync_handler = None
+        if self.cloud_manager.cloud_connector:
+            self.sync_handler = BatchSyncHandler(
+                self.db_manager,
+                self.cloud_manager.cloud_connector,
+                self.config
+            )
 
 
     def increment_counters(self, counter_type: str) -> None:
@@ -129,12 +159,6 @@ class CityEyeSolution(ISolution):
         return self.tracking_manager.get_counter_value(counter_type)
 
 
-    def cleanup(self) -> None:
-        """
-        Cleanup resources when the solution is shutting down.
-        """
-        logger.info("Cleaning up CityEyeSolution resources", component=self.component_name)
-
     def _setup_callbacks(self):
         """Set up callbacks between components."""
         # Frame processor callbacks
@@ -163,6 +187,11 @@ class CityEyeSolution(ISolution):
         # Optionally, get the initial shadow state on startup
         self.shadow_config_manager.get_initial_config_from_shadow()
 
+        # Start sync handler
+        if self.sync_handler:
+            self.sync_handler.start()
+            logger.info("Cloud synchronization enabled", component=self.component_name)
+
 
     def _process_frame(self, frame_data: Dict[str, Any]):
         """
@@ -177,11 +206,18 @@ class CityEyeSolution(ISolution):
             frame_number,
             frame_data["object_meta"]
         )
+
         # Handle output
         try:
             self.output_handler.handle_result(frame_data)
         except Exception as e:
             logger.error("Error in output handler", exception=e, component=self.component_name)
+
+        # Process results if available
+        if frame_result:
+            # Write to database
+            if self.db_operations.write_frame_results(frame_result):
+                pass
 
 
     def _handle_command(self, command_data: Dict[str, Any]):
@@ -343,4 +379,26 @@ class CityEyeSolution(ISolution):
             success, error = self.stream_manager.stop_stream()
             self.cloud_manager.publish_stream_status(message_id, "SUCCESS" if success else "FAILED", error_message=error)
 
+    def cleanup(self) -> None:
+        """
+        Cleanup resources when the solution is shutting down.
+        """
+        logger.info("Cleaning up CityEyeSolution resources", component=self.component_name)
+        self.db_operations.update_test_results()
+        self.running = False
+
+        # Stop frame processor
+        self.frame_processor.stop()
+
+        # Clean up cloud manager
+        self.cloud_manager.cleanup()
         
+        # Clean up stream manager
+        self.stream_manager.cleanup()
+
+        # Stop sync handler
+        if self.sync_handler:
+            try:
+                self.sync_handler.stop()
+            except Exception as e:
+                logger.warning(f"Failed to stop sync handler: {str(e)}", component=self.component_name)

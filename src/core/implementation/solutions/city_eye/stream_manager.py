@@ -162,3 +162,15 @@ class StreamManager:
         """
         with self.kvs_lock:
             return self.kvs_handler if self.kvs_handler else None
+
+    def cleanup(self):
+        """Cleanup streaming resources."""
+        if self.kvs_handler:
+            try:
+                self.kvs_handler.cleanup()
+            except Exception as e:
+                logger.error(
+                    "Error cleaning up KVS handler",
+                    exception=e,
+                    component=self.component_name
+                )

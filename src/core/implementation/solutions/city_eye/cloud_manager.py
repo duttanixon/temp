@@ -295,3 +295,15 @@ class CloudManager:
             
         except Exception as e:
             logger.error("Failed to publish stream status", exception=e, component=self.component_name)
+
+    def cleanup(self):
+        """Cleanup cloud resources."""
+        if self.cloud_connector:
+            try:
+                self.cloud_connector.cleanup()
+                logger.info("Cloud connector cleaned up", component=self.component_name)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to clean up cloud connector: {str(e)}",
+                    component=self.component_name
+                )

@@ -379,17 +379,17 @@ class CityEyeSolution(ISolution):
         )
 
         if command == "start_live_stream":
-            success, error = self.stream_manager.start_stream(payload)
+            success, error, status = self.stream_manager.start_stream(payload)
             if success:
                 self.output_handler.set_kvs_handler(
                     self.stream_manager.get_kvs_handler()
                 )
             # publish the response and if true set the city eye output handler to live stream
-            self.cloud_manager.publish_stream_status(message_id, "SUCCESS" if success else "FAILED", error_message=error)
+            self.cloud_manager.publish_stream_status(message_id, status , error_message=error)
 
         elif command == "stop_live_stream":
-            success, error = self.stream_manager.stop_stream()
-            self.cloud_manager.publish_stream_status(message_id, "SUCCESS" if success else "FAILED", error_message=error)
+            success, error, status = self.stream_manager.stop_stream()
+            self.cloud_manager.publish_stream_status(message_id, status, error_message=error)
 
     def cleanup(self) -> None:
         """

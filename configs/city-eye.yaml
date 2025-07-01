@@ -27,7 +27,9 @@ solution:
     count_output_path: /opt/configs/resources/data/count_result.json
     sqlite_base_dir: /opt/db
     sync_batch_size: 100
-    sync_interval_seconds: 600
+    sync_interval_seconds: 1800
+    cleanup_interval_seconds: 3600
+    data_retention_days: 1
     db_credential_secret_name: cc-platform_database_credentials
     test: true
 

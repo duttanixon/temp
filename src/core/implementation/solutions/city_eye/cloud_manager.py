@@ -272,7 +272,7 @@ class CloudManager:
         
         try:
             client_id = self.cloud_connector.get_client_id()
-            status_topic = f"devices/{client_id}/stream/status"
+            status_topic = f"devices/{client_id}/command/streaming/response"
             status_payload = {
                 "messageId": message_id,
                 "status": status,

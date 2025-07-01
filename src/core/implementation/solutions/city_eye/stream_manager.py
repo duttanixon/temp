@@ -61,7 +61,7 @@ class StreamManager:
             return False
 
 
-    def start_stream(self, payload: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    def start_stream(self, payload: Dict[str, Any]) -> Tuple[bool, Optional[str], str]:
         """
         Start KVS streaming.
         
@@ -75,10 +75,10 @@ class StreamManager:
         with self.kvs_lock:
             
             if self.kvs_handler and self.kvs_handler.is_streaming:
-                return False, "already_streaming"
+                return False, "already_streaming", "ALREADY_STREAMING"
             
             if not self._initialize_kvs_handler():
-                return False, "failed_to_initialize"
+                return False, "failed_to_initialize", "FAILED"
             
             try:
                 stream_name = payload.get("stream_name")
@@ -106,9 +106,9 @@ class StreamManager:
                         },
                         component=self.component_name
                     )
-                    return True, None
+                    return True, None, "SUCCESS"
                 else:
-                    return False, None
+                    return False, None, "FAILED"
                 
             except Exception as e:
                 logger.error(
@@ -117,7 +117,7 @@ class StreamManager:
                     context={"stream_name": stream_name},
                     component=self.component_name
                 )
-                return False, str(e)
+                return False, str(e), "FAILED"
     
     def stop_stream(self) -> Tuple[bool, Optional[str]]:
         """
@@ -128,10 +128,10 @@ class StreamManager:
         """
         with self.kvs_lock:
             if not self.kvs_handler:
-                return False, "KVS handler not initialized"
+                return False, "KVS handler not initialized", "FAILED"
 
             if not self.kvs_handler.is_streaming:
-                return False, "No active stream to stop"
+                return False, "No active stream to stop", "NOT_STREAMING"
             
             try:
                 success = self.kvs_handler.stop_streaming()
@@ -140,9 +140,9 @@ class StreamManager:
                         "KVS streaming stopped successfully",
                         component=self.component_name
                     )
-                    return True, None
+                    return True, None, "SUCCESS"
                 else:
-                    return False, None
+                    return False, None, "FAILED"
                 
             except Exception as e:
                 logger.error(
@@ -150,7 +150,7 @@ class StreamManager:
                     exception=e,
                     component=self.component_name
                 )
-                return False, str(e)
+                return False, str(e), "FAILED"
 
 
     def get_kvs_handler(self) -> Optional[KVSStreamHandler]:

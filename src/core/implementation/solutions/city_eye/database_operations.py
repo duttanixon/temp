@@ -85,7 +85,6 @@ class DatabaseOperations:
         route, class_ = frame_result
         try:
             from_polygon_str, to_polygon_str = route.split("->")
-            print(f"Writing route: {route}, class: {class_}")
         except ValueError:
             logger.warning(f"Invalid route format: {route}. Expected 'from->to'. Skipping database write.", component=self.component_name)
             return False

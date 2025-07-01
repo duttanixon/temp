@@ -55,6 +55,7 @@ class CityEyeHumanTable(Base):
     device_id = Column(UUID(as_uuid=True), ForeignKey("devices.device_id"), nullable=False)
     solution_id = Column(UUID(as_uuid=True), ForeignKey("solutions.solution_id"), nullable=False)
     device_solution_id = Column(UUID(as_uuid=True), ForeignKey("device_solutions.id"), nullable=False)
+
     timestamp = Column(DateTime, nullable=False)
     polygon_id_in = Column(String, nullable=False)
     polygon_id_out = Column(String, nullable=False)
@@ -70,6 +71,7 @@ class CityEyeHumanTable(Base):
     female_65_plus = Column(Integer, nullable=False, default=0)
 
 
+
 class CityEyeTrafficTable(Base):
     __tablename__ = "city_eye_traffic_data"
     
@@ -77,12 +79,12 @@ class CityEyeTrafficTable(Base):
     device_id = Column(UUID(as_uuid=True), ForeignKey("devices.device_id"), nullable=False)
     solution_id = Column(UUID(as_uuid=True), ForeignKey("solutions.solution_id"), nullable=False)
     device_solution_id = Column(UUID(as_uuid=True), ForeignKey("device_solutions.id"), nullable=False)
+
     timestamp = Column(DateTime, nullable=False)
     polygon_id_in = Column(String, nullable=False)
     polygon_id_out = Column(String, nullable=False)
-    car = Column(Integer, nullable=False, default=0)
-    truck = Column(Integer, nullable=False, default=0)
-    bus = Column(Integer, nullable=False, default=0)
+    large = Column(Integer, nullable=False, default=0)
+    normal = Column(Integer, nullable=False, default=0)
     bicycle = Column(Integer, nullable=False, default=0)
     motorcycle = Column(Integer, nullable=False, default=0)
 
@@ -105,15 +107,14 @@ class DataSyncHandler:
         self.device_certificate_id = self._get_certificate_id()
         self.sync_batch_size = config.get("sync_batch_size", 100)
         self.sync_interval = config.get("sync_interval_seconds", 600)
+        self.cleanup_interval = config.get("cleanup_interval_seconds", 3600)
+        self.data_retention_days = config.get("data_retention_days", 7) 
 
         # AWS configuration
         self.secret_name = config.get("db_credential_secret_name")
         self.region_name = config.get("cloud", {}).get("region", "ap-northeast-1")
-        
-        # PostgreSQL connection details (will be populated from secrets)
-        self.pg_engine = None
 
-        # device and solution identifiers
+        # Device and solution identifiers (will be populated during sync)
         self.device_id = None
         self.solution_id = None
         self.device_solution_id = None
@@ -121,17 +122,20 @@ class DataSyncHandler:
         # Internal state
         self.running = False
         self.sync_thread = None
+        self.cleanup_thread = None
         self.last_sync_time = datetime.now(ZoneInfo("Asia/Tokyo"))
+        self.last_cleanup_time = datetime.now(ZoneInfo("Asia/Tokyo"))
         
         logger.info(
             "DataSyncHandler initialized",
             context={
                 "sync_batch_size": self.sync_batch_size,
-                "sync_interval": self.sync_interval
+                "sync_interval": self.sync_interval,
+                "cleanup_interval": self.cleanup_interval,
+                "data_retention_days": self.data_retention_days
             },
             component="DataSyncHandler"
         )
-
 
     def _get_certificate_id(self) -> str:
         """Extract certificate ID from certificate file"""
@@ -151,7 +155,6 @@ class DataSyncHandler:
         except Exception as e:
             logger.error("Failed to extract certificate ID", exception=e, component="DataSyncHandler")
             raise
-
 
     @handle_errors(component="DataSyncHandler")
     def _get_database_credentials(self) -> Dict[str, Any]:
@@ -179,8 +182,7 @@ class DataSyncHandler:
                 source="DataSyncHandler"
             ) from e
 
-
-    def _create_database_connection(self) -> None:
+    def _create_database_connection(self) -> create_engine:
         """Create PostgreSQL database connection using credentials from Secrets Manager"""
         try:
             credentials = self._get_database_credentials()
@@ -192,16 +194,16 @@ class DataSyncHandler:
             )
             
             # Create SQLAlchemy engine
-            self.pg_engine = create_engine(
+            engine = create_engine(
                 database_url,
                 pool_pre_ping=True,  # Verify connections before using
-                pool_recycle=3600,   # Recycle connections after 1 hour
+                pool_size=1,         # Minimal pool size
+                max_overflow=0,      # No overflow connections
+                pool_recycle=300,    # Recycle connections after 5 minutes
             )
             
-            # Get device and solution IDs
-            self._initialize_device_solution_mapping()
-            
-            logger.info("Database connection established", component="DataSyncHandler")
+            logger.info("Database connection created", component="DataSyncHandler")
+            return engine
             
         except Exception as e:
             error_msg = "Failed to create database connection"
@@ -213,10 +215,9 @@ class DataSyncHandler:
                 source="DataSyncHandler"
             ) from e
 
-
-    def _initialize_device_solution_mapping(self) -> None:
+    def _initialize_device_solution_mapping(self, engine) -> None:
         """Initialize device and solution IDs from PostgreSQL database"""
-        Session = sessionmaker(bind=self.pg_engine)
+        Session = sessionmaker(bind=engine)
         session = Session()
         
         try:
@@ -266,12 +267,9 @@ class DataSyncHandler:
             session.close()
 
     @contextmanager
-    def pg_session_scope(self):
+    def pg_session_scope(self, engine):
         """Provide a transactional scope for PostgreSQL operations"""
-        if not self.pg_engine:
-            self._create_database_connection()
-            
-        Session = sessionmaker(bind=self.pg_engine)
+        Session = sessionmaker(bind=engine)
         session = Session()
         
         try:
@@ -282,7 +280,6 @@ class DataSyncHandler:
             raise
         finally:
             session.close()
-
     
     def start(self):
         """Start the sync handler background thread"""
@@ -291,22 +288,29 @@ class DataSyncHandler:
             return
         
         self.running = True
+
+        # Start sync thread
         self.sync_thread = threading.Thread(target=self._sync_worker)
         self.sync_thread.daemon = True
         self.sync_thread.start()
         
-        logger.info("DataSyncHandler started", component="DataSyncHandler")
+        # Start cleanup thread
+        self.cleanup_thread = threading.Thread(target=self._cleanup_worker)
+        self.cleanup_thread.daemon = True
+        self.cleanup_thread.start()
+
+        logger.info("DataSyncHandler started with sync and cleanup threads", component="DataSyncHandler")
 
     def stop(self):
-        """Stop the sync handler thread"""
+        """Stop the sync and cleanup handler threads"""
         logger.info("Stopping DataSyncHandler", component="DataSyncHandler")
         self.running = False
         
         if self.sync_thread and self.sync_thread.is_alive():
             self.sync_thread.join(timeout=5)
             
-        if self.pg_engine:
-            self.pg_engine.dispose()
+        if self.cleanup_thread and self.cleanup_thread.is_alive():
+            self.cleanup_thread.join(timeout=5)
             
         logger.info("DataSyncHandler stopped", component="DataSyncHandler")
 
@@ -335,9 +339,35 @@ class DataSyncHandler:
                 )
                 time.sleep(30)  # Wait longer on error
 
+    def _cleanup_worker(self):
+        """Background worker that periodically cleans up synced data"""
+        logger.info("Cleanup worker thread started", component="DataSyncHandler")
+        
+        while self.running:
+            try:
+                now = datetime.now(ZoneInfo("Asia/Tokyo"))
+                time_since_last_cleanup = (now - self.last_cleanup_time).total_seconds()
+                
+                if time_since_last_cleanup >= self.cleanup_interval:
+                    # Clean up old synced data
+                    self._cleanup_synced_data()
+                    self.last_cleanup_time = now
+                
+                # Sleep to avoid high CPU usage
+                time.sleep(60)  # Check every minute
+                
+            except Exception as e:
+                logger.error(
+                    "Error in cleanup worker",
+                    exception=e,
+                    component="DataSyncHandler"
+                )
+                time.sleep(300)  # Wait 5 minutes on error
+
     @handle_errors(component="DataSyncHandler")
     def _process_all_unsynced_data(self):
         """Process all unsynced data in batches"""
+        engine = None
         try:
             # Count total unsynced records
             with self.db_manager.session_scope() as session:
@@ -356,7 +386,11 @@ class DataSyncHandler:
                 },
                 component="DataSyncHandler"
             )
-            
+
+            # Create connection and initialize mappings
+            engine = self._create_database_connection()
+            self._initialize_device_solution_mapping(engine)
+
             # Process records in batches
             batch_num = 0
             total_processed = 0
@@ -377,7 +411,7 @@ class DataSyncHandler:
                 batch_num += 1
                 total_processed += total_records
                 
-                self._sync_batch_to_postgres(human_records, traffic_records)
+                self._sync_batch_to_postgres(engine, human_records, traffic_records)
                 
                 # Small delay between batches
                 time.sleep(0.1)
@@ -400,7 +434,11 @@ class DataSyncHandler:
                 details={"error": str(e)},
                 source="DataSyncHandler"
             ) from e
-
+        finally:
+            # Always dispose of the engine to close connections
+            if engine:
+                engine.dispose()
+                logger.info("Database connections closed", component="DataSyncHandler")
 
     def _fetch_batch(self) -> Tuple[List[Dict], List[Dict]]:
         """Fetch a batch of unsynced records from SQLite"""
@@ -426,10 +464,10 @@ class DataSyncHandler:
             
             return human_records, traffic_records
 
-    def _sync_batch_to_postgres(self, human_records: List[Dict], traffic_records: List[Dict]):
+    def _sync_batch_to_postgres(self, engine, human_records: List[Dict], traffic_records: List[Dict]):
         """Sync a batch of data directly to PostgreSQL"""
         try:
-            with self.pg_session_scope() as pg_session:
+            with self.pg_session_scope(engine) as pg_session:
                 # Process human data
                 if human_records:
                     self._process_human_data(pg_session, human_records)
@@ -472,12 +510,10 @@ class DataSyncHandler:
         })
         
         for entry in human_data:
-            print(entry)
             try:
                 # Parse timestamp and round to hour
                 timestamp = datetime.fromisoformat(entry['timestamp'])
                 hourly_timestamp = timestamp.replace(minute=0, second=0, microsecond=0)
-                print(hourly_timestamp)
                 
                 from_polygon = entry.get('from_polygon', 'unknown')
                 to_polygon = entry.get('to_polygon', 'unknown')
@@ -515,7 +551,6 @@ class DataSyncHandler:
                         current_value = getattr(existing_record, field)
                         setattr(existing_record, field, current_value + value)
                 session.add(existing_record)
-                print("exiting record :", existing_record)
             else:
                 # Create new record
                 new_record = CityEyeHumanTable(
@@ -529,24 +564,22 @@ class DataSyncHandler:
                     **counts
                 )
                 session.add(new_record)
-                print("new record :", new_record)
     
     def _process_traffic_data(self, session: Session, traffic_data: List[Dict]):
         """Process and update traffic data in PostgreSQL"""
         # Vehicle type mapping
         VEHICLE_TYPE_MAPPING = {
-            'car': 'car',
-            'truck': 'truck',
-            'bus': 'bus',
+            'car': 'normal',
+            'truck': 'large',
+            'bus': 'large',
             'bicycle': 'bicycle',
             'motorcycle': 'motorcycle'
         }
         
         # Group data by hour and polygon combination
         traffic_data_by_group = defaultdict(lambda: {
-            'car': 0,
-            'truck': 0,
-            'bus': 0,
+            'large': 0,
+            'normal': 0,
             'bicycle': 0,
             'motorcycle': 0
         })
@@ -636,3 +669,62 @@ class DataSyncHandler:
                 )
                 session.rollback()
                 raise
+
+    @handle_errors(component="DataSyncHandler")
+    def _cleanup_synced_data(self):
+        """Clean up old synced data from SQLite database"""
+        try:
+            # Calculate cutoff date
+            cutoff_date = datetime.now(ZoneInfo("Asia/Tokyo")) - timedelta(days=self.data_retention_days)
+            
+            with self.db_manager.session_scope() as session:
+                # Count records to be deleted
+                human_count = session.query(HumanResult).filter(
+                    HumanResult.is_synced == True,
+                    HumanResult.timestamp < cutoff_date
+                ).count()
+                
+                traffic_count = session.query(TrafficResult).filter(
+                    TrafficResult.is_synced == True,
+                    TrafficResult.timestamp < cutoff_date
+                ).count()
+                
+                if human_count == 0 and traffic_count == 0:
+                    logger.info("No old synced records to clean up", component="DataSyncHandler")
+                    return
+                
+                # Delete old synced human records
+                if human_count > 0:
+                    session.query(HumanResult).filter(
+                        HumanResult.is_synced == True,
+                        HumanResult.timestamp < cutoff_date
+                    ).delete(synchronize_session=False)
+                
+                # Delete old synced traffic records
+                if traffic_count > 0:
+                    session.query(TrafficResult).filter(
+                        TrafficResult.is_synced == True,
+                        TrafficResult.timestamp < cutoff_date
+                    ).delete(synchronize_session=False)
+                
+                # Commit happens automatically due to session_scope
+                
+                logger.info(
+                    "Cleaned up old synced data",
+                    context={
+                        "human_records_deleted": human_count,
+                        "traffic_records_deleted": traffic_count,
+                        "retention_days": self.data_retention_days
+                    },
+                    component="DataSyncHandler"
+                )
+                
+        except Exception as e:
+            error_msg = "Error cleaning up synced data"
+            logger.error(error_msg, exception=e, component="DataSyncHandler")
+            raise SyncError(
+                error_msg,
+                code="CLEANUP_FAILED",
+                details={"error": str(e)},
+                source="DataSyncHandler"
+            ) from e

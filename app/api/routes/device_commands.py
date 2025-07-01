@@ -261,8 +261,8 @@ def start_live_stream_command(
 
     # Try to get HLS URL immediately
     # Since the stream might already exist and be active
-    # hls_info = kvs_manager.get_hls_streaming_url(stream_name)
-    # kvs_url = hls_info.get("hls_url") if hls_info else None
+    hls_info = kvs_manager.get_hls_streaming_url(stream_name)
+    kvs_url = hls_info.get("hls_url") if hls_info else None
 
     # Log action
     log_action(
@@ -289,7 +289,7 @@ def start_live_stream_command(
         device_name=db_device.name,
         message_id=db_command.message_id,
         stream_name=stream_name,
-        # kvs_url=kvs_url,
+        kvs_url=kvs_url,
         details=f"Live stream {'starting' if is_new_stream else 'requested'}. Duration: {command_in.duration_seconds}s, Quality: {command_in.stream_quality}"
     )
 
@@ -380,8 +380,6 @@ def stop_live_stream_command(
         details="Stop live stream command sent successfully"
     )
 
-
-
 @router.get("/active-streams", response_model=List[Dict[str, Any]])
 def get_active_streams(
     db: Session = Depends(deps.get_db),
@@ -411,3 +409,43 @@ def get_active_streams(
         })
     logger.info(f"Retrieved {len(active_streams)} active streams")
     return active_streams
+
+@router.get("/stream-status/{device_id}", response_model=Dict[str, Any])
+def get_device_stream_status(
+    *,
+    db: Session = Depends(deps.get_db),
+    device_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get current stream status for a device.
+    Returns stream name, status, and HLS URL if streaming is active.
+    """
+    # Get and validate device
+    db_device = device.get_by_id(db, device_id=device_id)
+    check_device_access(current_user, db_device)
+    
+    # Generate expected stream name
+    stream_name = kvs_manager.generate_stream_name_for_device(db_device.name)
+
+    
+    # Check stream status
+    stream_status = kvs_manager.get_stream_status(stream_name)
+
+    response = {
+        "device_id": str(device_id),
+        "device_name": db_device.name,
+        "stream_name": stream_name,
+        "stream_status": stream_status,
+        "is_active": stream_status == "ACTIVE",
+        "kvs_url": None
+    }
+    
+    # If stream is active, get HLS URL
+    if stream_status == "ACTIVE":
+        hls_info = kvs_manager.get_hls_streaming_url(stream_name)
+        if hls_info:
+            response["kvs_url"] = hls_info.get("hls_url")
+            response["expires_in"] = hls_info.get("expires_in", 3600)
+    
+    return response

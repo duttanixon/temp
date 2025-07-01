@@ -250,19 +250,19 @@ def start_live_stream_command(
             status=CommandStatus.FAILED,
             error_message="Failed to send command to IoT Core",
         )
-
-        # notify_command_update(
-        #     message_id=str(db_command.message_id),
-        #     status=CommandStatus.FAILED.value,
-        #     error_message="Failed to publish command to AWS IoT Core",
-        # )
+        # Also notify any SSE connections waiting for updates about this command
+        notify_command_update(
+            message_id=str(db_command.message_id),
+            status=CommandStatus.FAILED.value,
+            error_message="Failed to publish command to AWS IoT Core",
+        )
 
         raise HTTPException(status_code=500, detail="Failed to send command to device")
 
     # Try to get HLS URL immediately
     # Since the stream might already exist and be active
-    hls_info = kvs_manager.get_hls_streaming_url(stream_name)
-    kvs_url = hls_info.get("hls_url") if hls_info else None
+    # hls_info = kvs_manager.get_hls_streaming_url(stream_name)
+    # kvs_url = hls_info.get("hls_url") if hls_info else None
 
     # Log action
     log_action(
@@ -289,7 +289,7 @@ def start_live_stream_command(
         device_name=db_device.name,
         message_id=db_command.message_id,
         stream_name=stream_name,
-        kvs_url=kvs_url,
+        # kvs_url=kvs_url,
         details=f"Live stream {'starting' if is_new_stream else 'requested'}. Duration: {command_in.duration_seconds}s, Quality: {command_in.stream_quality}"
     )
 
@@ -351,11 +351,11 @@ def stop_live_stream_command(
             error_message="Failed to send command to IoT Core",
         )
 
-        # notify_command_update(
-        #     message_id=str(db_command.message_id),
-        #     status=CommandStatus.FAILED.value,
-        #     error_message="Failed to publish command to AWS IoT Core",
-        # )
+        notify_command_update(
+            message_id=str(db_command.message_id),
+            status=CommandStatus.FAILED.value,
+            error_message="Failed to publish command to AWS IoT Core",
+        )
 
         raise HTTPException(status_code=500, detail="Failed to send command to device")
 

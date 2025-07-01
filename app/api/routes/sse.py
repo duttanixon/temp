@@ -47,7 +47,7 @@ async def command_status_stream(
         )
 
     # If command is already completed, send final status and close
-    if db_command.status.value in ["SUCCESS", "FAILED", "TIMEOUT"]:
+    if db_command.status.value in ["SUCCESS", "FAILED", "TIMEOUT", "ALREADY_STREAMING", "NOT_STREAMING"]:
 
         async def send_final_status():
             data = {
@@ -94,7 +94,7 @@ async def command_status_stream(
                     yield f"data: {json.dumps(update_data)}\n\n"
 
                     # If this is a final status, close connection
-                    if update_data.get("status") in ["SUCCESS", "FAILED", "TIMEOUT"]:
+                    if update_data.get("status") in ["SUCCESS", "FAILED", "TIMEOUT", "ALREADY_STREAMING", "NOT_STREAMING"]:
                         break
 
                 except asyncio.TimeoutError:

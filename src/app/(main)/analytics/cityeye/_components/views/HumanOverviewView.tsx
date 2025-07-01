@@ -10,8 +10,8 @@ import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
 import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
-import HumanPeriodAnalysisCard from "../cards/HumanPeriodAnalysisCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
+import TimeSeriesCard from "../cards/TimeSeriesCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 // ✅ Dynamically import map card client-side only
@@ -109,12 +109,12 @@ export default function OverviewView({
           data={processedData?.ageGenderDistribution ?? null}
         />
       </div>
-      <HumanPeriodAnalysisCard
+      <TimeSeriesCard
         title="期間分析"
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
-        periodAnalysisData={(processedData as any)?.periodAnalysisData ?? null}
+        timeSeriesData={processedData?.timeSeries ?? null}
       />
     </div>
   );

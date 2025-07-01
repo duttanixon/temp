@@ -6,8 +6,18 @@ import {
   ProcessedAnalyticsData,
   ProcessedGenderSegment,
   ProcessedHourlyDataPoint,
+  ProcessedTimeSeriesData,
+  ProcessedTimeSeriesDataPoint,
 } from "@/types/cityeye/cityEyeAnalytics";
-import { eachDayOfInterval, isValid } from "date-fns";
+import {
+  eachDayOfInterval,
+  eachHourOfInterval,
+  endOfHour,
+  format,
+  isValid,
+  parseISO,
+  startOfHour,
+} from "date-fns";
 import { DateRange } from "react-day-picker";
 
 // Consolidated configuration for all data types
@@ -48,11 +58,7 @@ const CONFIG = {
 export function processHumanAnalyticsData(
   data: FrontendCityEyeAnalyticsPerDeviceResponse | null,
   filterContext: FilterContext | null
-):
-  | (ProcessedAnalyticsData & {
-      periodAnalysisData: { datetime: string; count: number }[];
-    })
-  | null {
+): ProcessedAnalyticsData | null {
   if (!data) return null;
 
   const totalPeopleData = processTotalPeople(data);
@@ -67,7 +73,7 @@ export function processHumanAnalyticsData(
     genderDistribution: processGenderDistribution(data),
     hourlyDistribution: processHourlyDistribution(data),
     ageGenderDistribution: processAgeGenderDistribution(data),
-    periodAnalysisData: processPeriodAnalysisData(data),
+    timeSeries: processTimeSeries(data, filterContext),
   };
 }
 
@@ -393,26 +399,68 @@ function processAgeGenderDistribution(
 }
 
 /**
- * Process period analysis data for area chart (no aggregation, all hours for all dates)
+ * Process time series data
+ * Creates hourly data points for the entire period, marking gaps as no data
  */
-export function processPeriodAnalysisData(
-  data: FrontendCityEyeAnalyticsPerDeviceResponse
-): { datetime: string; count: number }[] {
-  if (!data) return [];
+function processTimeSeries(
+  data: FrontendCityEyeAnalyticsPerDeviceResponse,
+  filterContext: FilterContext | null
+): ProcessedTimeSeriesData | null {
+  if (!filterContext?.dateRange?.from || !filterContext?.dateRange?.to) {
+    return null;
+  }
 
-  const allEntries: { datetime: string; count: number }[] = [];
-  data.forEach((device) => {
-    const timeSeries = device.analytics_data?.time_series_data;
-    if (timeSeries && Array.isArray(timeSeries)) {
-      timeSeries.forEach((entry: { timestamp: string; count: number }) => {
-        if (entry.timestamp && typeof entry.count === "number") {
-          allEntries.push({ datetime: entry.timestamp, count: entry.count });
-        }
+  // Create a map to store hourly aggregated data
+  const hourlyDataMap = new Map<string, number>();
+  // Process time series data from all devices
+  data.forEach((item) => {
+    if (!item.error && item.analytics_data?.time_series_data) {
+      item.analytics_data.time_series_data.forEach((point) => {
+        const timestamp = parseISO(point.timestamp);
+        const hourKey = format(timestamp, "yyyy-MM-dd HH:00");
+
+        hourlyDataMap.set(
+          hourKey,
+          (hourlyDataMap.get(hourKey) || 0) + point.count
+        );
       });
     }
   });
+  // Generate all hours in the date range
+  const allHours = eachHourOfInterval({
+    start: startOfHour(filterContext.dateRange.from),
+    end: endOfHour(filterContext.dateRange.to),
+  });
 
-  // Sort by datetime ascending
-  allEntries.sort((a, b) => a.datetime.localeCompare(b.datetime));
-  return allEntries;
+  // Create processed data points for all hours
+  const processedData: ProcessedTimeSeriesDataPoint[] = allHours.map((hour) => {
+    const hourKey = format(hour, "yyyy-MM-dd HH:00");
+    // Get the count for this hour, defaulting to 0 if no data exists
+    const count = hourlyDataMap.get(hourKey) || 0;
+
+    return {
+      date: format(hour, "MM/dd"),
+      hour: format(hour, "HH:00"),
+      timestamp: hour.toISOString(),
+      count,
+      hasData: hourlyDataMap.has(hourKey),
+    };
+  });
+  // Calculate summary statistics
+  const dataPoints = processedData.filter((p) => p.hasData);
+  const values = dataPoints.map((p) => p.count);
+
+  return {
+    data: processedData,
+    summary: {
+      totalDays: Math.ceil(
+        (filterContext.dateRange.to.getTime() -
+          filterContext.dateRange.from.getTime()) /
+          (1000 * 60 * 60 * 24)
+      ),
+      daysWithData: new Set(dataPoints.map((p) => p.date)).size,
+      maxValue: values.length > 0 ? Math.max(...values) : 0,
+      minValue: values.length > 0 ? Math.min(...values) : 0,
+    },
+  };
 }

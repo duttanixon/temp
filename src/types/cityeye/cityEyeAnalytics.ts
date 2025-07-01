@@ -163,6 +163,17 @@ export interface FrontendHourlyCount {
 }
 
 /**
+ * Time series data point
+ * Used for detailed time-series analysis with timestamps
+ */
+export interface FrontendTimeSeriesDataPoint {
+  /** ISO datetime string */
+  timestamp: string;
+  /** Count at this timestamp */
+  count: number;
+}
+
+/**
  * Complete analytics data for a single device
  * Container for all possible analytics metrics
  */
@@ -172,7 +183,7 @@ export interface FrontendPerDeviceAnalyticsData {
   gender_distribution?: FrontendGenderDistribution;
   age_gender_distribution?: FrontendAgeGenderDistribution;
   hourly_distribution?: FrontendHourlyCount[];
-  // Future: time_series_data?: TimeSeriesData[];
+  time_series_data?: FrontendTimeSeriesDataPoint[];
 }
 
 /**
@@ -182,7 +193,7 @@ export interface FrontendPerDeviceTrafficAnalyticsData {
   total_count?: FrontendTotalCount;
   vehicle_type_distribution?: FrontendVehicleTypeDistribution;
   hourly_distribution?: FrontendHourlyCount[];
-  // Future: time_series_data?: TimeSeriesData[];
+  time_series_data?: FrontendTimeSeriesDataPoint[];
 }
 
 /**
@@ -378,6 +389,40 @@ export interface ProcessedHourlyDistributionData {
   }>;
 }
 
+// --- Time Series Processing ---
+
+/**
+ * Processed time series data point for detailed charts
+ */
+export interface ProcessedTimeSeriesDataPoint {
+  /** Date string (format depends on display requirements) */
+  date: string;
+  /** Hour string for tooltip display */
+  hour: string;
+  /** Full timestamp for filtering/sorting */
+  timestamp: string;
+  /** Count value */
+  count: number;
+  /** Flag for missing data */
+  hasData: boolean;
+}
+
+/**
+ * Complete processed time series data
+ * Ready for time series dashboard card
+ */
+export interface ProcessedTimeSeriesData {
+  /** All time series data points */
+  data: ProcessedTimeSeriesDataPoint[];
+  /** Summary statistics */
+  summary: {
+    totalDays: number;
+    daysWithData: number;
+    maxValue: number;
+    minValue: number;
+  };
+}
+
 // --- Age-Gender Cross Analysis Processing ---
 
 /**
@@ -439,6 +484,9 @@ export interface ProcessedAnalyticsData {
 
   /** Cross-demographic analysis */
   ageGenderDistribution: ProcessedAgeGenderDistributionData | null;
+
+  /** Time series analysis */
+  timeSeries: ProcessedTimeSeriesData | null;
 }
 
 /**
@@ -462,4 +510,7 @@ export interface ProcessedTrafficAnalyticsData {
 
   /** Hourly pattern analysis */
   hourlyDistribution: ProcessedHourlyDistributionData | null;
+
+  /** Time series analysis */
+  timeSeries: ProcessedTimeSeriesData | null;
 }

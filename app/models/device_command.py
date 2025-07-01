@@ -19,6 +19,8 @@ class CommandStatus(str, enum.Enum):
     SUCCESS = "SUCCESS" 
     FAILED = "FAILED"
     TIMEOUT = "TIMEOUT"
+    ALREADY_STREAMING = "ALREADY_STREAMING"
+    NOT_STREAMING = "NOT_STREAMING"
 
 class DeviceCommand(Base):
     __tablename__ = "device_commands"

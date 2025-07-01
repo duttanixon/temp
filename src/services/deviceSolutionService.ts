@@ -87,7 +87,10 @@ export const deviceSolutionService = {
   async getDevicesBySolution(
     solutionId: string
   ): Promise<
-    Pick<DeviceDeployment, "device_id" | "device_name" | "device_location">[]
+    Pick<
+      DeviceDeployment,
+      "device_id" | "device_name" | "device_location" | "customer_id"
+    >[]
   > {
     try {
       const response = await apiClient.get<DeviceDeployment[]>(
@@ -100,6 +103,7 @@ export const deviceSolutionService = {
         device_id: deployment.device_id,
         device_name: deployment.device_name,
         device_location: deployment.device_location,
+        customer_id: deployment.customer_id,
       }));
     } catch (error) {
       return handleApiError(error);

@@ -69,7 +69,8 @@ function ResetButton({ onClick }: { onClick: () => void }) {
     <Button
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
-      onClick={onClick}>
+      onClick={onClick}
+    >
       <RefreshCcw />
     </Button>
   );
@@ -88,6 +89,8 @@ export default function CameraMapCard({
     setResetKey((k) => k + 1);
   };
 
+  console.log("CameraMapCard perDeviceCountsData:", perDeviceCountsData);
+
   const validDevices = perDeviceCountsData.filter(
     (d): d is DeviceCountData & { lat: number; lng: number } =>
       typeof d.lat === "number" &&
@@ -96,11 +99,14 @@ export default function CameraMapCard({
       !d.error
   );
 
+  console.log("Valid devices for map:", validDevices);
+
   const devicesToShow = validDevices;
   const coordinatesForZoom: [number, number][] = devicesToShow
     .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
     .map((d) => [d.lat as number, d.lng as number]);
 
+  console.log("Coordinates for zoom:", coordinatesForZoom);
   const counts = devicesToShow.map((d) => d.count);
   const min = counts.length > 0 ? Math.min(...counts) : 0;
   const max = counts.length > 0 ? Math.max(...counts) : 0;
@@ -134,7 +140,8 @@ export default function CameraMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }>
+          }
+        >
           <div className="h-72 w-full cursor-pointer relative z-[1]">
             {/* 地図上に配置するリセットボタン */}
             <div className="absolute top-20 left-2 z-[1000]">
@@ -144,7 +151,8 @@ export default function CameraMapCard({
               key={resetKey}
               center={coordinatesForZoom[0] || [33.5597, 133.5311]}
               zoom={16}
-              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}>
+              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+            >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -160,13 +168,15 @@ export default function CameraMapCard({
                     fillOpacity: 0.6,
                   }}
                   interactive={true}
-                  className="cursor-pointer">
+                  className="cursor-pointer"
+                >
                   <Tooltip
                     direction="auto"
                     offset={[5, -5]}
                     opacity={1}
                     permanent={false}
-                    sticky={true}>
+                    sticky={true}
+                  >
                     <div className="flex flex-col whitespace-nowrap">
                       <span className="font-semibold">
                         {device.deviceLocation}_{device.deviceName}

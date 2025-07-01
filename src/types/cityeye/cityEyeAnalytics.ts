@@ -80,6 +80,8 @@ export interface CityEyeFilterState {
   selectedHours: string[];
   /** Selected device IDs */
   selectedDevices: string[];
+  /** Selected customer IDs */
+  selectedCustomers: string[];
   /** Selected age groups */
   selectedAges: string[];
   /** Selected genders */

@@ -66,6 +66,18 @@ export const deviceService = {
     }
   },
 
+  // Get devices by customerID
+  async getDevicesByCustomer(customerId: string): Promise<Device[]> {
+    try {
+      const response = await apiClient.get<Device[]>("/devices", {
+        params: { customer_id: customerId },
+      });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
   // Get device counts per customer
   async getDeviceCountsByCustomer(): Promise<Record<string, number>> {
     try {

@@ -8,6 +8,7 @@ import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
+import TrafficTimeSeriesCard from "../cards/TrafficTimeSeriesCard";
 import dynamic from "next/dynamic";
 
 interface TrafficComparisonViewProps {
@@ -121,6 +122,13 @@ export default function TrafficComparisonView({
                 ?.overallHourlyDistribution ?? null
             }
           />
+          <TrafficTimeSeriesCard
+            title="期間別交通量 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            timeSeriesData={mainPeriodProcessedData?.timeSeries ?? null}
+          />
         </div>
 
         {/* Comparison Period Section */}
@@ -194,6 +202,13 @@ export default function TrafficComparisonView({
               comparisonPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
+          />
+          <TrafficTimeSeriesCard
+            title="期間分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            timeSeriesData={comparisonPeriodProcessedData?.timeSeries ?? null}
           />
         </div>
       </div>

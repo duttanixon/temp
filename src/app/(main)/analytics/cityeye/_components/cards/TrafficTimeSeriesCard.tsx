@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { GenericAnalyticsCard } from "./GenericAnalyticsCard";
 
-interface TimeSeriesCardProps {
+interface TrafficTimeSeriesCardProps {
   title: string;
   timeSeriesData: ProcessedTimeSeriesData | null;
   isLoading: boolean;
@@ -28,13 +28,13 @@ interface NoDataRegion {
   endIndex: number;
 }
 
-export default function TimeSeriesCard({
+export default function TrafficTimeSeriesCard({
   title,
   timeSeriesData,
   isLoading,
   error,
   hasAttemptedFetch,
-}: TimeSeriesCardProps) {
+}: TrafficTimeSeriesCardProps) {
   const hasData = hasAttemptedFetch && timeSeriesData !== null;
 
   // Process data and find no-data regions
@@ -61,8 +61,6 @@ export default function TimeSeriesCard({
         }
       }
     });
-
-    // Handle case where no data extends to the end
     if (regionStart !== null) {
       regions.push({
         startIndex: regionStart,
@@ -70,50 +68,39 @@ export default function TimeSeriesCard({
       });
     }
 
-    // Format data for chart
     const formattedData = timeSeriesData.data.map((point, index) => ({
       ...point,
-      index, // Add index for x-axis
+      index,
       displayLabel: `${point.date} ${point.hour}`,
       value: point.hasData ? point.count : null,
     }));
 
-    // Calculate which ticks to show
     const totalDays = timeSeriesData.summary.totalDays;
     const ticks: number[] = [];
-
-    // Find all 00:00 indices
     const midnightIndices: number[] = [];
     timeSeriesData.data.forEach((point, index) => {
       if (point.hour === "00:00") {
         midnightIndices.push(index);
       }
     });
-
     if (totalDays >= 365) {
-      // Show every 30th day at 00:00
       midnightIndices.forEach((idx, i) => {
         if (i % 30 === 0) {
           ticks.push(idx);
         }
       });
     } else if (totalDays >= 30) {
-      // Show every 7th day at 00:00
       midnightIndices.forEach((idx, i) => {
         if (i % 7 === 0) {
           ticks.push(idx);
         }
       });
     } else {
-      // Show every day at 00:00
       ticks.push(...midnightIndices);
     }
-
-    // Always include first data point if it's not already included
     if (ticks.length > 0 && ticks[0] !== 0 && timeSeriesData.data.length > 0) {
       ticks.unshift(0);
     }
-
     return {
       chartData: formattedData,
       noDataRegions: regions,
@@ -121,16 +108,12 @@ export default function TimeSeriesCard({
     };
   }, [timeSeriesData]);
 
-  // Custom x-axis tick formatter
   const xAxisTickFormatter = (index: number) => {
     const point = chartData[index];
     if (!point) return "";
-
-    // Only show the date part for ticks
     return point.date;
   };
 
-  // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload;
@@ -141,7 +124,7 @@ export default function TimeSeriesCard({
           </p>
           {data.hasData ? (
             <p className="text-sm mt-1">
-              <span className="text-gray-500">人数:</span>{" "}
+              <span className="text-gray-500">交通量:</span>{" "}
               <span className="font-semibold">
                 {data.count.toLocaleString()}
               </span>
@@ -155,7 +138,6 @@ export default function TimeSeriesCard({
     return null;
   };
 
-  // Y-axis formatter
   const yAxisTickFormatter = (value: number) => {
     if (value >= 1000) {
       return `${(value / 1000).toFixed(1)}k`;
@@ -177,8 +159,8 @@ export default function TimeSeriesCard({
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "時系列データがありません。"
-              : "フィルターを適用して時系列データを表示します。"
+              ? "時系列交通データがありません。"
+              : "フィルターを適用して時系列交通データを表示します。"
           }
         >
           <div className="w-full">
@@ -189,7 +171,7 @@ export default function TimeSeriesCard({
               >
                 <defs>
                   <linearGradient
-                    id="colorPeopleTimeSeries"
+                    id="colorTrafficTimeSeries"
                     x1="0"
                     y1="0"
                     x2="0"
@@ -207,9 +189,7 @@ export default function TimeSeriesCard({
                     />
                   </linearGradient>
                 </defs>
-
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-
                 <XAxis
                   dataKey="index"
                   type="number"
@@ -221,7 +201,6 @@ export default function TimeSeriesCard({
                   textAnchor="end"
                   height={60}
                 />
-
                 <YAxis
                   tickLine={false}
                   axisLine={false}
@@ -229,14 +208,10 @@ export default function TimeSeriesCard({
                   tickFormatter={yAxisTickFormatter}
                   width={80}
                 />
-
                 <Tooltip content={<CustomTooltip />} />
-
-                {/* Render reference areas for no-data regions */}
                 {noDataRegions.map((region, idx) => {
                   const regionLength = region.endIndex - region.startIndex + 1;
-                  const showLabel = regionLength > 5; // Only show label if region is wide enough
-
+                  const showLabel = regionLength > 5;
                   return (
                     <ReferenceArea
                       key={`no-data-region-${idx}`}
@@ -262,13 +237,12 @@ export default function TimeSeriesCard({
                     />
                   );
                 })}
-
                 <Area
                   type="monotone"
                   dataKey="value"
                   stroke="var(--chart-analysis-1)"
                   strokeWidth={1}
-                  fill="var(--chart-analysis-1)"
+                  fill="url(#colorTrafficTimeSeries)"
                   fillOpacity={0.4}
                   connectNulls={false}
                   dot={{

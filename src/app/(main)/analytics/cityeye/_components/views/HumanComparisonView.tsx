@@ -11,6 +11,7 @@ import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 import dynamic from "next/dynamic";
+import TimeSeriesCard from "../cards/TimeSeriesCard";
 
 const CameraMapCard = dynamic(() => import("../cards/CameraMapCard"), {
   ssr: false,
@@ -140,6 +141,13 @@ export default function HumanComparisonView({
             hasAttemptedFetch={hasAttemptedFetchMain}
             data={mainPeriodProcessedData?.ageGenderDistribution ?? null}
           />
+          <TimeSeriesCard
+            title="期間分析 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            timeSeriesData={mainPeriodProcessedData?.timeSeries ?? null}
+          />
         </div>
 
         {/* Comparison Period Section */}
@@ -221,6 +229,13 @@ export default function HumanComparisonView({
               comparisonPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
+          />
+          <TimeSeriesCard
+            title="期間分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            timeSeriesData={comparisonPeriodProcessedData?.timeSeries ?? null}
           />
           <AgeGenderButterflyChartCard
             title="年齢層・性別構成 (比較期間)"

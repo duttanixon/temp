@@ -3,6 +3,7 @@ import {
   DeviceCreateData,
   DeviceUpdateData,
   DeviceCommandResponse,
+  DeviceStreamStatus,
 } from "@/types/device";
 import axios from "axios";
 import { apiClient, cleanData, handleApiError } from "./baseApiClient";
@@ -223,6 +224,16 @@ export const deviceService = {
     }
   },
 
+  async getStreamStatus(deviceId: string): Promise<DeviceStreamStatus> {
+    try {
+      const response = await apiClient.get(
+        `/device-commands/stream-status/${deviceId}`
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
 
   // Clean up object URL to prevent memory leaks
   revokeImageUrl(url: string): void {

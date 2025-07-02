@@ -7,7 +7,6 @@ import { Play, Square, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-// import ReactPlayer from "react-player";
 import VideoPlayer from "./VideoPlayer"; 
 
 interface LiveStreamViewProps {
@@ -22,6 +21,7 @@ export default function LiveStreamView({ device }: LiveStreamViewProps) {
     error,
     startStream,
     stopStream,
+    isPolling,
   } = useLiveStream(device.device_id);
 
   const [quality, setQuality] = useState<"low" | "medium" | "high">("medium");
@@ -85,13 +85,13 @@ export default function LiveStreamView({ device }: LiveStreamViewProps) {
             {!isStreaming ? (
               <Button
                 onClick={handleStartStream}
-                disabled={isLoading}
+                 disabled={isLoading || isPolling}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    開始中...
+                    {isPolling ? "初期化中..." : "開始中..."}
                   </>
                 ) : (
                   <>
@@ -121,6 +121,16 @@ export default function LiveStreamView({ device }: LiveStreamViewProps) {
             )}
           </div>
 
+          {/* Polling status indicator */}
+          {isPolling && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertDescription className="text-blue-800">
+                ストリームを初期化しています。しばらくお待ちください...
+              </AlertDescription>
+            </Alert>
+          )}
+
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -137,37 +147,12 @@ export default function LiveStreamView({ device }: LiveStreamViewProps) {
         </CardHeader>
         <CardContent>
           <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
-            {/* {isStreaming && streamUrl ? (
-              <ReactPlayer
-                url={streamUrl}
-                playing
-                controls
-                width="100%"
-                height="100%"
-                config={{
-                  file: {
-                    forceHLS: true,
-                    hlsOptions: {
-                      maxLoadingDelay: 4,
-                      minAutoBitrate: 0,
-                      lowLatencyMode: true,
-                    },
-                  },
-                }}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-gray-500">
-                  {isLoading ? "ストリームを開始しています..." : "ストリームが開始されていません"}
-                </p>
-              </div>
-            )} */}
             {isStreaming && streamUrl ? (
               <VideoPlayer url={streamUrl} />
             ) : (
               <div className="flex h-full items-center justify-center">
                 <p className="text-gray-500">
-                  {isLoading ? "ストリームを開始しています..." : "ストリームが開始されていません"}
+                  {isLoading || isPolling ? "ストリームを開始しています..." : "ストリームが開始されていません"}
                 </p>
               </div>
             )}

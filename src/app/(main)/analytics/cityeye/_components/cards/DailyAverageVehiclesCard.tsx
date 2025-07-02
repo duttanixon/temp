@@ -34,7 +34,8 @@ export default function DailyAverageVehiclesCard({
             hasAttemptedFetch
               ? "時間ごとの平均台数データがありません。"
               : "フィルターを適用して時間ごとの平均台数データを表示します。"
-          }>
+          }
+        >
           <div className="h-full flex flex-col">
             <div className="text-center mb-3">
               <p className="text-3xl font-bold text-primary">

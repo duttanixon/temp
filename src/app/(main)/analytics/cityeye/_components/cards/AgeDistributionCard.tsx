@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
 import { ProcessedAgeGroup } from "@/types/cityeye/cityEyeAnalytics";
+import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
 
 interface AgeDistributionCardProps {
   title: string;

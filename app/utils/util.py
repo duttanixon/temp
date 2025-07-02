@@ -1,3 +1,4 @@
+from typing import Tuple
 from app.models import User, UserRole, DeviceStatus
 import math
 from fastapi import HTTPException
@@ -75,7 +76,7 @@ def transform_to_device_shadow_format(payload: XLinesConfigPayload) -> dict:
     }
 
 
-def calculate_offset_route(center_cordinates: dict, offset: int = 6) -> dict:
+def calculate_offset_route(center_cordinates: dict, offset: int = 6) -> Tuple[dict, dict]:  
     # Use the input center_cordinates as inRoute
     in_route = center_cordinates
     start_point = in_route['startPoint']
@@ -100,16 +101,13 @@ def calculate_offset_route(center_cordinates: dict, offset: int = 6) -> dict:
     lng_offset = (offset / (earth_radius_m * math.cos((math.pi * start_point['lat']) / 180))) * (180 / math.pi)
 
     # Calculate the start and end points of the outRoute (offset from inRoute)
-    new_start_point_out = {
+    out_start_point = {
         'lat': start_point['lat'] - lat_offset * unit_vector[1], 
         'lng': start_point['lng'] - lng_offset * unit_vector[0]
     }
-    new_end_point_out = {
+    out_end_point = {
         'lat': end_point['lat'] - lat_offset * unit_vector[1], 
         'lng': end_point['lng'] - lng_offset * unit_vector[0]
     }
 
-    return {
-        'inRoute': in_route,  # Input center_cordinates becomes inRoute
-        'outRoute': {'startPoint': new_end_point_out, 'endPoint': new_start_point_out}
-    }
+    return out_start_point, out_end_point

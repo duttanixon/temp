@@ -21,16 +21,26 @@ class TimeSeriesData(BaseModel):
     timestamp: datetime
     count: int
 
-class PolygonDirectionCount(BaseModel):
-    polygon_id: str
-    polygon_name: Optional[str] = "N/A"
-    in_count: int
-    in_cordinates: Dict = {}
-    out_count: int
-    out_cordinates: Dict = {}
+class CoordinatePoint(BaseModel):
+    lat: float
+    lng: float
 
+class DirectionCoordinates(BaseModel):
+    start_point: CoordinatePoint
+    end_point: CoordinatePoint
+    count: int
+
+class DetectionZoneDirection(BaseModel):
+    polygon_id: int
+    polygon_name: str
+    in_data: DirectionCoordinates
+    out_data: DirectionCoordinates
+
+    class Config:
+        populate_by_name = True
+        
 class PerDeviceDirectionData(BaseModel):
-    polygon_counts: List[PolygonDirectionCount]
+    detectionZones: List[DetectionZoneDirection]
 
 # =============================================================================
 # HUMAN ANALYTICS SCHEMAS

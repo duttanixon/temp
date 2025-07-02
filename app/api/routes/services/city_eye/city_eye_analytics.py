@@ -10,7 +10,7 @@ from app.crud import solution as crud_solution,  device, device_solution, device
 from app.crud import customer_solution as crud_customer_solution
 from app.crud import device_solution as crud_device_solution
 from app.api.routes.sse import notify_command_update
-from app.utils.util import check_device_access, validate_device_for_commands
+from app.utils.util import check_device_access, validate_device_for_commands, calculate_offset_route
 from app.utils.aws_iot_commands import iot_command_service
 from app.schemas.device_command import (
     DeviceCommandCreate,
@@ -28,7 +28,7 @@ from app.schemas.services.city_eye_analytics import (
     AgeGenderDistribution,
     VehicleTypeDistribution,
     HourlyCount,
-    PolygonDirectionCount,
+    DetectionZoneDirection,
     TimeSeriesData,
     PerDeviceDirectionData,
     PerDeviceAnalyticsData,
@@ -637,7 +637,7 @@ def get_human_direction_analytics(
     Retrieve per-polygon in/out counts for human flow analytics, per device.
     
     This endpoint returns the number of people entering (in_count) and exiting (out_count)
-    each polygon for the specified devices and time range. 
+    each polygon for the specified devices and time range, along with polygon names and coordinates.
     
     Note: 'loss' counts are excluded from the results as they represent tracking losses
     rather than actual movements.
@@ -668,7 +668,8 @@ def get_human_direction_analytics(
                 processed_device_details[device_uuid] = {
                     "device_name": db_device.name,
                     "device_location": db_device.location,
-                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
+                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else [],
+                    "thing_name": db_device.thing_name
                 }
             except ValueError:
                 logger.warning(f"Admin/Engineer query: Invalid device UUID format: {device_id_str}")
@@ -708,7 +709,8 @@ def get_human_direction_analytics(
                 processed_device_details[device_uuid] = {
                     "device_name": db_device.name,
                     "device_location": db_device.location,
-                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
+                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else [],
+                    "thing_name": db_device.thing_name
                 }
             except ValueError:
                 logger.warning(f"Customer query: Invalid device UUID format: {device_id_str}")
@@ -726,6 +728,7 @@ def get_human_direction_analytics(
         device_name = device_details.get("device_name")
         device_location = device_details.get("device_location")
         device_position = device_details.get("device_position", [])
+        thing_name = device_details.get("thing_name")
         
         logger.info(f"Processing direction analytics for device: {device_name} ({device_id_to_process})")
         
@@ -733,24 +736,85 @@ def get_human_direction_analytics(
         single_device_filters = filters.model_copy(deep=True)
         single_device_filters.device_ids = [device_id_to_process]
 
-        per_device_data_obj = PerDeviceDirectionData(polygon_counts=[])
+        # per_device_data_obj = PerDeviceDirectionData(detectionZones=[])
+        detection_zones = []
         error_message_for_device: Optional[str] = None
 
         try:
             # Get direction counts from CRUD
             direction_counts = crud_city_eye_analytics.get_direction_counts(db, filters=single_device_filters)
-            
-            # Convert to response format
-            polygon_counts = []
+
+            # Get shadow document to retrieve polygon names and coordinates
+            xlines_config = []
+
+            if thing_name:
+                shadow_document = iot_command_service.get_xlines_config_shadow(thing_name)
+                if shadow_document:
+                    state = shadow_document.get("state", {})
+                    reported = state.get("reported", {})
+                    xlines_cfg_content = reported.get("xlines_cfg_content")
+
+                    if xlines_cfg_content:
+                        try:
+                            xlines_config = json.loads(xlines_cfg_content)
+                        except json.JSONDecodeError:
+                            logger.error(f"Failed to parse xlines configuration for device {device_id_to_process}")
+
+            # Build detection zones with the new format
             for polygon_id, counts in sorted(direction_counts.items()):
-                polygon_counts.append(PolygonDirectionCount(
-                    polygon_id=polygon_id,
-                    in_count=counts['in_count'],
-                    out_count=counts['out_count']
-                ))
-            
-            per_device_data_obj.polygon_counts = polygon_counts
-        
+                polygon_id_int = int(polygon_id)
+
+                # Default values
+                polygon_name = f"Zone {polygon_id}"
+                in_start_point = {}
+                in_end_point = {}
+                out_start_point = {}
+                out_end_point = {}
+
+
+                # Get polygon data from shadow if available
+                if polygon_id_int < len(xlines_config):
+                    polygon_data = xlines_config[polygon_id_int]
+                    polygon_name = polygon_data.get("name", f"Zone {polygon_id}")
+                    
+                    # Get center coordinates
+                    center = polygon_data.get("center", {})
+                    if center:
+                        start_point = center.get("startPoint", {})
+                        end_point = center.get("endPoint", {})
+
+                        if start_point and end_point:
+                            in_start_point = {
+                                "lat": start_point.get("lat", 35.681236),
+                                "lng": start_point.get("lng", 139.767125)
+                            }
+                            in_end_point = {
+                                "lat": end_point.get("lat", 35.681236),
+                                "lng": end_point.get("lng", 139.767125)
+                            }
+
+                            # Calculate out coordinates using the helper function
+                            out_start_point, out_end_point = calculate_offset_route(center)
+                     
+
+                # Create detection zone
+                detection_zone = {
+                    "polygon_id": polygon_id_int,
+                    "polygon_name": polygon_name,
+                    "in_data": {
+                        "start_point": in_start_point,
+                        "end_point": in_end_point,
+                        "count": counts['in_count']
+                    },
+                    "out_data": {
+                        "start_point": out_start_point,  
+                        "end_point": out_end_point,
+                        "count": counts['out_count']
+                    }
+                }
+                
+                detection_zones.append(detection_zone)
+
         except Exception as e:
             logger.error(f"Error processing direction analytics for device {device_id_to_process}: {str(e)}", exc_info=True)
             error_message_for_device = f"Failed to process direction analytics for this device: {str(e)}"
@@ -761,7 +825,9 @@ def get_human_direction_analytics(
                 device_name=device_name,
                 device_location=device_location,
                 device_position=device_position,
-                direction_data=per_device_data_obj,
+                direction_data={
+                "detectionZones": detection_zones
+            },
                 error=error_message_for_device
             )
         )

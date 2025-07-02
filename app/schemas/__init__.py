@@ -7,7 +7,7 @@ from app.schemas.services.city_eye_analytics import (
     TotalCount,
     HourlyCount, 
     TimeSeriesData,
-    PolygonDirectionCount,
+    DetectionZoneDirection,
     PerDeviceDirectionData,
     AgeDistribution,
     GenderDistribution,

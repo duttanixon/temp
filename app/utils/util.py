@@ -1,4 +1,5 @@
 from app.models import User, UserRole, DeviceStatus
+import math
 from fastapi import HTTPException
 from app.schemas.services.city_eye_settings import XLinesConfigPayload
 
@@ -71,4 +72,44 @@ def transform_to_device_shadow_format(payload: XLinesConfigPayload) -> dict:
     return {
         "device_id": payload.device_id,
         "xlines_config": xlines_config
+    }
+
+
+def calculate_offset_route(center_cordinates: dict, offset: int = 6) -> dict:
+    # Use the input center_cordinates as inRoute
+    in_route = center_cordinates
+    start_point = in_route['startPoint']
+    end_point = in_route['endPoint']
+
+    # Earth's radius in meters
+    earth_radius_m = 6371000
+
+    # Calculate the directional vector of the line segment
+    dx = end_point['lng'] - start_point['lng']
+    dy = end_point['lat'] - start_point['lat']
+
+    # Calculate the perpendicular vector
+    perp_vector = [-dy, dx]
+
+    # Normalize the perpendicular vector
+    length = math.sqrt(perp_vector[0] ** 2 + perp_vector[1] ** 2)
+    unit_vector = [perp_vector[0] / length, perp_vector[1] / length]
+
+    # Convert the meter unit offset to changes in latitude and longitude
+    lat_offset = (offset / earth_radius_m) * (180 / math.pi)
+    lng_offset = (offset / (earth_radius_m * math.cos((math.pi * start_point['lat']) / 180))) * (180 / math.pi)
+
+    # Calculate the start and end points of the outRoute (offset from inRoute)
+    new_start_point_out = {
+        'lat': start_point['lat'] - lat_offset * unit_vector[1], 
+        'lng': start_point['lng'] - lng_offset * unit_vector[0]
+    }
+    new_end_point_out = {
+        'lat': end_point['lat'] - lat_offset * unit_vector[1], 
+        'lng': end_point['lng'] - lng_offset * unit_vector[0]
+    }
+
+    return {
+        'inRoute': in_route,  # Input center_cordinates becomes inRoute
+        'outRoute': {'startPoint': new_end_point_out, 'endPoint': new_start_point_out}
     }

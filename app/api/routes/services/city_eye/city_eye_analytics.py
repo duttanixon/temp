@@ -28,13 +28,17 @@ from app.schemas.services.city_eye_analytics import (
     AgeGenderDistribution,
     VehicleTypeDistribution,
     HourlyCount,
+    PolygonDirectionCount,
     TimeSeriesData,
+    PerDeviceDirectionData,
     PerDeviceAnalyticsData,
     PerDeviceTrafficAnalyticsData,
     DeviceAnalyticsItem,
     DeviceTrafficAnalyticsItem,
+    DeviceDirectionItem,
     CityEyeAnalyticsPerDeviceResponse,
-    CityEyeTrafficAnalyticsPerDeviceResponse
+    CityEyeTrafficAnalyticsPerDeviceResponse,
+    CityEyeDirectionPerDeviceResponse,
 )
 from app.utils.util import transform_to_device_shadow_format
 from app.utils.logger import get_logger
@@ -620,3 +624,150 @@ def get_polygon_xlines_config(
     )
     
     return response
+
+
+@router.post("/human-direction", response_model=CityEyeDirectionPerDeviceResponse)
+def get_human_direction_analytics(
+    *,
+    db: Session = Depends(deps.get_db),
+    filters: AnalyticsFilters,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Retrieve per-polygon in/out counts for human flow analytics, per device.
+    
+    This endpoint returns the number of people entering (in_count) and exiting (out_count)
+    each polygon for the specified devices and time range. 
+    
+    Note: 'loss' counts are excluded from the results as they represent tracking losses
+    rather than actual movements.
+    """
+    city_eye_solution_model = crud_solution.get_by_name(db, name="City Eye")
+    if not city_eye_solution_model:
+        logger.error("CityEye solution not found in database")
+        raise HTTPException(status_code=404, detail="CityEye solution not configured")
+
+    # --- Authorization and Device Validation (same as human-flow endpoint) ---
+    final_device_ids_to_process: List[uuid.UUID] = []
+    processed_device_details: Dict[uuid.UUID, Dict[str, Any]] = {}
+
+    if not filters.device_ids:
+        logger.warning(f"User {current_user.email} requested per-device direction analytics without specifying device_ids.")
+        raise HTTPException(status_code=400, detail="Please specify at least one device_id for per-device analytics.")
+
+    if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
+        for device_id_str in filters.device_ids:
+            try:
+                device_uuid = uuid.UUID(str(device_id_str))
+                db_device = crud_device.get_by_id(db, device_id=device_uuid)
+                if not db_device:
+                    logger.warning(f"Admin/Engineer query: Device {device_id_str} not found.")
+                    continue 
+
+                final_device_ids_to_process.append(device_uuid)
+                processed_device_details[device_uuid] = {
+                    "device_name": db_device.name,
+                    "device_location": db_device.location,
+                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
+                }
+            except ValueError:
+                logger.warning(f"Admin/Engineer query: Invalid device UUID format: {device_id_str}")
+                continue
+    else:  # Customer User roles
+        if not current_user.customer_id:
+            raise HTTPException(status_code=403, detail="User is not associated with any customer")
+
+        has_solution_access = crud_customer_solution.check_customer_has_access(
+            db,
+            customer_id=current_user.customer_id,
+            solution_id=city_eye_solution_model.solution_id
+        )
+        if not has_solution_access:
+            raise HTTPException(status_code=403, detail="Your organization does not have access to City Eye analytics")
+
+        for device_id_str in filters.device_ids:
+            try:
+                device_uuid = uuid.UUID(str(device_id_str))
+                db_device = crud_device.get_by_id(db, device_id=device_uuid)
+
+                if not db_device:
+                    logger.warning(f"Device not found: {device_id_str}")
+                    continue
+                
+                if db_device.customer_id != current_user.customer_id:
+                    logger.warning(f"User {current_user.email} denied access to device {device_id_str}")
+                    continue
+
+                # Check if CityEye solution is actually deployed on this device
+                device_solutions_on_device = crud_device_solution.get_active_by_device(db, device_id=device_uuid)
+                if not any(ds.solution_id == city_eye_solution_model.solution_id for ds in device_solutions_on_device):
+                    logger.warning(f"CityEye solution not active on device {device_id_str} for customer {current_user.customer_id}")
+                    continue
+                
+                final_device_ids_to_process.append(device_uuid)
+                processed_device_details[device_uuid] = {
+                    "device_name": db_device.name,
+                    "device_location": db_device.location,
+                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else []
+                }
+            except ValueError:
+                logger.warning(f"Customer query: Invalid device UUID format: {device_id_str}")
+                continue
+    
+    if not final_device_ids_to_process:
+        logger.info(f"No authorized or valid devices left to process for direction analytics request by {current_user.email}")
+        return []
+
+    # --- Iterate and fetch direction analytics for each authorized device ---
+    analytics_results: List[DeviceDirectionItem] = []
+
+    for device_id_to_process in final_device_ids_to_process:
+        device_details = processed_device_details.get(device_id_to_process, {})
+        device_name = device_details.get("device_name")
+        device_location = device_details.get("device_location")
+        device_position = device_details.get("device_position", [])
+        
+        logger.info(f"Processing direction analytics for device: {device_name} ({device_id_to_process})")
+        
+        # Create filters for single device
+        single_device_filters = filters.model_copy(deep=True)
+        single_device_filters.device_ids = [device_id_to_process]
+
+        per_device_data_obj = PerDeviceDirectionData(polygon_counts=[])
+        error_message_for_device: Optional[str] = None
+
+        try:
+            # Get direction counts from CRUD
+            direction_counts = crud_city_eye_analytics.get_direction_counts(db, filters=single_device_filters)
+            
+            # Convert to response format
+            polygon_counts = []
+            for polygon_id, counts in sorted(direction_counts.items()):
+                polygon_counts.append(PolygonDirectionCount(
+                    polygon_id=polygon_id,
+                    in_count=counts['in_count'],
+                    out_count=counts['out_count']
+                ))
+            
+            per_device_data_obj.polygon_counts = polygon_counts
+        
+        except Exception as e:
+            logger.error(f"Error processing direction analytics for device {device_id_to_process}: {str(e)}", exc_info=True)
+            error_message_for_device = f"Failed to process direction analytics for this device: {str(e)}"
+
+        analytics_results.append(
+            DeviceDirectionItem(
+                device_id=device_id_to_process,
+                device_name=device_name,
+                device_location=device_location,
+                device_position=device_position,
+                direction_data=per_device_data_obj,
+                error=error_message_for_device
+            )
+        )
+
+    logger.info(
+        f"Successfully processed direction analytics request by {current_user.email} for "
+        f"{len(analytics_results)} out of {len(filters.device_ids or [])} initially requested devices."
+    )
+    return analytics_results

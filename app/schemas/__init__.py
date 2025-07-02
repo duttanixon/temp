@@ -7,6 +7,8 @@ from app.schemas.services.city_eye_analytics import (
     TotalCount,
     HourlyCount, 
     TimeSeriesData,
+    PolygonDirectionCount,
+    PerDeviceDirectionData,
     AgeDistribution,
     GenderDistribution,
     AgeGenderDistribution,
@@ -17,6 +19,8 @@ from app.schemas.services.city_eye_analytics import (
     PerDeviceTrafficAnalyticsData,
     DeviceAnalyticsItem,
     DeviceTrafficAnalyticsItem,
+    DeviceDirectionItem,
     CityEyeAnalyticsPerDeviceResponse,
-    CityEyeTrafficAnalyticsPerDeviceResponse
+    CityEyeTrafficAnalyticsPerDeviceResponse,
+    CityEyeDirectionPerDeviceResponse
 )

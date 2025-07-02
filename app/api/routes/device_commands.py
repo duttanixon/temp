@@ -427,7 +427,6 @@ def get_device_stream_status(
     
     # Generate expected stream name
     stream_name = kvs_manager.generate_stream_name_for_device(db_device.name)
-
     
     # Check stream status
     stream_status = kvs_manager.get_stream_status(stream_name)
@@ -446,6 +445,5 @@ def get_device_stream_status(
         hls_info = kvs_manager.get_hls_streaming_url(stream_name)
         if hls_info:
             response["kvs_url"] = hls_info.get("hls_url")
-            response["expires_in"] = hls_info.get("expires_in", 3600)
     
     return response

@@ -21,6 +21,17 @@ class TimeSeriesData(BaseModel):
     timestamp: datetime
     count: int
 
+class PolygonDirectionCount(BaseModel):
+    polygon_id: str
+    polygon_name: Optional[str] = "N/A"
+    in_count: int
+    in_cordinates: Dict = {}
+    out_count: int
+    out_cordinates: Dict = {}
+
+class PerDeviceDirectionData(BaseModel):
+    polygon_counts: List[PolygonDirectionCount]
+
 # =============================================================================
 # HUMAN ANALYTICS SCHEMAS
 # =============================================================================
@@ -113,6 +124,15 @@ class DeviceTrafficAnalyticsItem(BaseModel):
     analytics_data: PerDeviceTrafficAnalyticsData
     error: Optional[str] = None
 
+class DeviceDirectionItem(BaseModel):
+    device_id: uuid.UUID
+    device_name: Optional[str] = None
+    device_location: Optional[str] = None
+    device_position: List[float] = []
+    direction_data: PerDeviceDirectionData
+    error: Optional[str] = None
+
+
 # =============================================================================
 # RESPONSE TYPES
 # =============================================================================
@@ -122,3 +142,6 @@ CityEyeAnalyticsPerDeviceResponse = List[DeviceAnalyticsItem]
 
 # Traffic analytics response (list of devices with traffic flow data)
 CityEyeTrafficAnalyticsPerDeviceResponse = List[DeviceTrafficAnalyticsItem]
+
+# Human direction analytics response (list of devices with direction data)
+CityEyeDirectionPerDeviceResponse = List[DeviceDirectionItem]

@@ -10,6 +10,10 @@ from typing import Dict, Any
 API_BASE_URL = os.environ.get('API_BASE_URL')  # e.g., 'https://api.com/api/v1'
 INTERNAL_API_KEY = os.environ.get('INTERNAL_API_KEY')
 
+# Valid command status values
+VALID_COMMAND_STATUSES = {'PENDING', 'SUCCESS', 'FAILED', 'TIMEOUT', 'ALREADY_STREAMING', 'NOT_STREAMING'}
+
+
 def decode_cloud_message(message: Dict[str, Any]) -> Dict[str, Any]:
     try:
         # Check if the message is compressed
@@ -88,7 +92,10 @@ def lambda_handler(event, context):
             raise ValueError("status not found in response")
         
         # Map device response status to our enum values
-        command_status = 'SUCCESS' if status == 'success' else 'FAILED'
+        if status.upper() not in VALID_COMMAND_STATUSES:
+            raise ValueError(f"Invalid command status '{status}'. Must be one of: {', '.join(VALID_COMMAND_STATUSES)}")
+        
+        validated_status = status.upper()
         
         # Prepare response payload (exclude messageId and status to avoid duplication)
         response_payload = {k: v for k, v in payload_data.items() if k not in ['messageId', 'status']}
@@ -96,7 +103,7 @@ def lambda_handler(event, context):
         # Update command status via API
         update_command_status(
             message_id=message_id,
-            status=command_status,
+            status=validated_status,
             response_payload=response_payload if response_payload else None,
             error_message=payload_data.get('error') if status != 'success' else None
         )
@@ -106,7 +113,7 @@ def lambda_handler(event, context):
             'body': json.dumps({
                 'message': 'Command response processed successfully',
                 'messageId': message_id,
-                'status': command_status
+                'status': validated_status
             })
         }
         

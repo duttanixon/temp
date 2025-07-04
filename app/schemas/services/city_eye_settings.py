@@ -1,6 +1,5 @@
-from typing import Any, List, Dict, Optional
-from fastapi import APIRouter, Depends, BackgroundTasks, Request
-from sqlalchemy.orm import Session
+
+from typing import List
 from pydantic import BaseModel, Field, validator
 from uuid import UUID
 
@@ -72,3 +71,30 @@ class UpdateXLinesConfigCommand(XLinesConfigCommand):
     """Specific schema for updating X-lines configuration command."""
 
     pass
+
+class ThresholdData(BaseModel):
+    """Schema for threshold data structure"""
+    traffic_count_thresholds: List[float] = Field(..., min_items=1, description="Traffic count threshold values")
+    human_count_thresholds: List[float] = Field(..., min_items=1, description="Human count threshold values")
+
+class ThresholdDataResponse(BaseModel):
+    """Schema for threshold data structure in responses (allows empty arrays)"""
+    traffic_count_thresholds: List[float] = Field(default=[], description="Traffic count threshold values")
+    human_count_thresholds: List[float] = Field(default=[], description="Human count threshold values")
+
+
+class ThresholdConfigRequest(BaseModel):
+    """Schema for threshold configuration requests (POST/PUT)"""
+    solution_id: UUID
+    customer_id: UUID
+    thresholds: ThresholdData
+
+class ThresholdConfigResponse(BaseModel):
+    """Schema for threshold configuration response (GET)"""
+    solution_id: UUID
+    customer_id: UUID
+    customer_name: str
+    thresholds: ThresholdDataResponse
+
+    class Config:
+        from_attributes = True

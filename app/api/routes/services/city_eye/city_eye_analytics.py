@@ -8,6 +8,7 @@ from app.models import User, UserRole, Device as DeviceModel, CommandType, Comma
 from app.crud import device as crud_device # Alias crud operations
 from app.crud import solution as crud_solution,  device, device_solution, device_command
 from app.crud import customer_solution as crud_customer_solution
+from app.crud import customer as crud_customer
 from app.crud import device_solution as crud_device_solution
 from app.api.routes.sse import notify_command_update
 from app.utils.util import check_device_access, validate_device_for_commands, calculate_offset_route
@@ -16,7 +17,7 @@ from app.schemas.device_command import (
     DeviceCommandCreate,
     DeviceCommandResponse,
 )
-from app.schemas.services.city_eye_settings import XLinesConfigPayload, UpdateXLinesConfigCommand, Vertex, Point, Center, DetectionZone, Position
+from app.schemas.services.city_eye_settings import XLinesConfigPayload, UpdateXLinesConfigCommand, Vertex, Point, Center, DetectionZone, Position, ThresholdConfigResponse, ThresholdConfigRequest, ThresholdDataResponse 
 from app.crud.crud_city_eye_analytics import crud_city_eye_analytics
 from app.utils.audit import log_action
 from app.schemas.services.city_eye_analytics import (
@@ -1054,3 +1055,161 @@ def get_traffic_direction_analytics(
     )
     return analytics_results
     
+
+@router.get("/thresholds/{customer_id}/{solution_id}", response_model=ThresholdConfigResponse)
+def get_threshold_config(
+    *,
+    db: Session = Depends(deps.get_db),
+    customer_id: uuid.UUID,
+    solution_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get threshold configuration for a specific customer-solution pair.
+    - Admins and Engineers can access any customer's thresholds
+    - Customer users can only access their own customer's thresholds
+    """
+    # Check if customer exists
+    customer_obj = crud_customer.get_by_id(db, customer_id=customer_id)
+    if not customer_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+    
+    # Check if solution exists
+    solution_obj = crud_solution.get_by_id(db, solution_id=solution_id)
+    if not solution_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="Solution not found"
+        )
+    
+    # Check permissions
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if current_user.customer_id != customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access this customer's threshold configuration"
+            )
+    
+    # Get threshold configuration
+    threshold_config = crud_city_eye_analytics.get_threshold_config(
+        db, customer_id=customer_id, solution_id=solution_id
+    )
+    
+    if not threshold_config:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer-solution relationship not found"
+        )
+    
+    # Create ThresholdDataResponse object (allows empty arrays)
+    threshold_data = ThresholdDataResponse(
+        traffic_count_thresholds=threshold_config["traffic_count_thresholds"],
+        human_count_thresholds=threshold_config["human_count_thresholds"]
+    )
+
+    
+    return ThresholdConfigResponse(
+        solution_id=solution_id,
+        customer_id=customer_id,
+        customer_name=customer_obj.name,
+        thresholds=threshold_data
+    )
+
+
+@router.put("/thresholds", response_model=ThresholdConfigResponse)
+def update_threshold_config(
+    *,
+    db: Session = Depends(deps.get_db),
+    threshold_config_in: ThresholdConfigRequest,
+    current_user: User = Depends(deps.get_current_active_user),
+    request: Request,
+) -> Any:
+    """
+    Update threshold configuration for a customer-solution pair.
+    - Admins and Engineers can update for any customer
+    - Customer users can only update for their own customer
+    """
+    # Check if customer exists
+    customer_obj = crud_customer.get_by_id(db, customer_id=threshold_config_in.customer_id)
+    if not customer_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+    
+    # Check if solution exists
+    solution_obj = crud_solution.get_by_id(db, solution_id=threshold_config_in.solution_id)
+    if not solution_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="Solution not found"
+        )
+    
+    # Check permissions
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if current_user.customer_id != threshold_config_in.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to create threshold configuration for this customer"
+            )
+    
+    # Check if customer-solution relationship exists
+    existing_cs = crud_customer_solution.get_by_customer_and_solution(
+        db, 
+        customer_id=threshold_config_in.customer_id, 
+        solution_id=threshold_config_in.solution_id
+    )
+
+    if not existing_cs:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer-solution relationship not found. Please ensure the customer has access to this solution first."
+        )
+    
+    # Create/update threshold configuration
+    updated_cs = crud_city_eye_analytics.update_threshold_config(
+        db,
+        customer_id=threshold_config_in.customer_id,
+        solution_id=threshold_config_in.solution_id,
+        thresholds=threshold_config_in.thresholds
+    )
+    
+    if not updated_cs:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update threshold configuration"
+        )
+    
+    # Log action
+    log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="THRESHOLD_CONFIG_CREATE",
+        resource_type="CUSTOMER_SOLUTION",
+        resource_id=str(updated_cs.id),
+        details={
+            "customer_id": str(threshold_config_in.customer_id),
+            "customer_name": customer_obj.name,
+            "solution_id": str(threshold_config_in.solution_id),
+            "solution_name": solution_obj.name,
+            "thresholds":threshold_config_in.thresholds.model_dump()
+        },
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+
+    threshold_data_response = ThresholdDataResponse(
+        traffic_count_thresholds=threshold_config_in.thresholds.traffic_count_thresholds,
+        human_count_thresholds=threshold_config_in.thresholds.human_count_thresholds
+    )
+
+    
+    return ThresholdConfigResponse(
+        solution_id=threshold_config_in.solution_id,
+        customer_id=threshold_config_in.customer_id,
+        customer_name=customer_obj.name,
+        thresholds=threshold_data_response
+    )

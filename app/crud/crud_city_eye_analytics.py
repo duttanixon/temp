@@ -1,10 +1,12 @@
 from typing import List, Optional, Dict, Any
+import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Integer, Date, Time, case, and_, or_
 from sqlalchemy.dialects.postgresql import INTERVAL, TIME
 from sqlalchemy.sql.expression import literal_column, ColumnElement
 from app.models.services.city_eye.human_table import CityEyeHumanTable
 from app.models.services.city_eye.traffic_table import CityEyeTrafficTable
+from app.models import CustomerSolution
 from app.schemas.services.city_eye_analytics import AnalyticsFilters, TrafficAnalyticsFilters
 from datetime import datetime, time as dt_time
 
@@ -572,5 +574,71 @@ class CRUDCityEyeAnalytics:
             result[polygon_id]['out_count'] = int(row.count or 0)
         
         return result
+
+    def get_by_customer_and_solution(
+        self, db: Session, *, customer_id: uuid.UUID, solution_id: uuid.UUID
+    ) -> Optional[CustomerSolution]:
+        return db.query(CustomerSolution).filter(
+            CustomerSolution.customer_id == customer_id,
+            CustomerSolution.solution_id == solution_id
+        ).first()
+
+
+
+    def get_threshold_config(
+        self, db: Session, *, customer_id: uuid.UUID, solution_id: uuid.UUID
+    ) -> Dict[str, List[float]]:
+        """Get threshold configuration for a customer-solution pair"""
+        customer_solution = self.get_by_customer_and_solution(
+            db, customer_id=customer_id, solution_id=solution_id
+        )
+        
+        if not customer_solution:
+            return None
+        
+        # Extract thresholds from configuration_template
+        config_template = customer_solution.configuration_template or {}
+        thresholds_data = config_template.get("thresholds", {})
+            
+        # Provide default values if thresholds don't exist
+        thresholds = {
+            "traffic_count_thresholds": thresholds_data.get("traffic_count_thresholds", []),
+            "human_count_thresholds": thresholds_data.get("human_count_thresholds", [])
+        }
+        
+        return thresholds
+
+    def update_threshold_config(
+        self, db: Session, *, customer_id: uuid.UUID, solution_id: uuid.UUID, thresholds: Dict[str, List[float]]
+    ) -> Optional[CustomerSolution]:
+        """Update threshold configuration for a customer-solution pair"""
+        customer_solution = self.get_by_customer_and_solution(
+            db, customer_id=customer_id, solution_id=solution_id
+        )
+    
+        if not customer_solution:
+            return None
+    
+        # Get existing configuration template or create new one
+        existing_config = customer_solution.configuration_template or {}
+
+        # Create a completely new dictionary (this ensures SQLAlchemy detects the change)
+        config_template = {
+            **existing_config,  # Copy all existing configuration
+            "thresholds": {
+                **(existing_config.get("thresholds", {})),  # Copy existing thresholds
+                "traffic_count_thresholds": thresholds.traffic_count_thresholds,
+                "human_count_thresholds": thresholds.human_count_thresholds
+            }
+        }
+
+        # Update the customer solution record
+        customer_solution.configuration_template = config_template
+        db.add(customer_solution)
+        db.commit()
+        db.refresh(customer_solution)
+        
+        return customer_solution
+
 
 crud_city_eye_analytics = CRUDCityEyeAnalytics()

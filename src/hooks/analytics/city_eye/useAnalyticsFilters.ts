@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
 import {
   CityEyeFilterState,
   FrontendAnalyticsFilters,
 } from "@/types/cityeye/cityEyeAnalytics";
-import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import { endOfDay, format, startOfDay, subDays } from "date-fns";
+import { useCallback, useState } from "react";
 
 // Default filter state with sensible defaults
 const createDefaultFilters = (): CityEyeFilterState => ({
@@ -69,8 +69,32 @@ export function useAnalyticsFilters() {
       if (!period?.from || !period?.to) {
         return null;
       }
+      // フィルターのうち「曜日」が未選択の場合
+      if (currentFilters.selectedDays.length === 0) {
+        return null;
+      }
+      // フィルターのうち「時間帯」が未選択の場合
+      if (currentFilters.selectedHours.length === 0) {
+        return null;
+      }
 
       if (currentFilters.selectedDevices.length === 0) {
+        return null;
+      }
+
+      // フィルターのうち、「年齢層」が未選択の場合
+      if (
+        currentFilters.selectedAges.length === 0 &&
+        horizontalTab === "people"
+      ) {
+        return null;
+      }
+
+      // フィルターのうち、「性別」が未選択の場合
+      if (
+        currentFilters.selectedGenders.length === 0 &&
+        horizontalTab === "people"
+      ) {
         return null;
       }
 

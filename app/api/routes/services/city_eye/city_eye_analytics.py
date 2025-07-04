@@ -765,17 +765,20 @@ def get_human_direction_analytics(
                 polygon_id_int = int(polygon_id)
 
                 # Default values
-                polygon_name = f"Zone {polygon_id}"
-                in_start_point = {}
-                in_end_point = {}
-                out_start_point = {}
-                out_end_point = {}
+                polygon_name = f"Zone {int(polygon_id) + 1}"
+                default_lat = 35.681236
+                default_lng = 139.767125
+                
+                in_start_point = {"lat": default_lat, "lng": default_lng}
+                in_end_point = {"lat": default_lat, "lng": default_lng}
+                out_start_point = {"lat": default_lat, "lng": default_lng}
+                out_end_point = {"lat": default_lat, "lng": default_lng}
 
 
                 # Get polygon data from shadow if available
                 if polygon_id_int < len(xlines_config):
                     polygon_data = xlines_config[polygon_id_int]
-                    polygon_name = polygon_data.get("name", f"Zone {polygon_id}")
+                    polygon_name = polygon_data.get("name", f"Zone {int(polygon_id) + 1}")
                     
                     # Get center coordinates
                     center = polygon_data.get("center", {})
@@ -837,3 +840,217 @@ def get_human_direction_analytics(
         f"{len(analytics_results)} out of {len(filters.device_ids or [])} initially requested devices."
     )
     return analytics_results
+
+
+@router.post("/traffic-direction", response_model=CityEyeDirectionPerDeviceResponse)
+def get_traffic_direction_analytics(
+    *,
+    db: Session = Depends(deps.get_db),
+    filters: TrafficAnalyticsFilters,
+    current_user: User = Depends(deps.get_current_active_user),
+    ) -> Any:
+    """
+    Retrieve per-polygon in/out counts for traffic flow analytics, per device.
+    
+    This endpoint returns the number of vehicles entering (in_count) and exiting (out_count)
+    each polygon for the specified devices and time range, along with polygon names and coordinates.
+    
+    Note: 'loss' counts are excluded from the results as they represent tracking losses
+    rather than actual movements.
+    """
+    city_eye_solution_model = crud_solution.get_by_name(db, name="City Eye")
+    if not city_eye_solution_model:
+        logger.error("CityEye solution not found in database")
+        raise HTTPException(status_code=404, detail="CityEye solution not configured")
+
+    # --- Authorization and Device Validation (same as traffic-flow endpoint) ---
+    final_device_ids_to_process: List[uuid.UUID] = []
+    processed_device_details: Dict[uuid.UUID, Dict[str, Any]] = {}
+
+    if not filters.device_ids:
+        logger.warning(f"User {current_user.email} requested per-device traffic direction analytics without specifying device_ids.")
+        raise HTTPException(status_code=400, detail="Please specify at least one device_id for per-device analytics.")
+
+    if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
+        for device_id_str in filters.device_ids:
+            try:
+                device_uuid = uuid.UUID(str(device_id_str))
+                db_device = crud_device.get_by_id(db, device_id=device_uuid)
+                if not db_device:
+                    logger.warning(f"Admin/Engineer query: Device {device_id_str} not found.")
+                    continue 
+
+                final_device_ids_to_process.append(device_uuid)
+                processed_device_details[device_uuid] = {
+                    "device_name": db_device.name,
+                    "device_location": db_device.location,
+                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else [],
+                    "thing_name": db_device.thing_name
+                }
+            except ValueError:
+                logger.warning(f"Admin/Engineer query: Invalid device UUID format: {device_id_str}")
+                continue
+    else:  # Customer User roles
+        if not current_user.customer_id:
+            raise HTTPException(status_code=403, detail="User is not associated with any customer")
+
+        has_solution_access = crud_customer_solution.check_customer_has_access(
+            db,
+            customer_id=current_user.customer_id,
+            solution_id=city_eye_solution_model.solution_id
+        )
+        if not has_solution_access:
+            raise HTTPException(status_code=403, detail="Your organization does not have access to City Eye analytics")
+
+        for device_id_str in filters.device_ids:
+            try:
+                device_uuid = uuid.UUID(str(device_id_str))
+                db_device = crud_device.get_by_id(db, device_id=device_uuid)
+
+                if not db_device:
+                    logger.warning(f"Device not found: {device_id_str}")
+                    continue
+                
+                if db_device.customer_id != current_user.customer_id:
+                    logger.warning(f"User {current_user.email} denied access to device {device_id_str}")
+                    continue
+
+                # Check if CityEye solution is actually deployed on this device
+                device_solutions_on_device = crud_device_solution.get_active_by_device(db, device_id=device_uuid)
+                if not any(ds.solution_id == city_eye_solution_model.solution_id for ds in device_solutions_on_device):
+                    logger.warning(f"CityEye solution not active on device {device_id_str} for customer {current_user.customer_id}")
+                    continue
+                
+                final_device_ids_to_process.append(device_uuid)
+                processed_device_details[device_uuid] = {
+                    "device_name": db_device.name,
+                    "device_location": db_device.location,
+                    "device_position": [db_device.latitude, db_device.longitude] if db_device.latitude and db_device.longitude else [],
+                    "thing_name": db_device.thing_name
+                }
+            except ValueError:
+                logger.warning(f"Customer query: Invalid device UUID format: {device_id_str}")
+                continue
+    
+    if not final_device_ids_to_process:
+        logger.info(f"No authorized or valid devices left to process for traffic direction analytics request by {current_user.email}")
+        return []
+
+    # --- Iterate and fetch traffic direction analytics for each authorized device ---
+    analytics_results: List[DeviceDirectionItem] = []
+
+    for device_id_to_process in final_device_ids_to_process:
+        device_details = processed_device_details.get(device_id_to_process, {})
+        device_name = device_details.get("device_name")
+        device_location = device_details.get("device_location")
+        device_position = device_details.get("device_position", [])
+        thing_name = device_details.get("thing_name")
+        
+        logger.info(f"Processing traffic direction analytics for device: {device_name} ({device_id_to_process})")
+        
+        # Create filters for single device
+        single_device_filters = filters.model_copy(deep=True)
+        single_device_filters.device_ids = [device_id_to_process]
+
+        detection_zones = []
+        error_message_for_device: Optional[str] = None
+
+        try:
+            # Get traffic direction counts from CRUD
+            direction_counts = crud_city_eye_analytics.get_traffic_direction_counts(db, filters=single_device_filters)
+
+            # Get shadow document to retrieve polygon names and coordinates
+            xlines_config = []
+
+            if thing_name:
+                shadow_document = iot_command_service.get_xlines_config_shadow(thing_name)
+                if shadow_document:
+                    state = shadow_document.get("state", {})
+                    reported = state.get("reported", {})
+                    xlines_cfg_content = reported.get("xlines_cfg_content")
+
+                    if xlines_cfg_content:
+                        try:
+                            xlines_config = json.loads(xlines_cfg_content)
+                        except json.JSONDecodeError:
+                            logger.error(f"Failed to parse xlines configuration for device {device_id_to_process}")
+
+            # Build detection zones with the same format as human direction
+            for polygon_id, counts in sorted(direction_counts.items()):
+                polygon_id_int = int(polygon_id)
+
+                # Default values
+                polygon_name = f"Zone {int(polygon_id) + 1}"
+                default_lat = 35.681236
+                default_lng = 139.767125
+                
+                in_start_point = {"lat": default_lat, "lng": default_lng}
+                in_end_point = {"lat": default_lat, "lng": default_lng}
+                out_start_point = {"lat": default_lat, "lng": default_lng}
+                out_end_point = {"lat": default_lat, "lng": default_lng}
+
+                # Get polygon data from shadow if available
+                if polygon_id_int < len(xlines_config):
+                    polygon_data = xlines_config[polygon_id_int]
+                    polygon_name = polygon_data.get("name", f"Zone {int(polygon_id) + 1}")
+                    
+                    # Get center coordinates
+                    center = polygon_data.get("center", {})
+                    if center:
+                        start_point = center.get("startPoint", {})
+                        end_point = center.get("endPoint", {})
+
+                        if start_point and end_point:
+                            in_start_point = {
+                                "lat": start_point.get("lat", 35.681236),
+                                "lng": start_point.get("lng", 139.767125)
+                            }
+                            in_end_point = {
+                                "lat": end_point.get("lat", 35.681236),
+                                "lng": end_point.get("lng", 139.767125)
+                            }
+
+                            # Calculate out coordinates using the helper function
+                            out_start_point, out_end_point = calculate_offset_route(center)
+
+                # Create detection zone
+                detection_zone = {
+                    "polygon_id": polygon_id_int,
+                    "polygon_name": polygon_name,
+                    "in_data": {
+                        "start_point": in_start_point,
+                        "end_point": in_end_point,
+                        "count": counts['in_count']
+                    },
+                    "out_data": {
+                        "start_point": out_start_point,  
+                        "end_point": out_end_point,
+                        "count": counts['out_count']
+                    }
+                }
+                
+                detection_zones.append(detection_zone)
+
+        except Exception as e:
+            logger.error(f"Error processing traffic direction analytics for device {device_id_to_process}: {str(e)}", exc_info=True)
+            error_message_for_device = f"Failed to process traffic direction analytics for this device: {str(e)}"
+
+        analytics_results.append(
+            DeviceDirectionItem(
+                device_id=device_id_to_process,
+                device_name=device_name,
+                device_location=device_location,
+                device_position=device_position,
+                direction_data={
+                    "detectionZones": detection_zones
+                },
+                error=error_message_for_device
+            )
+        )
+
+    logger.info(
+        f"Successfully processed traffic direction analytics request by {current_user.email} for "
+        f"{len(analytics_results)} out of {len(filters.device_ids or [])} initially requested devices."
+    )
+    return analytics_results
+    

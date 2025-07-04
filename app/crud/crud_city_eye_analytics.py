@@ -518,4 +518,59 @@ class CRUDCityEyeAnalytics:
         return result
 
 
+    def get_traffic_direction_counts(self, db: Session, *, filters: TrafficAnalyticsFilters) -> Dict[str, Dict[str, int]]:
+        """
+        Get in/out counts per polygon for traffic, excluding 'loss' counts.
+        Returns: Dict with polygon_id as key and {'in_count': x, 'out_count': y} as value
+        """
+        # Get the sum expression for vehicle count
+        sum_expr = self._get_vehicles_sum_expression(filters)
+        
+        # Query for IN counts (when polygon appears in polygon_id_in)
+        in_query = db.query(
+            CityEyeTrafficTable.polygon_id_in.label("polygon_id"),
+            func.sum(sum_expr).label("count")
+        ).filter(
+            CityEyeTrafficTable.polygon_id_in != 'loss'  # Exclude loss
+        )
+        
+        # Apply filters
+        in_query = self._apply_traffic_filters(in_query, filters, is_aggregation_query=True)
+        in_query = in_query.group_by(CityEyeTrafficTable.polygon_id_in)
+        
+        # Query for OUT counts (when polygon appears in polygon_id_out)
+        out_query = db.query(
+            CityEyeTrafficTable.polygon_id_out.label("polygon_id"),
+            func.sum(sum_expr).label("count")
+        ).filter(
+            CityEyeTrafficTable.polygon_id_out != 'loss'  # Exclude loss
+        )
+        
+        # Apply filters
+        out_query = self._apply_traffic_filters(out_query, filters, is_aggregation_query=True)
+        out_query = out_query.group_by(CityEyeTrafficTable.polygon_id_out)
+        
+        # Execute queries
+        in_results = in_query.all()
+        out_results = out_query.all()
+        
+        # Build result dictionary
+        result = {}
+        
+        # Process IN counts
+        for row in in_results:
+            polygon_id = str(row.polygon_id)
+            if polygon_id not in result:
+                result[polygon_id] = {'in_count': 0, 'out_count': 0}
+            result[polygon_id]['in_count'] = int(row.count or 0)
+        
+        # Process OUT counts
+        for row in out_results:
+            polygon_id = str(row.polygon_id)
+            if polygon_id not in result:
+                result[polygon_id] = {'in_count': 0, 'out_count': 0}
+            result[polygon_id]['out_count'] = int(row.count or 0)
+        
+        return result
+
 crud_city_eye_analytics = CRUDCityEyeAnalytics()

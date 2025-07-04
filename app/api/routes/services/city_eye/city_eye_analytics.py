@@ -29,9 +29,9 @@ from app.schemas.services.city_eye_analytics import (
     AgeGenderDistribution,
     VehicleTypeDistribution,
     HourlyCount,
-    DetectionZoneDirection,
+    DirectionAnalyticsFilters,
     TimeSeriesData,
-    PerDeviceDirectionData,
+    TrafficDirectionAnalyticsFilters,
     PerDeviceAnalyticsData,
     PerDeviceTrafficAnalyticsData,
     DeviceAnalyticsItem,
@@ -631,7 +631,7 @@ def get_polygon_xlines_config(
 def get_human_direction_analytics(
     *,
     db: Session = Depends(deps.get_db),
-    filters: AnalyticsFilters,
+    filters: DirectionAnalyticsFilters,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -642,6 +642,14 @@ def get_human_direction_analytics(
     
     Note: 'loss' counts are excluded from the results as they represent tracking losses
     rather than actual movements.
+    Args:
+        filters: DirectionAnalyticsFilters with:
+            - device_ids: List of device IDs to analyze
+            - dates: List of dates to analyze (e.g., ["2024-01-01", "2024-01-02"])
+            - days: Optional list of weekdays to filter
+            - hours: Optional list of hours to filter
+            - genders: Optional gender filters
+            - age_groups: Optional age group filters
     """
     city_eye_solution_model = crud_solution.get_by_name(db, name="City Eye")
     if not city_eye_solution_model:
@@ -847,7 +855,7 @@ def get_human_direction_analytics(
 def get_traffic_direction_analytics(
     *,
     db: Session = Depends(deps.get_db),
-    filters: TrafficAnalyticsFilters,
+    filters: TrafficDirectionAnalyticsFilters,
     current_user: User = Depends(deps.get_current_active_user),
     ) -> Any:
     """

@@ -7,7 +7,7 @@ from sqlalchemy.sql.expression import literal_column, ColumnElement
 from app.models.services.city_eye.human_table import CityEyeHumanTable
 from app.models.services.city_eye.traffic_table import CityEyeTrafficTable
 from app.models import CustomerSolution
-from app.schemas.services.city_eye_analytics import AnalyticsFilters, TrafficAnalyticsFilters
+from app.schemas.services.city_eye_analytics import AnalyticsFilters, TrafficAnalyticsFilters, DirectionAnalyticsFilters, TrafficDirectionAnalyticsFilters
 from datetime import datetime, time as dt_time
 
 class CRUDCityEyeAnalytics:
@@ -105,6 +105,104 @@ class CRUDCityEyeAnalytics:
                 query = query.filter(func.extract('hour', CityEyeHumanTable.timestamp).in_(hour_numbers))
 
         return query
+    
+    def _apply_direction_filters(self, query, filters: DirectionAnalyticsFilters, is_aggregation_query: bool = False):
+        """Apply filters for direction analytics with date array support"""
+        # Row-level filters (devices, polygons)
+        if filters.device_ids:
+            query = query.filter(CityEyeHumanTable.device_id.in_(filters.device_ids))
+        
+        # Date filtering - create OR conditions for each date
+        if filters.dates:
+            date_conditions = []
+            for single_date in filters.dates:
+                # Convert date to datetime range (start of day to end of day)
+                start_of_day = datetime.combine(single_date, dt_time.min)
+                end_of_day = datetime.combine(single_date, dt_time.max)
+                date_conditions.append(
+                    and_(
+                        CityEyeHumanTable.timestamp >= start_of_day,
+                        CityEyeHumanTable.timestamp <= end_of_day
+                    )
+                )
+            
+            # Apply OR condition for all dates
+            query = query.filter(or_(*date_conditions))
+        
+        # Day of the week filtering
+        if filters.days:
+            day_mapping = {
+                "sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3,
+                "thursday": 4, "friday": 5, "saturday": 6
+            }
+            dow_numbers = [day_mapping[day.lower()] for day in filters.days if day.lower() in day_mapping]
+            if dow_numbers:
+                query = query.filter(func.extract('dow', CityEyeHumanTable.timestamp).in_(dow_numbers))
+        
+        # Hour filtering
+        if filters.hours:
+            hour_numbers = []
+            for hour_str in filters.hours:
+                try:
+                    hour_part = int(hour_str.split(':')[0])
+                    hour_numbers.append(hour_part)
+                except ValueError:
+                    pass
+            
+            if hour_numbers:
+                query = query.filter(func.extract('hour', CityEyeHumanTable.timestamp).in_(hour_numbers))
+        
+        return query
+
+    def _apply_traffic_direction_filters(self, query, filters: TrafficDirectionAnalyticsFilters, is_aggregation_query: bool = False):
+        """Apply filters for traffic direction analytics with date array support"""
+        # Row-level filters (devices, polygons)
+        if filters.device_ids:
+            query = query.filter(CityEyeTrafficTable.device_id.in_(filters.device_ids))
+        
+        # Date filtering - create OR conditions for each date
+        if filters.dates:
+            date_conditions = []
+            for single_date in filters.dates:
+                # Convert date to datetime range (start of day to end of day)
+                start_of_day = datetime.combine(single_date, dt_time.min)
+                end_of_day = datetime.combine(single_date, dt_time.max)
+                
+                date_conditions.append(
+                    and_(
+                        CityEyeTrafficTable.timestamp >= start_of_day,
+                        CityEyeTrafficTable.timestamp <= end_of_day
+                    )
+                )
+            
+            # Apply OR condition for all dates
+            query = query.filter(or_(*date_conditions))
+        
+        # Day of the week filtering
+        if filters.days:
+            day_mapping = {
+                "sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3,
+                "thursday": 4, "friday": 5, "saturday": 6
+            }
+            dow_numbers = [day_mapping[day.lower()] for day in filters.days if day.lower() in day_mapping]
+            if dow_numbers:
+                query = query.filter(func.extract('dow', CityEyeTrafficTable.timestamp).in_(dow_numbers))
+        
+        # Hour filtering
+        if filters.hours:
+            hour_numbers = []
+            for hour_str in filters.hours:
+                try:
+                    hour_part = int(hour_str.split(':')[0])
+                    hour_numbers.append(hour_part)
+                except ValueError:
+                    pass
+            
+            if hour_numbers:
+                query = query.filter(func.extract('hour', CityEyeTrafficTable.timestamp).in_(hour_numbers))
+        
+        return query
+
 
     def get_total_count(self, db: Session, *, filters: AnalyticsFilters) -> int:
         sum_expr = self._get_people_sum_expression(filters)
@@ -481,7 +579,7 @@ class CRUDCityEyeAnalytics:
         )
         
         # Apply filters
-        in_query = self._apply_filters(in_query, filters, is_aggregation_query=True)
+        in_query = self._apply_direction_filters(in_query, filters, is_aggregation_query=True)
         in_query = in_query.group_by(CityEyeHumanTable.polygon_id_in)
         
         # Query for OUT counts (when polygon appears in polygon_id_out)
@@ -493,7 +591,7 @@ class CRUDCityEyeAnalytics:
         )
         
         # Apply filters
-        out_query = self._apply_filters(out_query, filters, is_aggregation_query=True)
+        out_query = self._apply_direction_filters(out_query, filters, is_aggregation_query=True)
         out_query = out_query.group_by(CityEyeHumanTable.polygon_id_out)
         
         # Execute queries
@@ -537,7 +635,7 @@ class CRUDCityEyeAnalytics:
         )
         
         # Apply filters
-        in_query = self._apply_traffic_filters(in_query, filters, is_aggregation_query=True)
+        in_query = self._apply_traffic_direction_filters(in_query, filters, is_aggregation_query=True)
         in_query = in_query.group_by(CityEyeTrafficTable.polygon_id_in)
         
         # Query for OUT counts (when polygon appears in polygon_id_out)
@@ -549,7 +647,7 @@ class CRUDCityEyeAnalytics:
         )
         
         # Apply filters
-        out_query = self._apply_traffic_filters(out_query, filters, is_aggregation_query=True)
+        out_query = self._apply_traffic_direction_filters(out_query, filters, is_aggregation_query=True)
         out_query = out_query.group_by(CityEyeTrafficTable.polygon_id_out)
         
         # Execute queries

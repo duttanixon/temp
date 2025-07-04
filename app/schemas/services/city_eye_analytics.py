@@ -1,7 +1,9 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import uuid
+from datetime import date
+
 
 class CityEyeAnalyticsBase(BaseModel):
     pass
@@ -141,6 +143,39 @@ class DeviceDirectionItem(BaseModel):
     device_position: List[float] = []
     direction_data: PerDeviceDirectionData
     error: Optional[str] = None
+
+class DirectionAnalyticsFilters(BaseModel):
+    """Filters specifically for direction analytics endpoints that accept date arrays"""
+    device_ids: Optional[List[uuid.UUID]] = None
+    dates: List[date] = Field(..., min_items=1, description="List of dates to analyze")
+    days: Optional[List[str]] = None  # e.g., ["sunday", "monday"]
+    hours: Optional[List[str]] = None  # e.g., ["10:00", "14:00"]
+    genders: Optional[List[str]] = None # ["male", "female"]
+    age_groups: Optional[List[str]] = None # ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"]
+    
+    @validator('dates')
+    def validate_dates(cls, v):
+        """Ensure dates are valid and not empty"""
+        if not v:
+            raise ValueError("At least one date must be provided")
+        # Optionally, you can add more validation like checking if dates are not in the future
+        return v
+
+class TrafficDirectionAnalyticsFilters(BaseModel):
+    """Filters specifically for traffic direction analytics endpoints that accept date arrays"""
+    device_ids: Optional[List[uuid.UUID]] = None
+    dates: List[date] = Field(..., min_items=1, description="List of dates to analyze")
+    days: Optional[List[str]] = None  # e.g., ["sunday", "monday"]
+    hours: Optional[List[str]] = None  # e.g., ["10:00", "14:00"]
+    vehicle_types: Optional[List[str]] = None # ["large", "normal", "bicycle", "motorcycle"]
+    
+    @validator('dates')
+    def validate_dates(cls, v):
+        """Ensure dates are valid and not empty"""
+        if not v:
+            raise ValueError("At least one date must be provided")
+        return v
+
 
 
 # =============================================================================

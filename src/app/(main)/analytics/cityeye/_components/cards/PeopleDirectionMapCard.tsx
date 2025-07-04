@@ -1,11 +1,12 @@
 "use client";
 
+import "leaflet-arrowheads";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { RefreshCcw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
 import {
   MapContainer,
   Marker,
@@ -15,15 +16,23 @@ import {
   Polyline,
 } from "react-leaflet";
 import { GenericAnalyticsCard } from "@/app/(main)/analytics/cityeye/_components/cards/GenericAnalyticsCard";
+import { useGetDevice } from "@/app/(main)/_components/_hooks/useGetDevice";
 
 interface PeopleDirectionMapCardProps {
   title: string;
-  perDeviceCountsData: any;
+  perDeviceCountsData: {
+    device_id: string;
+    detectionZones?: DetectionZone[];
+    dailyAveragePeople?: {
+      days?: number;
+    };
+  };
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
 }
 
+type ZoneLabel = { name: string; lat: number; lng: number };
 type ZoneDirection = {
   startPoint: { lat: number; lng: number };
   endPoint: { lat: number; lng: number };
@@ -67,54 +76,6 @@ const ResetButton = ({ onClick }: { onClick: () => void }) => {
   );
 };
 
-const createArrowIcon = ({
-  angle,
-  color,
-  size = 30,
-  thickness = 4,
-}: {
-  angle: number;
-  color: string;
-  size?: number;
-  thickness?: number;
-}) => {
-  return L.divIcon({
-    html: `
-      <svg width="${size}" height="${size}" viewBox="0 0 36 36" style="transform: rotate(${angle}deg); display: block;">
-        <!-- 胴体 -->
-        <line x1="6" y1="18" x2="24" y2="18" stroke="${color}" stroke-width="${thickness}"/>
-        <!-- 大きい三角 -->
-        <polygon points="24,8 34,18 24,28" fill="${color}" />
-      </svg>
-    `,
-    iconSize: [30, 30],
-    className: "leaflet-arrow-icon", // 任意でカスタムCSSも可
-  });
-};
-
-const getAngle = ({
-  start,
-  end,
-}: {
-  start: { lat: number; lng: number };
-  end: { lat: number; lng: number };
-}) => {
-  const lat1 = (start.lat * Math.PI) / 180;
-  const lat2 = (end.lat * Math.PI) / 180;
-  const dLng = ((end.lng - start.lng) * Math.PI) / 180;
-
-  // 北を0度、東回りの方位角(北=0度,東=90度,南=180度,西=270度)
-  const y = Math.sin(dLng) * Math.cos(lat2);
-  const x =
-    Math.cos(lat1) * Math.sin(lat2) -
-    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-  const theta = Math.atan2(y, x);
-
-  let angle = (theta * 180) / Math.PI; // ラジアンから度に変換
-  angle = (angle + 360) % 360; // 0〜360度に正規化
-  return angle - 90; // 北を0度にするために90度回転
-};
-
 export default function PeopleDirectionMapCard({
   title,
   perDeviceCountsData,
@@ -128,40 +89,104 @@ export default function PeopleDirectionMapCard({
     setResetKey((k) => k + 1);
   };
 
-  const polylines =
-    perDeviceCountsData.detectionZones?.flatMap((zone: DetectionZone) => {
-      const result: Polyline[] = [];
-      if (zone.In) {
-        result.push({
-          points: [
-            [zone.In.startPoint.lat, zone.In.startPoint.lng],
-            [zone.In.endPoint.lat, zone.In.endPoint.lng],
-          ],
-          start: zone.In.startPoint,
-          end: zone.In.endPoint,
-          type: "in",
-          count: zone.In.count ?? 0,
-          name: zone.name,
+  const ArrowPolyline = ({
+    positions,
+    color,
+    weight = 4,
+    tooltip,
+  }: {
+    positions: [number, number][];
+    color: string;
+    weight?: number;
+    tooltip?: ReactNode;
+  }) => {
+    const polylineRef = useRef<L.Polyline>(null);
+
+    useEffect(() => {
+      if (polylineRef.current) {
+        polylineRef.current.arrowheads({
+          size: "12px",
+          frequency: "endonly",
+          yawn: 60,
+          color,
+          fill: true,
         });
       }
-      if (zone.Out) {
-        result.push({
-          points: [
-            [zone.Out.startPoint.lat, zone.Out.startPoint.lng],
-            [zone.Out.endPoint.lat, zone.Out.endPoint.lng],
-          ],
-          start: zone.Out.startPoint,
-          end: zone.Out.endPoint,
-          type: "out",
-          count: zone.Out.count ?? 0,
-          name: zone.name,
-        });
-      }
-      return result;
-    }) ?? [];
+    }, [positions, color]);
+    return (
+      <Polyline
+        positions={positions}
+        pathOptions={{ color, weight, lineCap: "butt", lineJoin: "miter" }}
+        ref={polylineRef}
+      >
+        {tooltip && (
+          <Tooltip direction="auto" offset={[5, -5]}>
+            {tooltip}
+          </Tooltip>
+        )}
+      </Polyline>
+    );
+  };
 
-  console.log("polylines:", polylines);
+  // zoneごとにIN/OUT両方の線の中間地点の間にラベルを1つだけ表示するためのデータ構造を作成
+  const zoneLinePairs = (perDeviceCountsData.detectionZones || []).map(
+    (zone: DetectionZone) => {
+      const inLine = zone.In
+        ? {
+            start: zone.In.startPoint,
+            end: zone.In.endPoint,
+            count: zone.In.count ?? 0,
+            type: "in",
+          }
+        : undefined;
+      const outLine = zone.Out
+        ? {
+            start: zone.Out.startPoint,
+            end: zone.Out.endPoint,
+            count: zone.Out.count ?? 0,
+            type: "out",
+          }
+        : undefined;
+      return {
+        name: zone.name,
+        inLine,
+        outLine,
+      };
+    }
+  );
 
+  // Polyline描画用データ
+  const polylines: Polyline[] = [];
+  zoneLinePairs.forEach((zone) => {
+    if (zone.inLine) {
+      polylines.push({
+        points: [
+          [zone.inLine.start.lat, zone.inLine.start.lng],
+          [zone.inLine.end.lat, zone.inLine.end.lng],
+        ],
+        start: zone.inLine.start,
+        end: zone.inLine.end,
+        type: "in",
+        count: zone.inLine.count,
+        name: zone.name,
+      });
+    }
+    if (zone.outLine) {
+      polylines.push({
+        points: [
+          [zone.outLine.start.lat, zone.outLine.start.lng],
+          [zone.outLine.end.lat, zone.outLine.end.lng],
+        ],
+        start: zone.outLine.start,
+        end: zone.outLine.end,
+        type: "out",
+        count: zone.outLine.count,
+        name: zone.name,
+      });
+    }
+  });
+
+  // ズーム用座標
   const coordinatesForZoom: [number, number][] = polylines.flatMap(
     (line: Polyline) => [
       [line.start.lat, line.start.lng],
@@ -169,13 +194,77 @@ export default function PeopleDirectionMapCard({
     ]
   );
 
-  console.log("coordinatesForZoom:", coordinatesForZoom);
+  // zoneごとにIN/OUT両方の線がある場合は中点同士の中点、片方だけならその線の中点
+  const zoneLabels: ZoneLabel[] = zoneLinePairs
+    .map((zone) => {
+      if (zone.inLine && zone.outLine) {
+        // INの中点
+        const inMid = {
+          lat: (zone.inLine.start.lat + zone.inLine.end.lat) / 2,
+          lng: (zone.inLine.start.lng + zone.inLine.end.lng) / 2,
+        };
+        // OUTの中点
+        const outMid = {
+          lat: (zone.outLine.start.lat + zone.outLine.end.lat) / 2,
+          lng: (zone.outLine.start.lng + zone.outLine.end.lng) / 2,
+        };
+        // 2つの中点の中点
+        return {
+          name: zone.name,
+          lat: (inMid.lat + outMid.lat) / 2,
+          lng: (inMid.lng + outMid.lng) / 2,
+        };
+      } else if (zone.inLine) {
+        return {
+          name: zone.name,
+          lat: (zone.inLine.start.lat + zone.inLine.end.lat) / 2,
+          lng: (zone.inLine.start.lng + zone.inLine.end.lng) / 2,
+        };
+      } else if (zone.outLine) {
+        return {
+          name: zone.name,
+          lat: (zone.outLine.start.lat + zone.outLine.end.lat) / 2,
+          lng: (zone.outLine.start.lng + zone.outLine.end.lng) / 2,
+        };
+      }
+      return null;
+    })
+    .filter((label: ZoneLabel | null): label is ZoneLabel => label !== null);
 
   const hasData = hasAttemptedFetch;
+
+  const days = perDeviceCountsData?.dailyAveragePeople?.days || 1;
+  const baseThresholds = [2000, 6500, 8000];
+  const thresholds = baseThresholds.map((t) => t * days);
+  const legendItems = [
+    {
+      color: "#4A83BD",
+      label: "少ない",
+      range: `${thresholds[0]}未満`,
+    },
+    {
+      color: "#4A9C64",
+      label: "やや少ない",
+      range: `${thresholds[0]}〜${thresholds[1] - 1}`,
+    },
+    {
+      color: "#DB954D",
+      label: "やや多い",
+      range: `${thresholds[1]}〜${thresholds[2] - 1}`,
+    },
+    {
+      color: "#DB4E4D",
+      label: "多い",
+      range: `${thresholds[2]}以上`,
+    },
+  ];
+  // 仮のデバイス
+  const Device = useGetDevice({ id: perDeviceCountsData.device_id });
+  const device_name = Device.device[0]?.location ?? "デバイス未選択";
   return (
-    <div className="grid grid-cols-4 gap-0">
+    <div className="grid grid-cols-4 gap-0 bg-transparent">
       <div className="col-span-3">
-        <Card className="w-full h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 overflow-hidden">
+        <Card className="w-full h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 overflow-hidden border-r-0">
           <CardHeader className="flex justify-between items-center pb-2 pt-3 px-4">
             <CardTitle className="text-base font-semibold text-gray-700">
               {title}
@@ -190,7 +279,7 @@ export default function PeopleDirectionMapCard({
               emptyMessage={
                 hasAttemptedFetch
                   ? undefined
-                  : "フィルターを適用してカメラマップを表示します。"
+                  : "フィルターを適用して人流方向マップを表示します。"
               }
             >
               <div className="w-full h-120 relative z-[1] cursor-pointer overflow-hidden">
@@ -212,52 +301,57 @@ export default function PeopleDirectionMapCard({
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   <AutoZoom coordinates={coordinatesForZoom} />
+                  {/* 矢印線描画 */}
                   {polylines.map((line: Polyline, index: number) => {
-                    let color = "#1e90ff";
-                    if (line.count >= 8000) {
-                      color = "#ff0000";
-                    } else if (line.count >= 6500) {
-                      color = "#ffa500";
-                    } else if (line.count >= 2000) {
-                      color = "#00ff7f";
+                    let color = "#4A83BD"; // デフォルトの青色
+                    let legendLabel = legendItems[0].label;
+                    if (line.count >= thresholds[2]) {
+                      color = legendItems[3].color;
+                      legendLabel = legendItems[3].label;
+                    } else if (line.count >= thresholds[1]) {
+                      color = legendItems[2].color;
+                      legendLabel = legendItems[2].label;
+                    } else if (line.count >= thresholds[0]) {
+                      color = legendItems[1].color;
+                      legendLabel = legendItems[1].label;
                     }
-
-                    const angle = getAngle({
-                      start: line.start,
-                      end: line.end,
-                    });
-                    const size = 30;
-                    const thickness = 5;
                     return (
-                      <>
-                        <Polyline
-                          positions={[
-                            [line.start.lat, line.start.lng],
-                            [line.end.lat, line.end.lng],
-                          ]}
-                          pathOptions={{
-                            color,
-                            weight: 4,
-                          }}
-                        />
-                        <Marker
-                          key={index}
-                          position={[line.end.lat, line.end.lng]}
-                          icon={createArrowIcon({
-                            angle,
-                            color,
-                            size,
-                            thickness,
-                          })}
-                          interactive={true}
-                        >
-                          <Tooltip direction="auto" offset={[5, -5]}>
-                            {line.name}
-                          </Tooltip>
-                        </Marker>
-                      </>
+                      <ArrowPolyline
+                        key={index}
+                        positions={[
+                          [line.start.lat, line.start.lng],
+                          [line.end.lat, line.end.lng],
+                        ]}
+                        color={color}
+                        weight={8}
+                        tooltip={
+                          <>
+                            <div style={{ fontWeight: "bold" }}>
+                              {device_name}
+                            </div>
+                            <div>領域名: {line.name}</div>
+                            <div>方向: {line.type}</div>
+                            <div style={{ height: 8 }} />
+                            <div>
+                              {legendLabel} ({line.count.toLocaleString()}) 人
+                            </div>
+                          </>
+                        }
+                      />
                     );
                   })}
+                  {/* zoneごとにラベルを1つだけ表示 */}
+                  {zoneLabels.map((label, idx) => (
+                    <Marker
+                      key={label.name + idx}
+                      position={[label.lat, label.lng]}
+                      interactive={false}
+                      icon={L.divIcon({
+                        className: "zone-label-marker",
+                        html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;">${label.name}</div>`,
+                      })}
+                    />
+                  ))}
                 </MapContainer>
               </div>
             </GenericAnalyticsCard>
@@ -266,33 +360,24 @@ export default function PeopleDirectionMapCard({
       </div>
 
       <div className="col-span-1">
-        <Card className="h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
-          <CardHeader className="flex justify-between items-center pb-2 pt-3 px-4">
-            <CardTitle className="text-base font-semibold text-gray-700">
-              凡例
-            </CardTitle>
-          </CardHeader>
+        <Card className="h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 border-l-0">
           <CardContent className="flex flex-col gap-4 text-base text-gray-600">
-            <div className="flex items-center gap-2">
-              <div className="size-3 bg-blue-500 rounded-full"></div>
-              <span>少ない</span>
-              <span>2000未満</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="size-3 bg-green-500 rounded-full"></div>
-              <span>やや少ない</span>
-              <span>2000〜6499</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="size-3 bg-orange-500 rounded-full"></div>
-              <span>やや多い</span>
-              <span>6500〜7999</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="size-3 bg-red-500 rounded-full"></div>
-              <span>多い</span>
-              <span>8000以上</span>
-            </div>
+            {legendItems.map((item) => (
+              <div className="flex items-center gap-2" key={item.color}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "16px",
+                    height: "16px",
+                    background: item.color,
+                    borderRadius: "2px",
+                    marginRight: "4px",
+                  }}
+                ></span>
+                <span>{item.label}</span>
+                <span>{item.range}</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

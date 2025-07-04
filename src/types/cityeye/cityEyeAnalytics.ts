@@ -36,6 +36,8 @@ export interface FrontendAnalyticsFilters {
   genders?: string[];
   /** Age group filters (["under_18", "18_to_29", ...]) */
   age_groups?: string[];
+  /** For direction tabs: freely selectable dates (YYYY-MM-DD) */
+  dates?: string[];
 }
 
 export interface FilterContext {
@@ -63,6 +65,7 @@ export interface FrontendTrafficAnalyticsFilters {
   polygon_ids_out?: string[]; // not used yet
   /** Vehicle types to filter (["large", "normal", "bicycle", "motorcycle"]) */
   vehicle_types?: string[];
+  dates?: string[];
 }
 
 /**
@@ -74,6 +77,8 @@ export interface CityEyeFilterState {
   analysisPeriod?: DateRange;
   /** Comparison time period for trend analysis */
   comparisonPeriod?: DateRange;
+  /** For direction tabs: freely selectable dates (max 7) */
+  analysisPeriodDirection: Date[];
   /** Selected days of week */
   selectedDays: string[];
   /** Selected hours of day */

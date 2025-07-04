@@ -28,25 +28,33 @@ export default function PeopleDirectionView({
   return (
     <>
       <PeopleDirectionMapCard
-        title="人の動きマップ"
+        title="人流方向マップ"
         perDeviceCountsData={{
+          ...processedData,
+          dailyAveragePeople:
+            processedData &&
+            processedData.dailyAveragePeople &&
+            typeof processedData.dailyAveragePeople === "object"
+              ? { days: (processedData.dailyAveragePeople as any).days }
+              : undefined,
+          device_id: "eca3bc98-2d64-4cd2-8338-272131e3e690",
           detectionZones: [
             {
               name: "北",
               // 北から交差点へ
               In: {
-                startPoint: { lat: 39.70238265848726, lng: 141.13896623027466 },
-                endPoint: {
-                  lat: 39.702860421392586,
-                  lng: 141.13856940413172,
-                },
-                count: 3000,
-              },
-              //　交差点から北へ
-              Out: {
                 startPoint: { lat: 39.70266843626451, lng: 141.1389888869297 },
                 endPoint: { lat: 39.7024187389318, lng: 141.139224921315 },
                 count: 500,
+              },
+              //　交差点から北へ
+              Out: {
+                startPoint: { lat: 39.70238265848726, lng: 141.13896623027466 },
+                endPoint: {
+                  lat: 39.70264848009184,
+                  lng: 141.13878006159683,
+                },
+                count: 3000,
               },
             },
             {
@@ -71,18 +79,18 @@ export default function PeopleDirectionView({
               name: "東",
               // 東から交差点へ
               In: {
-                startPoint: { lat: 39.70238423352613, lng: 141.13925812478945 },
-                endPoint: { lat: 39.70245139670109, lng: 141.13957994746949 },
-                count: 3000,
-              },
-              // 交差点から東へ
-              Out: {
                 startPoint: { lat: 39.70230932540181, lng: 141.1396706150676 },
                 endPoint: {
                   lat: 39.702218287206264,
                   lng: 141.13933754486698,
                 },
                 count: 500,
+              },
+              // 交差点から東へ
+              Out: {
+                startPoint: { lat: 39.70238423352613, lng: 141.13925812478945 },
+                endPoint: { lat: 39.70245139670109, lng: 141.13957994746949 },
+                count: 3000,
               },
             },
 

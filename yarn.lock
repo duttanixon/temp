@@ -3122,6 +3122,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^5.2.0"
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
     leaflet: "npm:^1.9.4"
+    leaflet-arrowheads: "npm:^1.4.0"
     lucide-react: "npm:^0.501.0"
     next: "npm:15.3.0"
     next-auth: "npm:^5.0.0-beta.27"
@@ -5068,7 +5069,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"leaflet@npm:^1.9.4":
+"leaflet-arrowheads@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "leaflet-arrowheads@npm:1.4.0"
+  dependencies:
+    leaflet: "npm:^1.7.1"
+    leaflet-geometryutil: "npm:^0.10.0"
+  checksum: 10c0/b0780170c241d7e0526046706fc8093e8480c4fa17c1f56661ff8b4398797c510acd7a12f2e5e885e0ed49945851b4bba233f2face0baaac314202d562cae7ab
+  languageName: node
+  linkType: hard
+
+"leaflet-geometryutil@npm:^0.10.0":
+  version: 0.10.3
+  resolution: "leaflet-geometryutil@npm:0.10.3"
+  dependencies:
+    leaflet: "npm:^1.6.0"
+  checksum: 10c0/ccf53f45caaffb8984adee5762caf97d932aaf20093412a8eb08a818e000977a06bdb9e36d3573727c8f9e99ccaea8e46547544f45ac4c2a6757230673e65e84
+  languageName: node
+  linkType: hard
+
+"leaflet@npm:^1.6.0, leaflet@npm:^1.7.1, leaflet@npm:^1.9.4":
   version: 1.9.4
   resolution: "leaflet@npm:1.9.4"
   checksum: 10c0/f639441dbb7eb9ae3fcd29ffd7d3508f6c6106892441634b0232fafb9ffb1588b05a8244ec7085de2c98b5ed703894df246898477836cfd0ce5b96d4717b5ca1

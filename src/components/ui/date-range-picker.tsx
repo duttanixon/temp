@@ -10,7 +10,6 @@ import {
 import { cn } from "@/lib/utils";
 import { endOfMonth, format, startOfMonth, subDays, subMonths } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import * as React from "react";
 import { DateRange } from "react-day-picker";
 
 interface DatePickerWithRangeProps
@@ -20,6 +19,14 @@ interface DatePickerWithRangeProps
   className?: string;
   childClassName?: string;
 }
+interface DatePickerWithMultipleProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  dates: Date[];
+  setDates: React.Dispatch<React.SetStateAction<Date[]>>;
+  className?: string;
+  childClassName?: string;
+  maxSelectable?: number;
+}
 
 export function DatePickerWithRange({
   date,
@@ -27,7 +34,6 @@ export function DatePickerWithRange({
   className,
   childClassName,
 }: DatePickerWithRangeProps) {
-  // Define static ranges
   const staticRanges = [
     {
       label: "Today",
@@ -94,8 +100,9 @@ export function DatePickerWithRange({
               "w-[300px] justify-start text-left font-normal cursor-pointer",
               childClassName,
               !date && "text-muted-foreground"
-            )}>
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            )}
+          >
+            <CalendarIcon className="mr-2 size-4" />
             {date?.from ? (
               date.to ? (
                 <>
@@ -118,7 +125,8 @@ export function DatePickerWithRange({
                 variant="outline"
                 size="sm"
                 onClick={range.onClick}
-                className="text-xs cursor-pointer">
+                className="text-xs cursor-pointer"
+              >
                 {range.label}
               </Button>
             ))}
@@ -129,6 +137,60 @@ export function DatePickerWithRange({
             defaultMonth={date?.from}
             selected={date}
             onSelect={setDate}
+            numberOfMonths={2}
+            className="p-3"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+export function DatePickerWithMultiple({
+  dates,
+  setDates,
+  className,
+  childClassName,
+  maxSelectable = 7,
+}: DatePickerWithMultipleProps) {
+  const handleSelect = (selected: Date[] | undefined) => {
+    if (!selected) {
+      setDates([]);
+      return;
+    }
+    if (selected.length > maxSelectable) {
+      alert(`最大${maxSelectable}日まで選択できます。`);
+      return;
+    }
+    setDates(selected);
+  };
+  return (
+    <div className={cn("grid gap-2", className)}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            id="date"
+            variant={"outline"}
+            className={cn(
+              "w-[300px] justify-start text-left font-normal cursor-pointer",
+              childClassName,
+              (!dates || dates.length === 0) && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 size-4" />
+            {dates && dates.length > 0 ? (
+              dates.map((d) => format(d, "LLL dd, y")).join(", ")
+            ) : (
+              <span>Pick a date</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            initialFocus
+            mode="multiple"
+            selected={dates}
+            onSelect={handleSelect}
             numberOfMonths={2}
             className="p-3"
           />

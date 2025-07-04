@@ -15,6 +15,7 @@ const createDefaultFilters = (): CityEyeFilterState => ({
     from: startOfDay(subDays(new Date(), 13)),
     to: endOfDay(subDays(new Date(), 7)),
   },
+  analysisPeriodDirection: [],
   selectedDays: [
     "monday",
     "tuesday",
@@ -62,34 +63,63 @@ export function useAnalyticsFilters() {
     (
       currentFilters: CityEyeFilterState,
       horizontalTab: string,
-      periodType: "analysisPeriod" | "comparisonPeriod"
+      periodType:
+        | "analysisPeriod"
+        | "comparisonPeriod"
+        | "analysisPeriodDirection"
     ): FrontendAnalyticsFilters | null => {
-      const period = currentFilters[periodType];
-
-      // Basic validation
+      // direction系: analysisPeriodDirection（日付配列）
+      if (periodType === "analysisPeriodDirection") {
+        const dates = currentFilters.analysisPeriodDirection;
+        if (!dates || dates.length === 0) return null;
+        if (currentFilters.selectedDevices.length === 0) return null;
+        // 日付配列を昇順でソートし、YYYY-MM-DD配列に変換
+        const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
+        const dateStrings = sorted.map((d) => format(d, "yyyy-MM-dd"));
+        const startTime = format(
+          startOfDay(sorted[0]),
+          "yyyy-MM-dd'T'HH:mm:ss"
+        );
+        const endTime = format(
+          endOfDay(sorted[sorted.length - 1]),
+          "yyyy-MM-dd'T'HH:mm:ss"
+        );
+        return {
+          device_ids: currentFilters.selectedDevices,
+          dates: dateStrings,
+          start_time: startTime,
+          end_time: endTime,
+          days: currentFilters.selectedDays,
+          hours: currentFilters.selectedHours,
+          ...(horizontalTab === "people-direction" && {
+            genders: currentFilters.selectedGenders,
+            age_groups: currentFilters.selectedAges,
+          }),
+          ...(horizontalTab === "traffic-direction" && {
+            vehicle_types: currentFilters.selectedTrafficTypes,
+          }),
+        };
+      }
+      // 通常のrange型
+      const period =
+        currentFilters[periodType as "analysisPeriod" | "comparisonPeriod"];
       if (!period?.from || !period?.to) {
         return null;
       }
-
       if (currentFilters.selectedDevices.length === 0) {
         return null;
       }
-
-      // Format dates
       const startTime = format(
         startOfDay(period.from),
         "yyyy-MM-dd'T'HH:mm:ss"
       );
       const endTime = format(endOfDay(period.to), "yyyy-MM-dd'T'HH:mm:ss");
-
-      // Build API filters object
       return {
         device_ids: currentFilters.selectedDevices,
         start_time: startTime,
         end_time: endTime,
         days: currentFilters.selectedDays,
         hours: currentFilters.selectedHours,
-        // Include demographic filters only for people analytics
         ...(horizontalTab === "people" && {
           genders: currentFilters.selectedGenders,
           age_groups: currentFilters.selectedAges,

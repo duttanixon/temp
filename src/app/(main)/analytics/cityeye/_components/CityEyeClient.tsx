@@ -39,8 +39,12 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   });
 
   // Filter management
-  const { filters, handleFilterChange, validateAndPrepareApiFilters } =
-    useAnalyticsFilters();
+  const {
+    filters,
+    handleFilterChange,
+    validateAndPrepareApiFilters,
+    resetFilters,
+  } = useAnalyticsFilters();
 
   // Active API filters state
   const [activeFilters, setActiveFilters] = useState<{
@@ -160,12 +164,26 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
   // Filter application handler
   const handleApplyFilters = useCallback(() => {
-    // Validate main period filters
-    const mainApiFilters = validateAndPrepareApiFilters(
-      filters,
-      horizontalTab,
-      "analysisPeriod"
-    );
+    // direction系タブかどうかでAPIリクエスト用パラメータを分岐
+    const isDirectionTab =
+      horizontalTab === "people-direction" ||
+      horizontalTab === "traffic-direction";
+
+    // direction系は analysisPeriodDirection（日付配列）、それ以外は analysisPeriod（range）
+    let mainApiFilters;
+    if (isDirectionTab) {
+      mainApiFilters = validateAndPrepareApiFilters(
+        filters,
+        horizontalTab,
+        "analysisPeriodDirection"
+      );
+    } else {
+      mainApiFilters = validateAndPrepareApiFilters(
+        filters,
+        horizontalTab,
+        "analysisPeriod"
+      );
+    }
 
     if (!mainApiFilters) {
       toast.error("フィルター設定を確認してください。");
@@ -180,7 +198,14 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
     const newAppliedFilterContext = {
       main: {
-        dateRange: filters.analysisPeriod,
+        dateRange: isDirectionTab
+          ? {
+              from: filters.analysisPeriodDirection?.[0],
+              to: filters.analysisPeriodDirection?.[
+                filters.analysisPeriodDirection.length - 1
+              ],
+            }
+          : filters.analysisPeriod,
         selectedDays: filters.selectedDays,
       },
       comparison: {
@@ -196,11 +221,20 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         return;
       }
 
-      const comparisonApiFilters = validateAndPrepareApiFilters(
-        filters,
-        horizontalTab,
-        "comparisonPeriod"
-      );
+      let comparisonApiFilters;
+      if (isDirectionTab) {
+        comparisonApiFilters = validateAndPrepareApiFilters(
+          filters,
+          horizontalTab,
+          "analysisPeriodDirection"
+        );
+      } else {
+        comparisonApiFilters = validateAndPrepareApiFilters(
+          filters,
+          horizontalTab,
+          "comparisonPeriod"
+        );
+      }
 
       if (!comparisonApiFilters) {
         toast.error("比較期間のフィルター設定を確認してください。");
@@ -271,7 +305,8 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     setActiveFilters({ main: null, comparison: null });
     setAppliedFilterContext({ main: null, comparison: null });
     setAutoApplyState({ overview: false, comparison: false });
-  }, [horizontalTab]);
+    resetFilters();
+  }, [horizontalTab, resetFilters]);
 
   // Check if filters are needed for current tab
   const showFilters =

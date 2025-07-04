@@ -1,7 +1,12 @@
 import { useGetCustomer } from "@/app/(main)/_components/_hooks/useGetCustomer";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FilterCard } from "./FilterCard";
@@ -33,10 +38,6 @@ export function CustomerFilter({
     []
   );
 
-  const isAllSelected =
-    availableCustomers.length > 0 &&
-    selectedCustomers.length === availableCustomers.length;
-
   const selectionSummary = `(${selectedCustomers.length}/${availableCustomers.length})`;
 
   useEffect(() => {
@@ -45,20 +46,16 @@ export function CustomerFilter({
     }
   }, [customer]);
 
-  const handleCustomerToggle = (customerId: string) => {
-    const newSelectedCustomers = selectedCustomers.includes(customerId)
-      ? selectedCustomers.filter((id) => id !== customerId)
-      : [...selectedCustomers, customerId];
-    onSelectionChange(newSelectedCustomers);
-  };
-
-  const handleSelectAllToggle = () => {
-    if (isAllSelected) {
-      onSelectionChange([]);
-    } else {
-      onSelectionChange(availableCustomers.map((c) => c.customer_id));
+  useEffect(() => {
+    if (
+      availableCustomers.length > 0 &&
+      (selectedCustomers.length === 0 ||
+        !availableCustomers.some((c) => c.customer_id === selectedCustomers[0]))
+    ) {
+      onSelectionChange([availableCustomers[0].customer_id]);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableCustomers, selectedCustomers]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -94,54 +91,35 @@ export function CustomerFilter({
 
     return (
       <div className="space-y-3">
-        <div className="flex items-center space-x-2 p-1 hover:bg-state-50 rounded-lg transition-colors duration-200 group">
-          <Checkbox
-            id="select-all-customers"
-            checked={isAllSelected}
-            onCheckedChange={handleSelectAllToggle}
-            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
-          />
-          <Label
-            htmlFor="select-all-customers"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
-          >
-            すべて
-          </Label>
-        </div>
-        <div>
-          <div className="text-xs text-slate-500 medium mb-2">個別選択:</div>
-          <ScrollArea className="max-h-40">
-            <div className="space-y-1 pr-3">
-              {availableCustomers.map((customer) => {
-                const displayName = `${customer.name || "N/A"}`;
-                return (
-                  <div
-                    key={customer.customer_id}
-                    className="flex items-center space-x-2 p-1 hover:bg-state-50 rounded-lg transition-colors duration-200 group"
-                  >
-                    <Checkbox
-                      id={`customer-${customer.customer_id}`}
-                      checked={selectedCustomers.includes(customer.customer_id)}
-                      onCheckedChange={() =>
-                        handleCustomerToggle(customer.customer_id)
-                      }
-                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 cursor-pointer"
-                    />
-                    <Label
-                      htmlFor={`customer-${customer.customer_id}`}
-                      className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
-                    >
-                      {displayName}
-                    </Label>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </div>
+        <Label className="text-xs text-slate-500 font-medium">顧客選択</Label>
+        <Select
+          value={selectedCustomers[0] || ""}
+          onValueChange={(value) => {
+            if (value) {
+              onSelectionChange([value]);
+            } else {
+              onSelectionChange([]);
+            }
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="顧客を選択してください" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableCustomers.map((customer) => (
+              <SelectItem
+                key={customer.customer_id}
+                value={customer.customer_id}
+              >
+                {customer.name || "N/A"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     );
   };
+
   return (
     <FilterCard
       title="顧客"

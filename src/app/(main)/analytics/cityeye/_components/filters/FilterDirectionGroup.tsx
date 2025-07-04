@@ -2,9 +2,8 @@
 
 import { CityEyeFilterState } from "@/types/cityeye/cityEyeAnalytics";
 import { Calendar, CalendarDays, MapPin, Users } from "lucide-react";
-import React from "react";
-import { DateRange } from "react-day-picker";
-import { AnalysisPeriodFilter } from "./AnalysisPeriodFilter";
+import React, { useState, useEffect } from "react";
+import { AnalysisPeriodDirectionFilter } from "./AnalysisPeriodDirectionFilter";
 import { DaysFilter } from "./DaysFilter";
 import { DevicesDirectionFilter } from "./DevicesDirectionFilter";
 import { CustomerFilter } from "@/app/(main)/analytics/cityeye/_components/filters/CustomerFilter";
@@ -25,29 +24,29 @@ export function FilterDirectionGroup({
   const userRole = session?.user?.role;
   const userCustomerId = session?.user?.customerId;
 
-  // Create correctly typed handlers for date changes
-  const handleAnalysisPeriodChange: React.Dispatch<
-    React.SetStateAction<DateRange | undefined>
-  > = (value) => {
-    const newDate =
-      typeof value === "function"
-        ? value(currentFilters.analysisPeriod)
-        : value;
-    onFilterChange({ analysisPeriod: newDate });
+  // analysisPeriodDirection: Date[] を直接stateとして管理
+  const [selectedDates, setSelectedDates] = useState<Date[]>(
+    currentFilters.analysisPeriodDirection ?? []
+  );
+
+  useEffect(() => {
+    setSelectedDates(currentFilters.analysisPeriodDirection ?? []);
+  }, [currentFilters.analysisPeriodDirection]);
+
+  // 日付選択変更時にanalysisPeriodDirectionを更新
+  const handleDateChange = (dates: Date[]) => {
+    setSelectedDates(dates);
+    onFilterChange({ analysisPeriodDirection: dates });
   };
 
-  // useEffect(() => {
-  //   onFilterChange({ selectedDevices: [] });
-  // }, [currentFilters.selectedCustomers, solutionId]);
-
-  console.log("FilterGroup currentFilters:", currentFilters);
+  console.log("FilterGroup currentFilters111:", currentFilters);
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-white flex flex-col gap-3">
       <div className="space-y-4">
-        <AnalysisPeriodFilter
-          currentDateRange={currentFilters.analysisPeriod}
-          onDateChange={handleAnalysisPeriodChange}
+        <AnalysisPeriodDirectionFilter
+          selectedDates={selectedDates ?? []}
+          onDateChange={handleDateChange}
           icon={<CalendarDays className="w-4 h-4 text-blue-600" />}
           iconBgColor="bg-blue-100 group-hover:bg-blue-200"
           collapsible={true}

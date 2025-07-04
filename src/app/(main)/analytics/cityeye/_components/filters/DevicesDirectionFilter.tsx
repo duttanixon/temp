@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { deviceSolutionService } from "@/services/deviceSolutionService";
 import { AlertCircle, Loader2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FilterCard } from "./FilterCard";
 
 interface DeviceInfo {
@@ -48,6 +48,17 @@ export function DevicesDirectionFilter({
     selectedDevices.length === availableDevices.length;
 
   const selectionSummary = `(${selectedDevices.length}/${availableDevices.length})`;
+
+  const didAutoSelectRef = useRef(false);
+
+  useEffect(() => {
+    // 初期表示時に「すべて」チェックボックスがONになるように
+    if (availableDevices.length > 0) {
+      didAutoSelectRef.current = true;
+      onSelectionChange(availableDevices.map((d) => d.device_id));
+    }
+  }, [availableDevices]);
+
   useEffect(() => {
     const fetchDevicesForSolution = async () => {
       if (!solutionId) {
@@ -84,11 +95,6 @@ export function DevicesDirectionFilter({
                 )
               : [];
         setAvailableDevices(filteredDevices);
-
-        if (selectedDevices.length === 0 && filteredDevices.length > 0) {
-          onSelectionChange(filteredDevices.map((d) => d.device_id));
-          return; // 以降の選択状態調整はスキップ
-        }
 
         // filteredDevicesに基づいて選択されたデバイスを更新(存在しないdevice_idを除外)
         const validSelectedDevices = selectedDevices.filter((id) =>
@@ -160,7 +166,7 @@ export function DevicesDirectionFilter({
         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
           <span className="text-sm text-amber-700">
-            このソリューションに紐づく利用可能なデバイスがありません。
+            この顧客に紐づく利用可能なデバイスがありません。
           </span>
         </div>
       );

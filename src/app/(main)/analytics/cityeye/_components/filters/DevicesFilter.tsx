@@ -90,7 +90,7 @@ export function DevicesFilter({
     };
 
     fetchDevicesForSolution();
-  }, [solutionId]);
+  }, [solutionId, selectedDevices]);
 
   const handleDeviceToggle = (deviceId: string) => {
     const newSelectedDevices = selectedDevices.includes(deviceId)

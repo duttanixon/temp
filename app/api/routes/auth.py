@@ -15,6 +15,7 @@ from app.schemas.token import Token
 from app.schemas.user import User as UserSchema
 from app.utils.audit import log_action
 from app.utils.logger import get_logger
+from app.schemas.audit import AuditLogActionType
 
 router = APIRouter()
 logger = get_logger("auth")
@@ -39,7 +40,7 @@ def login_access_token(
         log_action(
             db=db,
             user_id=None,
-            action_type="LOGIN_FAILED",
+            action_type=AuditLogActionType.LOGIN_FAILED,
             resource_type="USER",
             resource_id=form_data.username,
             details={"reason": "Invalid credentials"}
@@ -50,7 +51,7 @@ def login_access_token(
         log_action(
             db=db,
             user_id=user_auth.user_id,
-            action_type="LOGIN_FAILED",
+            action_type=AuditLogActionType.LOGIN_FAILED,
             resource_type="USER",
             resource_id=str(user_auth.user_id),
             details={"reason": "Inactive user"}
@@ -68,7 +69,7 @@ def login_access_token(
     log_action(
         db=db,
         user_id=user_auth.user_id,
-        action_type="LOGIN",
+        action_type=AuditLogActionType.LOGIN,
         resource_type="USER",
         resource_id=str(user_auth.user_id),
         ip_address=client_ip,
@@ -143,15 +144,15 @@ def refresh_access_token(
         )
 
     # Log successful token refresh
-    logger.info(f"Token refreshed for user ID: {user_id} from IP: {client_ip}")
-    log_action(
-        db=db,
-        user_id=uuid.UUID(user_id),
-        action_type="TOKEN_REFRESH",
-        resource_type="USER",
-        resource_id=user_id,
-        ip_address=client_ip,
-        user_agent=user_agent
-    )
+    # logger.info(f"Token refreshed for user ID: {user_id} from IP: {client_ip}")
+    # log_action(
+    #     db=db,
+    #     user_id=uuid.UUID(user_id),
+    #     action_type="TOKEN_REFRESH",
+    #     resource_type="USER",
+    #     resource_id=user_id,
+    #     ip_address=client_ip,
+    #     user_agent=user_agent
+    # )
     
     return {"access_token": new_token, "token_type": "bearer"}

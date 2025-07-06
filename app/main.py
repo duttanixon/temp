@@ -12,6 +12,7 @@ from app.api.routes import (
     city_eye_analytics_router,
     device_commands_router,
     sse_router,
+    audit_logs_router,
 )
 from app.core.config import settings
 from app.api import deps
@@ -86,6 +87,12 @@ app.include_router(
     sse_router,
     prefix=f"{settings.API_V1_STR}/sse/commands",
     tags=["sse"],
+)
+
+app.include_router(
+    audit_logs_router,
+    prefix=f"{settings.API_V1_STR}/audit-logs",
+    tags=["audit-logs"],
 )
 
 

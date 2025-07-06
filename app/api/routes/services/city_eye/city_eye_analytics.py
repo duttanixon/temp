@@ -44,6 +44,7 @@ from app.schemas.services.city_eye_analytics import (
 from app.utils.util import transform_to_device_shadow_format
 from app.utils.logger import get_logger
 from datetime import datetime, timedelta
+from app.schemas.audit import AuditLogActionType, AuditLogResourceType
 
 logger = get_logger("api.city_eye_analytics")
 router = APIRouter()
@@ -468,8 +469,8 @@ def polygon_xlines_config(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_COMMAND_UPDATE_POLYGON",
-        resource_type="DEVICE_COMMAND",
+        action_type=AuditLogActionType.DEVICE_COMMAND_UPDATE_POLYGON,
+        resource_type=AuditLogResourceType.DEVICE_COMMAND,
         resource_id=str(db_command.message_id),
         details={
             "device_id": str(command_in.device_id),
@@ -1195,8 +1196,8 @@ def update_threshold_config(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="THRESHOLD_CONFIG_CREATE",
-        resource_type="CUSTOMER_SOLUTION",
+        action_type=AuditLogActionType.THRESHOLD_CONFIG_CREATE,
+        resource_type=AuditLogResourceType.CUSTOMER_SOLUTION,
         resource_id=str(updated_cs.id),
         details={
             "customer_id": str(threshold_config_in.customer_id),

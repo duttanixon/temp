@@ -4,6 +4,15 @@ from app.schemas.token import Token, TokenPayload
 from app.schemas.solution import SolutionCreate, SolutionUpdate, Solution, SolutionAdminView
 from app.schemas.customer_solution import CustomerSolutionUpdate, CustomerSolution, CustomerSolutionAdminView, CustomerSolutionCreate
 from app.schemas.device_metrics import MetricsResponse
+from app.schemas.audit import (
+    AuditLogFilter,
+    AuditLogListResponse,
+    AuditLogStats,
+    AuditLogActionType,
+    AuditLogResourceType,
+    AuditLogResponse,
+    AuditLogDetailResponse,
+)
 from app.schemas.services.city_eye_analytics import (
     TotalCount,
     HourlyCount,

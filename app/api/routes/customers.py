@@ -15,6 +15,7 @@ from app.schemas.customer import (
 from app.utils.audit import log_action
 from app.utils.logger import get_logger
 import uuid
+from app.schemas.audit import AuditLogActionType, AuditLogResourceType
 
 # Initialize logger
 logger = get_logger("api.customers")
@@ -69,8 +70,8 @@ def create_customer(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="CUSTOMER_CREATE",
-        resource_type="CUSTOMER",
+        action_type=AuditLogActionType.CUSTOMER_CREATE,
+        resource_type=AuditLogResourceType.CUSTOMER,
         resource_id=str(new_customer.customer_id),
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
@@ -121,8 +122,8 @@ def update_customer(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="CUSTOMER_UPDATE",
-        resource_type="CUSTOMER",
+        action_type=AuditLogActionType.CUSTOMER_UPDATE,
+        resource_type=AuditLogResourceType.CUSTOMER,
         resource_id=str(customer_id),
         details={"updated_fields": [k for k, v in customer_in.dict(exclude_unset=True).items() if v is not None]},
         ip_address=request.client.host,
@@ -156,8 +157,8 @@ def suspend_customer(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="CUSTOMER_SUSPEND",
-        resource_type="CUSTOMER",
+        action_type=AuditLogActionType.CUSTOMER_SUSPEND,
+        resource_type=AuditLogResourceType.CUSTOMER,
         resource_id=str(customer_id),
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
@@ -190,8 +191,8 @@ def activate_customer(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="CUSTOMER_ACTIVATE",
-        resource_type="CUSTOMER",
+        action_type=AuditLogActionType.CUSTOMER_ACTIVATE,
+        resource_type=AuditLogResourceType.CUSTOMER,
         resource_id=str(customer_id),
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
@@ -229,8 +230,8 @@ def delete_customer(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="CUSTOMER_DELETE",
-        resource_type="CUSTOMER",
+        action_type=AuditLogActionType.CUSTOMER_DELETE,
+        resource_type=AuditLogResourceType.CUSTOMER,
         resource_id=str(customer_id),
         details={"customer_name": db_customer.name},
         ip_address=request.client.host,

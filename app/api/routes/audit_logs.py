@@ -269,7 +269,6 @@ def export_audit_logs(
     - Regular Users: Can only export their own logs
     """
     # For exports, we'll fetch data in chunks to avoid the limit restriction
-    print("format", format)
     all_logs = []
     batch_size = 1000
     offset = 0

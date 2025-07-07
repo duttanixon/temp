@@ -29,27 +29,26 @@ class AWSIoTCoreConnector(ICloudConnector):
     """
     AWS IoT Core connector for edge devices using AWS CRT and IoT Device SDK v2
     """
-    def __init__(self):
+    def __init__(self, config: Dict[str, Any]):
         self.mqtt_connection = None
         self.is_connected = False
-        self.client_id = None
         self.endpoint = None
         self.solution_type = None
         self.connected_event = threading.Event()
         self.subscriptions = {}  # Topic -> callback mapping
 
+        # Certificate paths
+        self.ca_path: Optional[str] = None
+        self.cert_path: Optional[str] = None
+        self.key_path: Optional[str] = None
+        self.certificate_id, self.client_id, self.thing_name = self._load_certificates_and_extract_id(config)
+
         # Shadow specific attributes
-        self.thing_name: Optional[str] = None
         self.shadow_update_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/update"
         self.shadow_delta_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/update/delta"
         self.shadow_get_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/get"
         self.shadow_get_accepted_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/get/accepted"
         self.shadow_get_rejected_topic_template: str = "$aws/things/{thingName}/shadow/name/{shadowName}/get/rejected"
-
-        # Certificate paths
-        self.ca_path: Optional[str] = None
-        self.cert_path: Optional[str] = None
-        self.key_path: Optional[str] = None
 
         # S3 specific attributes
         self.s3_client = None
@@ -76,7 +75,6 @@ class AWSIoTCoreConnector(ICloudConnector):
         try:
             # Extract configuration
             self.endpoint = config.get("endpoint")
-            self.certificate_id, self.client_id, self.thing_name = self._load_certificates_and_extract_id(config)
             
             # Create event fomatter
             self.solution_type = config.get("solution_type")
@@ -162,20 +160,39 @@ class AWSIoTCoreConnector(ICloudConnector):
                 },
                 component="AWSIoTConnector"
             )
-            self.mqtt_connection = mqtt_connection_builder.mtls_from_path(
-                endpoint=self.endpoint,
-                cert_filepath=self.cert_path,
-                pri_key_filepath=self.key_path,
-                ca_filepath=self.ca_path,
-                client_id=self.client_id,
-                clean_session=False,
-                keep_alive_secs=30,
-                on_connection_interrupted=self._on_connection_interrupted,
-                on_connection_resumed=self._on_connection_resumed,
-                on_connection_success=self._on_connection_success, # Added for clarity
-                on_connection_failure=self._on_connection_failure, # Added for clarity
-                on_connection_closed=self._on_connection_closed # Added for clarity
-            )
+
+            # Prepare connection builder arguments
+            connection_args = {
+                "endpoint": self.endpoint,
+                "cert_filepath": self.cert_path,
+                "pri_key_filepath": self.key_path,
+                "ca_filepath": self.ca_path,
+                "client_id": self.client_id,
+                "clean_session": False,
+                "keep_alive_secs": 30,
+                "on_connection_interrupted": self._on_connection_interrupted,
+                "on_connection_resumed": self._on_connection_resumed,
+                "on_connection_success": self._on_connection_success,
+                "on_connection_failure": self._on_connection_failure,
+                "on_connection_closed": self._on_connection_closed
+            }
+            
+            # Add LWT configuration if available
+            if hasattr(self, 'lwt_config') and self.lwt_config:
+                payload_bytes = self.lwt_config['payload'].encode('utf-8')
+                connection_args["will"] = mqtt.Will(
+                    topic=self.lwt_config['topic'],
+                    payload=payload_bytes,
+                    qos=mqtt.QoS.AT_LEAST_ONCE if self.lwt_config.get('qos', 1) == 1 else mqtt.QoS.AT_MOST_ONCE,
+                    retain=self.lwt_config.get('retain', False)
+                )
+                logger.info(
+                    "Configured Last Will and Testament",
+                    context={"lwt_topic": self.lwt_config['topic']},
+                    component="AWSIoTConnector"
+                )
+
+            self.mqtt_connection = mqtt_connection_builder.mtls_from_path(**connection_args)
             
             # Connect with timeout
             connect_future = self.mqtt_connection.connect()
@@ -511,6 +528,34 @@ class AWSIoTCoreConnector(ICloudConnector):
         if not self.client_id:
             raise ConfigurationError("Client ID is not set", code="CLIENT_ID_NOT_SET", source="AWSIoTConnector")
         return self.client_id
+
+    def set_lwt_configuration(self, lwt_config: Dict[str, Any]) -> None:
+        """
+        Set the Last Will and Testament configuration for the MQTT connection.
+        Must be called before connect().
+        
+        Args:
+            lwt_config: Dictionary containing 'topic', 'payload', 'qos', and optionally 'retain'
+        """
+        if self.is_connected:
+            logger.warning(
+                "Cannot set LWT configuration while connected. Configuration will be applied on next connection.",
+                component="AWSIoTConnector"
+            )
+        
+        self.lwt_config = lwt_config
+        logger.info(
+            "LWT configuration set",
+            context={"topic": lwt_config.get('topic')},
+            component="AWSIoTConnector"
+        )
+
+    def clear_lwt_configuration(self) -> None:
+        """
+        Clear the Last Will and Testament configuration.
+        """
+        self.lwt_config = None
+        logger.info("LWT configuration cleared", component="AWSIoTConnector")
 
     def cleanup(self) -> None:
         """

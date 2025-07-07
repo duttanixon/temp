@@ -14,6 +14,7 @@ from core.implementation.cloud.factories.cloud_factory import CloudConnectorFact
 from core.implementation.common.logger import get_logger
 from core.implementation.common.exceptions import CloudError
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError, ClientError
+from .lwt_manager import LWTManager
 
 logger = get_logger()
 
@@ -31,6 +32,7 @@ class CloudManager:
         self.component_name = self.__class__.__name__
         self.config = config
         self.cloud_connector: Optional[ICloudConnector] = None
+        self.lwt_manager: Optional[LWTManager] = None
         
         # Command callbacks
         self._capture_command_callback = None
@@ -52,6 +54,7 @@ class CloudManager:
             self.cloud_connector = CloudConnectorFactory.create(cloud_config)
             
             if self.cloud_connector:
+                self._initialize_lwt(cloud_config)
                 self.cloud_connector.initialize(cloud_config)
                 logger.info(
                     "Cloud connection initialized",
@@ -70,6 +73,68 @@ class CloudManager:
                 component=self.component_name
             )
             # Continue even if cloud connection fails - it's not critical
+
+    def _initialize_lwt(self, cloud_config: Dict[str, Any]):
+        """Initialize and configure LWT for the cloud connector."""
+        try:
+            # Create LWT manager
+            self.lwt_manager = LWTManager(self.cloud_connector)
+            
+            # Initialize with LWT configuration
+            lwt_config = cloud_config.get("lwt", {})
+            self.lwt_manager.initialize(lwt_config)
+            
+            # Get LWT configuration
+            lwt_settings = self.lwt_manager.get_lwt_configuration()
+            
+            # Set LWT configuration on the connector before it connects
+            self.cloud_connector.set_lwt_configuration(lwt_settings)
+            
+            logger.info(
+                "LWT configured for cloud connector",
+                context={"status_key": lwt_config.get("application_status_key", "applicationStatus")},
+                component=self.component_name
+            )
+            
+        except Exception as e:
+            logger.error(
+                "Failed to initialize LWT, continuing without it",
+                exception=e,
+                component=self.component_name
+            )
+            self.lwt_manager = None
+
+    def report_online_status(self):
+        """Report application online status after successful connection."""
+        if self.lwt_manager and self.cloud_connector and self.cloud_connector.is_connected:
+            try:
+                success = self.lwt_manager.report_online_status()
+                if success:
+                    logger.info("Application status reported as Online", component=self.component_name)
+                else:
+                    logger.warning("Failed to report Online status", component=self.component_name)
+            except Exception as e:
+                logger.error(
+                    "Error reporting online status",
+                    exception=e,
+                    component=self.component_name
+                )
+
+    def report_offline_status(self, reason: str = "Application shutdown"):
+        """Report application offline status before disconnecting."""
+        if self.lwt_manager and self.cloud_connector and self.cloud_connector.is_connected:
+            try:
+                success = self.lwt_manager.report_offline_status(reason)
+                if success:
+                    logger.info(f"Application status reported as Offline: {reason}", component=self.component_name)
+                else:
+                    logger.warning("Failed to report Offline status", component=self.component_name)
+            except Exception as e:
+                logger.error(
+                    "Error reporting offline status",
+                    exception=e,
+                    component=self.component_name
+                )
 
     def set_capture_command_callback(self, callback: Callable):
         """Set callback for capture image commands."""
@@ -121,6 +186,8 @@ class CloudManager:
                     component=self.component_name
                 )
 
+            # After successful subscriptions, report online status
+            self.report_online_status()
 
         except Exception as e:
             logger.error(
@@ -298,6 +365,8 @@ class CloudManager:
 
     def cleanup(self):
         """Cleanup cloud resources."""
+
+        self.report_offline_status("Graceful shutdown")
         if self.cloud_connector:
             try:
                 self.cloud_connector.cleanup()
@@ -307,3 +376,5 @@ class CloudManager:
                     f"Failed to clean up cloud connector: {str(e)}",
                     component=self.component_name
                 )
+        # Clean up LWT manager
+        self.lwt_manager = None

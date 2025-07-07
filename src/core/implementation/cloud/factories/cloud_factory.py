@@ -53,7 +53,7 @@ class CloudConnectorFactory:
         try:
             # Create the connector instance
             logger.debug(f"Instantiating {provider} connector", component="CloudConnectorFactory")
-            connector = connector_class()
+            connector = connector_class(config)
             
             return connector
         except Exception as e:

@@ -1,17 +1,14 @@
-from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from typing import Any, Optional
+from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
-import io
 import uuid
 
 from app.api import deps
 from app.crud import audit_log
 from app.models import User, UserRole
 from app.schemas import (
-    AuditLogResponse,
-    AuditLogDetailResponse,
     AuditLogFilter,
     AuditLogListResponse,
     AuditLogStats,

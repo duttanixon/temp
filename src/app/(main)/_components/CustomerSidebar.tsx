@@ -7,6 +7,7 @@ import {
   AlertCircle,
   HeadphonesIcon,
   Users,
+  FileText,
 } from "lucide-react";
 import { SidebarBase, MenuSection } from "./SidebarBase";
 
@@ -25,6 +26,7 @@ export function CustomerSidebar() {
       items: [
         { href: "/devices", icon: Database, label: "デバイス" },
         { href: "/users", icon: Users, label: "ユーザー" },
+        { href: "/audit-logs", icon: FileText, label: "ログ" },
       ],
     },
   ];

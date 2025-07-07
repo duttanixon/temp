@@ -230,19 +230,19 @@ export default function HumanComparisonView({
                 ?.overallHourlyDistribution ?? null
             }
           />
-          <TimeSeriesCard
-            title="期間分析 (比較期間)"
-            isLoading={isLoadingComparison}
-            error={errorComparison}
-            hasAttemptedFetch={hasAttemptedFetchComparison}
-            timeSeriesData={comparisonPeriodProcessedData?.timeSeries ?? null}
-          />
           <AgeGenderButterflyChartCard
             title="年齢層・性別構成 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
             data={comparisonPeriodProcessedData?.ageGenderDistribution ?? null}
+          />
+          <TimeSeriesCard
+            title="期間分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            timeSeriesData={comparisonPeriodProcessedData?.timeSeries ?? null}
           />
         </div>
       </div>

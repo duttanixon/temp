@@ -87,7 +87,7 @@ export default function TrafficOverviewView({
         }
       />
       <TrafficTimeSeriesCard
-        title="期間別交通量"
+        title="期間分析"
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}

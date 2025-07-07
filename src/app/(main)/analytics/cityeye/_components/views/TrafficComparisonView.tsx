@@ -123,7 +123,7 @@ export default function TrafficComparisonView({
             }
           />
           <TrafficTimeSeriesCard
-            title="期間別交通量 (分析期間)"
+            title="期間分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}

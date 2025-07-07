@@ -18,6 +18,7 @@ from app.utils.aws_iot import iot_core
 from app.utils.logger import get_logger
 from app.core.config import settings
 from botocore.exceptions import NoCredentialsError, ClientError
+from app.schemas.audit import AuditLogActionType, AuditLogResourceType
 import uuid
 import random
 import boto3
@@ -137,8 +138,8 @@ def create_device(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_CREATE",
-        resource_type="DEVICE",
+        action_type=AuditLogActionType.DEVICE_CREATE,
+        resource_type=AuditLogResourceType.DEVICE,
         resource_id=str(new_device.device_id),
         details={
             "customer_id": str(new_device.customer_id),
@@ -297,8 +298,8 @@ def provision_device(
         log_action(
             db=db,
             user_id=current_user.user_id,
-            action_type="DEVICE_PROVISION",
-            resource_type="DEVICE",
+            action_type=AuditLogActionType.DEVICE_PROVISION,
+            resource_type=AuditLogResourceType.DEVICE,
             resource_id=str(device_id),
             details={
                 "thing_name": provision_info["thing_name"],
@@ -429,8 +430,8 @@ def update_device(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_UPDATE",
-        resource_type="DEVICE",
+        action_type=AuditLogActionType.DEVICE_UPDATE,
+        resource_type=AuditLogResourceType.DEVICE,
         resource_id=str(device_id),
         details={"updated_fields": list(restricted_update.keys())},
         ip_address=request.client.host,
@@ -476,8 +477,8 @@ def delete_device(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_DELETE",
-        resource_type="DEVICE",
+        action_type=AuditLogActionType.DEVICE_DELETE,
+        resource_type=AuditLogResourceType.DEVICE,
         resource_id=str(device_id),
         details={
             "device_name": db_device.name,
@@ -523,8 +524,8 @@ def decommission_device(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_DECOMMISSION",
-        resource_type="DEVICE",
+        action_type=AuditLogActionType.DEVICE_DECOMMISSION,
+        resource_type=AuditLogResourceType.DEVICE,
         resource_id=str(device_id),
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
@@ -559,8 +560,8 @@ def activate_device(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_ACTIVATE",
-        resource_type="DEVICE",
+        action_type=AuditLogActionType.DEVICE_ACTIVATE,
+        resource_type=AuditLogResourceType.DEVICE,
         resource_id=str(device_id),
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")

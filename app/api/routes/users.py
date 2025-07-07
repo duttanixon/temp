@@ -19,6 +19,7 @@ from app.utils.email import send_welcome_email
 import uuid
 import secrets
 import string
+from app.schemas.audit import AuditLogActionType
 
 
 router = APIRouter()
@@ -74,7 +75,7 @@ def update_user_me(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="USER_UPDATE",
+        action_type=AuditLogActionType.USER_UPDATE,
         resource_type="USER",
         resource_id=str(current_user.user_id),
         details={"updated_fields": [k for k, v in user_in.dict(exclude_unset=True).items() if v is not None]}
@@ -102,7 +103,7 @@ def change_password(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="PASSWORD_CHANGE",
+        action_type=AuditLogActionType.PASSWORD_CHANGE,
         resource_type="USER",
         resource_id=str(current_user.user_id)
     )
@@ -241,7 +242,7 @@ def create_user(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="USER_CREATE",
+        action_type=AuditLogActionType.USER_CREATE,
         resource_type="USER",
         resource_id=str(new_user.user_id),
         details={"customer_id": str(new_user.customer_id) if new_user.customer_id else None},
@@ -363,7 +364,7 @@ def update_user(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="USER_UPDATE",
+        action_type=AuditLogActionType.USER_UPDATE,
         resource_type="USER",
         resource_id=str(user_id),
         details={"updated_fields": [k for k, v in user_in.dict(exclude_unset=True).items() if v is not None]},
@@ -427,7 +428,7 @@ def suspend_user(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="USER_SUSPEND",
+        action_type=AuditLogActionType.USER_SUSPEND,
         resource_type="USER",
         resource_id=str(user_id),
         ip_address=request.client.host,
@@ -484,7 +485,7 @@ def activate_user(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="USER_ACTIVATE",
+        action_type=AuditLogActionType.USER_ACTIVATE,
         resource_type="USER",
         resource_id=str(user_id),
         ip_address=request.client.host,

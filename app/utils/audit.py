@@ -4,6 +4,8 @@ from app.models.user import User
 from uuid import UUID
 from typing import Optional, Dict, Any
 import json
+from app.schemas.audit import AuditLogCreate
+from app.crud.audit_log import audit_log as crud_audit_log
 
 def log_action(
     db: Session,
@@ -19,7 +21,7 @@ def log_action(
     """
     Log an action to the audit log
     """
-    audit_log = AuditLog(
+    audit_log_in = AuditLogCreate(
         user_id=user_id,
         action_type=action_type,
         resource_type=resource_type,
@@ -28,7 +30,4 @@ def log_action(
         ip_address=ip_address,
         user_agent=user_agent,
     )
-    db.add(audit_log)
-    db.commit()
-    db.refresh(audit_log)
-    return audit_log
+    return crud_audit_log.create(db, obj_in=audit_log_in)

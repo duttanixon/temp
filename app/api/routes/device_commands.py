@@ -21,6 +21,7 @@ from app.utils.util import check_device_access, validate_device_for_commands
 from app.utils.aws_iot_commands import iot_command_service
 from app.utils.logger import get_logger
 from app.api.routes.sse import notify_command_update
+from app.schemas.audit import AuditLogActionType, AuditLogResourceType
 
 logger = get_logger("api.device_commands")
 
@@ -98,8 +99,8 @@ def send_capture_image_command(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_COMMAND_CAPTURE_IMAGE",
-        resource_type="DEVICE_COMMAND",
+        action_type=AuditLogActionType.DEVICE_COMMAND_CAPTURE_IMAGE,
+        resource_type=AuditLogResourceType.DEVICE_COMMAND,
         resource_id=str(db_command.message_id),
         details={
             "device_id": str(command_in.device_id),
@@ -268,8 +269,8 @@ def start_live_stream_command(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_COMMAND_START_LIVE_STREAM",
-        resource_type="DEVICE_COMMAND",
+        action_type=AuditLogActionType.DEVICE_COMMAND_START_LIVE_STREAM,
+        resource_type=AuditLogResourceType.DEVICE_COMMAND,
         resource_id=str(db_command.message_id),
         details={
             "device_id": str(command_in.device_id),
@@ -363,8 +364,8 @@ def stop_live_stream_command(
     log_action(
         db=db,
         user_id=current_user.user_id,
-        action_type="DEVICE_COMMAND_STOP_LIVE_STREAM",
-        resource_type="DEVICE_COMMAND",
+        action_type=AuditLogActionType.DEVICE_COMMAND_STOP_LIVE_STREAM,
+        resource_type=AuditLogResourceType.DEVICE_COMMAND,
         resource_id=str(db_command.message_id),
         details={
             "device_id": str(command_in.device_id),

@@ -20,25 +20,6 @@ export default function AuditLogTable({ logs }: AuditLogTableProps) {
     }
   };
 
-  const formatDetails = (details: Record<string, any> | null) => {
-    if (!details) return "-";
-
-    // Extract important fields from details
-    const importantKeys = [
-      "changed_fields",
-      "reason",
-      "error",
-      "old_value",
-      "new_value",
-    ];
-    const relevantDetails = importantKeys
-      .filter((key) => details[key])
-      .map((key) => `${key}: ${JSON.stringify(details[key])}`)
-      .join(", ");
-
-    return relevantDetails || JSON.stringify(details).slice(0, 100) + "...";
-  };
-
   if (logs.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -67,9 +48,6 @@ export default function AuditLogTable({ logs }: AuditLogTableProps) {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               IPアドレス
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              詳細
-            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -79,13 +57,7 @@ export default function AuditLogTable({ logs }: AuditLogTableProps) {
                 {formatDate(log.timestamp)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <span
-                  className={auditLogService.getActionTypeColor(
-                    log.action_type
-                  )}
-                >
                   {auditLogService.formatActionType(log.action_type)}
-                </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 <div>
@@ -111,12 +83,6 @@ export default function AuditLogTable({ logs }: AuditLogTableProps) {
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {log.ip_address || "-"}
-              </td>
-              <td
-                className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate"
-                title={JSON.stringify(log.details)}
-              >
-                {formatDetails(log.details)}
               </td>
             </tr>
           ))}

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { auditLogService } from "@/services/auditLogService";
 import {
   Select,
   SelectContent,
@@ -38,7 +37,6 @@ export default function AuditLogFilters({
   onFiltersChange,
   onReset,
 }: AuditLogFiltersProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleDateChange = (
     field: "start_date" | "end_date",
@@ -55,17 +53,6 @@ export default function AuditLogFilters({
     }
   };
 
-  const formatActionTypeForDisplay = (actionType: string): string => {
-    return actionType
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
-  const formatResourceTypeForDisplay = (resourceType: string): string => {
-    return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
-  };
-
   return (
     <div className="bg-white p-4 rounded-lg border space-y-4">
       <div className="flex items-center justify-between">
@@ -73,13 +60,6 @@ export default function AuditLogFilters({
           <Filter className="w-4 h-4" />
           <h3 className="font-medium">フィルター</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          {isExpanded ? "折りたたむ" : "展開"}
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -160,14 +140,14 @@ export default function AuditLogFilters({
               })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="すべて" />
             </SelectTrigger>
             <SelectContent>
               {/* <SelectItem value="">すべて</SelectItem> */}
               {actionTypes.map((type) => (
                 <SelectItem key={type} value={type}>
-                  {formatActionTypeForDisplay(type)}
+                  {auditLogService.formatActionType(type)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -186,98 +166,20 @@ export default function AuditLogFilters({
               })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="すべて" />
             </SelectTrigger>
             <SelectContent>
               {/* <SelectItem value="">すべて</SelectItem> */}
               {resourceTypes.map((type) => (
                 <SelectItem key={type} value={type}>
-                  {formatResourceTypeForDisplay(type)}
+                  {auditLogService.formatResourceType(type)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
-
-      {isExpanded && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t">
-          {/* User Email */}
-          <div className="space-y-2">
-            <Label>ユーザーメール</Label>
-            <Input
-              placeholder="メールアドレスを入力"
-              value={filters.user_email || ""}
-              onChange={(e) =>
-                onFiltersChange({
-                  ...filters,
-                  user_email: e.target.value || undefined,
-                })
-              }
-            />
-          </div>
-
-          {/* IP Address */}
-          <div className="space-y-2">
-            <Label>IPアドレス</Label>
-            <Input
-              placeholder="IPアドレスを入力"
-              value={filters.ip_address || ""}
-              onChange={(e) =>
-                onFiltersChange({
-                  ...filters,
-                  ip_address: e.target.value || undefined,
-                })
-              }
-            />
-          </div>
-
-          {/* Sort Options */}
-          <div className="space-y-2">
-            <Label>並び替え</Label>
-            <div className="flex gap-2">
-              <Select
-                value={filters.sort_by || "timestamp"}
-                onValueChange={(value) =>
-                  onFiltersChange({
-                    ...filters,
-                    sort_by: value,
-                  })
-                }
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="timestamp">タイムスタンプ</SelectItem>
-                  <SelectItem value="action_type">アクションタイプ</SelectItem>
-                  <SelectItem value="resource_type">リソースタイプ</SelectItem>
-                  <SelectItem value="user_email">ユーザー</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={filters.sort_order || "desc"}
-                onValueChange={(value) =>
-                  onFiltersChange({
-                    ...filters,
-                    sort_order: value as "asc" | "desc",
-                  })
-                }
-              >
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desc">降順</SelectItem>
-                  <SelectItem value="asc">昇順</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={onReset}>
           <X className="w-4 h-4 mr-1" />

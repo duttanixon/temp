@@ -1,11 +1,8 @@
-// src/services/auditLogService.ts
 import {
   AuditLog,
   AuditLogFilter,
   AuditLogListResponse,
   AuditLogStats,
-  // AuditLogActionType,
-  // AuditLogResourceType,
 } from "@/types/auditLog";
 import { apiClient, handleApiError } from "./baseApiClient";
 
@@ -33,33 +30,6 @@ export const auditLogService = {
 
       const response = await apiClient.get<AuditLogListResponse>(
         `/audit-logs?${params.toString()}`
-      );
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Get current user's audit logs
-  async getMyAuditLogs(
-    filters?: Omit<AuditLogFilter, "user_id" | "user_email">
-  ): Promise<AuditLogListResponse> {
-    try {
-      const params = new URLSearchParams();
-
-      if (filters?.action_type)
-        params.append("action_type", filters.action_type);
-      if (filters?.resource_type)
-        params.append("resource_type", filters.resource_type);
-      if (filters?.start_date) params.append("start_date", filters.start_date);
-      if (filters?.end_date) params.append("end_date", filters.end_date);
-      if (filters?.skip !== undefined)
-        params.append("skip", filters.skip.toString());
-      if (filters?.limit !== undefined)
-        params.append("limit", filters.limit.toString());
-
-      const response = await apiClient.get<AuditLogListResponse>(
-        `/audit-logs/me?${params.toString()}`
       );
       return response.data;
     } catch (error) {
@@ -169,86 +139,4 @@ export const auditLogService = {
   formatResourceType(resourceType: string): string {
     return resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
   },
-
-  // Helper function to get action type color
-  getActionTypeColor(actionType: string): string {
-    if (actionType.includes("create")) return "text-green-600";
-    if (actionType.includes("update")) return "text-blue-600";
-    if (actionType.includes("delete")) return "text-red-600";
-    if (actionType.includes("login")) return "text-purple-600";
-    if (actionType.includes("logout")) return "text-gray-600";
-    return "text-gray-700";
-  },
 };
-
-// import { AuditLog, AuditLogFiltersType } from "@/types/audit";
-
-// const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/audit-logs`;
-
-// export const auditLogService = {
-//   getAuditLogs: async (
-//     token: string,
-//     filters: AuditLogFiltersType
-//   ): Promise<AuditLog[]> => {
-//     // Create a new object for query params, removing empty values
-//     const queryParams = Object.fromEntries(
-//       Object.entries(filters).filter(([_, v]) => v != null && v !== "")
-//     );
-//     const queryString = new URLSearchParams(queryParams).toString();
-//     const response = await fetch(`${API_URL}?${queryParams}`, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-
-//     if (!response.ok) {
-//       throw new Error("Failed to fetch audit logs");
-//     }
-
-//     const data = await response.json();
-//     return data.logs;
-//   },
-
-//   exportAuditLogs: async (
-//     token: string,
-//     filters: AuditLogFiltersType,
-//     format: "csv" | "json"
-//   ): Promise<string> => {
-//     const queryParams = new URLSearchParams({ ...filters, format }).toString();
-//     const response = await fetch(`${API_URL}/export?${queryParams}`, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-
-//     if (!response.ok) {
-//       throw new Error("Failed to export audit logs");
-//     }
-
-//     return response.text();
-//   },
-
-//   getActionTypes: async (token: string): Promise<string[]> => {
-//     const response = await fetch(`${API_URL}/action-types`, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-//     if (!response.ok) {
-//       throw new Error("Failed to fetch action types");
-//     }
-//     return response.json();
-//   },
-
-//   getResourceTypes: async (token: string): Promise<string[]> => {
-//     const response = await fetch(`${API_URL}/resource-types`, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-//     if (!response.ok) {
-//       throw new Error("Failed to fetch resource types");
-//     }
-//     return response.json();
-//   },
-// };

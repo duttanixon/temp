@@ -27,7 +27,7 @@ export function AnalysisPeriodDirectionFilter({
 }: AnalysisPeriodDirectionFilterProps) {
   const formatPeriodSummary = (dates: Date[]): string => {
     if (!dates || dates.length === 0) {
-      return "未定義";
+      return "未選択";
     }
     const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
     return sorted.map((d) => format(d, "yyyy/M/d", { locale: ja })).join(", ");

@@ -229,6 +229,19 @@ export interface FrontendDeviceTrafficAnalyticsItem {
   error?: string;
 }
 
+export interface FrontendDeviceAnalyticsDirectionItem {
+  solution_id: string;
+  customer_id: string;
+  customer_name?: string;
+  thresholds?: {
+    traffic_count_thresholds: number[];
+    human_count_thresholds: number[];
+  };
+}
+
+export type FrontendCityEyeAnalyticsPerDeviceDirectionResponse =
+  FrontendDeviceAnalyticsDirectionItem;
+
 /**
  * Complete response type for per-device analytics API
  */

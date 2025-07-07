@@ -17,6 +17,7 @@ import {
 } from "react-leaflet";
 import { GenericAnalyticsCard } from "@/app/(main)/analytics/cityeye/_components/cards/GenericAnalyticsCard";
 import { useGetDevice } from "@/app/(main)/_components/_hooks/useGetDevice";
+import { useAnalyticsDirectionThreshold } from "@/hooks/analytics/city_eye/useAnalyticsDirectionThreshold";
 
 interface PeopleDirectionMapCardProps {
   title: string;
@@ -30,6 +31,7 @@ interface PeopleDirectionMapCardProps {
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
+  solutionId?: string;
 }
 
 type ZoneLabel = { name: string; lat: number; lng: number };
@@ -82,8 +84,20 @@ export default function PeopleDirectionMapCard({
   isLoading,
   error,
   hasAttemptedFetch,
+  solutionId,
 }: PeopleDirectionMapCardProps) {
   const [resetKey, setResetKey] = useState(0);
+  // 仮のデバイス
+  const Device = useGetDevice({ id: perDeviceCountsData.device_id });
+  const device_name = Device.device[0]?.location ?? "デバイス未選択";
+  console.log("device", Device);
+  const customerId = Device.device[0]?.customer_id ?? "";
+
+  console.log("perDeviceCountsData:", perDeviceCountsData);
+  const analyticsThresholds = useAnalyticsDirectionThreshold({
+    solutionId: solutionId ?? "",
+    customerId: customerId,
+  });
 
   const handleReset = () => {
     setResetKey((k) => k + 1);
@@ -234,33 +248,34 @@ export default function PeopleDirectionMapCard({
   const hasData = hasAttemptedFetch;
 
   const days = perDeviceCountsData?.dailyAveragePeople?.days || 1;
-  const baseThresholds = [2000, 6500, 8000];
+  const baseThresholds =
+    analyticsThresholds?.rawData?.thresholds?.human_count_thresholds ?? [];
+  console.log("baseThresholds:", baseThresholds);
+
   const thresholds = baseThresholds.map((t) => t * days);
   const legendItems = [
     {
       color: "#4A83BD",
       label: "少ない",
-      range: `${thresholds[0]}未満`,
+      range: `${thresholds[0]}人未満`,
     },
     {
       color: "#4A9C64",
       label: "やや少ない",
-      range: `${thresholds[0]}〜${thresholds[1] - 1}`,
+      range: `${thresholds[0]}人〜${thresholds[1] - 1}人`,
     },
     {
       color: "#DB954D",
       label: "やや多い",
-      range: `${thresholds[1]}〜${thresholds[2] - 1}`,
+      range: `${thresholds[1]}人〜${thresholds[2] - 1}人`,
     },
     {
       color: "#DB4E4D",
       label: "多い",
-      range: `${thresholds[2]}以上`,
+      range: `${thresholds[2]}人以上`,
     },
   ];
-  // 仮のデバイス
-  const Device = useGetDevice({ id: perDeviceCountsData.device_id });
-  const device_name = Device.device[0]?.location ?? "デバイス未選択";
+
   return (
     <div className="grid grid-cols-4 gap-0 bg-transparent">
       <div className="col-span-3">
@@ -333,7 +348,7 @@ export default function PeopleDirectionMapCard({
                             <div>方向: {line.type}</div>
                             <div style={{ height: 8 }} />
                             <div>
-                              {legendLabel} ({line.count.toLocaleString()}) 人
+                              {legendLabel} ({line.count.toLocaleString()} 人)
                             </div>
                           </>
                         }
@@ -341,17 +356,27 @@ export default function PeopleDirectionMapCard({
                     );
                   })}
                   {/* zoneごとにラベルを1つだけ表示 */}
-                  {zoneLabels.map((label, idx) => (
-                    <Marker
-                      key={label.name + idx}
-                      position={[label.lat, label.lng]}
-                      interactive={false}
-                      icon={L.divIcon({
-                        className: "zone-label-marker",
-                        html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;">${label.name}</div>`,
-                      })}
-                    />
-                  ))}
+                  {zoneLabels.map((label, idx) => {
+                    // テキストの長さに基づいてアイコンサイズを計算
+                    const textLength = label.name.length;
+                    const iconWidth = Math.max(24, textLength * 24); // 1文字あたり24pxの幅を計算
+                    const iconHeight = 30; // 高さは固定
+                    const iconAnchorX = iconWidth / 2; // 横方向の中心
+                    const iconAnchorY = iconHeight / 2; // 縦方向の中心
+                    return (
+                      <Marker
+                        key={label.name + idx}
+                        position={[label.lat, label.lng]}
+                        interactive={false}
+                        icon={L.divIcon({
+                          className: "zone-label-marker",
+                          html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;">${label.name}</div>`,
+                          iconSize: [iconWidth, iconHeight], // zoneごとに計算されたサイズ
+                          iconAnchor: [iconAnchorX, iconAnchorY], // zoneごとに計算されたアンカー
+                        })}
+                      />
+                    );
+                  })}
                 </MapContainer>
               </div>
             </GenericAnalyticsCard>

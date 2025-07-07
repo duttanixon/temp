@@ -372,6 +372,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             errorComparison={errorComparison}
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
+            solutionId={solutionId}
           />
         );
       case "traffic-direction":

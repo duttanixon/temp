@@ -16,6 +16,7 @@ interface PeopleDirectionViewProps {
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
+  solutionId?: string;
 }
 
 export default function PeopleDirectionView({
@@ -23,6 +24,7 @@ export default function PeopleDirectionView({
   isLoading,
   error,
   hasAttemptedFetch,
+  solutionId,
 }: PeopleDirectionViewProps) {
   console.log("PeopleDirectionView processedData:", processedData);
   return (
@@ -114,6 +116,7 @@ export default function PeopleDirectionView({
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}
+        solutionId={solutionId}
       />
     </>
   );

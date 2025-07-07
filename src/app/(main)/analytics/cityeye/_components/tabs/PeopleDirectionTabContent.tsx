@@ -19,6 +19,7 @@ interface PeopleDirectionTabContentProps {
   errorComparison?: string | null;
   hasAttemptedFetchComparison?: boolean;
   comparisonPeriodDateRange?: DateRange;
+  solutionId?: string;
 }
 
 export default function PeopleDirectionTabContent({
@@ -26,6 +27,7 @@ export default function PeopleDirectionTabContent({
   isLoadingMain,
   errorMain,
   hasAttemptedFetchMain,
+  solutionId,
 }: PeopleDirectionTabContentProps) {
   // Placeholder implementation
   return (
@@ -35,6 +37,7 @@ export default function PeopleDirectionTabContent({
         isLoading={isLoadingMain}
         error={errorMain}
         hasAttemptedFetch={hasAttemptedFetchMain}
+        solutionId={solutionId}
       />
       {/* <div className="p-6 mt-4 flex items-center justify-center h-[calc(100%-var(--tabs-list-height,40px))] bg-white rounded-lg shadow">
         <p className="text-gray-500 text-lg">人流(方向) 分析 - 未実装</p>

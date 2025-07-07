@@ -38,7 +38,9 @@ export function CustomerFilter({
     []
   );
 
-  const selectionSummary = `(${selectedCustomers.length}/${availableCustomers.length})`;
+  const initialSelectedCustomerName =
+    availableCustomers.find((c) => c.customer_id === selectedCustomers[0])
+      ?.name || "N/A";
 
   useEffect(() => {
     if (customer) {
@@ -102,12 +104,13 @@ export function CustomerFilter({
             }
           }}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full cursor-pointer">
             <SelectValue placeholder="顧客を選択してください" />
           </SelectTrigger>
           <SelectContent>
             {availableCustomers.map((customer) => (
               <SelectItem
+                className="cursor-pointer"
                 key={customer.customer_id}
                 value={customer.customer_id}
               >
@@ -127,7 +130,7 @@ export function CustomerFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
-      selectionSummary={selectionSummary}
+      selectionSummary={initialSelectedCustomerName}
     >
       {renderContent()}
     </FilterCard>

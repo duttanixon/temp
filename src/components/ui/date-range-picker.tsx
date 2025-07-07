@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { endOfMonth, format, startOfMonth, subDays, subMonths } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
+import { toast } from "sonner";
 
 interface DatePickerWithRangeProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -159,7 +160,7 @@ export function DatePickerWithMultiple({
       return;
     }
     if (selected.length > maxSelectable) {
-      alert(`最大${maxSelectable}日まで選択できます。`);
+      toast.error(`最大${maxSelectable}日まで選択できます。`);
       return;
     }
     setDates(selected);

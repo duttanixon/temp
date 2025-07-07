@@ -58,7 +58,7 @@ export default function HumanHourlyDistributionCard({
       emptyDataMessage="時間別データがありません。" // "No hourly data available."
       categoryKey="hour"
       dataKeys={areaChartDataKeys}
-      unit="" // Unit is handled by yAxisTickFormatter if needed or can be "人"
+      unit="人" // Unit is handled by yAxisTickFormatter if needed or can be "人"
       yAxisWidth={50} // Increased width for potentially larger Y-axis labels
       xAxisTickFormatter={xAxisTickFormatter}
       yAxisTickFormatter={yAxisTickFormatter} // Added for better number formatting

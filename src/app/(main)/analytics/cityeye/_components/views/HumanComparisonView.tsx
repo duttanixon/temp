@@ -165,7 +165,7 @@ export default function HumanComparisonView({
                 }
                 isLoading={isLoadingMain}
                 error={errorMain}
-                hasAttemptedFetch={hasAttemptedFetchMain}
+                hasAttemptedFetch={hasAttemptedFetchComparison}
               />
             </div>
             <PerDevicePeopleCard

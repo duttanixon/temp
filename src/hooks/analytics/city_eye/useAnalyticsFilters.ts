@@ -98,6 +98,14 @@ export function useAnalyticsFilters() {
         return null;
       }
 
+      // フィルターのうち、「交通種別」が未選択の場合
+      if (
+        currentFilters.selectedTrafficTypes.length === 0 &&
+        horizontalTab === "traffic"
+      ) {
+        return null;
+      }
+
       // Format dates
       const startTime = format(
         startOfDay(period.from),

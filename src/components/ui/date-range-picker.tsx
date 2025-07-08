@@ -154,6 +154,31 @@ export function DatePickerWithMultiple({
   childClassName,
   maxSelectable = 7,
 }: DatePickerWithMultipleProps) {
+  const staticRanges = [
+    {
+      label: "Today",
+      onClick: () => {
+        const today = new Date();
+        setDates([today]);
+      },
+    },
+    {
+      label: "Yesterday",
+      onClick: () => {
+        const today = new Date();
+        const yesterday = subDays(today, 1);
+        setDates([yesterday, today]);
+      },
+    },
+    {
+      label: "Last 7 Days",
+      onClick: () => {
+        const today = new Date();
+        const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
+        setDates(days);
+      },
+    },
+  ];
   const handleSelect = (selected: Date[] | undefined) => {
     if (!selected) {
       setDates([]);
@@ -173,7 +198,7 @@ export function DatePickerWithMultiple({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal cursor-pointer",
+              "w-[300px] justify-start text-left font-normal overflow-x-auto cursor-pointer",
               childClassName,
               (!dates || dates.length === 0) && "text-muted-foreground"
             )}
@@ -187,6 +212,19 @@ export function DatePickerWithMultiple({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
+          <div className="flex p-3 bg-muted/20 border-b gap-2 flex-wrap">
+            {staticRanges.map((range) => (
+              <Button
+                key={range.label}
+                variant="outline"
+                size="sm"
+                onClick={range.onClick}
+                className="text-xs cursor-pointer"
+              >
+                {range.label}
+              </Button>
+            ))}
+          </div>
           <Calendar
             initialFocus
             mode="multiple"

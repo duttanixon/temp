@@ -11,11 +11,16 @@ import { FilterGroup } from "./filters/FilterGroup";
 import { useAnalyticsFilters } from "@/hooks/analytics/city_eye/useAnalyticsFilters";
 import { useHumanAnalyticsData } from "@/hooks/analytics/city_eye/useHumanAnalyticsData";
 import { useTrafficAnalyticsData } from "@/hooks/analytics/city_eye/useTrafficAnalyticsData";
-import { processHumanAnalyticsData } from "@/utils/analytics/city_eye/humanDataProcessing";
+import {
+  processHumanAnalyticsData,
+  processHumanAnalyticsDirectionData,
+} from "@/utils/analytics/city_eye/humanDataProcessing";
 import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
 
 import {
   FilterContext,
+  FilterContextWithDirection,
+  FrontendAnalyticsDirectionFilters,
   FrontendAnalyticsFilters,
 } from "@/types/cityeye/cityEyeAnalytics";
 import PeopleDirectionTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/PeopleDirectionTabContent";
@@ -23,6 +28,7 @@ import PeopleFlowTabContent from "@/app/(main)/analytics/cityeye/_components/tab
 import TrafficDirectionTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/TrafficDirectionTabContent";
 import TrafficFlowTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/TrafficFlowTabContent";
 import { FilterDirectionGroup } from "@/app/(main)/analytics/cityeye/_components/filters/FilterDirectionGroup";
+import { useHumanAnalyticsDirectionData } from "@/hooks/analytics/city_eye/useHumanAnalyticsDirectionData";
 interface CityEyeClientProps {
   solutionId: string;
 }
@@ -43,6 +49,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     filters,
     handleFilterChange,
     validateAndPrepareApiFilters,
+    validateAndPrepareDirectionFilters,
     resetFilters,
   } = useAnalyticsFilters();
 
@@ -50,18 +57,20 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   const [activeFilters, setActiveFilters] = useState<{
     main: FrontendAnalyticsFilters | null;
     comparison: FrontendAnalyticsFilters | null;
-  }>({ main: null, comparison: null });
+    direction?: FrontendAnalyticsDirectionFilters | null;
+  }>({ main: null, comparison: null, direction: null });
   const [appliedFilterContext, setAppliedFilterContext] = useState<{
     main: FilterContext | null;
     comparison: FilterContext | null;
-  }>({ main: null, comparison: null });
+    direction?: FilterContextWithDirection | null;
+  }>({ main: null, comparison: null, direction: null });
 
   // Query parameters based on current tab
   const queryParams: Record<string, boolean> = useMemo((): Record<
     string,
     boolean
   > => {
-    if (horizontalTab === "people" || horizontalTab === "people-direction") {
+    if (horizontalTab === "people") {
       return {
         include_total_count: true,
         include_age_distribution: true,
@@ -69,10 +78,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         include_hourly_distribution: true,
         include_age_gender_distribution: true,
       };
-    } else if (
-      horizontalTab === "traffic" ||
-      horizontalTab === "traffic-direction"
-    ) {
+    } else if (horizontalTab === "traffic") {
       return {
         include_total_count: true,
         include_vehicle_type_distribution: true,
@@ -89,14 +95,8 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     isLoading: isLoadingMain,
     error: errorMain,
   } = useHumanAnalyticsData({
-    activeApiFilters:
-      horizontalTab === "people" || horizontalTab === "people-direction"
-        ? activeFilters.main
-        : null,
-    queryParams:
-      horizontalTab === "people" || horizontalTab === "people-direction"
-        ? queryParams
-        : {},
+    activeApiFilters: horizontalTab === "people" ? activeFilters.main : null,
+    queryParams: horizontalTab === "people" ? queryParams : {},
   });
 
   const {
@@ -108,6 +108,19 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       horizontalTab === "people" ? activeFilters.comparison : null,
     queryParams: horizontalTab === "people" ? queryParams : {},
   });
+
+  const {
+    rawData: directionRawData,
+    isLoading: isLoadingDirection,
+    error: errorDirection,
+  } = useHumanAnalyticsDirectionData({
+    activeApiFilters:
+      horizontalTab === "people-direction"
+        ? (activeFilters.direction ?? null)
+        : null,
+  });
+  console.log("directionRawData", directionRawData);
+  console.log("activeFilters", activeFilters);
 
   // Fetch data for traffic analytics
   const {
@@ -144,6 +157,17 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     [comparisonRawData, appliedFilterContext.comparison]
   );
 
+  const processedDirectionData = useMemo(
+    () =>
+      processHumanAnalyticsDirectionData(
+        directionRawData,
+        appliedFilterContext.direction ?? null
+      ),
+    [directionRawData, appliedFilterContext.direction]
+  );
+
+  console.log("appliedFilterContext.direction", appliedFilterContext.direction);
+
   const processedTrafficMainData = useMemo(
     () =>
       processTrafficAnalyticsData(
@@ -164,26 +188,12 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
   // Filter application handler
   const handleApplyFilters = useCallback(() => {
-    // direction系タブかどうかでAPIリクエスト用パラメータを分岐
-    const isDirectionTab =
-      horizontalTab === "people-direction" ||
-      horizontalTab === "traffic-direction";
-
-    // direction系は analysisPeriodDirection（日付配列）、それ以外は analysisPeriod（range）
-    let mainApiFilters;
-    if (isDirectionTab) {
-      mainApiFilters = validateAndPrepareApiFilters(
-        filters,
-        horizontalTab,
-        "analysisPeriodDirection"
-      );
-    } else {
-      mainApiFilters = validateAndPrepareApiFilters(
-        filters,
-        horizontalTab,
-        "analysisPeriod"
-      );
-    }
+    // Validate main period filters
+    const mainApiFilters = validateAndPrepareApiFilters(
+      filters,
+      horizontalTab,
+      "analysisPeriod"
+    );
 
     if (!mainApiFilters) {
       toast.error("フィルター設定を確認してください。");
@@ -194,25 +204,43 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     const newActiveFilters: typeof activeFilters = {
       main: mainApiFilters,
       comparison: null,
+      direction: null,
     };
 
     const newAppliedFilterContext = {
       main: {
-        dateRange: isDirectionTab
-          ? {
-              from: filters.analysisPeriodDirection?.[0],
-              to: filters.analysisPeriodDirection?.[
-                filters.analysisPeriodDirection.length - 1
-              ],
-            }
-          : filters.analysisPeriod,
+        dateRange: filters.analysisPeriod,
         selectedDays: filters.selectedDays,
       },
       comparison: {
         dateRange: filters.comparisonPeriod,
         selectedDays: filters.selectedDays,
       },
+      direction: {
+        dates: filters.dates ?? [],
+        selectedDays: filters.selectedDays,
+      },
     };
+    // Handle direction filters if in direction tab
+    const isDirectionTab =
+      horizontalTab === "people-direction" ||
+      horizontalTab === "traffic-direction";
+    if (isDirectionTab) {
+      const directionApiFilters = validateAndPrepareDirectionFilters(
+        filters,
+        horizontalTab
+      );
+      if (!directionApiFilters) {
+        toast.error("フィルター設定を確認してください。");
+        return;
+      }
+      // Update active filters
+      newActiveFilters.direction = directionApiFilters;
+      newAppliedFilterContext.direction = {
+        dates: filters.dates ?? [],
+        selectedDays: filters.selectedDays,
+      };
+    }
 
     // Handle comparison filters if in comparison view
     if (verticalTab === "comparison") {
@@ -222,11 +250,10 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       }
 
       let comparisonApiFilters;
-      if (isDirectionTab) {
-        comparisonApiFilters = validateAndPrepareApiFilters(
+      if (comparisonApiFilters == null) {
+        comparisonApiFilters = validateAndPrepareDirectionFilters(
           filters,
-          horizontalTab,
-          "analysisPeriodDirection"
+          horizontalTab
         );
       } else {
         comparisonApiFilters = validateAndPrepareApiFilters(
@@ -250,7 +277,13 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
     setActiveFilters(newActiveFilters);
     setAppliedFilterContext(newAppliedFilterContext);
-  }, [filters, horizontalTab, verticalTab, validateAndPrepareApiFilters]);
+  }, [
+    filters,
+    horizontalTab,
+    verticalTab,
+    validateAndPrepareApiFilters,
+    validateAndPrepareDirectionFilters,
+  ]);
 
   // Auto-apply for overview tab on initial load
   useEffect(() => {
@@ -362,14 +395,14 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         return (
           <PeopleDirectionTabContent
             verticalTab={verticalTab}
-            mainProcessedData={processedMainData}
+            mainProcessedData={processedDirectionData}
             isLoadingMain={isLoadingMain}
             errorMain={errorMain}
             hasAttemptedFetchMain={!!activeFilters.main}
             mainPeriodDateRange={filters.analysisPeriod}
             comparisonProcessedData={processedComparisonData}
-            isLoadingComparison={isLoadingComparison}
-            errorComparison={errorComparison}
+            isLoadingComparison={isLoadingDirection}
+            errorComparison={errorDirection}
             hasAttemptedFetchComparison={!!activeFilters.comparison}
             comparisonPeriodDateRange={filters.comparisonPeriod}
             solutionId={solutionId}

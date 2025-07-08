@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { RefreshCcw } from "lucide-react";
+import { Loader2, RefreshCcw } from "lucide-react";
 import { useEffect, useRef, useState, ReactNode } from "react";
 import {
   MapContainer,
@@ -18,16 +18,11 @@ import {
 import { GenericAnalyticsCard } from "@/app/(main)/analytics/cityeye/_components/cards/GenericAnalyticsCard";
 import { useGetDevice } from "@/app/(main)/_components/_hooks/useGetDevice";
 import { useAnalyticsDirectionThreshold } from "@/hooks/analytics/city_eye/useAnalyticsDirectionThreshold";
+import { ProcessedAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytics";
 
 interface PeopleDirectionMapCardProps {
   title: string;
-  perDeviceCountsData: {
-    device_id: string;
-    detectionZones?: DetectionZone[];
-    dailyAveragePeople?: {
-      days?: number;
-    };
-  };
+  perDeviceCountsData: ProcessedAnalyticsDirectionData | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -87,17 +82,6 @@ export default function PeopleDirectionMapCard({
   solutionId,
 }: PeopleDirectionMapCardProps) {
   const [resetKey, setResetKey] = useState(0);
-  // 仮のデバイス
-  const Device = useGetDevice({ id: perDeviceCountsData.device_id });
-  const device_name = Device.device[0]?.location ?? "デバイス未選択";
-  console.log("device", Device);
-  const customerId = Device.device[0]?.customer_id ?? "";
-
-  console.log("perDeviceCountsData:", perDeviceCountsData);
-  const analyticsThresholds = useAnalyticsDirectionThreshold({
-    solutionId: solutionId ?? "",
-    customerId: customerId,
-  });
 
   const handleReset = () => {
     setResetKey((k) => k + 1);
@@ -142,32 +126,51 @@ export default function PeopleDirectionMapCard({
     );
   };
 
+  // backendのdetectionZonesをfrontendのDetectionZone型に変換
+  const detectionZones: DetectionZone[] = (
+    perDeviceCountsData?.detectionZones || []
+  ).map((zone: any) => ({
+    name: zone.polygon_name ?? zone.name ?? "",
+    In: zone.in_data
+      ? {
+          startPoint: zone.in_data.start_point,
+          endPoint: zone.in_data.end_point,
+          count: zone.in_data.count,
+        }
+      : undefined,
+    Out: zone.out_data
+      ? {
+          startPoint: zone.out_data.start_point,
+          endPoint: zone.out_data.end_point,
+          count: zone.out_data.count,
+        }
+      : undefined,
+  }));
+
   // zoneごとにIN/OUT両方の線の中間地点の間にラベルを1つだけ表示するためのデータ構造を作成
-  const zoneLinePairs = (perDeviceCountsData.detectionZones || []).map(
-    (zone: DetectionZone) => {
-      const inLine = zone.In
-        ? {
-            start: zone.In.startPoint,
-            end: zone.In.endPoint,
-            count: zone.In.count ?? 0,
-            type: "in",
-          }
-        : undefined;
-      const outLine = zone.Out
-        ? {
-            start: zone.Out.startPoint,
-            end: zone.Out.endPoint,
-            count: zone.Out.count ?? 0,
-            type: "out",
-          }
-        : undefined;
-      return {
-        name: zone.name,
-        inLine,
-        outLine,
-      };
-    }
-  );
+  const zoneLinePairs = detectionZones.map((zone: DetectionZone) => {
+    const inLine = zone.In
+      ? {
+          start: zone.In.startPoint,
+          end: zone.In.endPoint,
+          count: zone.In.count ?? 0,
+          type: "in",
+        }
+      : undefined;
+    const outLine = zone.Out
+      ? {
+          start: zone.Out.startPoint,
+          end: zone.Out.endPoint,
+          count: zone.Out.count ?? 0,
+          type: "out",
+        }
+      : undefined;
+    return {
+      name: zone.name,
+      inLine,
+      outLine,
+    };
+  });
 
   // Polyline描画用データ
   const polylines: Polyline[] = [];
@@ -247,9 +250,25 @@ export default function PeopleDirectionMapCard({
 
   const hasData = hasAttemptedFetch;
 
-  const days = perDeviceCountsData?.dailyAveragePeople?.days || 1;
-  const baseThresholds =
-    analyticsThresholds?.rawData?.thresholds?.human_count_thresholds ?? [];
+  // 閾値取得
+  const Device = useGetDevice({
+    id: perDeviceCountsData?.deviceId ?? "",
+  });
+  const customerId = Device.device[0]?.customer_id ?? "";
+
+  const analyticsThresholds = useAnalyticsDirectionThreshold({
+    solutionId: solutionId ?? "",
+    customerId: customerId,
+  });
+
+  const days = Array.isArray(perDeviceCountsData?.dates)
+    ? perDeviceCountsData.dates.length
+    : 1;
+  const defaultThresholds = [100, 500, 1000];
+  const baseThresholds = analyticsThresholds?.rawData?.thresholds
+    ?.human_count_thresholds?.length
+    ? analyticsThresholds.rawData.thresholds.human_count_thresholds
+    : defaultThresholds;
   console.log("baseThresholds:", baseThresholds);
 
   const thresholds = baseThresholds.map((t) => t * days);
@@ -338,11 +357,12 @@ export default function PeopleDirectionMapCard({
                           [line.end.lat, line.end.lng],
                         ]}
                         color={color}
-                        weight={8}
+                        weight={10}
                         tooltip={
                           <>
                             <div style={{ fontWeight: "bold" }}>
-                              {device_name}
+                              {perDeviceCountsData?.deviceLocation ??
+                                "デバイス未選択"}
                             </div>
                             <div>領域名: {line.name}</div>
                             <div>方向: {line.type}</div>
@@ -386,23 +406,33 @@ export default function PeopleDirectionMapCard({
 
       <div className="col-span-1">
         <Card className="h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 border-l-0">
-          <CardContent className="flex flex-col gap-4 text-base text-gray-600">
-            {legendItems.map((item) => (
-              <div className="flex items-center gap-2" key={item.color}>
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: "16px",
-                    height: "16px",
-                    background: item.color,
-                    borderRadius: "2px",
-                    marginRight: "4px",
-                  }}
-                ></span>
-                <span>{item.label}</span>
-                <span>{item.range}</span>
+          <CardContent className="flex flex-col gap-4 text-xs text-gray-600">
+            {baseThresholds.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[200px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  データを読み込み中...
+                </p>
               </div>
-            ))}
+            ) : (
+              <>
+                {legendItems.map((item) => (
+                  <div className="flex items-center gap-2" key={item.color}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "12px",
+                        height: "12px",
+                        background: item.color,
+                        borderRadius: "2px",
+                      }}
+                    ></span>
+                    <span>{item.label}</span>
+                    <span>{item.range}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

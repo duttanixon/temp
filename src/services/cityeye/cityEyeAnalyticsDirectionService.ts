@@ -2,21 +2,42 @@ import {
   FrontendCityEyeAnalyticsPerDeviceDirectionResponse,
   FrontendTrafficAnalyticsFilters,
   FrontendCityEyeTrafficAnalyticsPerDeviceResponse,
+  FrontendAnalyticsDirectionFilters,
+  FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse,
 } from "@/types/cityeye/cityEyeAnalytics";
 import { apiClient, handleApiError } from "../baseApiClient"; // Assuming baseApiClient exists
 
 export const analyticsDirectionService = {
-  async getHumanFlowAnalyticsDirection({
+  async getHumanFlowAnalyticsDirection(
+    filters: FrontendAnalyticsDirectionFilters
+  ): Promise<FrontendCityEyeAnalyticsPerDeviceDirectionResponse> {
+    try {
+      const response =
+        await apiClient.post<FrontendCityEyeAnalyticsPerDeviceDirectionResponse>(
+          "/analytics/city-eye/human-direction",
+          filters // Send filters in the request body
+        );
+      console.log(
+        "[getHumanFlowAnalyticsDirection] response data:",
+        response.data
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  async getHumanFlowAnalyticsDirectionThreshold({
     customer_id,
     solution_id,
   }: {
     customer_id?: string;
     solution_id?: string;
-  }): Promise<FrontendCityEyeAnalyticsPerDeviceDirectionResponse> {
+  }): Promise<FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse> {
     try {
       // The backend endpoint is a POST request, expecting filters in the body
       const response =
-        await apiClient.get<FrontendCityEyeAnalyticsPerDeviceDirectionResponse>(
+        await apiClient.get<FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse>(
           `/analytics/city-eye/thresholds/${customer_id}/${solution_id}`
         );
       return response.data;

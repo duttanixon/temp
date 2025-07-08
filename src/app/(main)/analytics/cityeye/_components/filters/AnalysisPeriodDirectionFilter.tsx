@@ -57,7 +57,7 @@ export function AnalysisPeriodDirectionFilter({
         <DatePickerWithMultiple
           dates={selectedDates}
           setDates={handleDateChange}
-          childClassName="w-full"
+          childClassName="w-full truncate"
           maxSelectable={limitDays ?? 7}
         />
         <span className="text-xs text-gray-500 mt-2">

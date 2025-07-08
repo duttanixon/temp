@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { FrontendCityEyeAnalyticsPerDeviceDirectionResponse } from "@/types/cityeye/cityEyeAnalytics";
+import { FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse } from "@/types/cityeye/cityEyeAnalytics";
 import { analyticsDirectionService } from "@/services/cityeye/cityEyeAnalyticsDirectionService";
 import { toast } from "sonner";
 
@@ -13,7 +13,9 @@ export function useAnalyticsDirectionThreshold({
   customerId,
 }: UseAnalyticsDirectionThresholdProps) {
   const [rawData, setRawData] =
-    useState<FrontendCityEyeAnalyticsPerDeviceDirectionResponse | null>(null);
+    useState<FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse | null>(
+      null
+    );
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,10 +50,12 @@ export function useAnalyticsDirectionThreshold({
 
     try {
       const response =
-        await analyticsDirectionService.getHumanFlowAnalyticsDirection({
-          customer_id: customerId,
-          solution_id: solutionId,
-        });
+        await analyticsDirectionService.getHumanFlowAnalyticsDirectionThreshold(
+          {
+            customer_id: customerId,
+            solution_id: solutionId,
+          }
+        );
 
       // --- Success ---
       setRawData(response);

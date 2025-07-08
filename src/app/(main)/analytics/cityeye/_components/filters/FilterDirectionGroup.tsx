@@ -26,17 +26,17 @@ export function FilterDirectionGroup({
 
   // analysisPeriodDirection: Date[] を直接stateとして管理
   const [selectedDates, setSelectedDates] = useState<Date[]>(
-    currentFilters.analysisPeriodDirection ?? []
+    currentFilters.dates ?? []
   );
 
   useEffect(() => {
-    setSelectedDates(currentFilters.analysisPeriodDirection ?? []);
-  }, [currentFilters.analysisPeriodDirection]);
+    setSelectedDates(currentFilters.dates ?? []);
+  }, [currentFilters.dates]);
 
   // 日付選択変更時にanalysisPeriodDirectionを更新
   const handleDateChange = (dates: Date[]) => {
     setSelectedDates(dates);
-    onFilterChange({ analysisPeriodDirection: dates });
+    onFilterChange({ dates: dates });
   };
 
   console.log("FilterGroup currentFilters111:", currentFilters);

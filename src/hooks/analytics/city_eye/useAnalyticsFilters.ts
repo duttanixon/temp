@@ -15,7 +15,7 @@ const createDefaultFilters = (): CityEyeFilterState => ({
     from: startOfDay(subDays(new Date(), 13)),
     to: endOfDay(subDays(new Date(), 7)),
   },
-  analysisPeriodDirection: [],
+  dates: [],
   selectedDays: [
     "monday",
     "tuesday",
@@ -63,43 +63,8 @@ export function useAnalyticsFilters() {
     (
       currentFilters: CityEyeFilterState,
       horizontalTab: string,
-      periodType:
-        | "analysisPeriod"
-        | "comparisonPeriod"
-        | "analysisPeriodDirection"
+      periodType: "analysisPeriod" | "comparisonPeriod"
     ): FrontendAnalyticsFilters | null => {
-      // direction系: analysisPeriodDirection（日付配列）
-      if (periodType === "analysisPeriodDirection") {
-        const dates = currentFilters.analysisPeriodDirection;
-        if (!dates || dates.length === 0) return null;
-        if (currentFilters.selectedDevices.length === 0) return null;
-        // 日付配列を昇順でソートし、YYYY-MM-DD配列に変換
-        const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
-        const dateStrings = sorted.map((d) => format(d, "yyyy-MM-dd"));
-        const startTime = format(
-          startOfDay(sorted[0]),
-          "yyyy-MM-dd'T'HH:mm:ss"
-        );
-        const endTime = format(
-          endOfDay(sorted[sorted.length - 1]),
-          "yyyy-MM-dd'T'HH:mm:ss"
-        );
-        return {
-          device_ids: currentFilters.selectedDevices,
-          dates: dateStrings,
-          start_time: startTime,
-          end_time: endTime,
-          days: currentFilters.selectedDays,
-          hours: currentFilters.selectedHours,
-          ...(horizontalTab === "people-direction" && {
-            genders: currentFilters.selectedGenders,
-            age_groups: currentFilters.selectedAges,
-          }),
-          ...(horizontalTab === "traffic-direction" && {
-            vehicle_types: currentFilters.selectedTrafficTypes,
-          }),
-        };
-      }
       // 通常のrange型
       const period =
         currentFilters[periodType as "analysisPeriod" | "comparisonPeriod"];
@@ -132,6 +97,37 @@ export function useAnalyticsFilters() {
     []
   );
 
+  // direction専用フィルター生成
+  const validateAndPrepareDirectionFilters = useCallback(
+    (
+      currentFilters: CityEyeFilterState,
+      horizontalTab: string
+    ):
+      | import("@/types/cityeye/cityEyeAnalytics").FrontendAnalyticsDirectionFilters
+      | null => {
+      const dates = currentFilters.dates;
+      if (!dates || dates.length === 0) return null;
+      if (currentFilters.selectedDevices.length === 0) return null;
+
+      return {
+        device_ids: currentFilters.selectedDevices,
+        dates: currentFilters.dates!.map((d) =>
+          typeof d === "string" ? d : format(d, "yyyy-MM-dd")
+        ),
+        days: currentFilters.selectedDays,
+        hours: currentFilters.selectedHours,
+        ...(horizontalTab === "people-direction" && {
+          genders: currentFilters.selectedGenders,
+          age_groups: currentFilters.selectedAges,
+        }),
+        ...(horizontalTab === "traffic-direction" && {
+          vehicle_types: currentFilters.selectedTrafficTypes,
+        }),
+      };
+    },
+    []
+  );
+
   /**
    * Reset filters to defaults
    * Utility function for clearing all filters
@@ -144,6 +140,7 @@ export function useAnalyticsFilters() {
     filters,
     handleFilterChange,
     validateAndPrepareApiFilters,
+    validateAndPrepareDirectionFilters, // direction専用
     resetFilters,
   };
 }

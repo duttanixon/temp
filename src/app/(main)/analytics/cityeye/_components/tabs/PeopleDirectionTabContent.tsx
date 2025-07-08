@@ -1,14 +1,17 @@
 "use client";
 
 import React from "react";
-import { ProcessedAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
+import {
+  ProcessedAnalyticsData,
+  ProcessedAnalyticsDirectionData,
+} from "@/types/cityeye/cityEyeAnalytics";
 import { DateRange } from "react-day-picker";
 import PeopleDirectionView from "@/app/(main)/analytics/cityeye/_components/views/PeopleDirectionView";
 
 interface PeopleDirectionTabContentProps {
   verticalTab: string;
 
-  mainProcessedData: ProcessedAnalyticsData | null;
+  mainProcessedData: ProcessedAnalyticsDirectionData | null;
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;

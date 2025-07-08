@@ -38,6 +38,16 @@ locals {
                 INTERNAL_API_KEY = var.internal_api_key
             }
         }
+        lwt = {
+            function_name   = "${var.environment}-device-last-will-testament"
+            handler         = "device_last_will_testament.lambda_handler"
+            runtime         = "python3.13"
+            source_path     = "${path.module}/files/device_last_will_testament.py"
+            description     = "Handles last will and testament for IoT devices"
+            environment_variables = {
+                ENVIRONMENT = var.environment
+            }
+      }
 
         # Add function for each solution
     }
@@ -64,12 +74,20 @@ locals {
             sql             = "SELECT *, topic(3) AS thing_name, topic(6) AS shadow_name, topic(8) AS response_type FROM '$aws/things/+/shadow/name/+/update/+'"
             lambda_key      = "shadow_response"
         }
+
+        # Add the new shadow response rule
+        lwt_rule = {
+            name            = "${var.environment}_lwt_rule"
+            description     = "Rule to process device last will and testament messages"
+            sql             = "SELECT *, topic(3) AS thing_name FROM 'devices/things/+/lwt'"
+            lambda_key      = "lwt"
+        }
+
       
         # add rule for each solution
     }
-
-
 }
+
 
 # Create build directory if it doesn't exist
 resource "null_resource" "create_build_dir" {

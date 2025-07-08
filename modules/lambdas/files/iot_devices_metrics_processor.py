@@ -1,10 +1,9 @@
 import json
 import base64
 import gzip
-import boto3  # Uncomment this - required for Timestream client
+import boto3
 import os
 import time
-from datetime import datetime
 
 # Initialize AWS clients - uncomment this
 timestream_write = boto3.client('timestream-write')

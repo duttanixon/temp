@@ -23,6 +23,7 @@ resource "aws_iot_policy" "device_policy" {
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/stream/status",
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/$${iot:ClientId}/command/*",
                     "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/$aws/things/*/shadow/name/XLinesConfigShadow/*",
+                    "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/devices/things/*/lwt"
                 ]
             },
             {

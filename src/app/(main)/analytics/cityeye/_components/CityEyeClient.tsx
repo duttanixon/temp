@@ -249,19 +249,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         return;
       }
 
-      let comparisonApiFilters;
-      if (comparisonApiFilters == null) {
-        comparisonApiFilters = validateAndPrepareDirectionFilters(
-          filters,
-          horizontalTab
-        );
-      } else {
-        comparisonApiFilters = validateAndPrepareApiFilters(
-          filters,
-          horizontalTab,
-          "comparisonPeriod"
-        );
-      }
+      const comparisonApiFilters = validateAndPrepareApiFilters(
+        filters,
+        horizontalTab,
+        "comparisonPeriod"
+      );
 
       if (!comparisonApiFilters) {
         toast.error("比較期間のフィルター設定を確認してください。");

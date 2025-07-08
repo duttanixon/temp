@@ -241,5 +241,38 @@ class IoTCommandService:
         return self._publish_message(topic, message)
 
 
+    def get_device_shadow(self, thing_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve the classic shadow for a device.
+        
+        This method retrieves the classic (unnamed) shadow which contains 
+        the device's application status among other information.
+        
+        Args:
+            thing_name: The AWS IoT Thing name for the device
+            
+        Returns:
+            Dict containing the shadow document, or None if retrieval failed
+        """
+        try:
+            response = self.iot_data_client.get_thing_shadow(
+                thingName=thing_name
+                # Note: Not specifying shadowName retrieves the classic shadow
+            )
+            
+            # The response payload is a StreamingBody, so we need to read and decode it
+            shadow_document = json.loads(response["payload"].read().decode("utf-8"))
+            
+            logger.info(
+                f"Successfully retrieved classic shadow for thing: {thing_name}"
+            )
+            return shadow_document
+            
+        except Exception as e:
+            logger.error(
+                f"Error retrieving classic shadow for thing {thing_name}: {str(e)}"
+            )
+            return None
+
 # Initialize the IoT Command Service
 iot_command_service = IoTCommandService()

@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud import device, customer, solution, device_solution, customer_solution
@@ -11,7 +11,9 @@ from app.schemas.device import (
     DeviceUpdate,
     DeviceAdminView,
     DeviceWithSolutionView,
-    DeviceWithCustomerView
+    DeviceWithCustomerView,
+    DeviceStatusResponse,
+    ApplicationStatus
 )
 from app.utils.audit import log_action
 from app.utils.aws_iot import iot_core
@@ -19,6 +21,7 @@ from app.utils.logger import get_logger
 from app.core.config import settings
 from botocore.exceptions import NoCredentialsError, ClientError
 from app.schemas.audit import AuditLogActionType, AuditLogResourceType
+from app.utils.aws_iot_commands import iot_command_service
 import uuid
 import random
 import boto3
@@ -730,3 +733,75 @@ def get_device_image(
             status_code=500,
             detail="Internal error retrieving device image"
         )
+    
+
+@router.get("/{device_id}/status", response_model=DeviceStatusResponse)
+def get_device_status(
+    *,
+    db: Session = Depends(deps.get_db),
+    device_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get the current status of a device from its shadow.
+    
+    This endpoint retrieves the device's application status from AWS IoT shadow,
+    including whether it's online/offline and the reason for the current state.
+    
+    - Admins and Engineers can access any device
+    - Customer users can only access their customer's devices
+    """
+    # Get the device from database
+    db_device = device.get_by_id(db, device_id=device_id)
+    if not db_device:
+        raise HTTPException(
+            status_code=404,
+            detail="Device not found"
+        )
+    
+    # Check access permissions
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if db_device.customer_id != current_user.customer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to access this device"
+            )
+    
+    # Prepare the response
+    response = DeviceStatusResponse(
+        device_id=db_device.device_id,
+        device_name=db_device.name,
+    )
+    
+    # If device is not provisioned, return without shadow data
+    if not db_device.thing_name:
+        response.error = "Device is not provisioned in AWS IoT Core"
+        return response
+    
+    try:
+        # Get the shadow from AWS IoT
+        shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
+        
+        if not shadow_document:
+            response.error = "No shadow found for device"
+            return response
+        
+        # Extract the application status from the reported state
+        state = shadow_document.get("state", {})
+        reported = state.get("reported", {})
+        app_status = reported.get("applicationStatus")
+        
+        if app_status:
+            response.application_status = ApplicationStatus(**app_status)
+            # Parse the timestamp from the application status
+        else:
+            response.error = "No application status found in device shadow"
+            
+    except Exception as e:
+        logger.error(f"Error retrieving device status for {device_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error retrieving device status"
+        )
+    
+    return response

@@ -1,7 +1,7 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.models import DeviceStatus, DeviceType, DeviceSolutionStatus
 
@@ -87,6 +87,26 @@ class DeviceWithSolutionView(DeviceAdminView):
 class DeviceWithCustomerView(Device):
     """Extended device view with customer information"""
     customer_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class ApplicationStatus(BaseModel):
+    """Schema for device application status from shadow"""
+    status: str
+    timestamp: str
+    clientId: str
+    reason: str
+    
+    class Config:
+        from_attributes = True
+
+class DeviceStatusResponse(BaseModel):
+    """Response schema for device status endpoint"""
+    device_id: UUID
+    device_name: str
+    error: Optional[str] = None
+    application_status: Optional[ApplicationStatus] = None
     
     class Config:
         from_attributes = True

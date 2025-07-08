@@ -26,25 +26,22 @@ def lambda_handler(event, context):
 
     try:
         print("Event received:", event)
-        print("Context received:", context)
-        # thing_name = get_thing_name(certificate_id)
+
+        thing_name = event.get('thing_name')
+        logger.info(f"thing name: {thing_name}")        
         
+        lwt_payload = {
+            'state': event.get('state')
+        }
         
-        # logger.info(f"Found thing name: {thing_name} for certificate ID: {certificate_id}")
+        set_thing_state(thing_name, lwt_payload)
         
+        logger.info(f"Published LWT to thing: {thing_name}")
         
-        # lwt_payload = {
-        #     'state': event['state']
-        # }
-        
-        # set_thing_state(thing_name, lwt_payload)
-        
-        # logger.info(f"Published LWT to thing: {thing_name}")
-        
-        # return {
-        #     'statusCode': 200,
-        #     'body': f"Processed thing: {thing_name}"
-        # }
+        return {
+            'statusCode': 200,
+            'body': f"Processed thing: {thing_name}"
+        }
     except Exception as e:
         logger.error(f"Error fetching thing name: {str(e)}")
         return {

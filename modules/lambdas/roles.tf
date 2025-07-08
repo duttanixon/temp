@@ -170,3 +170,35 @@ resource "aws_iam_user_policy_attachment" "timesteam_database_access_attachment"
   user       = var.platform_backend_user_name
   policy_arn = aws_iam_policy.lambda_timestream_policy.arn
 }
+
+
+
+# IAM policy for Lambda to access IoT Core (shadows, publishing, etc.)
+resource "aws_iam_policy" "lambda_iot_policy" {
+  name        = "${var.environment}-lambda-iot-policy"
+  description = "IAM policy for Lambda functions to access IoT Core services"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "iot:GetThingShadow",
+          "iot:UpdateThingShadow",
+          "iot:ListNamedShadowsForThing",
+        ]
+        Resource = [
+          "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:thing/*",
+          "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach IoT policy to Lambda execution role
+resource "aws_iam_role_policy_attachment" "lambda_iot" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_iot_policy.arn
+}

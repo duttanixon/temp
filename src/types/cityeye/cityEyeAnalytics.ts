@@ -86,6 +86,17 @@ export interface FrontendTrafficAnalyticsFilters {
   dates?: string[];
 }
 
+export interface FrontendTrafficAnalyticsDirectionFilters {
+  /** Array of device UUIDs to include in analysis */
+  device_ids?: string[];
+  dates?: string[];
+  /** Days of week to include (e.g., ["sunday", "monday"]) */
+  days?: string[];
+  /** Hours of day to include (e.g., ["10:00", "14:00"]) */
+  hours?: string[];
+  vehicle_types?: string[];
+}
+
 /**
  * Frontend filter state management for UI components
  * Manages user selections in the analytics dashboard
@@ -279,6 +290,21 @@ export interface FrontendDeviceTrafficAnalyticsItem {
   error?: string;
 }
 
+export interface FrontendDeviceTrafficAnalyticsDirectionItem {
+  /** Device UUID */
+  device_id: string;
+  /** Human-readable device name */
+  device_name?: string;
+  /** Device physical location description */
+  device_location?: string;
+  /** Device latitude and longitude for mapping */
+  device_position?: number[]; // [lat, lng]
+  /** All analytics data for this device */
+  direction_data: FrontendPerDeviceAnalyticsDirectionData;
+  /** Error message if analytics failed for this device */
+  error?: string;
+}
+
 export interface FrontendDeviceAnalyticsDirectionThresholds {
   solution_id: string;
   customer_id: string;
@@ -306,6 +332,9 @@ export type FrontendCityEyeAnalyticsPerDeviceDirectionResponse =
  */
 export type FrontendCityEyeTrafficAnalyticsPerDeviceResponse =
   FrontendDeviceTrafficAnalyticsItem[];
+
+export type FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse =
+  FrontendDeviceTrafficAnalyticsDirectionItem[];
 
 // ============================================================================
 // SECTION 3: PROCESSED DATA TYPES (FOR UI COMPONENTS)
@@ -519,20 +548,22 @@ export interface ProcessedAnalyticsDirectionData {
   deviceName?: string;
   deviceLocation?: string;
   dates?: string[];
-  detectionZones?: Array<{
-    polygon_id: number;
-    polygon_name: string;
-    in_data: {
-      start_point: { lat: number; lng: number };
-      end_point: { lat: number; lng: number };
-      count: number;
-    };
-    out_data: {
-      start_point: { lat: number; lng: number };
-      end_point: { lat: number; lng: number };
-      count: number;
-    };
-  }>;
+  direction_data: {
+    detectionZones?: Array<{
+      polygon_id: number;
+      polygon_name: string;
+      in_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+      out_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+    }>;
+  };
 }
 
 /**
@@ -556,4 +587,27 @@ export interface ProcessedTrafficAnalyticsData {
 
   /** Hourly pattern analysis */
   hourlyDistribution: ProcessedHourlyDistributionData | null;
+}
+
+export interface ProcessedTrafficAnalyticsDirectionData {
+  deviceId: string;
+  deviceName?: string;
+  deviceLocation?: string;
+  dates?: string[];
+  direction_data: {
+    detectionZones?: Array<{
+      polygon_id: number;
+      polygon_name: string;
+      in_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+      out_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+    }>;
+  };
 }

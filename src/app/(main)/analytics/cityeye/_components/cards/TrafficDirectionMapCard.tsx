@@ -20,7 +20,7 @@ import { useGetDevice } from "@/app/(main)/_components/_hooks/useGetDevice";
 import { useAnalyticsDirectionThreshold } from "@/hooks/analytics/city_eye/useAnalyticsDirectionThreshold";
 import { ProcessedAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytics";
 
-interface PeopleDirectionMapCardProps {
+interface TrafficDirectionMapCardProps {
   title: string;
   perDeviceCountsData: ProcessedAnalyticsDirectionData | null;
   isLoading: boolean;
@@ -73,15 +73,20 @@ const ResetButton = ({ onClick }: { onClick: () => void }) => {
   );
 };
 
-export default function PeopleDirectionMapCard({
+export default function TrafficDirectionMapCard({
   title,
   perDeviceCountsData,
   isLoading,
   error,
   hasAttemptedFetch,
   solutionId,
-}: PeopleDirectionMapCardProps) {
+}: TrafficDirectionMapCardProps) {
   const [resetKey, setResetKey] = useState(0);
+
+  console.log(
+    "TrafficDirectionMapCard perDeviceCountsData:",
+    perDeviceCountsData
+  );
 
   const handleReset = () => {
     setResetKey((k) => k + 1);
@@ -125,10 +130,7 @@ export default function PeopleDirectionMapCard({
       </Polyline>
     );
   };
-  console.log(
-    "PeopleDirectionMapCard perDeviceCountsData:",
-    perDeviceCountsData
-  );
+
   // backendのdetectionZonesをfrontendのDetectionZone型に変換
   const detectionZones: DetectionZone[] = (
     perDeviceCountsData?.direction_data.detectionZones || []

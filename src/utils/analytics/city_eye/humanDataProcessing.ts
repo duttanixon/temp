@@ -94,7 +94,7 @@ export function processHumanAnalyticsDirectionData(
     deviceName: data[0]?.device_name,
     deviceLocation: data[0]?.device_location,
     dates,
-    detectionZones,
+    direction_data: { detectionZones },
   } as ProcessedAnalyticsDirectionData;
 }
 

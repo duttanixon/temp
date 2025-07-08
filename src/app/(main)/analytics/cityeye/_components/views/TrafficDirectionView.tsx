@@ -1,18 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { ProcessedTrafficAnalyticsData } from "@/types/cityeye/cityEyeAnalytics";
+import { ProcessedTrafficAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytics";
 
-// ✅ Dynamically import map card client-side only
-const TrafficMapCard = dynamic(() => import("../cards/TrafficMapCard"), {
-  ssr: false,
-});
+const TrafficDirectionMapCard = dynamic(
+  () => import("../cards/TrafficDirectionMapCard"),
+  { ssr: false }
+);
 
-interface PeopleDirectionViewProps {
-  processedData: ProcessedTrafficAnalyticsData | null;
+interface TrafficDirectionViewProps {
+  processedData: ProcessedTrafficAnalyticsDirectionData | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
+  solutionId?: string;
 }
 
 export default function TrafficDirectionView({
@@ -20,15 +21,17 @@ export default function TrafficDirectionView({
   isLoading,
   error,
   hasAttemptedFetch,
-}: PeopleDirectionViewProps) {
+  solutionId,
+}: TrafficDirectionViewProps) {
   console.log("TrafficDirectionView processedData:", processedData);
   return (
-    <TrafficMapCard
-      title="Traffic Map"
+    <TrafficDirectionMapCard
+      title="交通量方向マップ"
+      perDeviceCountsData={processedData}
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
-      perDeviceCountsData={processedData?.totalVehicles?.perDeviceCounts ?? []}
+      solutionId={solutionId}
     />
   );
 }

@@ -15,7 +15,7 @@ const createDefaultFilters = (): CityEyeFilterState => ({
     from: startOfDay(subDays(new Date(), 13)),
     to: endOfDay(subDays(new Date(), 7)),
   },
-  dates: [],
+  dates: [new Date()],
   selectedDays: [
     "monday",
     "tuesday",

@@ -15,7 +15,10 @@ import {
   processHumanAnalyticsData,
   processHumanAnalyticsDirectionData,
 } from "@/utils/analytics/city_eye/humanDataProcessing";
-import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
+import {
+  processTrafficAnalyticsData,
+  processTrafficAnalyticsDirectionData,
+} from "@/utils/analytics/city_eye/trafficDataProcessing";
 
 import {
   FilterContext,
@@ -29,6 +32,7 @@ import TrafficDirectionTabContent from "@/app/(main)/analytics/cityeye/_componen
 import TrafficFlowTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/TrafficFlowTabContent";
 import { FilterDirectionGroup } from "@/app/(main)/analytics/cityeye/_components/filters/FilterDirectionGroup";
 import { useHumanAnalyticsDirectionData } from "@/hooks/analytics/city_eye/useHumanAnalyticsDirectionData";
+import { useTrafficAnalyticsDirectionData } from "@/hooks/analytics/city_eye/useTrafficAnalyticsDirectionData";
 interface CityEyeClientProps {
   solutionId: string;
 }
@@ -142,6 +146,17 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     queryParams: horizontalTab === "traffic" ? queryParams : {},
   });
 
+  const {
+    rawData: directionTrafficRawData,
+    isLoading: isLoadingTrafficDirection,
+    error: errorTrafficDirection,
+  } = useTrafficAnalyticsDirectionData({
+    activeApiFilters:
+      horizontalTab === "traffic-direction"
+        ? (activeFilters.direction ?? null)
+        : null,
+  });
+
   // Process data using appropriate utilities
   const processedMainData = useMemo(
     () => processHumanAnalyticsData(mainRawData, appliedFilterContext.main),
@@ -184,6 +199,15 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         appliedFilterContext.comparison
       ),
     [comparisonTrafficRawData, appliedFilterContext.comparison]
+  );
+
+  const processedTrafficDirectionData = useMemo(
+    () =>
+      processTrafficAnalyticsDirectionData(
+        directionTrafficRawData,
+        appliedFilterContext.direction ?? null
+      ),
+    [directionTrafficRawData, appliedFilterContext.direction]
   );
 
   // Filter application handler
@@ -280,6 +304,11 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   // Auto-apply for overview tab on initial load
   useEffect(() => {
     if (autoApplyState.overview || activeFilters.main) return;
+    if (
+      horizontalTab === "people-direction" ||
+      horizontalTab === "traffic-direction"
+    )
+      return;
 
     const canAutoApply =
       solutionId &&
@@ -300,11 +329,17 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     activeFilters.main,
     handleApplyFilters,
     verticalTab,
+    horizontalTab,
   ]);
 
   // Auto-apply for comparison tab when switching to it
   useEffect(() => {
     if (autoApplyState.comparison || activeFilters.main) return;
+    if (
+      horizontalTab === "people-direction" ||
+      horizontalTab === "traffic-direction"
+    )
+      return;
 
     const canAutoApply =
       filters.comparisonPeriod?.from &&
@@ -318,6 +353,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     }
   }, [
     verticalTab,
+    horizontalTab,
     autoApplyState.comparison,
     activeFilters.main,
     filters.comparisonPeriod,
@@ -356,7 +392,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             verticalTab={verticalTab}
             mainProcessedData={processedMainData}
             isLoadingMain={isLoadingMain}
-            errorMain={errorMain}
+            errorMain={errorDirection}
             hasAttemptedFetchMain={!!activeFilters.main}
             mainPeriodDateRange={filters.analysisPeriod}
             comparisonProcessedData={processedComparisonData}
@@ -386,27 +422,21 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
       case "people-direction":
         return (
           <PeopleDirectionTabContent
-            verticalTab={verticalTab}
             mainProcessedData={processedDirectionData}
-            isLoadingMain={isLoadingMain}
+            isLoadingMain={isLoadingDirection}
             errorMain={errorMain}
-            hasAttemptedFetchMain={!!activeFilters.main}
-            mainPeriodDateRange={filters.analysisPeriod}
-            comparisonProcessedData={processedComparisonData}
-            isLoadingComparison={isLoadingDirection}
-            errorComparison={errorDirection}
-            hasAttemptedFetchComparison={!!activeFilters.comparison}
-            comparisonPeriodDateRange={filters.comparisonPeriod}
+            hasAttemptedFetchMain={!!activeFilters.direction}
             solutionId={solutionId}
           />
         );
       case "traffic-direction":
         return (
           <TrafficDirectionTabContent
-            mainProcessedData={processedTrafficMainData}
-            isLoadingMain={isLoadingTrafficMain}
-            errorMain={errorTrafficMain}
-            hasAttemptedFetchMain={!!activeFilters.main}
+            mainProcessedData={processedTrafficDirectionData}
+            isLoadingMain={isLoadingTrafficDirection}
+            errorMain={errorTrafficDirection}
+            hasAttemptedFetchMain={!!activeFilters.direction}
+            solutionId={solutionId}
           />
         );
       default:
@@ -428,6 +458,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           horizontalTab === "traffic-direction" ? (
             <div className="overflow-y-auto mt-2 w-full">
               <FilterDirectionGroup
+                horizontalTab={horizontalTab}
                 solutionId={solutionId}
                 currentFilters={filters}
                 onFilterChange={handleFilterChange}

@@ -38,7 +38,6 @@ export function DevicesDirectionFilter({
   collapsible = false,
   defaultExpanded = true,
 }: DevicesFilterDirectionProps) {
-  console.log("customer_id:", customerId);
   const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -60,7 +60,8 @@ class LWTManager:
                 )
             
             # Configure classic shadow topic
-            self.classic_shadow_update_topic = f"$aws/things/{self.thing_name}/shadow/update"
+            self.classic_shadow_update_topic = f"devices/things/{self.thing_name}/lwt"
+            
             
             # Configure custom status key if provided
             self.application_status_key = config.get("application_status_key", "applicationStatus")

@@ -11,10 +11,12 @@ import { ja } from "date-fns/locale";
 import { Device } from "@/types/device";
 import { Solution } from "@/types/solution";
 import { deviceActionComponents } from './deviceActionComponents';
+import { DeviceStatusInfo } from '@/types/device';
 
 type DeviceTableRowProps = {
   device: Device;
   solution?: Solution;
+  statusInfo?: DeviceStatusInfo;
 };
 
 /**
@@ -22,7 +24,8 @@ type DeviceTableRowProps = {
  */
 export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   device,
-  solution
+  solution,
+  statusInfo
 }) => {
   const router = useRouter();
 
@@ -30,13 +33,41 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     router.push(`/devices/detail/${device.device_id}`);
   };
 
-  const handleEdit = () => {
-    router.push(`/devices/${device.device_id}/edit`);
-  };
-
   // const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
   const ActionComponent = solution ? deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()] : null;
   const isActive = device.status === "ACTIVE";
+
+  // Get status display
+  const getStatusDisplay = () => {
+    // Use real-time status if available
+    if (statusInfo) {
+      const isOnline = statusInfo.is_online;
+      const lastSeen = statusInfo.last_seen || device.last_connected;
+
+      return (
+        <div className="flex items-center justify-center gap-2">
+          <span
+            className={`inline-block w-2 h-2 rounded-full ${
+              isOnline ? 'bg-green-500' : 'bg-gray-400'
+            }`}
+            title={isOnline ? 'オンライン' : 'オフライン'}
+          />
+          {!isOnline && lastSeen && (
+            <span className="text-sm text-gray-600">
+              {formatDistanceToNow(new Date(lastSeen), {
+                addSuffix: true,
+                locale: ja,
+              })}
+            </span>
+          )}
+        </div>
+      );
+    }
+    // Fallback to device's last_connected if no status info
+    return (
+      <div>-</div>
+    );
+  };
 
   return (
     <tr
@@ -57,12 +88,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
         <div className="truncate">{device.customer_name || "-"}</div>
       </td>
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
-        {device.last_connected
-          ? formatDistanceToNow(new Date(device.last_connected), {
-              addSuffix: true,
-              locale: ja,
-            })
-          : "-"}
+        {getStatusDisplay()}
       </td>
       <td className="w-[240px]">
         <div className="relative flex items-center justify-center gap-2 px-2">

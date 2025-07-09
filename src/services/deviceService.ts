@@ -4,6 +4,7 @@ import {
   DeviceUpdateData,
   DeviceCommandResponse,
   DeviceStreamStatus,
+  DeviceBatchStatusResponse
 } from "@/types/device";
 import axios from "axios";
 import { apiClient, cleanData, handleApiError } from "./baseApiClient";
@@ -234,6 +235,19 @@ export const deviceService = {
       return handleApiError(error);
     }
   },
+  
+  async getDeviceStatuses(deviceIds: string[]): Promise<DeviceBatchStatusResponse> {
+    try {
+      const response = await apiClient.post<DeviceBatchStatusResponse>(
+        `/devices/batch-status`,
+        { device_ids: deviceIds }
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
 
   // Clean up object URL to prevent memory leaks
   revokeImageUrl(url: string): void {

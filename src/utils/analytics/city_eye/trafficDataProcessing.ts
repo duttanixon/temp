@@ -57,30 +57,28 @@ export function processTrafficAnalyticsData(
 export function processTrafficAnalyticsDirectionData(
   data: FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse | null,
   filterContext?: FilterContextWithDirection | null
-): ProcessedTrafficAnalyticsDirectionData | null {
+): ProcessedTrafficAnalyticsDirectionData[] | null {
   if (!data) return null;
-
-  // detectionZonesを全デバイスから集約
-  const detectionZones = data.flatMap((item) => {
-    const directionData = item.direction_data;
-    if (directionData && Array.isArray(directionData.detectionZones)) {
-      return directionData.detectionZones;
-    }
-    return [];
-  });
 
   // 選択されているdatesを含める
   const dates = (filterContext?.dates ?? []).map((d) =>
     d instanceof Date ? d.toISOString() : d
   );
 
-  return {
-    deviceId: data[0]?.device_id,
-    deviceName: data[0]?.device_name,
-    deviceLocation: data[0]?.device_location,
-    dates,
-    direction_data: { detectionZones },
-  } as ProcessedTrafficAnalyticsDirectionData;
+  // 各デバイスごとにProcessedAnalyticsDirectionDataを作成
+  return data.map((item) => {
+    const detectionZones =
+      item.direction_data && Array.isArray(item.direction_data.detectionZones)
+        ? item.direction_data.detectionZones
+        : [];
+    return {
+      deviceId: item.device_id,
+      deviceName: item.device_name,
+      deviceLocation: item.device_location,
+      dates,
+      direction_data: { detectionZones },
+    } as ProcessedTrafficAnalyticsDirectionData;
+  });
 }
 
 /**

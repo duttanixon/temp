@@ -22,7 +22,7 @@ import { ProcessedAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytic
 
 interface PeopleDirectionMapCardProps {
   title: string;
-  perDeviceCountsData: ProcessedAnalyticsDirectionData | null;
+  perDeviceCountsData: ProcessedAnalyticsDirectionData[] | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -72,7 +72,6 @@ const ResetButton = ({ onClick }: { onClick: () => void }) => {
     </Button>
   );
 };
-
 export default function PeopleDirectionMapCard({
   title,
   perDeviceCountsData,
@@ -82,6 +81,11 @@ export default function PeopleDirectionMapCard({
   solutionId,
 }: PeopleDirectionMapCardProps) {
   const [resetKey, setResetKey] = useState(0);
+
+  console.log(
+    "PeopleDirectionMapCard perDeviceCountsData:",
+    perDeviceCountsData
+  );
 
   const handleReset = () => {
     setResetKey((k) => k + 1);
@@ -125,33 +129,54 @@ export default function PeopleDirectionMapCard({
       </Polyline>
     );
   };
-  console.log(
-    "PeopleDirectionMapCard perDeviceCountsData:",
-    perDeviceCountsData
+  // nullガード
+  const deviceDataArr = perDeviceCountsData ?? [];
+
+  // 全デバイス分のdetectionZonesをまとめて処理
+  const allDetectionZones: (DetectionZone & {
+    deviceId: string;
+    deviceName?: string;
+    deviceLocation?: string;
+  })[] = deviceDataArr.flatMap((device) =>
+    (device.direction_data.detectionZones || []).map(
+      (zone: {
+        polygon_name?: string;
+        name?: string;
+        in_data?: {
+          start_point: { lat: number; lng: number };
+          end_point: { lat: number; lng: number };
+          count: number;
+        };
+        out_data?: {
+          start_point: { lat: number; lng: number };
+          end_point: { lat: number; lng: number };
+          count: number;
+        };
+      }) => ({
+        name: zone.polygon_name ?? zone.name ?? "",
+        In: zone.in_data
+          ? {
+              startPoint: zone.in_data.start_point,
+              endPoint: zone.in_data.end_point,
+              count: zone.in_data.count,
+            }
+          : undefined,
+        Out: zone.out_data
+          ? {
+              startPoint: zone.out_data.start_point,
+              endPoint: zone.out_data.end_point,
+              count: zone.out_data.count,
+            }
+          : undefined,
+        deviceId: device.deviceId,
+        deviceName: device.deviceName,
+        deviceLocation: device.deviceLocation,
+      })
+    )
   );
-  // backendのdetectionZonesをfrontendのDetectionZone型に変換
-  const detectionZones: DetectionZone[] = (
-    perDeviceCountsData?.direction_data.detectionZones || []
-  ).map((zone: any) => ({
-    name: zone.polygon_name ?? zone.name ?? "",
-    In: zone.in_data
-      ? {
-          startPoint: zone.in_data.start_point,
-          endPoint: zone.in_data.end_point,
-          count: zone.in_data.count,
-        }
-      : undefined,
-    Out: zone.out_data
-      ? {
-          startPoint: zone.out_data.start_point,
-          endPoint: zone.out_data.end_point,
-          count: zone.out_data.count,
-        }
-      : undefined,
-  }));
 
   // zoneごとにIN/OUT両方の線の中間地点の間にラベルを1つだけ表示するためのデータ構造を作成
-  const zoneLinePairs = detectionZones.map((zone: DetectionZone) => {
+  const zoneLinePairs = allDetectionZones.map((zone) => {
     const inLine = zone.In
       ? {
           start: zone.In.startPoint,
@@ -214,7 +239,7 @@ export default function PeopleDirectionMapCard({
     ]
   );
 
-  // zoneごとにIN/OUT両方の線がある場合は中点同士の中点、片方だけならその線の中点
+  // zoneごとにIN/OUT両方の線がある場合は中点同士の中点、片方だけならその線の中点をラベルの座標とする
   const zoneLabels: ZoneLabel[] = zoneLinePairs
     .map((zone) => {
       if (zone.inLine && zone.outLine) {
@@ -251,11 +276,10 @@ export default function PeopleDirectionMapCard({
     })
     .filter((label: ZoneLabel | null): label is ZoneLabel => label !== null);
 
-  const hasData = hasAttemptedFetch;
-
-  // 閾値取得
+  // 閾値取得（最初のデバイスを参照）
+  const firstDeviceId = deviceDataArr[0]?.deviceId ?? "";
   const Device = useGetDevice({
-    id: perDeviceCountsData?.deviceId ?? "",
+    id: firstDeviceId,
   });
   const customerId = Device.device[0]?.customer_id ?? "";
 
@@ -264,9 +288,11 @@ export default function PeopleDirectionMapCard({
     customerId: customerId,
   });
 
-  const days = Array.isArray(perDeviceCountsData?.dates)
-    ? perDeviceCountsData.dates.length
-    : 1;
+  // 日数は全デバイスのdatesの最大長を採用
+  const days = Math.max(
+    ...deviceDataArr.map((d) => (Array.isArray(d.dates) ? d.dates.length : 1)),
+    1
+  );
   const defaultThresholds = [100, 500, 1000];
   const baseThresholds = analyticsThresholds?.rawData?.thresholds
     ?.human_count_thresholds?.length
@@ -311,7 +337,7 @@ export default function PeopleDirectionMapCard({
             <GenericAnalyticsCard
               isLoading={isLoading}
               error={hasAttemptedFetch ? error : null}
-              hasData={hasData}
+              hasData={hasAttemptedFetch}
               emptyMessage={
                 hasAttemptedFetch
                   ? undefined
@@ -324,7 +350,6 @@ export default function PeopleDirectionMapCard({
                 </div>
                 <MapContainer
                   key={resetKey}
-                  center={coordinatesForZoom[0] || [35.681236, 139.767125]}
                   zoom={19}
                   style={{
                     height: "100%",
@@ -363,8 +388,15 @@ export default function PeopleDirectionMapCard({
                         tooltip={
                           <>
                             <div style={{ fontWeight: "bold" }}>
-                              {perDeviceCountsData?.deviceLocation ??
-                                "デバイス未選択"}
+                              {(() => {
+                                const zoneObj = allDetectionZones.find(
+                                  (z) => z.name === line.name
+                                );
+                                return (
+                                  `${zoneObj?.deviceLocation ?? ""}_${zoneObj?.deviceName ?? ""}` ||
+                                  "デバイス未選択"
+                                );
+                              })()}
                             </div>
                             <div>領域名: {line.name}</div>
                             <div>方向: {line.type}</div>
@@ -405,39 +437,40 @@ export default function PeopleDirectionMapCard({
           </CardContent>
         </Card>
       </div>
-
-      <div className="col-span-1">
-        <Card className="h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 border-l-0">
-          <CardContent className="flex flex-col gap-4 text-xs text-gray-600">
-            {baseThresholds.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[200px]">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  データを読み込み中...
-                </p>
-              </div>
-            ) : (
-              <>
-                {legendItems.map((item) => (
-                  <div className="flex items-center gap-2" key={item.color}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: "12px",
-                        height: "12px",
-                        background: item.color,
-                        borderRadius: "2px",
-                      }}
-                    ></span>
-                    <span>{item.label}</span>
-                    <span>{item.range}</span>
-                  </div>
-                ))}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {hasAttemptedFetch && (
+        <div className="col-span-1">
+          <Card className="h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 border-l-0">
+            <CardContent className="flex flex-col gap-4 text-xs text-gray-600">
+              {baseThresholds.length === 0 ? (
+                <div className="flex flex-col items-center justify-center min-h-[200px]">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    データを読み込み中...
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {legendItems.map((item) => (
+                    <div className="flex items-center gap-2" key={item.color}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: "12px",
+                          height: "12px",
+                          background: item.color,
+                          borderRadius: "2px",
+                        }}
+                      ></span>
+                      <span>{item.label}</span>
+                      <span>{item.range}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

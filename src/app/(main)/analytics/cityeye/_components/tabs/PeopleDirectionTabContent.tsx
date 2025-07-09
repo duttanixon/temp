@@ -6,7 +6,7 @@ import { ProcessedAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytic
 import PeopleDirectionView from "@/app/(main)/analytics/cityeye/_components/views/PeopleDirectionView";
 
 interface PeopleDirectionTabContentProps {
-  mainProcessedData: ProcessedAnalyticsDirectionData | null;
+  mainProcessedData: ProcessedAnalyticsDirectionData[] | null;
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;

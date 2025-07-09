@@ -9,7 +9,7 @@ const TrafficDirectionMapCard = dynamic(
 );
 
 interface TrafficDirectionViewProps {
-  processedData: ProcessedTrafficAnalyticsDirectionData | null;
+  processedData: ProcessedTrafficAnalyticsDirectionData[] | null;
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;

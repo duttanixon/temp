@@ -6,7 +6,7 @@ import React from "react";
 import TrafficDirectionView from "@/app/(main)/analytics/cityeye/_components/views/TrafficDirectionView";
 
 interface TrafficDirectionTabContentProps {
-  mainProcessedData: ProcessedTrafficAnalyticsDirectionData | null;
+  mainProcessedData: ProcessedTrafficAnalyticsDirectionData[] | null;
   isLoadingMain: boolean;
   errorMain: string | null;
   hasAttemptedFetchMain: boolean;

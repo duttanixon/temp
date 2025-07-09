@@ -458,7 +458,6 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           horizontalTab === "traffic-direction" ? (
             <div className="overflow-y-auto mt-2 w-full">
               <FilterDirectionGroup
-                horizontalTab={horizontalTab}
                 solutionId={solutionId}
                 currentFilters={filters}
                 onFilterChange={handleFilterChange}

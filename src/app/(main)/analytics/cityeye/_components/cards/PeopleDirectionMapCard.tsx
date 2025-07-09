@@ -253,8 +253,6 @@ export default function PeopleDirectionMapCard({
 
   const hasData = hasAttemptedFetch;
 
-  console.log("hasData:", hasData);
-
   // 閾値取得
   const Device = useGetDevice({
     id: perDeviceCountsData?.deviceId ?? "",
@@ -394,7 +392,7 @@ export default function PeopleDirectionMapCard({
                         interactive={false}
                         icon={L.divIcon({
                           className: "zone-label-marker",
-                          html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;">${label.name}</div>`,
+                          html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;display:flex;align-items:center;justify-content:center;">${label.name}</div>`,
                           iconSize: [iconWidth, iconHeight], // zoneごとに計算されたサイズ
                           iconAnchor: [iconAnchorX, iconAnchorY], // zoneごとに計算されたアンカー
                         })}

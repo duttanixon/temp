@@ -198,7 +198,7 @@ export function DatePickerWithMultiple({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal overflow-x-auto cursor-pointer",
+              "w-[300px] justify-start text-left font-normal cursor-pointer",
               childClassName,
               (!dates || dates.length === 0) && "text-muted-foreground"
             )}

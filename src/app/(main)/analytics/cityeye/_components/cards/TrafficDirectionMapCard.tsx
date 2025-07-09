@@ -255,8 +255,6 @@ export default function TrafficDirectionMapCard({
 
   const hasData = hasAttemptedFetch;
 
-  console.log("hasData:", hasData);
-
   // 閾値取得
   const Device = useGetDevice({
     id: perDeviceCountsData?.deviceId ?? "",
@@ -282,22 +280,22 @@ export default function TrafficDirectionMapCard({
     {
       color: "#4A83BD",
       label: "少ない",
-      range: `${thresholds[0]}人未満`,
+      range: `${thresholds[0]}台未満`,
     },
     {
       color: "#4A9C64",
       label: "やや少ない",
-      range: `${thresholds[0]}人〜${thresholds[1] - 1}人`,
+      range: `${thresholds[0]}台〜${thresholds[1] - 1}台`,
     },
     {
       color: "#DB954D",
       label: "やや多い",
-      range: `${thresholds[1]}人〜${thresholds[2] - 1}人`,
+      range: `${thresholds[1]}台〜${thresholds[2] - 1}台`,
     },
     {
       color: "#DB4E4D",
       label: "多い",
-      range: `${thresholds[2]}人以上`,
+      range: `${thresholds[2]}台以上`,
     },
   ];
 
@@ -319,7 +317,7 @@ export default function TrafficDirectionMapCard({
               emptyMessage={
                 hasAttemptedFetch
                   ? undefined
-                  : "フィルターを適用して人流方向マップを表示します。"
+                  : "フィルターを適用して交通量方向マップを表示します。"
               }
             >
               <div className="w-full h-120 relative z-[1] cursor-pointer overflow-hidden">
@@ -374,7 +372,7 @@ export default function TrafficDirectionMapCard({
                             <div>方向: {line.type}</div>
                             <div style={{ height: 8 }} />
                             <div>
-                              {legendLabel} ({line.count.toLocaleString()} 人)
+                              {legendLabel} ({line.count.toLocaleString()} 台)
                             </div>
                           </>
                         }
@@ -396,7 +394,7 @@ export default function TrafficDirectionMapCard({
                         interactive={false}
                         icon={L.divIcon({
                           className: "zone-label-marker",
-                          html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;">${label.name}</div>`,
+                          html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;display:flex;align-items:center;justify-content:center;">${label.name}</div>`,
                           iconSize: [iconWidth, iconHeight], // zoneごとに計算されたサイズ
                           iconAnchor: [iconAnchorX, iconAnchorY], // zoneごとに計算されたアンカー
                         })}

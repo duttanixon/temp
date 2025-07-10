@@ -1,16 +1,17 @@
 /*
-* This component list all table rows for the device table, common accross all application
-*/
+ * This component list all table rows for the device table, common accross all application
+ */
 
 "use client";
 
-import { type FC } from "react";
-import { useRouter } from "next/navigation";
-import { formatDistanceToNow } from "date-fns";
-import { ja } from "date-fns/locale";
 import { Device } from "@/types/device";
 import { Solution } from "@/types/solution";
-import { deviceActionComponents } from './deviceActionComponents';
+import { formatDistanceToNow } from "date-fns";
+import { ja } from "date-fns/locale";
+import { Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { type FC } from "react";
+import { TbPolygon } from "react-icons/tb";
 
 type DeviceTableRowProps = {
   device: Device;
@@ -22,20 +23,26 @@ type DeviceTableRowProps = {
  */
 export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   device,
-  solution
+  solution,
 }) => {
   const router = useRouter();
 
   const handleViewDetails = () => {
-    router.push(`/devices/detail/${device.device_id}`);
+    router.push(`/devices/${solution?.solution_id}/${device.device_id}/detail`);
   };
 
-  const handleEdit = () => {
-    router.push(`/devices/${device.device_id}/edit`);
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/devices/${solution?.solution_id}/${device.device_id}/edit`);
   };
 
-  // const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
-  const ActionComponent = solution ? deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()] : null;
+  const handlePolygonSettings = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(
+      `/devices/${solution?.solution_id}/${device.device_id}/polygon-settings`
+    );
+  };
+
   const isActive = device.status === "ACTIVE";
 
   return (
@@ -45,8 +52,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
         isActive
           ? "cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
           : "cursor-pointer bg-gray-50/50 hover:bg-gray-100/50 transition-colors duration-150"
-      }
-    >
+      }>
       <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0 text-center">
         <div className="truncate">{device.name}</div>
       </td>
@@ -67,7 +73,19 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="w-[240px]">
         <div className="relative flex items-center justify-center gap-2 px-2">
           <div className="absolute left-0 top-0 h-full border-l border-[#BDC3C7]" />
-          {ActionComponent && <ActionComponent device={device} />}
+          <div className="flex size-full items-center justify-center gap-4">
+            <button
+              onClick={handleEdit}
+              className="group flex size-[34px] items-center justify-center rounded-full transition-colors duration-300 hover:bg-[#3498DB]">
+              <Edit className="text-xl text-[#7F8C8D] transition-colors duration-300 group-hover:text-white" />
+            </button>
+            <button
+              onClick={handlePolygonSettings}
+              className="group flex size-[34px] items-center justify-center rounded-full transition-colors duration-300 hover:bg-[#3498DB]"
+              title="ポリゴン設定">
+              <TbPolygon className="text-xl text-[#7F8C8D] transition-colors duration-300 group-hover:text-white" />
+            </button>
+          </div>
         </div>
       </td>
     </tr>

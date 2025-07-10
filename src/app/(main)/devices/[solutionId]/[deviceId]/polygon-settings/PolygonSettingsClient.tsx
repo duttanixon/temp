@@ -1,26 +1,26 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { RefreshCw, Loader2, Save } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Loader2, RefreshCw, Save } from "lucide-react";
+import { useEffect, useState } from "react";
 
 // Types and Utils
-import { Device } from "@/types/device";
 import { deviceService } from "@/services/deviceService";
+import { Device } from "@/types/device";
 import { LEAFLET_CONFIG } from "@/utils/analytics/city_eye/polygon.utils";
 
 // Custom Hooks
-import { usePolygonManager } from "@/hooks/analytics/city_eye/usePolygonManager";
 import { useImageCapture } from "@/hooks/analytics/city_eye/useImageCapture";
 import { usePolygonConfig } from "@/hooks/analytics/city_eye/usePolygonConfig";
+import { usePolygonManager } from "@/hooks/analytics/city_eye/usePolygonManager";
 
 // Components
 import { Button } from "@/components/ui/button";
-import { PolygonList } from "../../_components/PolygonList";
-import { PolygonEditor } from "../../_components/PolygonEditor";
-import { MapEditor } from "../../_components/MapEditor";
-import { ToggleButton } from "../../_components/ToggleButton";
+import { MapEditor } from "../_components/MapEditor";
+import { PolygonEditor } from "../_components/PolygonEditor";
+import { PolygonList } from "../_components/PolygonList";
+import { ToggleButton } from "../_components/ToggleButton";
 
 // Configure Leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -58,12 +58,8 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
     handleCaptureImage,
   } = useImageCapture(device.device_id);
 
-  const {
-    isLoadingConfig,
-    isSaving,
-    loadPolygonConfig,
-    savePolygonConfig,
-  } = usePolygonConfig(device.device_id, setPolygons, setPolygonsState);
+  const { isLoadingConfig, isSaving, loadPolygonConfig, savePolygonConfig } =
+    usePolygonConfig(device.device_id, setPolygons, setPolygonsState);
 
   // Load initial data
   useEffect(() => {
@@ -109,8 +105,7 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
             variant="outline"
             size="sm"
             onClick={handleCaptureImage}
-            disabled={isCapturing}
-          >
+            disabled={isCapturing}>
             {isCapturing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -173,8 +168,7 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />

@@ -81,7 +81,6 @@ export const metricsService = {
         ).toISOString();
         params.end_time = new Date().toISOString();
       }
-      console.log(`params : ${params.start_time}`);
 
       const response = await apiClient.get<MetricsResponse>(
         `/device-metrics/${metricType}`,
@@ -93,13 +92,11 @@ export const metricsService = {
       // Round up to the nearest 5 minutes
       startDate.setMinutes(Math.ceil(startDate.getMinutes() / 5) * 5);
       const seriesStart = startDate.toISOString();
-      console.log(`seriesStart : ${seriesStart}`);
       // params.end_timeを5分単位に切り下げる
       const endDate = new Date(response.data.end_time);
       // Round down to the nearest 5 minutes
       endDate.setMinutes(Math.floor(endDate.getMinutes() / 5) * 5);
       const seriesEnd = endDate.toISOString();
-      console.log(`seriesEnd : ${seriesEnd}`);
 
       // seriesStartからseriesEndまでの5分間隔のタイムスタンプを生成
       // const seriesStart = new Date(response.data.start_time);
@@ -123,9 +120,7 @@ export const metricsService = {
         current = new Date(current.getTime() + 5 * 60 * 1000); // Increment by 5 minutes
       }
 
-      console.log("Generated timestamps:", allTimestamps);
       const processedResponse = { ...response.data };
-      console.log(`processedResponse : ${JSON.stringify(processedResponse)}`);
       processedResponse.series = response.data.series.map((series) => {
         // Create a map of existing data points for quick lookup
         const existingDataMap = new Map<string, number>();
@@ -148,7 +143,6 @@ export const metricsService = {
           data: newData,
         };
       });
-      console.log(`processedResponse: ${JSON.stringify(processedResponse)}`);
 
       return processedResponse;
     } catch (error) {

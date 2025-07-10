@@ -1,10 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { useSession } from "next-auth/react";
-import dynamic from "next/dynamic"; // Import dynamic
-
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,9 +7,33 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { useSession } from "next-auth/react";
+import dynamic from "next/dynamic"; // Import dynamic
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-import { Device } from "@/types/device";
 import { deviceService } from "@/services/deviceService";
+import { Device } from "@/types/device";
+import { Solution } from "@/types/solution";
+
+async function getSolutionDetails(
+  solutionId: string,
+  accessToken: string
+): Promise<Solution | null> {
+  const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/${solutionId}`;
+  try {
+    const response = await fetch(apiUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching solution details:", error);
+    return null;
+  }
+}
+
 // import PolygonEditor from "./PolygonSettingsForm";
 // Dynamically import the PolygonEditor with SSR turned off
 const PolygonEditor = dynamic(() => import("./PolygonSettingsClient"), {
@@ -24,13 +43,40 @@ const PolygonEditor = dynamic(() => import("./PolygonSettingsClient"), {
 
 export default function PolygonSettingsPage() {
   const [device, setDevice] = useState<Device | null>(null);
+  const [solution, setSolution] = useState<Solution | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const params = useParams();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
+  const accessToken = session?.accessToken as string;
 
   const deviceId = params?.deviceId as string;
+  const solutionId = params?.solutionId as string;
+
+  useEffect(() => {
+    const fetchSolutionDetails = async () => {
+      if (!solutionId || !accessToken) return;
+
+      try {
+        const fetchedSolution = await getSolutionDetails(
+          solutionId,
+          accessToken
+        );
+        if (fetchedSolution) {
+          setSolution(fetchedSolution);
+        } else {
+          setError("Solution not found.");
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred."
+        );
+      }
+    };
+
+    fetchSolutionDetails();
+  }, [solutionId, accessToken]);
 
   useEffect(() => {
     // We only need the deviceId to fetch. The apiClient in your service handles auth.
@@ -95,8 +141,12 @@ export default function PolygonSettingsPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href={`/devices`}>{device.name}</BreadcrumbLink>
+              <BreadcrumbLink href={`/devices/${solutionId}`}>
+                {solution?.name}
+              </BreadcrumbLink>
             </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#7F8C8D]" />
+            <BreadcrumbItem>{device.name}</BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem>ポリゴン設定</BreadcrumbItem>
           </BreadcrumbList>

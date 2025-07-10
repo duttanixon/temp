@@ -6,7 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Loader2, RefreshCcw } from "lucide-react";
-import { useEffect, useRef, useState, ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  ReactNode,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   MapContainer,
   Marker,
@@ -19,6 +26,7 @@ import { GenericAnalyticsCard } from "@/app/(main)/analytics/cityeye/_components
 import { useGetDevice } from "@/app/(main)/_components/_hooks/useGetDevice";
 import { useAnalyticsDirectionThreshold } from "@/hooks/analytics/city_eye/useAnalyticsDirectionThreshold";
 import { ProcessedAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytics";
+import UpdateThresholds from "@/app/(main)/analytics/cityeye/_components/UpdateThresholds";
 
 interface PeopleDirectionMapCardProps {
   title: string;
@@ -95,9 +103,9 @@ export default function PeopleDirectionMapCard({
     perDeviceCountsData
   );
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setResetKey((k) => k + 1);
-  };
+  }, [setResetKey]);
 
   const ArrowPolyline = ({
     positions,
@@ -138,106 +146,120 @@ export default function PeopleDirectionMapCard({
     );
   };
   // nullガード
-  const deviceDataArr = perDeviceCountsData ?? [];
+  const deviceDataArr = useMemo(
+    () => perDeviceCountsData ?? [],
+    [perDeviceCountsData]
+  );
 
   // 全デバイス分のdetectionZonesをまとめて処理
   const allDetectionZones: (DetectionZone & {
     deviceId: string;
     deviceName?: string;
     deviceLocation?: string;
-  })[] = deviceDataArr.flatMap((device) =>
-    (device.direction_data.detectionZones || []).map(
-      (zone: {
-        polygon_name?: string;
-        name?: string;
-        in_data?: {
-          start_point: { lat: number; lng: number };
-          end_point: { lat: number; lng: number };
-          count: number;
-        };
-        out_data?: {
-          start_point: { lat: number; lng: number };
-          end_point: { lat: number; lng: number };
-          count: number;
-        };
-      }) => ({
-        name: zone.polygon_name ?? zone.name ?? "",
-        In: zone.in_data
-          ? {
-              startPoint: zone.in_data.start_point,
-              endPoint: zone.in_data.end_point,
-              count: zone.in_data.count,
-            }
-          : undefined,
-        Out: zone.out_data
-          ? {
-              startPoint: zone.out_data.start_point,
-              endPoint: zone.out_data.end_point,
-              count: zone.out_data.count,
-            }
-          : undefined,
-        deviceId: device.deviceId,
-        deviceName: device.deviceName,
-        deviceLocation: device.deviceLocation,
-      })
-    )
+  })[] = useMemo(
+    () =>
+      deviceDataArr.flatMap((device) =>
+        (device.direction_data.detectionZones || []).map(
+          (zone: {
+            polygon_name?: string;
+            name?: string;
+            in_data?: {
+              start_point: { lat: number; lng: number };
+              end_point: { lat: number; lng: number };
+              count: number;
+            };
+            out_data?: {
+              start_point: { lat: number; lng: number };
+              end_point: { lat: number; lng: number };
+              count: number;
+            };
+          }) => ({
+            name: zone.polygon_name ?? zone.name ?? "",
+            In: zone.in_data
+              ? {
+                  startPoint: zone.in_data.start_point,
+                  endPoint: zone.in_data.end_point,
+                  count: zone.in_data.count,
+                }
+              : undefined,
+            Out: zone.out_data
+              ? {
+                  startPoint: zone.out_data.start_point,
+                  endPoint: zone.out_data.end_point,
+                  count: zone.out_data.count,
+                }
+              : undefined,
+            deviceId: device.deviceId,
+            deviceName: device.deviceName,
+            deviceLocation: device.deviceLocation,
+          })
+        )
+      ),
+    [deviceDataArr]
   );
 
   // zoneごとにIN/OUT両方の線の中間地点の間にラベルを1つだけ表示するためのデータ構造を作成
-  const zoneLinePairs = allDetectionZones.map((zone) => {
-    const inLine = zone.In
-      ? {
-          start: zone.In.startPoint,
-          end: zone.In.endPoint,
-          count: zone.In.count ?? 0,
-          type: "in",
-        }
-      : undefined;
-    const outLine = zone.Out
-      ? {
-          start: zone.Out.startPoint,
-          end: zone.Out.endPoint,
-          count: zone.Out.count ?? 0,
-          type: "out",
-        }
-      : undefined;
-    return {
-      name: zone.name,
-      inLine,
-      outLine,
-    };
-  });
+  const zoneLinePairs = useMemo(
+    () =>
+      allDetectionZones.map((zone) => {
+        const inLine = zone.In
+          ? {
+              start: zone.In.startPoint,
+              end: zone.In.endPoint,
+              count: zone.In.count ?? 0,
+              type: "in",
+            }
+          : undefined;
+        const outLine = zone.Out
+          ? {
+              start: zone.Out.startPoint,
+              end: zone.Out.endPoint,
+              count: zone.Out.count ?? 0,
+              type: "out",
+            }
+          : undefined;
+        return {
+          name: zone.name,
+          inLine,
+          outLine,
+        };
+      }),
+    [allDetectionZones]
+  );
 
   // Polyline描画用データ
-  const polylines: Polyline[] = [];
-  zoneLinePairs.forEach((zone) => {
-    if (zone.inLine) {
-      polylines.push({
-        points: [
-          [zone.inLine.start.lat, zone.inLine.start.lng],
-          [zone.inLine.end.lat, zone.inLine.end.lng],
-        ],
-        start: zone.inLine.start,
-        end: zone.inLine.end,
-        type: "in",
-        count: zone.inLine.count,
-        name: zone.name,
-      });
-    }
-    if (zone.outLine) {
-      polylines.push({
-        points: [
-          [zone.outLine.start.lat, zone.outLine.start.lng],
-          [zone.outLine.end.lat, zone.outLine.end.lng],
-        ],
-        start: zone.outLine.start,
-        end: zone.outLine.end,
-        type: "out",
-        count: zone.outLine.count,
-        name: zone.name,
-      });
-    }
-  });
+  const polylines: Polyline[] = useMemo(() => {
+    const result: Polyline[] = [];
+    zoneLinePairs.forEach((zone) => {
+      if (zone.inLine) {
+        result.push({
+          points: [
+            [zone.inLine.start.lat, zone.inLine.start.lng],
+            [zone.inLine.end.lat, zone.inLine.end.lng],
+          ],
+          start: zone.inLine.start,
+          end: zone.inLine.end,
+          type: "in",
+          count: zone.inLine.count,
+          name: zone.name,
+        });
+      }
+      if (zone.outLine) {
+        result.push({
+          points: [
+            [zone.outLine.start.lat, zone.outLine.start.lng],
+            [zone.outLine.end.lat, zone.outLine.end.lng],
+          ],
+          start: zone.outLine.start,
+          end: zone.outLine.end,
+          type: "out",
+          count: zone.outLine.count,
+          name: zone.name,
+        });
+      }
+    });
+    return result;
+  }, [zoneLinePairs]);
 
   // ズーム用座標
   const coordinatesForZoom: [number, number][] = polylines.flatMap(
@@ -306,7 +328,6 @@ export default function PeopleDirectionMapCard({
     ?.human_count_thresholds?.length
     ? analyticsThresholds.rawData.thresholds.human_count_thresholds
     : defaultThresholds;
-
   const thresholds = baseThresholds.map((t) => t * days);
   const legendItems = [
     {
@@ -476,6 +497,15 @@ export default function PeopleDirectionMapCard({
                       <span>{item.range}</span>
                     </div>
                   ))}
+                  <UpdateThresholds
+                    solution_id={solutionId ?? ""}
+                    customer_id={customerId}
+                    type="human"
+                    thresholds={
+                      analyticsThresholds.rawData?.thresholds
+                        ?.traffic_count_thresholds
+                    }
+                  />
                 </>
               )}
             </CardContent>

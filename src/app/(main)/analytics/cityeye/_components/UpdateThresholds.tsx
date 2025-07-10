@@ -1,0 +1,196 @@
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAnalyticsDirectionPutThreshold } from "@/hooks/analytics/city_eye/useAnalyticsDirectionPutThreshold";
+import {
+  AnalyticsCityEyeThresholdsFormValues,
+  analyticsCityEyeThresholdsSchema,
+} from "@/schemas/analyticsCityEyeThresholdsSchemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
+
+export default function UpdateThresholds({
+  solution_id,
+  customer_id,
+  type, // "human" | "traffic"
+  thresholds,
+}: {
+  solution_id: string;
+  customer_id: string;
+  type: "human" | "traffic";
+  thresholds?: number[];
+}) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [requestData, setRequestData] = useState<{
+    solution_id: string;
+    customer_id: string;
+    thresholds: {
+      human_count_thresholds: number[];
+      traffic_count_thresholds: number[];
+    };
+  }>({
+    solution_id,
+    customer_id,
+    thresholds: {
+      human_count_thresholds: thresholds ?? [],
+      traffic_count_thresholds: thresholds ?? [],
+    },
+  });
+
+  const { register, handleSubmit, reset, watch } = useForm({
+    resolver: zodResolver(analyticsCityEyeThresholdsSchema),
+    defaultValues: {
+      thresholds: [{ value: 100 }, { value: 200 }, { value: 300 }],
+    },
+  });
+
+  const onError = (
+    errors: FieldErrors<AnalyticsCityEyeThresholdsFormValues>
+  ) => {
+    const firstError = Array.isArray(errors?.thresholds)
+      ? errors.thresholds.find((e) => e?.value)
+      : undefined;
+    if (firstError?.value?.message) {
+      alert(firstError.value.message);
+    }
+  };
+
+  const { fetchData } = useAnalyticsDirectionPutThreshold(requestData);
+  const onSubmit = async (data: AnalyticsCityEyeThresholdsFormValues) => {
+    setIsLoading(true);
+    const responseData = {
+      solution_id,
+      customer_id,
+      thresholds:
+        type === "human"
+          ? {
+              human_count_thresholds: data.thresholds.map((t) => t.value),
+              traffic_count_thresholds: thresholds ?? [],
+            }
+          : {
+              human_count_thresholds: thresholds ?? [],
+              traffic_count_thresholds: data.thresholds.map((t) => t.value),
+            },
+    };
+    setRequestData(responseData);
+    await fetchData();
+    setOpen(false);
+    setIsLoading(false);
+  };
+
+  const values = [
+    watch("thresholds.0.value"),
+    watch("thresholds.1.value"),
+    watch("thresholds.2.value"),
+  ];
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="cursor-pointer">
+          閾値更新
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>閾値を変更</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-3 items-center gap-4 pt-4">
+            <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-gray-300 z-0" />
+            <div className="absolute left-0 right-0 top-7/24 h-0.5 bg-gray-300 z-0" />
+            <div className="absolute left-0 right-0 top-25/36 h-0.5 bg-gray-300 z-0" />
+
+            <div className="flex flex-col justify-center items-center gap-12">
+              <Label className="text-sm font-medium">少ない</Label>
+              <Label className="text-sm font-medium">やや少ない</Label>
+              <Label className="text-sm font-medium">やや多い</Label>
+              <Label className="text-sm font-medium">多い</Label>
+            </div>
+            <div className="flex flex-col justify-center items-center gap-12">
+              <span className="text-sm font-medium">
+                {typeof values[0] === "number" && values[0] > 0
+                  ? `${values[0]}未満`
+                  : "未設定"}
+              </span>
+              <span className="text-sm font-medium">
+                {typeof values[0] === "number" &&
+                values[0] > 0 &&
+                typeof values[1] === "number" &&
+                values[1] > 0
+                  ? `${values[0]}〜${values[1] - 1}`
+                  : "未設定"}
+              </span>
+              <span className="text-sm font-medium">
+                {typeof values[1] === "number" &&
+                values[1] > 0 &&
+                typeof values[2] === "number" &&
+                values[2] > 0
+                  ? `${values[1]}〜${values[2] - 1}`
+                  : "未設定"}
+              </span>
+              <span className="text-sm font-medium">
+                {typeof values[2] === "number" && values[2] > 0
+                  ? `${values[2]}以上`
+                  : "未設定"}
+              </span>
+            </div>
+            <div className="flex flex-col justify-center items-center gap-10">
+              {[0, 1, 2].map((idx) => (
+                <div
+                  key={idx}
+                  className="flex flex-col items-center justify-center gap-4 w-full relative"
+                >
+                  <span className="text-xs text-gray-500 absolute left-0 right-0 top-0 -translate-y-5/4 z-0">
+                    threshold
+                  </span>
+                  <Input
+                    id={`thresholds.${idx}.value`}
+                    type="input"
+                    className="w-24 text-center z-10 bg-white border border-gray-300"
+                    {...register(`thresholds.${idx}.value`, {
+                      valueAsNumber: true,
+                      required: "閾値は必須です",
+                      min: {
+                        value: 1,
+                        message: "閾値は1以上でなければなりません",
+                      },
+                    })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                className="bg-white border border-[#BDC3C7] text-[#7F8C8D] hover:bg-[#ECF0F1] active:bg-[#BDC3C7] hover:cursor-pointer"
+                onClick={() => reset()}
+              >
+                キャンセル
+              </Button>
+            </DialogClose>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className=" bg-[#27AE60] text-[#FFFFFF] hover:bg-[#219653] active:bg-[#27AE60] focus:bg-[#219653] hover:cursor-pointer"
+            >
+              {isLoading ? "更新中..." : "更新"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -27,7 +27,22 @@ export const analyticsDirectionService = {
     }
   },
 
-  async getHumanFlowAnalyticsDirectionThreshold({
+  async getTrafficFlowAnalyticsDirection(
+    filters: FrontendTrafficAnalyticsDirectionFilters
+  ): Promise<FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse> {
+    try {
+      const response =
+        await apiClient.post<FrontendCityEyeAnalyticsPerDeviceDirectionResponse>(
+          "/analytics/city-eye/traffic-direction",
+          filters // Send filters in the request body
+        );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  async getFlowAnalyticsDirectionThreshold({
     customer_id,
     solution_id,
   }: {
@@ -46,19 +61,29 @@ export const analyticsDirectionService = {
     }
   },
 
-  async getTrafficFlowAnalyticsDirection(
-    filters: FrontendTrafficAnalyticsDirectionFilters
-  ): Promise<FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse> {
+  async putFlowAnalyticsDirectionThreshold({
+    customer_id,
+    solution_id,
+    thresholds,
+  }: {
+    customer_id?: string;
+    solution_id?: string;
+    thresholds?: {
+      traffic_count_thresholds?: number[];
+      human_count_thresholds?: number[];
+    };
+  }): Promise<FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse> {
     try {
+      // The backend endpoint is a POST request, expecting filters in the body
       const response =
-        await apiClient.post<FrontendCityEyeAnalyticsPerDeviceDirectionResponse>(
-          "/analytics/city-eye/traffic-direction",
-          filters // Send filters in the request body
+        await apiClient.put<FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse>(
+          "/analytics/city-eye/thresholds",
+          {
+            customer_id,
+            solution_id,
+            thresholds,
+          } // Send filters in the request body
         );
-      console.log(
-        "[getTrafficFlowAnalyticsDirection] response data:",
-        response.data
-      );
       return response.data;
     } catch (error) {
       return handleApiError(error);

@@ -1,6 +1,7 @@
 export type MetricDataPoint = {
   timestamp: string;
   value: number;
+  hasData?: boolean; // Optional field to indicate if data exists
 };
 
 export type MetricSeries = {
@@ -24,5 +25,6 @@ export type TimeRange = {
 export type TransformedMetricData = {
   timestamp: string;
   fullTimestamp: string; // New field for tooltip display
+  hasData?: boolean; // Optional field to indicate if data exists
   [key: string]: any;
 };

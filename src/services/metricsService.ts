@@ -1,7 +1,7 @@
 // src/services/metricsService.ts
+import { MetricsResponse } from "@/types/metrics";
 import axios, { AxiosError } from "axios";
 import { getSession } from "next-auth/react";
-import { MetricsResponse } from "@/types/metrics";
 
 // Create an axios instance
 const apiClient = axios.create({
@@ -64,10 +64,10 @@ export const metricsService = {
     interval?: number
   ): Promise<MetricsResponse> {
     try {
-      let params: any = {
+      const params: any = {
         device_name: deviceName,
       };
-      
+
       if (timeRange === "custom" && startTime && endTime) {
         // Use custom date range
         params.start_time = startTime;
@@ -81,14 +81,76 @@ export const metricsService = {
         ).toISOString();
         params.end_time = new Date().toISOString();
       }
-      console.log(`params : ${params.start_time}`)
-  
+      console.log(`params : ${params.start_time}`);
+
       const response = await apiClient.get<MetricsResponse>(
         `/device-metrics/${metricType}`,
         { params }
       );
-  
-      return response.data;
+
+      // 新たに変数を作成し、params.start_timeを5分単位に切り上げる
+      const startDate = new Date(response.data.start_time);
+      // Round up to the nearest 5 minutes
+      startDate.setMinutes(Math.ceil(startDate.getMinutes() / 5) * 5);
+      const seriesStart = startDate.toISOString();
+      console.log(`seriesStart : ${seriesStart}`);
+      // params.end_timeを5分単位に切り下げる
+      const endDate = new Date(response.data.end_time);
+      // Round down to the nearest 5 minutes
+      endDate.setMinutes(Math.floor(endDate.getMinutes() / 5) * 5);
+      const seriesEnd = endDate.toISOString();
+      console.log(`seriesEnd : ${seriesEnd}`);
+
+      // seriesStartからseriesEndまでの5分間隔のタイムスタンプを生成
+      // const seriesStart = new Date(response.data.start_time);
+      // const seriesEnd = new Date(response.data.end_time);
+      // const interval = 5; // 5 minutes
+      const allTimestamps: string[] = [];
+      let current = new Date(seriesStart);
+
+      while (current <= new Date(seriesEnd)) {
+        // UTC時刻を日本時間(+09:00)に変換してフォーマット
+        const japanTime = new Date(current.getTime() + 9 * 60 * 60 * 1000);
+        const year = japanTime.getUTCFullYear();
+        const month = String(japanTime.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(japanTime.getUTCDate()).padStart(2, "0");
+        const hours = String(japanTime.getUTCHours()).padStart(2, "0");
+        const minutes = String(japanTime.getUTCMinutes()).padStart(2, "0");
+
+        const formattedTimestamp = `${year}-${month}-${day}T${hours}:${minutes}:00+09:00`;
+        allTimestamps.push(formattedTimestamp);
+
+        current = new Date(current.getTime() + 5 * 60 * 1000); // Increment by 5 minutes
+      }
+
+      console.log("Generated timestamps:", allTimestamps);
+      const processedResponse = { ...response.data };
+      console.log(`processedResponse : ${JSON.stringify(processedResponse)}`);
+      processedResponse.series = response.data.series.map((series) => {
+        // Create a map of existing data points for quick lookup
+        const existingDataMap = new Map<string, number>();
+        series.data.forEach((point) => {
+          existingDataMap.set(point.timestamp, point.value);
+        });
+
+        // Create new data array with all timestamps
+        const newData = allTimestamps.map((timestamp) => {
+          const existingValue = existingDataMap.get(timestamp);
+          return {
+            timestamp,
+            value: existingValue !== undefined ? existingValue : 0,
+            hasData: existingValue !== undefined,
+          };
+        });
+
+        return {
+          ...series,
+          data: newData,
+        };
+      });
+      console.log(`processedResponse: ${JSON.stringify(processedResponse)}`);
+
+      return processedResponse;
     } catch (error) {
       return handleApiError(error);
     }

@@ -54,16 +54,17 @@ export default function TrafficTimeSeriesCard({
       } else {
         if (regionStart !== null) {
           regions.push({
-            startIndex: regionStart,
-            endIndex: index - 1,
+            startIndex: Math.max(regionStart - 1, 0),
+            endIndex: Math.min(index, timeSeriesData.data.length - 1),
           });
           regionStart = null;
         }
       }
     });
+    // regionStartがnullでない場合、最後の領域をregionsに追加
     if (regionStart !== null) {
       regions.push({
-        startIndex: regionStart,
+        startIndex: regionStart - 1,
         endIndex: timeSeriesData.data.length - 1,
       });
     }
@@ -161,22 +162,19 @@ export default function TrafficTimeSeriesCard({
             hasAttemptedFetch
               ? "時系列交通データがありません。"
               : "フィルターを適用して時系列交通データを表示します。"
-          }
-        >
+          }>
           <div className="w-full">
             <ResponsiveContainer width="100%" height={320}>
               <AreaChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 30 }}
-              >
+                margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
                 <defs>
                   <linearGradient
                     id="colorTrafficTimeSeries"
                     x1="0"
                     y1="0"
                     x2="0"
-                    y2="1"
-                  >
+                    y2="1">
                     <stop
                       offset="5%"
                       stopColor="var(--chart-analysis-1)"
@@ -217,7 +215,6 @@ export default function TrafficTimeSeriesCard({
                       key={`no-data-region-${idx}`}
                       x1={region.startIndex}
                       x2={region.endIndex}
-                      y1={0}
                       fill="#e5e7eb"
                       fillOpacity={0.5}
                       label={

@@ -35,7 +35,6 @@ export default function TimeSeriesCard({
   error,
   hasAttemptedFetch,
 }: TimeSeriesCardProps) {
-  console.log("TimeSeriesCard timeSeriesData:", timeSeriesData);
   const hasData = hasAttemptedFetch && timeSeriesData !== null;
 
   // Process data and find no-data regions
@@ -121,8 +120,7 @@ export default function TimeSeriesCard({
       tickIndices: ticks,
     };
   }, [timeSeriesData]);
-  console.log("Processed chartData:", chartData);
-  console.log("Processed noDataRegions:", noDataRegions);
+
   // Custom x-axis tick formatter
   const xAxisTickFormatter = (index: number) => {
     const point = chartData[index];

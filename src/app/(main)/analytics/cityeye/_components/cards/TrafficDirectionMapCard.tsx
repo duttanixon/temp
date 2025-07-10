@@ -49,14 +49,22 @@ type Polyline = {
   name: string;
 };
 
-const AutoZoom = ({ coordinates }: { coordinates: [number, number][] }) => {
+const AutoZoom = ({
+  coordinates,
+  hasAttemptedFetch,
+}: {
+  coordinates: [number, number][];
+  hasAttemptedFetch: boolean;
+}) => {
   const map = useMap();
+  const [lastFetchState, setLastFetchState] = useState(false);
 
   useEffect(() => {
-    if (coordinates.length > 0) {
+    if (hasAttemptedFetch && !lastFetchState && coordinates.length > 0) {
       map.fitBounds(coordinates, { padding: [30, 30] });
     }
-  }, [coordinates, map]);
+    setLastFetchState(hasAttemptedFetch);
+  }, [hasAttemptedFetch, coordinates, map, lastFetchState]);
 
   return null;
 };
@@ -363,7 +371,10 @@ export default function TrafficDirectionMapCard({
                     attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <AutoZoom coordinates={coordinatesForZoom} />
+                  <AutoZoom
+                    hasAttemptedFetch
+                    coordinates={coordinatesForZoom}
+                  />
                   {/* 矢印線描画 */}
                   {polylines.map((line: Polyline, index: number) => {
                     let color = "#4A83BD"; // デフォルトの青色

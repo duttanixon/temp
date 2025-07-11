@@ -50,8 +50,8 @@ def process_metric_record(record):
                 process_cpu_metrics(message, device_id, timestamp, records_to_write)
             elif 'rpi.mem' in log_stream:
                 process_memory_metrics(message, device_id, timestamp, records_to_write)
-            elif 'rpi.disk' in log_stream:
-                process_disk_metrics(message, device_id, timestamp, records_to_write)
+            elif 'rpi.temperature' in log_stream:
+                process_temperature_metrics(message, device_id, timestamp, records_to_write)
             
         except Exception as e:
             print(f"Error processing record: {e}")
@@ -161,23 +161,37 @@ def process_memory_metrics(message, device_id, timestamp, records_to_write):
                 'TimeUnit': 'MILLISECONDS'
             })
 
-def process_disk_metrics(message, device_id, timestamp, records_to_write):
-    """Process disk metrics from the message"""
-    disk_metrics = ['read_size', 'write_size']
+def process_temperature_metrics(message, device_id, timestamp, records_to_write):
+    """Process temperature metrics from the message"""
+    # Process GPU temperature
+    if 'gpu_temp' in message:
+        records_to_write.append({
+            'Dimensions': [
+                {'Name': 'device_id', 'Value': device_id},
+                {'Name': 'metric_type', 'Value': 'temperature'},
+                {'Name': 'sensor', 'Value': 'gpu'}
+            ],
+            'MeasureName': 'temperature_celsius',
+            'MeasureValue': str(message['gpu_temp']),
+            'MeasureValueType': 'DOUBLE',
+            'Time': str(timestamp),
+            'TimeUnit': 'MILLISECONDS'
+        })
     
-    for metric in disk_metrics:
-        if metric in message:
-            records_to_write.append({
-                'Dimensions': [
-                    {'Name': 'device_id', 'Value': device_id},
-                    {'Name': 'metric_type', 'Value': 'disk'}
-                ],
-                'MeasureName': metric,
-                'MeasureValue': str(message[metric]),
-                'MeasureValueType': 'DOUBLE',
-                'Time': str(timestamp),
-                'TimeUnit': 'MILLISECONDS'
-            })
+    # Process CPU temperature
+    if 'cpu_temp' in message:
+        records_to_write.append({
+            'Dimensions': [
+                {'Name': 'device_id', 'Value': device_id},
+                {'Name': 'metric_type', 'Value': 'temperature'},
+                {'Name': 'sensor', 'Value': 'cpu'}
+            ],
+            'MeasureName': 'temperature_celsius',
+            'MeasureValue': str(message['cpu_temp']),
+            'MeasureValueType': 'DOUBLE',
+            'Time': str(timestamp),
+            'TimeUnit': 'MILLISECONDS'
+        })
 
 def write_to_timestream(records):
     """Write records to Timestream database"""
@@ -209,8 +223,6 @@ def write_to_timestream(records):
     except Exception as e:
         print(f"Error in write_to_timestream: {str(e)}")
         raise
-
-
 
 def lambda_handler(event, context):
     """Lambda handler function"""
@@ -265,5 +277,3 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps(f'Error processing metrics: {str(e)}')
         }
-
-

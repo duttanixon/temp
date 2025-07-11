@@ -4,7 +4,6 @@ import { metricsService } from "@/services/metricsService";
 import { MetricsResponse } from "@/types/metrics";
 import {
   getSeriesNames,
-  kiloBytesToGB,
   kiloBytesToMB,
   transformMetricData,
 } from "@/utils/metrics/metricsHelpers";
@@ -26,7 +25,7 @@ export default function MetricsTab() {
     null
   );
   const [cpuMetrics, setCpuMetrics] = useState<MetricsResponse | null>(null);
-  const [diskMetrics, setDiskMetrics] = useState<MetricsResponse | null>(null);
+  const [tempMetrics, setTempMetrics] = useState<MetricsResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,13 +55,13 @@ export default function MetricsTab() {
       setError(null);
 
       try {
-        const { memory, cpu, disk } = await metricsService.getAllMetrics(
+        const { memory, cpu, temp } = await metricsService.getAllMetrics(
           deviceName,
           timeRange
         );
         setMemoryMetrics(memory);
         setCpuMetrics(cpu);
-        setDiskMetrics(disk);
+        setTempMetrics(temp);
       } catch (err) {
         setError("メトリクスの取得に失敗しました");
         console.error("Error fetching metrics:", err);
@@ -79,7 +78,7 @@ export default function MetricsTab() {
     if (deviceName) {
       setMemoryMetrics(null);
       setCpuMetrics(null);
-      setDiskMetrics(null);
+      setTempMetrics(null);
       setIsLoading(true);
       setRefreshTrigger((prev) => prev + 1);
     }
@@ -129,9 +128,9 @@ export default function MetricsTab() {
         endTime,
         interval
       );
-      const disk = await metricsService.getMetrics(
+      const temp = await metricsService.getMetrics(
         deviceName,
-        "disk",
+        "temperature",
         "custom",
         startTime,
         endTime,
@@ -140,7 +139,7 @@ export default function MetricsTab() {
 
       setMemoryMetrics(memory);
       setCpuMetrics(cpu);
-      setDiskMetrics(disk);
+      setTempMetrics(temp);
     } catch (err) {
       setError("メトリクスの取得に失敗しました");
       console.error("Error fetching metrics with custom date range:", err);
@@ -152,7 +151,7 @@ export default function MetricsTab() {
   // Custom formatters for different units
   const memoryFormatter = (value: number) => `${value.toFixed(0)}`;
   const cpuFormatter = (value: number) => `${value.toFixed(0)}`;
-  const diskFormatter = (value: number) => `${value.toFixed(1)}`;
+  const tempFormatter = (value: number) => `${value.toFixed(1)}`;
 
   return (
     <div className="space-y-4 p-3">
@@ -176,7 +175,7 @@ export default function MetricsTab() {
       {/* Graphs */}
       <div className="flex flex-col lg:flex-row gap-4">
         <MetricGraph
-          title="メモリ使用率"
+          title="Memory Usage"
           data={transformMetricData(memoryMetrics, kiloBytesToMB)}
           seriesNames={getSeriesNames(memoryMetrics)}
           unit="MB"
@@ -186,7 +185,7 @@ export default function MetricsTab() {
           axisFontSize={10}
         />
         <MetricGraph
-          title="CPU 使用率"
+          title="CPU Usage"
           data={transformMetricData(cpuMetrics)}
           seriesNames={getSeriesNames(cpuMetrics)}
           unit="%"
@@ -196,13 +195,13 @@ export default function MetricsTab() {
           axisFontSize={10}
         />
         <MetricGraph
-          title="ディスク使用率"
-          data={transformMetricData(diskMetrics, kiloBytesToGB)}
-          seriesNames={getSeriesNames(diskMetrics)}
-          unit="MB"
+          title="CPU/GPU Temperature"
+          data={transformMetricData(tempMetrics)}
+          seriesNames={getSeriesNames(tempMetrics)}
+          unit="℃"
           isLoading={isLoading}
-          domain={[0, 1000]} // Start from 0, auto-scale the max
-          tickFormatter={diskFormatter}
+          domain={[0, 100]} // Start from 0, auto-scale the max
+          tickFormatter={tempFormatter}
           axisFontSize={10}
         />
       </div>

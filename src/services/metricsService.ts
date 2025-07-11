@@ -57,7 +57,7 @@ export const metricsService = {
   // Get specific metrics for a device
   async getMetrics(
     deviceName: string,
-    metricType: "memory" | "cpu" | "disk",
+    metricType: "memory" | "cpu" | "temperature",
     timeRange: string,
     startTime?: string,
     endTime?: string,
@@ -157,16 +157,16 @@ export const metricsService = {
   ): Promise<{
     memory: MetricsResponse;
     cpu: MetricsResponse;
-    disk: MetricsResponse;
+    temp: MetricsResponse;
   }> {
     try {
-      const [memory, cpu, disk] = await Promise.all([
+      const [memory, cpu, temp] = await Promise.all([
         this.getMetrics(deviceName, "memory", timeRange),
         this.getMetrics(deviceName, "cpu", timeRange),
-        this.getMetrics(deviceName, "disk", timeRange),
+        this.getMetrics(deviceName, "temperature", timeRange),
       ]);
 
-      return { memory, cpu, disk };
+      return { memory, cpu, temp };
     } catch (error) {
       return handleApiError(error);
     }

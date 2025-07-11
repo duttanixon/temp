@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from app.api import deps
@@ -12,8 +12,8 @@ from app.schemas.device import (
     DeviceAdminView,
     DeviceWithSolutionView,
     DeviceWithCustomerView,
-    DeviceStatusResponse,
-    ApplicationStatus
+    DeviceStatusInfo,
+    DeviceBatchStatusRequest
 )
 from app.utils.audit import log_action
 from app.utils.aws_iot import iot_core
@@ -733,75 +733,80 @@ def get_device_image(
             status_code=500,
             detail="Internal error retrieving device image"
         )
-    
 
-@router.get("/{device_id}/status", response_model=DeviceStatusResponse)
-def get_device_status(
+@router.post("/batch-status", response_model=Dict[str, DeviceStatusInfo])
+def get_batch_device_status(
     *,
     db: Session = Depends(deps.get_db),
-    device_id: uuid.UUID,
+    batch_request: DeviceBatchStatusRequest,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get the current status of a device from its shadow.
-    
-    This endpoint retrieves the device's application status from AWS IoT shadow,
-    including whether it's online/offline and the reason for the current state.
-    
-    - Admins and Engineers can access any device
-    - Customer users can only access their customer's devices
+    Get status for multiple devices in a single request.
+    Returns a dictionary with device_id as key and status info as value.
     """
-    # Get the device from database
-    db_device = device.get_by_id(db, device_id=device_id)
-    if not db_device:
-        raise HTTPException(
-            status_code=404,
-            detail="Device not found"
-        )
+    result = {}
     
-    # Check access permissions
-    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-        if db_device.customer_id != current_user.customer_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to access this device"
+    for device_id in batch_request.device_ids:
+        try:
+            # Get device from database
+            db_device = device.get_by_id(db, device_id=device_id)
+            if not db_device:
+                result[str(device_id)] = DeviceStatusInfo(
+                    device_id=str(device_id),
+                    device_name="Unknown",
+                    is_online=False,
+                    error="Device not found"
+                )
+                continue
+            
+            # Check access permissions
+            if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+                if db_device.customer_id != current_user.customer_id:
+                    result[str(device_id)] = DeviceStatusInfo(
+                        device_id=str(device_id),
+                        device_name=db_device.name,
+                        is_online=False,
+                        error="Not authorized"
+                    )
+                    continue
+            
+            # Default offline status
+            status_info = DeviceStatusInfo(
+                device_id=str(device_id),
+                device_name=db_device.name,
+                is_online=False,
+                last_seen=None
+            )
+            
+            # If device is provisioned, check shadow
+            if db_device.thing_name:
+                try:
+                    shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
+                    if shadow_document:
+                        state = shadow_document.get("state", {})
+                        reported = state.get("reported", {})
+                        app_status = reported.get("applicationStatus")
+
+                        if app_status:
+                            # Check if online (status is "running" and within 5 minutes)
+                            try:
+                                status_info.last_seen = app_status.get("timestamp")
+                                if app_status.get("status", "").lower() == "online":
+                                    status_info.is_online = True
+                            except:
+                                pass      
+                except Exception as e:
+                    logger.warning(f"Failed to get shadow for device {device_id}: {str(e)}")
+            
+            result[str(device_id)] = status_info
+        except Exception as e:
+            logger.error(f"Error processing device {device_id}: {str(e)}")
+            result[str(device_id)] = DeviceStatusInfo(
+                device_id=str(device_id),
+                device_name="Unknown",
+                is_online=False,
+                error=f"Error: {str(e)}"
             )
     
-    # Prepare the response
-    response = DeviceStatusResponse(
-        device_id=db_device.device_id,
-        device_name=db_device.name,
-    )
-    
-    # If device is not provisioned, return without shadow data
-    if not db_device.thing_name:
-        response.error = "Device is not provisioned in AWS IoT Core"
-        return response
-    
-    try:
-        # Get the shadow from AWS IoT
-        shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
-        
-        if not shadow_document:
-            response.error = "No shadow found for device"
-            return response
-        
-        # Extract the application status from the reported state
-        state = shadow_document.get("state", {})
-        reported = state.get("reported", {})
-        app_status = reported.get("applicationStatus")
-        
-        if app_status:
-            response.application_status = ApplicationStatus(**app_status)
-            # Parse the timestamp from the application status
-        else:
-            response.error = "No application status found in device shadow"
-            
-    except Exception as e:
-        logger.error(f"Error retrieving device status for {device_id}: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Internal error retrieving device status"
-        )
-    
-    return response
+    return result

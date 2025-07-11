@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field, validator
 from uuid import UUID
 
@@ -73,9 +73,33 @@ class UpdateXLinesConfigCommand(XLinesConfigCommand):
     pass
 
 class ThresholdData(BaseModel):
-    """Schema for threshold data structure"""
-    traffic_count_thresholds: List[float] = Field(..., min_items=1, description="Traffic count threshold values")
-    human_count_thresholds: List[float] = Field(..., min_items=1, description="Human count threshold values")
+    # """Schema for threshold data structure"""
+    # traffic_count_thresholds: List[float] = Field(..., min_items=1, description="Traffic count threshold values")
+    # human_count_thresholds: List[float] = Field(..., min_items=1, description="Human count threshold values")
+    """Schema for partial threshold data updates - all fields are optional"""
+    traffic_count_thresholds: Optional[List[float]] = Field(None, min_items=1, description="Traffic count threshold values")
+    human_count_thresholds: Optional[List[float]] = Field(None, min_items=1, description="Human count threshold values")
+    
+    @validator("traffic_count_thresholds", "human_count_thresholds", pre=True)
+    def validate_non_empty_lists(cls, v):
+        """If a field is provided, ensure it's not an empty list"""
+        if v is not None and len(v) == 0:
+            raise ValueError("If provided, threshold list must contain at least one value")
+        return v
+    
+    @validator("*", pre=True)
+    def at_least_one_field(cls, v, values):
+        """Ensure at least one threshold field is provided"""
+        if not any(val is not None for val in values.values()) and v is None:
+            raise ValueError("At least one threshold field must be provided")
+        return v
+
+    @validator("*", pre=True)
+    def less_than_threshold(cls, v, values):
+        """Ensure that values in thresholds are less than 100000"""
+        if v is not None and any(threshold >= 100000 for threshold in v):
+            raise ValueError("All threshold values must be less than 100000")
+        return v
 
 class ThresholdDataResponse(BaseModel):
     """Schema for threshold data structure in responses (allows empty arrays)"""

@@ -1164,18 +1164,16 @@ def update_threshold_config(
                 status_code=403,
                 detail="Not authorized to create threshold configuration for this customer"
             )
-    
+        
     # Check if customer-solution relationship exists
-    existing_cs = crud_customer_solution.get_by_customer_and_solution(
-        db, 
-        customer_id=threshold_config_in.customer_id, 
-        solution_id=threshold_config_in.solution_id
+    customer_solution_obj = crud_customer_solution.get_by_customer_and_solution(
+        db, customer_id=threshold_config_in.customer_id, solution_id=threshold_config_in.solution_id
     )
-
-    if not existing_cs:
+    if not customer_solution_obj:
         raise HTTPException(
             status_code=404,
-            detail="Customer-solution relationship not found. Please ensure the customer has access to this solution first."
+            detail="Customer-solution relationship not found. "
+                   "Please ensure the customer has access to this solution first."
         )
     
     # Create/update threshold configuration
@@ -1192,30 +1190,41 @@ def update_threshold_config(
             detail="Failed to update threshold configuration"
         )
     
-    # Log action
+    # Get the updated configuration for response
+    updated_config = crud_city_eye_analytics.get_threshold_config(
+        db, customer_id=threshold_config_in.customer_id, solution_id=threshold_config_in.solution_id
+    )
+    
+    # Log action with details of what was updated
+    update_details = {
+        "customer_id": str(threshold_config_in.customer_id),
+        "customer_name": customer_obj.name,
+        "solution_id": str(threshold_config_in.solution_id),
+        "solution_name": solution_obj.name,
+        "updated_fields": {}
+    }
+    
+    if threshold_config_in.thresholds.traffic_count_thresholds is not None:
+        update_details["updated_fields"]["traffic_count_thresholds"] = threshold_config_in.thresholds.traffic_count_thresholds
+    if threshold_config_in.thresholds.human_count_thresholds is not None:
+        update_details["updated_fields"]["human_count_thresholds"] = threshold_config_in.thresholds.human_count_thresholds
+    
     log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.THRESHOLD_CONFIG_CREATE,
         resource_type=AuditLogResourceType.CUSTOMER_SOLUTION,
         resource_id=str(updated_cs.id),
-        details={
-            "customer_id": str(threshold_config_in.customer_id),
-            "customer_name": customer_obj.name,
-            "solution_id": str(threshold_config_in.solution_id),
-            "solution_name": solution_obj.name,
-            "thresholds":threshold_config_in.thresholds.model_dump()
-        },
+        details=update_details,
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
     )
 
     threshold_data_response = ThresholdDataResponse(
-        traffic_count_thresholds=threshold_config_in.thresholds.traffic_count_thresholds,
-        human_count_thresholds=threshold_config_in.thresholds.human_count_thresholds
+        traffic_count_thresholds=updated_config["traffic_count_thresholds"],
+        human_count_thresholds=updated_config["human_count_thresholds"]
     )
 
-    
     return ThresholdConfigResponse(
         solution_id=threshold_config_in.solution_id,
         customer_id=threshold_config_in.customer_id,

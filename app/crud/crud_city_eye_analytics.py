@@ -719,15 +719,21 @@ class CRUDCityEyeAnalytics:
     
         # Get existing configuration template or create new one
         existing_config = customer_solution.configuration_template or {}
+        existing_thresholds = existing_config.get("thresholds", {})
+
+        # Build updated thresholds - only update provided fields
+        updated_thresholds = {**existing_thresholds}  # Start with existing values
+
+        if thresholds.traffic_count_thresholds is not None:
+            updated_thresholds["traffic_count_thresholds"] = thresholds.traffic_count_thresholds
+
+        if thresholds.human_count_thresholds is not None:
+            updated_thresholds["human_count_thresholds"] = thresholds.human_count_thresholds
 
         # Create a completely new dictionary (this ensures SQLAlchemy detects the change)
         config_template = {
             **existing_config,  # Copy all existing configuration
-            "thresholds": {
-                **(existing_config.get("thresholds", {})),  # Copy existing thresholds
-                "traffic_count_thresholds": thresholds.traffic_count_thresholds,
-                "human_count_thresholds": thresholds.human_count_thresholds
-            }
+            "thresholds": updated_thresholds
         }
 
         # Update the customer solution record

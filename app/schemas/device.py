@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel
@@ -91,22 +91,13 @@ class DeviceWithCustomerView(Device):
     class Config:
         from_attributes = True
 
-class ApplicationStatus(BaseModel):
-    """Schema for device application status from shadow"""
-    status: str
-    timestamp: str
-    clientId: str
-    reason: str
-    
-    class Config:
-        from_attributes = True
-
-class DeviceStatusResponse(BaseModel):
-    """Response schema for device status endpoint"""
-    device_id: UUID
+class DeviceStatusInfo(BaseModel):
+    device_id: str
     device_name: str
+    is_online: bool
+    last_seen: Optional[str] = None
     error: Optional[str] = None
-    application_status: Optional[ApplicationStatus] = None
-    
-    class Config:
-        from_attributes = True
+
+
+class DeviceBatchStatusRequest(BaseModel):
+    device_ids: List[str]

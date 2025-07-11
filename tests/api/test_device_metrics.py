@@ -239,15 +239,15 @@ def test_get_cpu_metrics_admin(mock_query_cpu, client: TestClient, admin_token: 
 
 
 
-# Test cases for disk metrics endpoint (GET /device-metrics/disk)
-@patch('app.api.routes.device_metrics.query_disk_metrics')
-def test_get_disk_metrics_admin(mock_query_disk, client: TestClient, admin_token: str, device: Device):
-    """Test admin getting disk metrics for a device"""
+# Test cases for temperatue metrics endpoint (GET /device-metrics/temperatue)
+@patch('app.api.routes.device_metrics.query_temperature_metrics')
+def test_get_temperature_metrics_admin(mock_query_temperature, client: TestClient, admin_token: str, device: Device):
+    """Test admin getting temperature metrics for a device"""
     # Mock the timestream query function
-    mock_query_disk.return_value = {
+    mock_query_temperature.return_value = {
         "series": [
-            {"name": "Disk Read", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 250.0}]},
-            {"name": "Disk Write", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 120.0}]}
+            {"name": "CPU Temperature", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 66.0}]},
+            {"name": "GPU Temperature", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 67.0}]}
         ],
         "device_name": device.name,
         "start_time": datetime.now(ZoneInfo("Asia/Tokyo")) - timedelta(hours=1),
@@ -267,7 +267,7 @@ def test_get_disk_metrics_admin(mock_query_disk, client: TestClient, admin_token
     }
 
     response = client.get(
-        f"{settings.API_V1_STR}/device-metrics/disk",
+        f"{settings.API_V1_STR}/device-metrics/temperature",
         params=params,
         headers={"Authorization": f"Bearer {admin_token}"}
     )
@@ -276,28 +276,28 @@ def test_get_disk_metrics_admin(mock_query_disk, client: TestClient, admin_token
     assert response.status_code == 200
     data = response.json()
     assert len(data["series"]) == 2
-    assert data["series"][0]["name"] == "Disk Read"
-    assert data["series"][1]["name"] == "Disk Write"
+    assert data["series"][0]["name"] == "CPU Temperature"
+    assert data["series"][1]["name"] == "GPU Temperature"
     assert len(data["series"][0]["data"]) == 1
     assert data["interval"] == "5m"
     
     # Verify the query function was called with the correct parameters
-    mock_query_disk.assert_called_once()
-    call_args = mock_query_disk.call_args[0]
+    mock_query_temperature.assert_called_once()
+    call_args = mock_query_temperature.call_args[0]
     assert call_args[0] == device.name
     assert call_args[3] == 5  # interval
 
 
-@patch('app.api.routes.device_metrics.query_disk_metrics')
-def test_get_disk_metrics_default_parameters(
-    mock_query_disk, client: TestClient, admin_token: str, device: Device
+@patch('app.api.routes.device_metrics.query_temperature_metrics')
+def test_get_temperature_metrics_default_parameters(
+    mock_query_temperature, client: TestClient, admin_token: str, device: Device
 ):
-    """Test getting disk metrics with default parameters"""
+    """Test getting temperature metrics with default parameters"""
     # Mock the timestream query function
-    mock_query_disk.return_value = {
+    mock_query_temperature.return_value = {
         "series": [
-            {"name": "Disk Read", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 250.0}]},
-            {"name": "Disk Write", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 120.0}]}
+            {"name": "CPU Temperature", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 66.0}]},
+            {"name": "GPU Temperature", "data": [{"timestamp": "2025-05-18T09:00:00Z", "value": 67.0}]}
         ],
         "device_name": device.name,
         "start_time": datetime.now(ZoneInfo("Asia/Tokyo")) - timedelta(hours=1),
@@ -307,7 +307,7 @@ def test_get_disk_metrics_default_parameters(
     
     # Use only device_name parameter, letting the other parameters use defaults
     response = client.get(
-        f"{settings.API_V1_STR}/device-metrics/disk?device_name={device.name}",
+        f"{settings.API_V1_STR}/device-metrics/temperature?device_name={device.name}",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     
@@ -315,7 +315,7 @@ def test_get_disk_metrics_default_parameters(
     assert response.status_code == 200
     
     # Verify the query function was called
-    mock_query_disk.assert_called_once()
-    call_args = mock_query_disk.call_args[0]
+    mock_query_temperature.assert_called_once()
+    call_args = mock_query_temperature.call_args[0]
     assert call_args[0] == device.name
     assert call_args[3] == 5  # default interval

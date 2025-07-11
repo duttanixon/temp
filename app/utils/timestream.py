@@ -183,14 +183,14 @@ def query_cpu_metrics(
         logger.error(f"Error querying CPU metrics: {str(e)}")
         raise
 
-def query_disk_metrics(
+def query_temperature_metrics(
     device_name: str, 
     start_time: datetime, 
     end_time: datetime, 
     interval: int
 ) -> Dict[str, Any]:
     """
-    Query disk metrics from Timestream for a specific device
+    Query temperature metrics from Timestream for a specific device
     """
     start_time_utc = start_time.astimezone(ZoneInfo("UTC"))
     end_time_utc = end_time.astimezone(ZoneInfo("UTC"))
@@ -199,28 +199,29 @@ def query_disk_metrics(
     query = f"""
     SELECT 
         bin(time, {interval_seconds}s) as time_bin, 
-        measure_name,
+        sensor,
         ROUND(AVG(measure_value::double), 2) as avg_value
     FROM 
         "{DATABASE_NAME}"."{RAW_TABLE_NAME}"
     WHERE 
         time BETWEEN from_iso8601_timestamp('{start_time_utc.isoformat()}') AND from_iso8601_timestamp('{end_time_utc.isoformat()}')
         AND device_id = '{device_name}'
-        AND metric_type = 'disk'
-        AND measure_name IN ('read_size', 'write_size')
+        AND metric_type = 'temperature'
+        AND measure_name = 'temperature_celsius'
+        AND sensor IN ('cpu', 'gpu')
     GROUP BY 
         bin(time, {interval_seconds}s),
-        measure_name
+        sensor
     ORDER BY 
         time_bin ASC,
-        measure_name
+        sensor
     """
     
     try:
         response = timestream_query.query(QueryString=query)
         
-        read_series = {"name": "Disk Read", "data": []}
-        write_series = {"name": "Disk Write", "data": []}
+        cpu_series = {"name": "CPU Temperature", "data": []}
+        gpu_series = {"name": "GPU Temperature", "data": []}
         
         for row in response['Rows']:
             if len(row['Data']) >= 3:
@@ -241,23 +242,23 @@ def query_disk_metrics(
                     logger.warning(f"Could not parse timestamp: {timestamp_str}")
                     timestamp = timestamp_str
                     
-                measure_name = row['Data'][1]['ScalarValue']
+                sensor = row['Data'][1]['ScalarValue']
                 value = float(row['Data'][2]['ScalarValue'])
                 
                 data_point = {"timestamp": timestamp, "value": value}
                 
-                if measure_name == 'read_size':
-                    read_series["data"].append(data_point)
-                elif measure_name == 'write_size':
-                    write_series["data"].append(data_point)
+                if sensor == 'cpu':
+                    cpu_series["data"].append(data_point)
+                elif sensor == 'gpu':
+                    gpu_series["data"].append(data_point)
         
         return {
-            "series": [read_series, write_series],
+            "series": [cpu_series, gpu_series],
             "device_name": device_name,
             "start_time": start_time,
             "end_time": end_time,
             "interval": f"{interval}m"
         }
     except Exception as e:
-        logger.error(f"Error querying disk metrics: {str(e)}")
+        logger.error(f"Error querying temperature metrics: {str(e)}")
         raise

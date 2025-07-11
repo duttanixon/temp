@@ -9,7 +9,7 @@ from app.utils.logger import get_logger
 from app.utils.timestream import (
     query_memory_metrics,
     query_cpu_metrics,
-    query_disk_metrics,
+    query_temperature_metrics,
 )
 from sqlalchemy.orm import Session
 from zoneinfo import ZoneInfo
@@ -108,8 +108,8 @@ def get_cpu_metrics(
         )
 
 
-@router.get("/disk", response_model=MetricsResponse)
-def get_disk_metrics(
+@router.get("/temperature", response_model=MetricsResponse)
+def get_temperature_metrics(
     *,
     db: Session = Depends(deps.get_db),
     device_name: str,
@@ -119,7 +119,7 @@ def get_disk_metrics(
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get disk metrics for a specific device
+    Get temperature metrics for a specific device
     """
     # Check if device exists
     db_device = device.get_by_device_name(db, device_name=device_name)
@@ -132,18 +132,25 @@ def get_disk_metrics(
             raise HTTPException(
                 status_code=403, detail="Not authorized to access this device's metrics"
             )
+    
     # Set default time range if not specified
     if not end_time:
-        end_time = datetime.now()
+        end_time = datetime.now(ZoneInfo("Asia/Tokyo"))
     if not start_time:
         start_time = end_time - timedelta(hours=1)
+    
+    # Ensure times have timezone info (JST)
+    if end_time.tzinfo is None:
+        end_time = end_time.replace(tzinfo=ZoneInfo("Asia/Tokyo"))
+    if start_time.tzinfo is None:
+        start_time = start_time.replace(tzinfo=ZoneInfo("Asia/Tokyo"))
 
     # Query the metrics
     try:
-        metrics = query_disk_metrics(str(device_name), start_time, end_time, interval)
+        metrics = query_temperature_metrics(str(device_name), start_time, end_time, interval)
         return metrics
     except Exception as e:
-        logger.error(f"Error querying disk metrics: {str(e)}")
+        logger.error(f"Error querying temperature metrics: {str(e)}")
         raise HTTPException(
-            status_code=500, detail=f"Error querying disk metrics: {str(e)}"
+            status_code=500, detail=f"Error querying temperature metrics: {str(e)}"
         )

@@ -88,3 +88,8 @@ output "timestream_daily_table_name" {
   description = "Name of the Timestream daily metrics table"
   value       = module.metrics.timestream_daily_table_name
 }
+
+output "edge_log_bucket_name" {
+  description = "Name of the S3 bucket for edge logs"
+  value       = module.metrics.edge_log_bucket_name
+}

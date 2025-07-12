@@ -6,6 +6,47 @@ resource "aws_s3_bucket" "capture_image_bucket" {
     }
 }
 
+# S3 bucket for storing logs
+resource "aws_s3_bucket" "edge_logs" {
+  bucket = "${var.environment}-edge-analytics-logs-${data.aws_caller_identity.current.account_id}"
+
+  tags = {
+    Name        = "${var.environment}-edge-logs"
+    Environment = var.environment
+  }
+}
+
+# S3 bucket lifecycle policy to optimize costs
+resource "aws_s3_bucket_lifecycle_configuration" "edge_logs_lifecycle" {
+  bucket = aws_s3_bucket.edge_logs.id
+
+  rule {
+    id     = "transition-old-logs"
+    status = "Enabled"
+
+    # Move to Glacier after 90 days
+    transition {
+      days          = 3
+      storage_class = "GLACIER"
+    }
+
+    # Delete after 365 days (optional - adjust based on your retention needs)
+    expiration {
+      days = 7
+    }
+  }
+}
+
+# S3 bucket versioning
+resource "aws_s3_bucket_versioning" "edge_logs_versioning" {
+  bucket = aws_s3_bucket.edge_logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+
+
 resource "aws_s3_bucket_versioning" "capture_image_bucket_versioning" {
     bucket  =  aws_s3_bucket.capture_image_bucket.id
 
@@ -30,7 +71,10 @@ resource "aws_iam_policy" "s3_access_to_image_bucket" {
         Effect   = "Allow"
         Resource = [
           aws_s3_bucket.capture_image_bucket.arn,
-          "${aws_s3_bucket.capture_image_bucket.arn}/*"
+          "${aws_s3_bucket.capture_image_bucket.arn}/*",
+          aws_s3_bucket.edge_logs.arn,
+          "${aws_s3_bucket.edge_logs.arn}/*"
+
         ]
       }
     ]

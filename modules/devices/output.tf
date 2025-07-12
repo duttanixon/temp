@@ -52,3 +52,8 @@ output "iot_devices_metrics_log_group_arn" {
   description = "ARN of the CloudWatch log group for IoT devices metrics"
   value       = aws_cloudwatch_log_group.iot_devices_metrics.arn
 }
+
+output "edge_log_bucket_name" {
+  description = "Name of the S3 bucket for edge logs"
+  value       = aws_s3_bucket.edge_logs.bucket
+}

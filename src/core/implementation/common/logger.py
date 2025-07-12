@@ -179,13 +179,15 @@ class StructuredLogger:
     ) -> None:
         """Log a message with context and exception information"""
         log_entry = self._format_log(level, message, context, exception, component)
+        log_level_num = logging.getLevelName(level.upper())
         
         # Add to buffer for structured logging and possible FluentBit pickup
-        try:
-            self.log_buffer.put_nowait(log_entry)
-        except queue.Full:
-            # If buffer is full, log a warning
-            self.logger.warning("Log buffer full, dropping message")
+        if log_level_num >= self.logger.getEffectiveLevel():
+            try:
+                self.log_buffer.put_nowait(log_entry)
+            except queue.Full:
+                # If buffer is full, log a warning
+                self.logger.warning("Log buffer full, dropping message")
             
         # Also log to standard logger
         log_method = getattr(self.logger, level.lower())

@@ -78,3 +78,13 @@ module "metrics" {
     daily_memory_retention_hours        = 2  
     daily_magnetic_retention_days       = 400  # ~13 months
 }
+
+# New Athena module for log analytics
+module "athena" {
+    source = "../../modules/athena"
+
+    # Pass required variables to the module
+    aws_region            = var.aws_region
+    environment           = var.environment
+    edge_logs_bucket_name = module.metrics.edge_log_bucket_name
+}

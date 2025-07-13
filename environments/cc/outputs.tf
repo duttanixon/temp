@@ -93,3 +93,36 @@ output "edge_log_bucket_name" {
   description = "Name of the S3 bucket for edge logs"
   value       = module.metrics.edge_log_bucket_name
 }
+
+# Athena outputs
+output "athena_workgroup_name" {
+  description = "Name of the Athena workgroup for edge analytics"
+  value       = module.athena.athena_workgroup_name
+}
+
+output "athena_database_name" {
+  description = "Name of the Glue catalog database for edge analytics"
+  value       = module.athena.glue_database_name
+}
+
+output "athena_results_bucket" {
+  description = "S3 bucket for Athena query results"
+  value       = module.athena.athena_results_bucket_name
+}
+
+output "athena_tables" {
+  description = "Names of the Athena tables created"
+  value = {
+    application_logs = module.athena.application_logs_table_name
+  }
+}
+
+output "athena_named_queries" {
+  description = "Named queries created in Athena"
+  value       = module.athena.athena_queries
+}
+
+output "quicksight_athena_role_arn" {
+  description = "IAM role ARN for QuickSight to access Athena"
+  value       = module.athena.quicksight_athena_role_arn
+}

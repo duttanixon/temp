@@ -82,21 +82,29 @@ resource "aws_glue_catalog_table" "application_logs" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    "projection.enabled"            = "true"
-    "projection.device_id.type"     = "injected"
-    "projection.year.type"          = "integer"
-    "projection.year.range"         = "2024,2030"
+    "projection.enabled"        = "true"
+    "projection.device_id.type" = "injected"
+
+    # Year Configuration
+    "projection.year.type"      = "integer"
+    "projection.year.range"     = "2024,2030"
     "projection.year.digits"        = "4"
-    "projection.month.type"         = "integer"
-    "projection.month.range"        = "1,12"
-    "projection.month.digits"       = "2"
-    "projection.day.type"           = "integer"
-    "projection.day.range"          = "1,31"
-    "projection.day.digits"         = "2"
-    "storage.location.template"     = "s3://${var.edge_logs_bucket_name}/logs/device_id=$${device_id}/year=$${year}/month=$${month}/day=$${day}/"
-    "classification"                = "json"
-    "compressionType"               = "gzip"
+
+    # Month Configuration
+    "projection.month.type"     = "enum"
+    "projection.month.values"   = "01,02,03,04,05,06,07,08,09,10,11,12"
+
+    # Day Configuration
+    "projection.day.type"       = "enum"
+    "projection.day.values"     = "01,02,03,04,05,06,07,08,09,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31"
+    
+    # Storage and Classification
+    "storage.location.template" = "s3://${var.edge_logs_bucket_name}/logs/device_id=$${device_id}/year=$${year}/month=$${month}/day=$${day}/"
+    "classification"            = "json"
+    "compressionType"           = "gzip"
   }
+
+
 
   storage_descriptor {
     location      = "s3://${var.edge_logs_bucket_name}/logs/"
@@ -142,11 +150,6 @@ resource "aws_glue_catalog_table" "application_logs" {
       name = "error"
       type = "string"
     }
-    
-    columns {
-      name = "device_id"
-      type = "string"
-    }
   }
 
   partition_keys {
@@ -161,12 +164,12 @@ resource "aws_glue_catalog_table" "application_logs" {
   
   partition_keys {
     name = "month"
-    type = "int"
+    type = "string"
   }
   
   partition_keys {
     name = "day"
-    type = "int"
+    type = "string"
   }
 }
 

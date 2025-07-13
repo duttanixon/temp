@@ -3,42 +3,33 @@ import { FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse } from "@/
 import { analyticsDirectionService } from "@/services/cityeye/cityEyeAnalyticsDirectionService";
 import { toast } from "sonner";
 
-interface UseAnalyticsDirectionPutThresholdProps {
-  customer_id?: string;
-  solution_id?: string;
-  thresholds?: {
-    traffic_count_thresholds?: number[];
-    human_count_thresholds?: number[];
-  };
-}
-
-export function useAnalyticsDirectionPutThreshold({
-  solution_id: solutionId,
-  customer_id: customerId,
-  thresholds = {
-    traffic_count_thresholds: [],
-    human_count_thresholds: [],
-  },
-}: UseAnalyticsDirectionPutThresholdProps) {
+export function useAnalyticsDirectionPutThreshold() {
   const [rawData, setRawData] =
     useState<FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse | null>(
       null
     );
-
   const [isLoading, setIsLoading] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
 
   /**
    * Fetches analytics data from the API
-   * @param filtersToUse - Validated API filters for the request
+   * @param params - request params
    */
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (params: {
+    solution_id: string;
+    customer_id: string;
+    thresholds?: {
+      traffic_count_thresholds?: number[];
+      human_count_thresholds?: number[];
+    };
+  }) => {
+    const { solution_id, customer_id, thresholds } = params;
     if (
-      !customerId ||
-      customerId === "N/A" ||
-      !solutionId ||
-      solutionId === "N/A"
+      !customer_id ||
+      customer_id === "N/A" ||
+      !solution_id ||
+      solution_id === "N/A" ||
+      !thresholds
     ) {
       setError("顧客・ソリューションIDが無効です");
       return;
@@ -51,8 +42,8 @@ export function useAnalyticsDirectionPutThreshold({
     try {
       const response =
         await analyticsDirectionService.putFlowAnalyticsDirectionThreshold({
-          customer_id: customerId,
-          solution_id: solutionId,
+          customer_id,
+          solution_id,
           thresholds,
         });
 
@@ -60,7 +51,7 @@ export function useAnalyticsDirectionPutThreshold({
       setRawData(response);
       console.log("Analytics Direction Threshold Data:", response);
 
-      if (Object.keys(solutionId).length > 0) {
+      if (Object.keys(solution_id).length > 0) {
         toast.success("閾値データ更新完了");
       }
     } catch (err) {
@@ -76,13 +67,7 @@ export function useAnalyticsDirectionPutThreshold({
       // --- Request End ---
       setIsLoading(false);
     }
-  }, [solutionId, customerId, thresholds]);
-
-  useEffect(() => {
-    if (solutionId && customerId) {
-      fetchData();
-    }
-  }, [fetchData, solutionId, customerId]);
+  }, []);
 
   return {
     rawData,

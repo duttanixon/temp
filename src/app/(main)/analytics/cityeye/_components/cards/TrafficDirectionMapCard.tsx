@@ -331,29 +331,64 @@ export default function TrafficDirectionMapCard({
     ? analyticsThresholds.rawData.thresholds.traffic_count_thresholds
     : defaultThresholds;
 
-  const thresholds = baseThresholds.map((t) => t * days);
-  const legendItems = [
-    {
-      color: "#4A83BD",
-      label: "少ない",
-      range: `${thresholds[0]}台未満`,
-    },
-    {
-      color: "#4A9C64",
-      label: "やや少ない",
-      range: `${thresholds[0]}台〜${thresholds[1] - 1}台`,
-    },
-    {
-      color: "#DB954D",
-      label: "やや多い",
-      range: `${thresholds[1]}台〜${thresholds[2] - 1}台`,
-    },
-    {
-      color: "#DB4E4D",
-      label: "多い",
-      range: `${thresholds[2]}台以上`,
-    },
-  ];
+ console.log("analyticsThresholds:", analyticsThresholds);
+
+  const [thresholds, setThresholds] = useState<number[]>(
+    baseThresholds.map((t) => t * days)
+  );
+
+  useEffect(() => {
+      if (
+        hasAttemptedFetch &&
+        analyticsThresholds?.rawData?.thresholds?.traffic_count_thresholds?.length
+      ) {
+        const newThresholds =
+          analyticsThresholds.rawData.thresholds.traffic_count_thresholds.map(
+            (t) => t * days
+          );
+        if (
+          thresholds.length !== newThresholds.length ||
+          thresholds.some((v, i) => v !== newThresholds[i])
+        ) {
+          setThresholds(newThresholds);
+        }
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasAttemptedFetch, analyticsThresholds, days]);
+
+  const legendItems = useMemo(
+    () => [
+      {
+        color: "#4A83BD",
+        label: "少ない",
+        range: `${thresholds[0]}台未満`,
+      },
+      {
+        color: "#4A9C64",
+        label: "やや少ない",
+        range: `${thresholds[0]}台〜${thresholds[1] - 1}台`,
+      },
+      {
+        color: "#DB954D",
+        label: "やや多い",
+        range: `${thresholds[1]}台〜${thresholds[2] - 1}台`,
+      },
+      {
+        color: "#DB4E4D",
+        label: "多い",
+        range: `${thresholds[2]}台以上`,
+      },
+    ],
+    [thresholds]
+  );
+
+  // 閾値更新時のコールバック
+  const handleThresholdsUpdated = (newThresholds: number[]) => {
+    setThresholds(newThresholds.map((t) => t * days));
+    if (analyticsThresholds.fetchData) {
+      analyticsThresholds.fetchData();
+    }
+  };
 
   return (
     <div className="grid grid-cols-4 gap-0 bg-transparent">
@@ -504,10 +539,8 @@ export default function TrafficDirectionMapCard({
                     solution_id={solutionId ?? ""}
                     customer_id={customerId}
                     type="traffic"
-                    thresholds={
-                      analyticsThresholds.rawData?.thresholds
-                        ?.human_count_thresholds
-                    }
+                    Unit="台"
+                    onUpdated={handleThresholdsUpdated}
                   />
                 </>
               )}

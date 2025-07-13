@@ -310,8 +310,8 @@ export interface FrontendDeviceAnalyticsDirectionThresholds {
   customer_id: string;
   customer_name?: string;
   thresholds?: {
-    traffic_count_thresholds: number[];
-    human_count_thresholds: number[];
+    traffic_count_thresholds?: number[];
+    human_count_thresholds?: number[];
   };
 }
 

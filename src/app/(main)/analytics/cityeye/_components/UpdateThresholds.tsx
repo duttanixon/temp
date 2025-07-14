@@ -16,7 +16,7 @@ import {
   analyticsCityEyeThresholdsSchema,
 } from "@/schemas/analyticsCityEyeThresholdsSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,12 +27,14 @@ export default function UpdateThresholds({
   type, // "human" | "traffic"
   Unit,
   onUpdated,
+  initialThresholds,
 }: {
   solution_id: string;
   customer_id: string;
   type: "human" | "traffic";
   Unit?: string;
   onUpdated?: (newThresholds: number[]) => void;
+  initialThresholds?: number[];
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -40,9 +42,31 @@ export default function UpdateThresholds({
   const { register, handleSubmit, reset, watch } = useForm({
     resolver: zodResolver(analyticsCityEyeThresholdsSchema),
     defaultValues: {
-      thresholds: [{ value: 0 }, { value: 0 }, { value: 0 }],
+      thresholds: initialThresholds
+        ? initialThresholds.map((value) => ({ value }))
+        : [{ value: 0 }, { value: 0 }, { value: 0 }],
     },
   });
+
+  // initialThresholdsの変更時に表示を更新
+  useEffect(() => {
+    if (initialThresholds) {
+      reset({
+        thresholds: initialThresholds.map((value) => ({ value })),
+      });
+    }
+  }, [initialThresholds, reset]);
+
+  // 閾値の順序を検証する関数
+  const validateThresholdsOrder = (values: number[]): boolean => {
+    for (let i = 0; i < values.length - 1; i++) {
+      if (values[i] >= values[i + 1]) {
+        toast.error("閾値は昇順に設定してください");
+        return false;
+      }
+    }
+    return true;
+  };
 
   const onError = (
     errors: FieldErrors<AnalyticsCityEyeThresholdsFormValues>
@@ -57,6 +81,12 @@ export default function UpdateThresholds({
   const { fetchData } = useAnalyticsDirectionPutThreshold();
 
   const onSubmit = async (data: AnalyticsCityEyeThresholdsFormValues) => {
+    const thresholdValues = data.thresholds.map((t) => t.value);
+    if (!validateThresholdsOrder(thresholdValues)) {
+      // 閾値の順序が正しくない場合はエラーメッセージを表示
+      toast.error("Thresholds must be in ascending order");
+      return;
+    }
     setIsLoading(true);
     const responseData = {
       solution_id,

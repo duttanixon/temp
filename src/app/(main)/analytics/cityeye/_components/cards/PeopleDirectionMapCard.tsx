@@ -323,7 +323,7 @@ export default function PeopleDirectionMapCard({
     ...deviceDataArr.map((d) => (Array.isArray(d.dates) ? d.dates.length : 1)),
     1
   );
-  const defaultThresholds = [100, 500, 1000];
+  const defaultThresholds = [0, 0, 0];
   const baseThresholds = analyticsThresholds?.rawData?.thresholds
     ?.human_count_thresholds?.length
     ? analyticsThresholds.rawData.thresholds.human_count_thresholds

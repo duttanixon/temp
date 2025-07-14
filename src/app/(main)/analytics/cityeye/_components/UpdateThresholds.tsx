@@ -61,7 +61,6 @@ export default function UpdateThresholds({
   const validateThresholdsOrder = (values: number[]): boolean => {
     for (let i = 0; i < values.length - 1; i++) {
       if (values[i] >= values[i + 1]) {
-        toast.error("閾値は昇順に設定してください");
         return false;
       }
     }
@@ -82,8 +81,9 @@ export default function UpdateThresholds({
 
   const onSubmit = async (data: AnalyticsCityEyeThresholdsFormValues) => {
     const thresholdValues = data.thresholds.map((t) => t.value);
+    // 閾値の順序をチェック
     if (!validateThresholdsOrder(thresholdValues)) {
-      // 閾値の順序が正しくない場合はエラーメッセージを表示
+      // 閾値の順序が正しくない場合のエラーメッセージ
       toast.error("Thresholds must be in ascending order");
       return;
     }
@@ -94,18 +94,17 @@ export default function UpdateThresholds({
       thresholds:
         type === "human"
           ? {
-              human_count_thresholds: data.thresholds.map((t) => t.value),
+              human_count_thresholds: thresholdValues,
             }
           : {
-              traffic_count_thresholds: data.thresholds.map((t) => t.value),
+              traffic_count_thresholds: thresholdValues,
             },
     };
     await fetchData(responseData);
     setOpen(false);
     setIsLoading(false);
     if (onUpdated) {
-      const updated = data.thresholds.map((t) => t.value);
-      onUpdated(updated);
+      onUpdated(thresholdValues);
     }
     reset();
   };

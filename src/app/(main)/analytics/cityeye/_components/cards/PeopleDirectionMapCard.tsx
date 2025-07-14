@@ -468,7 +468,7 @@ export default function PeopleDirectionMapCard({
                                   );
                                   return zoneObj?.deviceLocation &&
                                     zoneObj?.deviceName
-                                    ? `${zoneObj.deviceLocation} ${zoneObj.deviceName}`
+                                    ? `${zoneObj.deviceLocation}_${zoneObj.deviceName}`
                                     : `${zoneObj?.deviceLocation ?? zoneObj?.deviceName ?? "不明なデバイス"}`;
                                 })()}
                               </div>

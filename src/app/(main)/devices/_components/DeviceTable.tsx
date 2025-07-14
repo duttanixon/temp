@@ -9,6 +9,7 @@ import { Device } from "@/types/device";
 import { Solution } from "@/types/solution"; 
 import { DeviceTableHeader } from "./DeviceTableHeader";
 import { DeviceTableRow } from "./DeviceTableRow";
+import { useBatchDeviceStatus } from "@/hooks/useBatchDeviceStatus";
 
 type SortKey = "name" | "device_type" | "customer_name";
 type SortDirection = "asc" | "desc";
@@ -31,6 +32,18 @@ export const DeviceTable: FC<DeviceTableProps> = ({
 }) => {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  // Get all device IDs for batch status fetch
+  const deviceIds = useMemo(() => 
+    devices.map(device => device.device_id),
+    [devices]
+  );
+
+  // Fetch statuses for all devices at once
+  const { statuses } = useBatchDeviceStatus(deviceIds, {
+    refetchInterval: 60000, // Refresh every minute
+    enabled: deviceIds.length > 0,
+  });
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -74,6 +87,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
                 key={device.device_id}
                 device={device}
                 solution={solution}
+                statusInfo={statuses[device.device_id]}
               />
             ))
           ) : (

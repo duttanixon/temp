@@ -67,6 +67,13 @@ export default function UpdateThresholds({
     return true;
   };
 
+  const handleDialogClose = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      reset(); // モーダルが閉じられたときにフォームをリセット
+    }
+  };
+
   const onError = (
     errors: FieldErrors<AnalyticsCityEyeThresholdsFormValues>
   ) => {
@@ -115,7 +122,7 @@ export default function UpdateThresholds({
     watch("thresholds.2.value"),
   ];
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogTrigger asChild>
         <Button variant="outline" className="cursor-pointer">
           閾値変更

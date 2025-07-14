@@ -65,7 +65,7 @@ export default function TimeSeriesCard({
     // regionStartがnullでない場合、最後の領域をregionsに追加
     if (regionStart !== null) {
       regions.push({
-        startIndex: regionStart - 1,
+        startIndex: Math.max(regionStart - 1, 0),
         endIndex: timeSeriesData.data.length - 1,
       });
     }

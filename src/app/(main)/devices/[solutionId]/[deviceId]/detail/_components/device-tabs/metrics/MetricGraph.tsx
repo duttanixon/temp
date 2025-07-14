@@ -40,7 +40,7 @@ export default function MetricGraph({
   tickFormatter,
   axisFontSize = 12,
 }: MetricGraphProps) {
-  console.log("Rendering MetricGraph with data:", data);
+  // console.log("Rendering MetricGraph with data:", data);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,7 +87,7 @@ export default function MetricGraph({
 
     return { hours: diffHours, isHourlyDisplay };
   }, [indexedData]);
-
+  // console.log("indexedData:", indexedData);
   // No-data regionsを計算（hasDataがfalseまたはnull/undefinedの場合を含める）
   const noDataRegions = useMemo(() => {
     const regions: { startIndex: number; endIndex: number }[] = [];
@@ -112,14 +112,14 @@ export default function MetricGraph({
     // Handle case where no data extends to the end
     if (regionStart !== null) {
       regions.push({
-        startIndex: regionStart - 1,
+        startIndex: Math.max(regionStart - 1, 0),
         endIndex: indexedData.length - 1,
       });
     }
 
     return regions;
   }, [indexedData]);
-  console.log("No-data regions:", noDataRegions);
+  // console.log("No-data regions:", noDataRegions);
 
   // X軸ラベル用の代表的なタイムスタンプを取得
   const tickIndices = useMemo(() => {

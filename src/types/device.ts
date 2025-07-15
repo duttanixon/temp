@@ -57,3 +57,22 @@ export type DeviceCommandResponse = {
   message_id: string;
   detail: string;
 };
+
+export type DeviceStreamStatus = {
+  device_id: string;
+  device_name: string;
+  stream_name: string;
+  stream_status: string;
+  is_active: boolean;
+  kvs_url: string | null;
+}
+
+export type DeviceStatusInfo = {
+  device_id: string;
+  device_name: string;
+  is_online: boolean;
+  last_seen?: string;
+  error?: string;
+}
+
+export type DeviceBatchStatusResponse = Record<string, DeviceStatusInfo>;

@@ -3121,6 +3121,7 @@ __metadata:
     eslint-plugin-import: "npm:^2.31.0"
     eslint-plugin-react-hooks: "npm:^5.2.0"
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
+    hls.js-esm: "npm:^0.0.2"
     leaflet: "npm:^1.9.4"
     lucide-react: "npm:^0.501.0"
     next: "npm:15.3.0"
@@ -4537,6 +4538,23 @@ __metadata:
   dependencies:
     function-bind: "npm:^1.1.2"
   checksum: 10c0/3769d434703b8ac66b209a4cca0737519925bbdb61dd887f93a16372b14694c63ff4e797686d87c90f08168e81082248b9b028bad60d4da9e0d1148766f56eb9
+  languageName: node
+  linkType: hard
+
+"hls.js-esm@npm:^0.0.2":
+  version: 0.0.2
+  resolution: "hls.js-esm@npm:0.0.2"
+  dependencies:
+    hls.js: "npm:*"
+    webworkify-webpack: "npm:^2.1.2"
+  checksum: 10c0/07b6eef1cbcfd9e49d90866cc1391904aa58013df4a771ce456e374278166f8db801ed8d903b4bd5c88363c3c432368466be1f071701aafa911a4769e2890d09
+  languageName: node
+  linkType: hard
+
+"hls.js@npm:*":
+  version: 1.6.5
+  resolution: "hls.js@npm:1.6.5"
+  checksum: 10c0/b156c31c1050b5be0d135b81c149d06656667d4d6f5de666a4ee41f7ee99e779c7cbd43e8a90ff5d0c7ab1c74e0d06cba52cfc10b8c2ccc2b49cbce67b0072ad
   languageName: node
   linkType: hard
 
@@ -7323,6 +7341,13 @@ __metadata:
   version: 3.0.1
   resolution: "webidl-conversions@npm:3.0.1"
   checksum: 10c0/5612d5f3e54760a797052eb4927f0ddc01383550f542ccd33d5238cfd65aeed392a45ad38364970d0a0f4fea32e1f4d231b3d8dac4a3bdd385e5cf802ae097db
+  languageName: node
+  linkType: hard
+
+"webworkify-webpack@npm:^2.1.2":
+  version: 2.1.5
+  resolution: "webworkify-webpack@npm:2.1.5"
+  checksum: 10c0/672108eef17df3d01d7a499509d722a09dd65dd6e7f9316c21cd559c106fb162a1304b5f326977748aa92ad2bab917a0891ce26d244da083a5e16b752ab91058
   languageName: node
   linkType: hard
 

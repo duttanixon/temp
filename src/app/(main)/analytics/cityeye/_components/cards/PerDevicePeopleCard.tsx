@@ -35,40 +35,53 @@ export default function PerDevicePeopleCard({
             hasAttemptedFetch
               ? "デバイスデータがありません。"
               : "フィルターを適用してデバイスデータを表示します。"
-          }
-        >
+          }>
           {/* Actual content to display when data is available */}
-          <ScrollArea className="h-20 pr-3">
+          <ScrollArea className="h-64 pr-3">
             {perDeviceCountsData.length > 0 ? (
               <ul className="space-y-1 text-xs">
-                {perDeviceCountsData.map((device) => (
-                  <li
-                    key={device.deviceId}
-                    className="flex justify-between items-center p-1.5 bg-muted/50 rounded-sm"
-                  >
-                    <span
-                      className="truncate text-foreground"
-                      title={
-                        device.error
-                          ? `Error: ${device.error}`
-                          : `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
-                      }
-                    >
-                      {device.error ? (
-                        <span className="text-destructive">
-                          {device.deviceName || device.deviceId} - エラー
+                {perDeviceCountsData
+                  .sort((a, b) => (b.count || 0) - (a.count || 0)) // count の降順に並び替え
+                  .map((device) => {
+                    const maxCount = Math.max(
+                      ...perDeviceCountsData.map((d) => d.count || 0)
+                    ); // 最大値を取得
+                    const barWidth = device.count
+                      ? (device.count / maxCount) * 100
+                      : 0; // バーの幅を計算
+
+                    return (
+                      <li
+                        key={device.deviceId}
+                        className="relative flex justify-between items-center p-1.5 bg-muted/50 rounded-sm">
+                        {/* 背景バー */}
+                        <div
+                          className="absolute inset-0 bg-primary/20 rounded-sm"
+                          style={{ width: `${barWidth}%` }}></div>
+                        <span
+                          className="truncate text-foreground relative"
+                          title={
+                            device.error
+                              ? `Error: ${device.error}`
+                              : `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
+                          }>
+                          {device.error ? (
+                            <span className="text-destructive">
+                              {device.deviceName || device.deviceId} - エラー
+                            </span>
+                          ) : (
+                            `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
+                          )}
                         </span>
-                      ) : (
-                        `${device.deviceLocation || "N/A"}_${device.deviceName || "不明なデバイス"}`
-                      )}
-                    </span>
-                    <span
-                      className={`font-medium ${device.error ? "text-destructive" : "text-primary"}`}
-                    >
-                      {device.error ? "N/A" : device.count.toLocaleString()}
-                    </span>
-                  </li>
-                ))}
+                        <span
+                          className={`font-medium relative ${
+                            device.error ? "text-destructive" : "text-primary"
+                          }`}>
+                          {device.error ? "N/A" : device.count.toLocaleString()}
+                        </span>
+                      </li>
+                    );
+                  })}
               </ul>
             ) : (
               <p className="text-xs text-muted-foreground text-center py-4">

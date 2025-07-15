@@ -32,7 +32,7 @@ export function AdminSidebar() {
         { href: "/users", icon: Users, label: "ユーザー" },
         { href: "/maintenance", icon: WrenchIcon, label: "メンテナンス" },
         { href: "/settings", icon: Settings, label: "システム設定" },
-        { href: "/logs", icon: FileText, label: "ログ" },
+        { href: "/audit-logs", icon: FileText, label: "ログ" },
       ],
     },
   ];

@@ -1,25 +1,95 @@
+"use client";
+
 import { GenericAnalyticsCard } from "@/app/(main)/analytics/cityeye/_components/cards/GenericAnalyticsCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
-import "leaflet/dist/leaflet.css";
 import { RefreshCcw } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import {
-  CircleMarker,
-  MapContainer,
-  TileLayer,
-  Tooltip,
-  useMap,
-} from "react-leaflet";
 
-interface CameraMapCardProps {
-  title: string;
-  perDeviceCountsData: DeviceCountData[];
-  isLoading: boolean;
-  error: string | null;
-  hasAttemptedFetch: boolean;
+// Import Leaflet CSS only on client side
+if (typeof window !== "undefined") {
+  // @ts-expect-error - CSS import
+  import("leaflet/dist/leaflet.css");
 }
+
+interface MapProps {
+  devicesToShow: Array<DeviceCountData & { lat: number; lng: number }>;
+  coordinatesForZoom: [number, number][];
+  min: number;
+  max: number;
+  resetKey: number;
+}
+
+// Create a separate component for the map to handle all Leaflet-related logic
+const LeafletMap = dynamic<MapProps>(
+  () =>
+    import("react-leaflet").then((mod) => {
+      const { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } = mod;
+
+      // AutoZoom component that uses useMap hook
+      function AutoZoom({ coordinates }: { coordinates: [number, number][] }) {
+        const map = useMap();
+        useEffect(() => {
+          if (coordinates.length > 0) {
+            map.fitBounds(coordinates, { padding: [30, 30] });
+          }
+        }, [coordinates, map]);
+        return null;
+      }
+
+      // Main map component
+      return function Map({
+        devicesToShow,
+        coordinatesForZoom,
+        min,
+        max,
+        resetKey,
+      }: MapProps) {
+        return (
+          <MapContainer
+            key={resetKey}
+            center={coordinatesForZoom[0] || [33.5597, 133.5311]}
+            zoom={16}
+            style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <AutoZoom coordinates={coordinatesForZoom} />
+            {devicesToShow.map((device, idx) => (
+              <CircleMarker
+                key={idx}
+                center={[device.lat!, device.lng!]}
+                radius={getRadius(device.count, min, max)}
+                pathOptions={{
+                  color: getColor(device.count, min, max),
+                  fillOpacity: 0.6,
+                }}
+                interactive={true}
+                className="cursor-pointer">
+                <Tooltip
+                  direction="auto"
+                  offset={[5, -5]}
+                  opacity={1}
+                  permanent={false}
+                  sticky={true}>
+                  <div className="flex flex-col whitespace-nowrap">
+                    <span className="font-semibold">
+                      {device.deviceLocation}_{device.deviceName}
+                    </span>
+                    {device.count.toLocaleString()} 人
+                  </div>
+                </Tooltip>
+              </CircleMarker>
+            ))}
+          </MapContainer>
+        );
+      };
+    }),
+  { ssr: false, loading: () => <div>地図を読み込み中...</div> }
+);
 
 const getColor = (count: number, min: number, max: number) => {
   // If only one device, always return red
@@ -52,28 +122,23 @@ const getRadius = (count: number, min: number, max: number) => {
   return minRadius + (maxRadius - minRadius) * ratio;
 };
 
-function AutoZoom({ coordinates }: { coordinates: [number, number][] }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (coordinates.length > 0) {
-      map.fitBounds(coordinates, { padding: [30, 30] });
-    }
-  }, [coordinates, map]);
-
-  return null;
-}
-
 function ResetButton({ onClick }: { onClick: () => void }) {
   return (
     <Button
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
-      onClick={onClick}
-    >
+      onClick={onClick}>
       <RefreshCcw />
     </Button>
   );
+}
+
+interface CameraMapCardProps {
+  title: string;
+  perDeviceCountsData: DeviceCountData[];
+  isLoading: boolean;
+  error: string | null;
+  hasAttemptedFetch: boolean;
 }
 
 export default function CameraMapCard({
@@ -114,19 +179,26 @@ export default function CameraMapCard({
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
-        <div className="flex flex-col text-right text-xs text-muted-foreground">
-          <span>人数</span>
-          <span className="text-[10px]">
-            {min.toLocaleString()} - {max.toLocaleString()}
-          </span>
-          {min === max ? (
-            <div className="h-2 w-24 bg-red-500 rounded-sm mt-0.5" />
-          ) : (
-            <div className="h-2 w-24 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-sm mt-0.5" />
-          )}
+        <div className="flex flex-col text-xs text-muted-foreground w-40">
+          <div className="flex items-center gap-2">
+            <span>人数</span>
+            <div
+              className={`flex-grow h-2 ${min === max ? "bg-red-500" : "bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"} rounded-sm relative`}>
+              <span
+                className="absolute left-0 text-[10px] text-muted-foreground"
+                style={{ transform: "translateY(-150%)" }}>
+                {min.toLocaleString()}
+              </span>
+              <span
+                className="absolute right-0 text-[10px] text-muted-foreground"
+                style={{ transform: "translateY(-150%)" }}>
+                {max.toLocaleString()}
+              </span>
+            </div>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-3">
+      <CardContent className="flex-grow px-3">
         <GenericAnalyticsCard
           isLoading={isLoading}
           error={hasAttemptedFetch ? error : null}
@@ -135,53 +207,20 @@ export default function CameraMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }
-        >
+          }>
           <div className="h-72 w-full cursor-pointer relative z-[1]">
             {/* 地図上に配置するリセットボタン */}
             <div className="absolute top-20 left-2 z-[1000]">
               <ResetButton onClick={handleReset} />
             </div>
-            <MapContainer
-              key={resetKey}
-              center={coordinatesForZoom[0] || [33.5597, 133.5311]}
-              zoom={16}
-              style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <AutoZoom coordinates={coordinatesForZoom} />
-              {devicesToShow.map((device, idx) => (
-                <CircleMarker
-                  key={idx}
-                  center={[device.lat!, device.lng!]}
-                  radius={getRadius(device.count, min, max)}
-                  pathOptions={{
-                    color: getColor(device.count, min, max),
-                    fillOpacity: 0.6,
-                  }}
-                  interactive={true}
-                  className="cursor-pointer"
-                >
-                  <Tooltip
-                    direction="auto"
-                    offset={[5, -5]}
-                    opacity={1}
-                    permanent={false}
-                    sticky={true}
-                  >
-                    <div className="flex flex-col whitespace-nowrap">
-                      <span className="font-semibold">
-                        {device.deviceLocation}_{device.deviceName}
-                      </span>
-                      {device.count.toLocaleString()} 人
-                    </div>
-                  </Tooltip>
-                </CircleMarker>
-              ))}
-            </MapContainer>
+            {/* Use the dynamic Leaflet map component */}
+            <LeafletMap
+              devicesToShow={devicesToShow}
+              coordinatesForZoom={coordinatesForZoom}
+              min={min}
+              max={max}
+              resetKey={resetKey}
+            />
           </div>
         </GenericAnalyticsCard>
       </CardContent>

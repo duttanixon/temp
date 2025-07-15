@@ -1,8 +1,7 @@
 "use client";
 
-import React from "react";
-import { ProcessedGenderSegment } from "@/types/cityeye/cityEyeAnalytics";
 import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
+import { ProcessedGenderSegment } from "@/types/cityeye/cityEyeAnalytics";
 
 interface GenderDistributionCardProps {
   title: string;
@@ -19,7 +18,23 @@ export default function GenderDistributionCard({
   error,
   hasAttemptedFetch,
 }: GenderDistributionCardProps) {
-  const chartColors = ["var(--chart-male)", "var(--chart-female)"];
+  const chartColors: string[] = [];
+  // 男性と女性のデータがあるか確認
+  if (genderDistributionData) {
+    const hasMaleData = genderDistributionData.some(
+      (segment) => segment.name === "男性"
+    );
+    const hasFemaleData = genderDistributionData.some(
+      (segment) => segment.name === "女性"
+    );
+
+    if (hasMaleData) {
+      chartColors.push("var(--chart-male)");
+    }
+    if (hasFemaleData) {
+      chartColors.push("var(--chart-female)");
+    }
+  }
   return (
     <ShadcnPieChartDonutCard
       title={title}

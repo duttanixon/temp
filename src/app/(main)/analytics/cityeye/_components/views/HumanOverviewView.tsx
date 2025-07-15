@@ -35,8 +35,8 @@ export default function OverviewView({
   console.log("OverviewView processedData:", processedData);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
-      <div className="grid grid-rows-2 gap-3">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-rows-2 gap-3">
           <TotalPeopleCard
             title="総人数"
             totalCountData={processedData?.totalPeople?.totalCount ?? null}

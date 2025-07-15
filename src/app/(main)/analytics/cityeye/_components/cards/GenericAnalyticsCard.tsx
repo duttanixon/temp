@@ -42,9 +42,9 @@ export function GenericAnalyticsCard({
 
     if (!hasData) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[200px]">
+        <div className="flex flex-col items-center justify-center min-h-[110px]">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+          <p className="text-sm text-muted-foreground pb-6">{emptyMessage}</p>
         </div>
       );
     }

@@ -265,37 +265,28 @@ export default function ShadcnPieChartDonutCard({
   };
 
   return (
-    <>
-      <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
-        <CardHeader className="items-center pb-0 pt-3 px-4 flex flex-row justify-between">
-          {" "}
-          {/* Changed to flex-row and justify-between */}
-          <CardTitle className="text-gray-700">{title}</CardTitle>
-          {/* <Button variant="ghost" size="icon" onClick={handleOpenFullScreen} className="h-6 w-6 p-0"> 
-            <Maximize className="h-4 w-4" />
-          </Button> */}
-        </CardHeader>
-        {description && (
-          <CardDescription className="px-4 pt-1">{description}</CardDescription>
-        )}{" "}
-        {/* Added pt-1 for spacing */}
-        <CardContent className="flex-1 pb-0">{renderCardContent()}</CardContent>
-        {(footerText || showTrending) && (
-          <CardFooter className="flex-col gap-1 text-xs pt-2 pb-3">
-            {showTrending && (
-              <div className="flex items-center gap-1 font-medium leading-none text-muted-foreground">
-                Trending up by 5.2% this month{" "}
-                <TrendingUp className="h-3 w-3" />
-              </div>
-            )}
-            {footerText && (
-              <div className="leading-none text-muted-foreground">
-                {footerText}
-              </div>
-            )}
-          </CardFooter>
-        )}
-      </Card>
-    </>
+    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 h-[460px]">
+      <CardHeader className="items-center pb-0 pt-3 px-4 flex flex-row justify-between">
+        <CardTitle className="text-gray-700">{title}</CardTitle>
+      </CardHeader>
+      {description && (
+        <CardDescription className="px-4 pt-1">{description}</CardDescription>
+      )}
+      <CardContent className="flex-1 pb-0">{renderCardContent()}</CardContent>
+      {(footerText || showTrending) && (
+        <CardFooter className="flex-col gap-1 text-xs pt-2 pb-3">
+          {showTrending && (
+            <div className="flex items-center gap-1 font-medium leading-none text-muted-foreground">
+              Trending up by 5.2% this month <TrendingUp className="h-3 w-3" />
+            </div>
+          )}
+          {footerText && (
+            <div className="leading-none text-muted-foreground">
+              {footerText}
+            </div>
+          )}
+        </CardFooter>
+      )}
+    </Card>
   );
 }

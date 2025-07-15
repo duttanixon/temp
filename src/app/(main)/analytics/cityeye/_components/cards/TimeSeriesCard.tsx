@@ -164,13 +164,13 @@ export default function TimeSeriesCard({
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 col-span-1 md:col-span-2">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 col-span-1 md:col-span-2 h-[460px]">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3">
+      <CardContent className="p-3 h-full">
         <GenericAnalyticsCard
           isLoading={isLoading}
           error={hasAttemptedFetch ? error : null}
@@ -179,19 +179,22 @@ export default function TimeSeriesCard({
             hasAttemptedFetch
               ? "時系列データがありません。"
               : "フィルターを適用して時系列データを表示します。"
-          }>
-          <div className="w-full">
-            <ResponsiveContainer width="100%" height={320}>
+          }
+        >
+          <div className="w-full h-[340px]">
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
+                margin={{ top: 10, right: 10, left: 0, bottom: 30 }}
+              >
                 <defs>
                   <linearGradient
                     id="colorPeopleTimeSeries"
                     x1="0"
                     y1="0"
                     x2="0"
-                    y2="1">
+                    y2="1"
+                  >
                     <stop
                       offset="5%"
                       stopColor="var(--chart-analysis-1)"

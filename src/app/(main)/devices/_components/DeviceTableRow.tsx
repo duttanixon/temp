@@ -8,14 +8,13 @@ import { Device, DeviceStatusInfo } from "@/types/device";
 import { Solution } from "@/types/solution";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Edit } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC } from "react";
-import { TbPolygon } from "react-icons/tb";
+import { deviceActionComponents } from "./deviceActionComponents";
 
 type DeviceTableRowProps = {
   device: Device;
-  solution?: Solution;
+  solution: Solution;
   statusInfo?: DeviceStatusInfo;
 };
 
@@ -33,18 +32,10 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     router.push(`/devices/${solution?.solution_id}/${device.device_id}/detail`);
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    router.push(`/devices/${solution?.solution_id}/${device.device_id}/edit`);
-  };
-
-  const handlePolygonSettings = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    router.push(
-      `/devices/${solution?.solution_id}/${device.device_id}/polygon-settings`
-    );
-  };
-
+  // const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
+  const ActionComponent = solution
+    ? deviceActionComponents[solution.name.replace(/\s+/g, "").toLowerCase()]
+    : null;
   const isActive = device.status === "ACTIVE";
 
   // Get status display
@@ -100,19 +91,9 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="w-[240px]">
         <div className="relative flex items-center justify-center gap-2 px-2">
           <div className="absolute left-0 top-0 h-full border-l border-[#BDC3C7]" />
-          <div className="flex size-full items-center justify-center gap-4">
-            <button
-              onClick={handleEdit}
-              className="group flex size-[34px] items-center justify-center rounded-full transition-colors duration-300 hover:bg-[#3498DB]">
-              <Edit className="text-xl text-[#7F8C8D] transition-colors duration-300 group-hover:text-white" />
-            </button>
-            <button
-              onClick={handlePolygonSettings}
-              className="group flex size-[34px] items-center justify-center rounded-full transition-colors duration-300 hover:bg-[#3498DB]"
-              title="ポリゴン設定">
-              <TbPolygon className="text-xl text-[#7F8C8D] transition-colors duration-300 group-hover:text-white" />
-            </button>
-          </div>
+          {ActionComponent && (
+            <ActionComponent device={device} solution={solution} />
+          )}
         </div>
       </td>
     </tr>

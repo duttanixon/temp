@@ -70,7 +70,6 @@ export default function HumanComparisonView({
                 error={errorMain}
                 hasAttemptedFetch={hasAttemptedFetchMain}
                 // Fixed height for card
-                className="h-[250px]"
               />
               <DailyAveragePeopleCard
                 title="日平均人数 (分析期間)"
@@ -81,7 +80,6 @@ export default function HumanComparisonView({
                 isLoading={isLoadingMain}
                 error={errorMain}
                 hasAttemptedFetch={hasAttemptedFetchMain}
-                className="h-[250px]"
               />
             </div>
             <PerDevicePeopleCard
@@ -92,7 +90,6 @@ export default function HumanComparisonView({
               isLoading={isLoadingMain}
               error={errorMain}
               hasAttemptedFetch={hasAttemptedFetchMain}
-              className="h-[250px]"
             />
           </div>
           <CameraMapCard
@@ -168,7 +165,6 @@ export default function HumanComparisonView({
                 isLoading={isLoadingComparison}
                 error={errorComparison}
                 hasAttemptedFetch={hasAttemptedFetchComparison}
-                className="h-[250px]"
               />
               <DailyAveragePeopleCard
                 title="日平均人数 (比較期間)"
@@ -179,7 +175,6 @@ export default function HumanComparisonView({
                 isLoading={isLoadingMain}
                 error={errorMain}
                 hasAttemptedFetch={hasAttemptedFetchComparison}
-                className="h-[250px]"
               />
             </div>
             <PerDevicePeopleCard
@@ -191,7 +186,6 @@ export default function HumanComparisonView({
               isLoading={isLoadingComparison}
               error={errorComparison}
               hasAttemptedFetch={hasAttemptedFetchComparison}
-              className="h-[250px]"
             />
           </div>
           <CameraMapCard

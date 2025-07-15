@@ -122,7 +122,29 @@ output "athena_named_queries" {
   value       = module.athena.athena_queries
 }
 
-output "quicksight_athena_role_arn" {
-  description = "IAM role ARN for QuickSight to access Athena"
-  value       = module.athena.quicksight_athena_role_arn
+# Superset outputs (replacing QuickSight)
+output "superset_athena_user_arn" {
+  description = "ARN of the IAM user for Superset to access Athena"
+  value       = module.athena.superset_athena_user_arn
+}
+
+output "superset_athena_user_name" {
+  description = "Name of the IAM user for Superset to access Athena"
+  value       = module.athena.superset_athena_user_name
+}
+
+output "superset_athena_role_arn" {
+  description = "ARN of the IAM role for Superset to access Athena"
+  value       = module.athena.superset_athena_role_arn
+}
+
+output "superset_athena_access_key_id" {
+  description = "Access key ID for Superset to access Athena"
+  value       = module.athena.superset_athena_access_key_id
+}
+
+output "superset_athena_secret_access_key" {
+  description = "Secret access key for Superset to access Athena"
+  value       = module.athena.superset_athena_secret_access_key
+  sensitive   = true
 }

@@ -20,9 +20,30 @@ output "glue_database_name" {
   value       = aws_glue_catalog_database.edge_analytics.name
 }
 
-output "quicksight_athena_role_arn" {
-  description = "ARN of the IAM role for QuickSight to access Athena"
-  value       = aws_iam_role.quicksight_athena_role.arn
+output "superset_athena_user_arn" {
+  description = "ARN of the IAM user for Superset to access Athena"
+  value       = aws_iam_user.superset_athena_user.arn
+}
+
+output "superset_athena_user_name" {
+  description = "Name of the IAM user for Superset to access Athena"
+  value       = aws_iam_user.superset_athena_user.name
+}
+
+output "superset_athena_role_arn" {
+  description = "ARN of the IAM role for Superset to access Athena"
+  value       = aws_iam_role.superset_athena_role.arn
+}
+
+output "superset_athena_access_key_id" {
+  description = "Access key ID for Superset to access Athena"
+  value       = aws_iam_access_key.superset_athena_access_key.id
+}
+
+output "superset_athena_secret_access_key" {
+  description = "Secret access key for Superset to access Athena"
+  value       = aws_iam_access_key.superset_athena_access_key.secret
+  sensitive   = true
 }
 
 output "application_logs_table_name" {

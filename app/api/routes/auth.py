@@ -8,11 +8,10 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.core.config import settings
 from app.core.security import create_access_token, verify_token, refresh_token, is_token_expired
-import uuid
-from app.crud import user
+from app.crud import user, password_reset_token
 from app.models.user import User
 from app.schemas.token import Token
-from app.schemas.user import User as UserSchema
+from app.schemas.user import User as UserSchema, PasswordSet, TokenVerificationResponse, UserUpdate
 from app.utils.audit import log_action
 from app.utils.logger import get_logger
 from app.schemas.audit import AuditLogActionType
@@ -143,16 +142,74 @@ def refresh_access_token(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    # Log successful token refresh
-    # logger.info(f"Token refreshed for user ID: {user_id} from IP: {client_ip}")
-    # log_action(
-    #     db=db,
-    #     user_id=uuid.UUID(user_id),
-    #     action_type="TOKEN_REFRESH",
-    #     resource_type="USER",
-    #     resource_id=user_id,
-    #     ip_address=client_ip,
-    #     user_agent=user_agent
-    # )
-    
     return {"access_token": new_token, "token_type": "bearer"}
+
+
+@router.post("/set-password")
+def set_password(
+    *,
+    db: Session = Depends(deps.get_db),
+    password_data: PasswordSet,
+) -> Any:
+    """
+    Set password using reset token
+    """
+    # Get token
+    token_obj = password_reset_token.get_by_token(db, token=password_data.token)
+    if not token_obj:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired token"
+        )
+    
+    # Get user
+    user_obj = user.get_by_id(db, user_id=token_obj.user_id)
+    if not user_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    # Update password
+    user_in = UserUpdate(password=password_data.new_password)
+    updated_user = user.update(db, db_obj=user_obj, obj_in=user_in)
+    
+    # Mark token as used
+    password_reset_token.mark_as_used(db, db_obj=token_obj)
+    
+    # Log password set action
+    log_action(
+        db=db,
+        user_id=user_obj.user_id,
+        action_type=AuditLogActionType.PASSWORD_CHANGE,
+        resource_type="USER",
+        resource_id=str(user_obj.user_id),
+        details={"method": "password_reset_token"}
+    )
+    
+    return {"message": "Password set successfully"}
+
+
+
+@router.get("/verify-token/{token}", response_model=TokenVerificationResponse)
+def verify_reset_token(
+    *,
+    db: Session = Depends(deps.get_db),
+    token: str,
+) -> Any:
+    """
+    Verify if a password reset token is valid
+    """
+    token_obj = password_reset_token.get_by_token(db, token=token)
+    if not token_obj:
+        return TokenVerificationResponse(valid=False)
+    
+    user_obj = user.get_by_id(db, user_id=token_obj.user_id)
+    if not user_obj:
+        return TokenVerificationResponse(valid=False)
+    
+    return TokenVerificationResponse(
+        valid=True,
+        email=user_obj.email,
+        name=f"{user_obj.first_name or ''} {user_obj.last_name or ''}".strip() or user_obj.email
+    )

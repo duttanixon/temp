@@ -86,3 +86,21 @@ class UserAdminView(User):
 class UserPasswordChange(BaseModel):
     current_password: str
     new_password: str
+
+class UserCreateWithoutPassword(BaseModel):
+    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    role: UserRole
+    customer_id: Optional[UUID] = None
+
+# Schema for password reset/set
+class PasswordSet(BaseModel):
+    token: str
+    new_password: str
+
+# Schema for token verification response
+class TokenVerificationResponse(BaseModel):
+    valid: bool
+    email: Optional[str] = None
+    name: Optional[str] = None

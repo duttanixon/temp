@@ -19,6 +19,7 @@ def send_email(
     """
     if not settings.SMTP_SERVER:
         # Log error or handle the case when SMTP is not configured
+        print("SMTP server is not configured.")
         return False
     
     if from_address is None:
@@ -53,10 +54,11 @@ def send_email(
         
         server.sendmail(from_address, all_recipients, msg.as_string())
         server.quit()
+        print(f"Email sent successfully to {', '.join(to_addresses)}")
         return True
     except Exception as e:
         # Log the error or handle it appropriately
-        print(f"Error sending email: {str(e)}")
+        print(f"Error sending email here: {str(e)}")
         return False
 
 
@@ -97,6 +99,32 @@ def send_password_reset_email(email: str, reset_token: str) -> bool:
     {reset_url}
     
     If you did not request this reset, please ignore this email.
+    
+    Regards,
+    The Edge Device Management Team
+    """
+    
+    return send_email([email], subject, body)
+
+
+def send_password_set_email(email: str, name: str, reset_token: str) -> bool:
+    """
+    Send password set email for new users
+    """
+    subject = "Set Your Password - Edge Device Management System"
+    reset_url = f"{settings.FRONTEND_URL}/set-password?token={reset_token}"
+    body = f"""
+    Hello {name},
+    
+    Welcome to the Edge Device Management System! Your account has been created.
+    
+    Please click the link below to set your password:
+    
+    {reset_url}
+    
+    This link will expire in 2 hours.
+    
+    If you did not expect this email, please ignore it.
     
     Regards,
     The Edge Device Management Team

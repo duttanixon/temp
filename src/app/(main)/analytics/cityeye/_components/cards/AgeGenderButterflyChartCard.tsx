@@ -30,13 +30,12 @@ export default function AgeGenderButterflyChartCard({
   isLoading,
   error,
   hasAttemptedFetch,
-  chartHeight, // Use this if provided, otherwise ButterflyChart default
   barSize, // Use this if provided, otherwise ButterflyChart default
 }: AgeGenderButterflyChartCardProps) {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[250px]">
+        <div className="flex flex-col items-center justify-center h-[406px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">データを読み込み中...</p>
         </div>
@@ -45,7 +44,7 @@ export default function AgeGenderButterflyChartCard({
 
     if (error && hasAttemptedFetch) {
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[250px] text-destructive">
+        <div className="flex flex-col items-center justify-center h-[460px] text-destructive">
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">エラー</p>
           <p className="text-xs text-center px-2">{error}</p>
@@ -56,7 +55,7 @@ export default function AgeGenderButterflyChartCard({
     if (data?.error && hasAttemptedFetch) {
       // Check for processing error from util
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[250px] text-destructive">
+        <div className="flex flex-col items-center justify-center h-[406px] text-destructive">
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">データ処理エラー</p>
           <p className="text-xs text-center px-2">{data.error}</p>
@@ -66,7 +65,7 @@ export default function AgeGenderButterflyChartCard({
 
     if (!hasAttemptedFetch) {
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[250px]">
+        <div className="flex flex-col items-center justify-center h-[406px]">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground p-4 text-center">
             フィルターを適用して年齢性別構成データを表示します。
@@ -77,7 +76,7 @@ export default function AgeGenderButterflyChartCard({
 
     if (!data || (!data.groupAData.length && !data.groupBData.length)) {
       return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[250px]">
+        <div className="flex flex-col items-center justify-center h-[406px]">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">データがありません。</p>
           {hasAttemptedFetch && !error && (
@@ -103,7 +102,7 @@ export default function AgeGenderButterflyChartCard({
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col col-span-1 md:col-span-2 h-[560px]">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col col-span-1 md:col-span-2 h-[406px]">
       {/* Span 2 columns */}
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">

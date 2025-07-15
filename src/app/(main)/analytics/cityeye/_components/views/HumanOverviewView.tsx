@@ -107,6 +107,7 @@ export default function OverviewView({
           error={error} // This error is general for the API call
           hasAttemptedFetch={hasAttemptedFetch}
           data={processedData?.ageGenderDistribution ?? null}
+          barSize={25}
         />
       </div>
       <TimeSeriesCard

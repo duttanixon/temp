@@ -135,7 +135,7 @@ export default function TimeSeriesCard({
     if (active && payload && payload[0]) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
+        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg h-[406px]">
           <p className="text-sm font-medium text-gray-700">
             {data.date} {data.hour}
           </p>

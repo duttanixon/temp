@@ -19,7 +19,7 @@ export default function TotalVehiclesCard({
   const hasData = hasAttemptedFetch && totalCountData !== null;
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[198px]">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}

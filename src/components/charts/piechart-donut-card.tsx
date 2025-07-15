@@ -116,7 +116,7 @@ export default function ShadcnPieChartDonutCard({
       <>
         <ChartContainer
           config={chartConfig}
-          className="mx-auto w-full max-w-xs aspect-square [&_.recharts-text:not(.recharts-label)]:fill-background"
+          className="mx-auto w-full max-w-[250px] aspect-square [&_.recharts-text:not(.recharts-label)]:fill-background"
         >
           <RechartsPieChart>
             <ChartTooltip
@@ -265,7 +265,7 @@ export default function ShadcnPieChartDonutCard({
   };
 
   return (
-    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 h-[460px]">
+    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 h-[406px]">
       <CardHeader className="items-center pb-0 pt-3 px-4 flex flex-row justify-between">
         <CardTitle className="text-gray-700">{title}</CardTitle>
       </CardHeader>

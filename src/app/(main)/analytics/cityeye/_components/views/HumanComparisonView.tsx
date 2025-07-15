@@ -137,6 +137,7 @@ export default function HumanComparisonView({
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
             data={mainPeriodProcessedData?.ageGenderDistribution ?? null}
+            barSize={25}
           />
           <TimeSeriesCard
             title="期間分析 (分析期間)"
@@ -233,6 +234,7 @@ export default function HumanComparisonView({
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
             data={comparisonPeriodProcessedData?.ageGenderDistribution ?? null}
+            barSize={25}
           />
           <TimeSeriesCard
             title="期間分析 (比較期間)"

@@ -87,7 +87,8 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}>
+          style={{ height: `${chartHeight}px` }}
+        >
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">データを読み込み中...</p>
         </div>
@@ -98,7 +99,8 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center text-destructive"
-          style={{ height: `${chartHeight}px` }}>
+          style={{ height: `${chartHeight}px` }}
+        >
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">エラー</p>
           <p className="text-xs text-center px-2">{error}</p>
@@ -110,7 +112,8 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}>
+          style={{ height: `${chartHeight}px` }}
+        >
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground p-4 text-center">
             フィルターを適用してデータを表示します。
@@ -123,7 +126,8 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}>
+          style={{ height: `${chartHeight}px` }}
+        >
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">{emptyDataMessage}</p>
           {hasAttemptedFetch && !error && (
@@ -139,7 +143,8 @@ export default function ShadcnAreaChartCard({
       <ChartContainer
         config={chartConfig}
         className="mx-auto"
-        style={{ height: `${chartHeight}px` }}>
+        style={{ height: `${chartHeight}px` }}
+      >
         <AreaChart
           accessibilityLayer
           data={chartData}
@@ -147,7 +152,8 @@ export default function ShadcnAreaChartCard({
             left: yAxisWidth > 60 ? 12 : -4, // Adjust left margin if yAxisWidth is large
             right: 12,
             top: 10,
-          }}>
+          }}
+        >
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey={categoryKey}
@@ -226,7 +232,7 @@ export default function ShadcnAreaChartCard({
     );
   };
   return (
-    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
+    <Card className="flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 h-[406px]">
       <CardHeader className="items-center pb-0 pt-3 px-4">
         <CardTitle className="text-gray-700">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}

@@ -20,7 +20,7 @@ export default function PerDevicePeopleCard({
 }: PerDevicePeopleCardProps) {
   const hasData = hasAttemptedFetch && perDeviceCountsData.length > 0;
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[250px]">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[406px]">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}

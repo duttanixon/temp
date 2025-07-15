@@ -19,7 +19,7 @@ export default function DailyAveragePeopleCard({
   const hasData = hasAttemptedFetch && daysCountData !== null;
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[260px]">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
@@ -34,8 +34,7 @@ export default function DailyAveragePeopleCard({
             hasAttemptedFetch
               ? "日平均人数データがありません。"
               : "フィルターを適用して日平均人数データを表示します。"
-          }
-        >
+          }>
           {hasData ? (
             <div className="h-full flex flex-col justify-center">
               <div className="text-center mb-3">

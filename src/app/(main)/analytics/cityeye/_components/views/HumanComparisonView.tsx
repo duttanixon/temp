@@ -5,12 +5,12 @@ import { formatISO } from "date-fns";
 import { DateRange } from "react-day-picker";
 import AgeDistributionCard from "../cards/AgeDistributionCard";
 import AgeGenderButterflyChartCard from "../cards/AgeGenderButterflyChartCard";
+import CameraMapCard from "../cards/CameraMapCard";
 import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
-import CameraMapCard from "../cards/CameraMapCard";
 
 interface ComparisonViewProps {
   mainPeriodProcessedData: ProcessedAnalyticsData | null;
@@ -58,8 +58,8 @@ export default function HumanComparisonView({
               ({formatDateRange(mainPeriodDateRange)})
             </span>
           </div>
-          <div className="grid grid-rows-2 gap-3">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-rows-2 gap-3">
               <TotalPeopleCard
                 title="総人数 (分析期間)"
                 totalCountData={
@@ -146,8 +146,8 @@ export default function HumanComparisonView({
               ({formatDateRange(comparisonPeriodDateRange)})
             </span>
           </div>
-          <div className="grid grid-rows-2 gap-3">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-rows-2 gap-3">
               <TotalPeopleCard
                 title="総人数 (比較期間)"
                 totalCountData={
@@ -165,7 +165,7 @@ export default function HumanComparisonView({
                 }
                 isLoading={isLoadingMain}
                 error={errorMain}
-                hasAttemptedFetch={hasAttemptedFetchMain}
+                hasAttemptedFetch={hasAttemptedFetchComparison}
               />
             </div>
             <PerDevicePeopleCard

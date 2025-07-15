@@ -7,8 +7,8 @@ import DailyAverageVehiclesCard from "../cards/DailyAverageVehiclesCard";
 import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
-import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 import TrafficMapCard from "../cards/TrafficMapCard";
+import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 
 interface TrafficComparisonViewProps {
   mainPeriodProcessedData: ProcessedTrafficAnalyticsData | null;
@@ -56,8 +56,8 @@ export default function TrafficComparisonView({
               ({formatDateRange(mainPeriodDateRange)})
             </span>
           </div>
-          <div className="grid grid-rows-2 gap-3">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-rows-2 gap-3">
               <TotalVehiclesCard
                 title="総交通量 (分析期間)"
                 totalCountData={
@@ -127,8 +127,8 @@ export default function TrafficComparisonView({
               ({formatDateRange(comparisonPeriodDateRange)})
             </span>
           </div>
-          <div className="grid grid-rows-2 gap-3">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-rows-2 gap-3">
               <TotalVehiclesCard
                 title="総交通量 (比較期間)"
                 totalCountData={

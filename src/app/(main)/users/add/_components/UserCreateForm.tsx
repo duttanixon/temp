@@ -16,6 +16,7 @@ import { toast } from "sonner";
 type Props = {
   role: UserRole;
 };
+
 export const formVariants = cva("", {
   variants: {
     variant: {
@@ -59,8 +60,6 @@ export default function UserCreateForm({ role }: Props) {
       first_name: "",
       last_name: "",
       email: "",
-      password: "",
-      verify_password: "",
       role: undefined,
       customer_id: "",
     },
@@ -76,11 +75,10 @@ export default function UserCreateForm({ role }: Props) {
           return;
         }
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { verify_password, ...apiData } = data;
-      await userService.createUser(apiData);
+      
+      await userService.createUser(data);
       toast.success("作成完了", {
-        description: "新しいユーザーが正常に作成されました。",
+        description: "新しいユーザーが正常に作成されました。パスワード設定用のメールが送信されました。",
       });
       router.push("/users");
       router.refresh();
@@ -143,26 +141,6 @@ export default function UserCreateForm({ role }: Props) {
               id="email"
               label="連絡先メール"
               type="email"
-              register={register}
-              errors={errors}
-              required
-              as="input"
-              inputClassName={formVariants({ variant: "input" })}
-            />
-            <FormField
-              id="password"
-              label="パスワード"
-              type="password"
-              register={register}
-              errors={errors}
-              required
-              as="input"
-              inputClassName={formVariants({ variant: "input" })}
-            />
-            <FormField
-              id="verify_password"
-              label="パスワード(確認用)"
-              type="password"
               register={register}
               errors={errors}
               required

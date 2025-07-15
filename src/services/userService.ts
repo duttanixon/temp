@@ -60,4 +60,28 @@ export const userService = {
       return handleApiError(error);
     }
   },
+  async verifyResetToken(token: string) {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/verify-token/${token}`
+    );
+    if (!response.ok) {
+      throw new Error("Token verification failed");
+    }
+    return response.json();
+  },
+
+  async setPassword(token: string, password: string) {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/set-password`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, new_password: password }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Password set failed");
+    }
+    return response.json();
+  },
 };

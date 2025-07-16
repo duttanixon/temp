@@ -18,7 +18,7 @@ export default auth(async function middleware(req) {
   const path = req.nextUrl.pathname;
 
   // Public paths that don't require authentication
-  const publicPaths = ["/login", "/api/auth", "/set-password"];
+  const publicPaths = ["/login", "/api/auth", "/set-password", "/forgot-password"];
 
   // Check for valid session (exists AND has no error)
   const hasValidSession = session && !session.error;

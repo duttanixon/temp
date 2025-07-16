@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import Link from "next/link";
+import { userService } from "@/services/userService";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
@@ -31,26 +32,19 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotPasswordFormValues) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/auth/forgot-password`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: data.email }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Request failed");
-      }
-
+      await userService.forgotPassword({ email: data.email });
+      
       setIsSubmitted(true);
       toast.success("メールを送信しました", {
         description: "メールアドレスが登録されている場合、パスワードリセットリンクが送信されます。",
       });
     } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "エラーが発生しました";
+        
       toast.error("エラーが発生しました", {
-        description: "しばらくしてからもう一度お試しください。",
+        description: errorMessage,
       });
     }
   };

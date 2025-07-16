@@ -54,3 +54,7 @@ export type UserUpdateData = {
   customer_id?: string;
   status?: UserStatus;
 };
+
+export type ForgotPasswordData = {
+  email: string;
+}

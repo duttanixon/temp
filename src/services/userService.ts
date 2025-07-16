@@ -1,4 +1,4 @@
-import { User, UserCreateData, UserUpdateData } from "@/types/user";
+import { User, UserCreateData, UserUpdateData, ForgotPasswordData } from "@/types/user";
 import axios from "axios";
 import { apiClient, cleanData, handleApiError } from "./baseApiClient";
 
@@ -84,4 +84,17 @@ export const userService = {
     }
     return response.json();
   },
+
+  async forgotPassword(data: ForgotPasswordData): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.post<{ message: string }>(
+        "/auth/forgot-password",
+        data
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
 };

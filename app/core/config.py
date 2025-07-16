@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # API Key for internal services
     INTERNAL_API_KEY: Optional[str] = None
-    FRONTEND_URL: str = "http://0.0.0.0:3000"
+    FRONTEND_URL: Optional[str] = None
 
 
     class Config:

@@ -4,18 +4,18 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.crud import user, customer
+from app.crud import user, customer, password_reset_token
 from app.models.user import User, UserRole
 from app.schemas.user import (
     User as UserSchema,
-    UserCreate,
+    UserCreateWithoutPassword,
     UserUpdate,
     UserPasswordChange,
     UserAdminView,
     UserWithCustomerSchema
 )
 from app.utils.audit import log_action
-from app.utils.email import send_welcome_email
+from app.utils.email import send_password_set_email
 import uuid
 import secrets
 import string
@@ -161,13 +161,13 @@ def read_users(
 def create_user(
     *,
     db: Session = Depends(deps.get_db),
-    user_in: UserCreate,
+    user_in: UserCreateWithoutPassword,
     current_user: User = Depends(deps.get_current_active_user),
     request: Request,
     customer_id: Optional[uuid.UUID] = None,
 ) -> Any:
     """
-    Create new user.
+    Create new user. The user will receive an email to set their password.
     - For admins: Can create any user type for any customer
     - For customer admins: Can only create users for their own customer with limited roles
     - For regular users: Not accessible
@@ -219,25 +219,20 @@ def create_user(
                 detail="The customer with this ID does not exist",
             )
         user_in.customer_id = effective_customer_id
-    
-    # If password not provided, generate one
-    should_send_email = False
-    if not hasattr(user_in, 'password') or not user_in.password:
-        password = generate_password()
-        user_in.password = password
-        should_send_email = True
 
-    # Create the user
-    new_user = user.create(db, obj_in=user_in)
-    
-    # Send welcome email with generated password
-    if should_send_email:
-        send_welcome_email(
-            new_user.email, 
-            f"{new_user.first_name or ''} {new_user.last_name or ''}".strip() or new_user.email,
-            password
-        )
-    
+    # Create the user without password
+    new_user = user.create_without_password(db, obj_in=user_in)
+
+    # Create password reset token
+    reset_token = password_reset_token.create_token(db, user_id=new_user.user_id, expires_in_hours=2)
+
+    # Send password set email
+    send_password_set_email(
+        new_user.email,
+        f"{new_user.first_name or ''} {new_user.last_name or ''}".strip() or new_user.email,
+        reset_token.token
+    )
+
     # Log user creation
     log_action(
         db=db,

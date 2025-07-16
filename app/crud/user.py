@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase
 from app.models.user import User, UserStatus
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, UserUpdate, UserCreateWithoutPassword
 import uuid
 
 
@@ -73,6 +73,26 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db.commit()
         db.refresh(user)
         return user
+
+    def create_without_password(self, db: Session, *, obj_in: UserCreateWithoutPassword) -> User:
+        """Create a user without setting a password (they will set it via email link)"""
+        # Generate a temporary random password that will never be used
+        temp_password = str(uuid.uuid4())
+        
+        db_obj = User(
+            user_id=uuid.uuid4(),
+            email=obj_in.email,
+            password_hash=get_password_hash(temp_password),
+            first_name=obj_in.first_name,
+            last_name=obj_in.last_name,
+            role=obj_in.role,
+            customer_id=obj_in.customer_id,
+            status=UserStatus.ACTIVE
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
 
 user = CRUDUser(User)

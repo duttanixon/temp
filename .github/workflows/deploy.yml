@@ -54,6 +54,7 @@ jobs:
         SMTP_USER=${{ secrets.SMTP_USER }}
         SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
         EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+        FRONTEND_URL=${{ secrets.FRONTEND_URL }}
         EOL"
 
     - name: Deploy to EC2

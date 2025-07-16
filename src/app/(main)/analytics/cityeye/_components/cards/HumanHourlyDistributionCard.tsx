@@ -49,12 +49,12 @@ export default function HumanHourlyDistributionCard({
   return (
     <ShadcnAreaChartCard
       title={title}
-      description="時間帯別の合計人数" // "Total number of people by time slot"
+      // description="時間帯別の合計人数" // "Total number of people by time slot"
       data={hourlyDistributionData}
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
-      chartHeight={300} // Increased height
+      chartHeight={340} // Increased height
       emptyDataMessage="時間別データがありません。" // "No hourly data available."
       categoryKey="hour"
       dataKeys={areaChartDataKeys}

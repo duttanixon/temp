@@ -135,7 +135,7 @@ export default function TimeSeriesCard({
     if (active && payload && payload[0]) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg h-[406px]">
+        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
           <p className="text-sm font-medium text-gray-700">
             {data.date} {data.hour}
           </p>
@@ -185,7 +185,7 @@ export default function TimeSeriesCard({
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 30 }}
+                margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
               >
                 <defs>
                   <linearGradient
@@ -219,7 +219,7 @@ export default function TimeSeriesCard({
                   tickFormatter={xAxisTickFormatter}
                   angle={-45}
                   textAnchor="end"
-                  height={60}
+                  height={40}
                 />
 
                 <YAxis
@@ -227,7 +227,7 @@ export default function TimeSeriesCard({
                   axisLine={false}
                   tick={{ fontSize: 11 }}
                   tickFormatter={yAxisTickFormatter}
-                  width={80}
+                  width={60}
                 />
 
                 <Tooltip content={<CustomTooltip />} />

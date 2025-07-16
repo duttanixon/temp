@@ -102,7 +102,7 @@ export default function OverviewView({
       <div className="col-span-1">
         <AgeGenderButterflyChartCard
           title="年齢層・性別構成"
-          description="指定期間内の年齢層別・性別の人数構成"
+          // description="指定期間内の年齢層別・性別の人数構成"
           isLoading={isLoading}
           error={error} // This error is general for the API call
           hasAttemptedFetch={hasAttemptedFetch}

@@ -44,7 +44,7 @@ export default function AgeGenderButterflyChartCard({
 
     if (error && hasAttemptedFetch) {
       return (
-        <div className="flex flex-col items-center justify-center h-[460px] text-destructive">
+        <div className="flex flex-col items-center justify-center h-full text-destructive">
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">エラー</p>
           <p className="text-xs text-center px-2">{error}</p>
@@ -55,7 +55,7 @@ export default function AgeGenderButterflyChartCard({
     if (data?.error && hasAttemptedFetch) {
       // Check for processing error from util
       return (
-        <div className="flex flex-col items-center justify-center h-[406px] text-destructive">
+        <div className="flex flex-col items-center justify-center h-full text-destructive">
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">データ処理エラー</p>
           <p className="text-xs text-center px-2">{data.error}</p>
@@ -65,7 +65,7 @@ export default function AgeGenderButterflyChartCard({
 
     if (!hasAttemptedFetch) {
       return (
-        <div className="flex flex-col items-center justify-center h-[406px]">
+        <div className="flex flex-col items-center justify-center h-full">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground p-4 text-center">
             フィルターを適用して年齢性別構成データを表示します。

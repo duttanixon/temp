@@ -151,7 +151,7 @@ export default function ShadcnAreaChartCard({
           margin={{
             left: yAxisWidth > 60 ? 12 : -4, // Adjust left margin if yAxisWidth is large
             right: 12,
-            top: 10,
+            top: 20,
           }}
         >
           <CartesianGrid vertical={false} />

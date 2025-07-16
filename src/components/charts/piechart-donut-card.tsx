@@ -235,7 +235,7 @@ export default function ShadcnPieChartDonutCard({
     if (!hasAttemptedFetch) {
       return (
         <div
-          className="flex flex-col items-center justify-center"
+          className="flex flex-col items-center justify-center h-full"
           style={{ height: `${chartHeight}px` }}
         >
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
@@ -272,7 +272,9 @@ export default function ShadcnPieChartDonutCard({
       {description && (
         <CardDescription className="px-4 pt-1">{description}</CardDescription>
       )}
-      <CardContent className="flex-1 pb-0">{renderCardContent()}</CardContent>
+      <CardContent className="pb-0 flex flex-col items-center justify-center h-full">
+        {renderCardContent()}
+      </CardContent>
       {(footerText || showTrending) && (
         <CardFooter className="flex-col gap-1 text-xs pt-2 pb-3">
           {showTrending && (

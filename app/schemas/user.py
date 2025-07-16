@@ -104,3 +104,7 @@ class TokenVerificationResponse(BaseModel):
     valid: bool
     email: Optional[str] = None
     name: Optional[str] = None
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for forgot password request"""
+    email: EmailStr

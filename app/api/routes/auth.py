@@ -11,8 +11,9 @@ from app.core.security import create_access_token, verify_token, refresh_token, 
 from app.crud import user, password_reset_token
 from app.models.user import User
 from app.schemas.token import Token
-from app.schemas.user import User as UserSchema, PasswordSet, TokenVerificationResponse, UserUpdate
+from app.schemas.user import User as UserSchema, PasswordSet, TokenVerificationResponse, UserUpdate, ForgotPasswordRequest
 from app.utils.audit import log_action
+from app.utils.email import send_password_reset_email
 from app.utils.logger import get_logger
 from app.schemas.audit import AuditLogActionType
 
@@ -213,3 +214,58 @@ def verify_reset_token(
         email=user_obj.email,
         name=f"{user_obj.first_name or ''} {user_obj.last_name or ''}".strip() or user_obj.email
     )
+
+@router.post("/forgot-password")
+def forgot_password(
+    *,
+    db: Session = Depends(deps.get_db),
+    request_data: ForgotPasswordRequest,
+    request: Request,
+) -> Any:
+    """
+    Request password reset via email
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    
+    logger.info(f"Password reset request for email: {request_data.email} from IP: {client_ip}")
+    
+    # Get user by email
+    user_obj = user.get_by_email(db, email=request_data.email)
+    
+    # Always return success to prevent email enumeration
+    # But only send email if user exists and is active
+    if user_obj and user.is_active(user_obj):
+        # Create password reset token
+        reset_token = password_reset_token.create_token(db, user_id=user_obj.user_id)
+        
+        # Send password reset email
+        email_sent = send_password_reset_email(
+            email=user_obj.email,
+            reset_token=reset_token.token
+        )
+        
+        if email_sent:
+            logger.info(f"Password reset email sent to user: {user_obj.email}")
+            # Log the password reset request
+            log_action(
+                db=db,
+                user_id=user_obj.user_id,
+                action_type=AuditLogActionType.PASSWORD_RESET_REQUEST,
+                resource_type="USER",
+                resource_id=str(user_obj.user_id),
+                ip_address=client_ip,
+                user_agent=user_agent,
+                details={"email": user_obj.email}
+            )
+        else:
+            logger.error(f"Failed to send password reset email to: {user_obj.email}")
+    else:
+        # Log failed attempt only if user doesn't exist
+        if not user_obj:
+            logger.warning(f"Password reset request for non-existent email: {request_data.email} from IP: {client_ip}")
+        else:
+            logger.warning(f"Password reset request for inactive user: {request_data.email} from IP: {client_ip}")
+    
+    # Always return success to prevent email enumeration
+    return {"message": "You will receive a password reset link shortly for valid email address."}

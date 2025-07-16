@@ -66,11 +66,11 @@ def send_welcome_email(email: str, name: str, password: str) -> bool:
     """
     Send a welcome email to a new user
     """
-    subject = "Welcome to Edge Device Management System"
+    subject = "Welcome to Cybercore Platform"
     body = f"""
     Hello {name},
     
-    Welcome to the Edge Device Management System. Your account has been created.
+    Welcome to Cybercore Platform System. Your account has been created.
     
     Your login details:
     Email: {email}
@@ -79,7 +79,7 @@ def send_welcome_email(email: str, name: str, password: str) -> bool:
     Please log in and change your password.
     
     Regards,
-    The Edge Device Management Team
+    Cybercore Platform Team
     """
     
     return send_email([email], subject, body)
@@ -90,7 +90,7 @@ def send_password_reset_email(email: str, reset_token: str) -> bool:
     Send a password reset email
     """
     subject = "Password Reset Request"
-    reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+    reset_url = f"{settings.FRONTEND_URL}/set-password?token={reset_token}"
     body = f"""
     Hello,
     
@@ -101,7 +101,7 @@ def send_password_reset_email(email: str, reset_token: str) -> bool:
     If you did not request this reset, please ignore this email.
     
     Regards,
-    The Edge Device Management Team
+    Cybercore Platform Team
     """
     
     return send_email([email], subject, body)
@@ -111,12 +111,12 @@ def send_password_set_email(email: str, name: str, reset_token: str) -> bool:
     """
     Send password set email for new users
     """
-    subject = "Set Your Password - Edge Device Management System"
+    subject = "Set Your Password - Cybercore Platform"
     reset_url = f"{settings.FRONTEND_URL}/set-password?token={reset_token}"
     body = f"""
     Hello {name},
     
-    Welcome to the Edge Device Management System! Your account has been created.
+    Welcome to Cybercore Platform ! Your account has been created.
     
     Please click the link below to set your password:
     
@@ -127,7 +127,7 @@ def send_password_set_email(email: str, name: str, reset_token: str) -> bool:
     If you did not expect this email, please ignore it.
     
     Regards,
-    The Edge Device Management Team
+    Cybercore Platform Team
     """
     
     return send_email([email], subject, body)

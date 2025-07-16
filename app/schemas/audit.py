@@ -12,6 +12,7 @@ class AuditLogActionType(str, Enum):
     LOGIN_FAILED = "LOGIN_FAILED"
     LOGOUT = "LOGOUT"
     PASSWORD_CHANGE = "PASSWORD_CHANGE"
+    PASSWORD_RESET_REQUEST = "PASSWORD_RESET_REQUEST"
     
     # User Management
     USER_CREATE = "USER_CREATE"

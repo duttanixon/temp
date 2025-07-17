@@ -5,6 +5,7 @@
 import dynamic from "next/dynamic";
 
 import { ProcessedAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytics";
+import InitialDirectionCard from "../cards/InitialDirectionCard";
 
 const PeopleDirectionMapCard = dynamic(
   () => import("../cards/PeopleDirectionMapCard"),
@@ -27,13 +28,18 @@ export default function PeopleDirectionView({
   solutionId,
 }: PeopleDirectionViewProps) {
   console.log("PeopleDirectionView processedData:", processedData);
+  const cardTitle = "人流方向マップ";
   if (!processedData || processedData.length === 0) {
-    return;
+    return (
+      <>
+        <InitialDirectionCard title={cardTitle} isLoading={isLoading} />
+      </>
+    );
   }
   return (
     <>
       <PeopleDirectionMapCard
-        title="人流方向マップ"
+        title={cardTitle}
         perDeviceCountsData={processedData}
         isLoading={isLoading}
         error={error}

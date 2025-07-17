@@ -82,7 +82,8 @@ const ResetButton = ({ onClick }: { onClick: () => void }) => {
     <Button
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
-      onClick={onClick}>
+      onClick={onClick}
+    >
       <RefreshCcw />
     </Button>
   );
@@ -145,7 +146,8 @@ export default function PeopleDirectionMapCard({
       <Polyline
         positions={positions}
         pathOptions={{ color, weight, lineCap: "butt", lineJoin: "miter" }}
-        ref={polylineRef}>
+        ref={polylineRef}
+      >
         {tooltip && (
           <Tooltip direction="auto" offset={[5, -5]}>
             {tooltip}
@@ -400,7 +402,8 @@ export default function PeopleDirectionMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用して人流方向マップを表示します。"
-          }>
+          }
+        >
           {!isThresholdsReady ? (
             <div className="flex flex-col items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
@@ -429,7 +432,8 @@ export default function PeopleDirectionMapCard({
                         height: "100%",
                         width: "100%",
                         borderRadius: "0.5rem",
-                      }}>
+                      }}
+                    >
                       <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -527,7 +531,8 @@ export default function PeopleDirectionMapCard({
                         {legendItems.map((item) => (
                           <div
                             className="flex items-center gap-2"
-                            key={item.color}>
+                            key={item.color}
+                          >
                             <span
                               style={{
                                 display: "inline-block",
@@ -535,7 +540,8 @@ export default function PeopleDirectionMapCard({
                                 height: "12px",
                                 background: item.color,
                                 borderRadius: "2px",
-                              }}></span>
+                              }}
+                            ></span>
                             <span>{item.label}</span>
                             <span>{item.range}</span>
                           </div>

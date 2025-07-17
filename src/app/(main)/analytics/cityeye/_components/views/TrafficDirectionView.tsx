@@ -1,7 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import InitialDirectionCard from "@/app/(main)/analytics/cityeye/_components/cards/InitialDirectionCard";
 import { ProcessedTrafficAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytics";
+import dynamic from "next/dynamic";
 
 const TrafficDirectionMapCard = dynamic(
   () => import("../cards/TrafficDirectionMapCard"),
@@ -24,8 +25,13 @@ export default function TrafficDirectionView({
   solutionId,
 }: TrafficDirectionViewProps) {
   console.log("TrafficDirectionView processedData:", processedData);
+  const cardTitle = "交通量方向マップ";
   if (!processedData || processedData.length === 0) {
-    return;
+    return (
+      <>
+        <InitialDirectionCard title={cardTitle} isLoading={isLoading} />
+      </>
+    );
   }
   return (
     <TrafficDirectionMapCard

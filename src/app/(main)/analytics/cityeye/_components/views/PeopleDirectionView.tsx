@@ -4,8 +4,8 @@
 
 import dynamic from "next/dynamic";
 
+import InitialDirectionCard from "@/app/(main)/analytics/cityeye/_components/cards/InitialDirectionCard";
 import { ProcessedAnalyticsDirectionData } from "@/types/cityeye/cityEyeAnalytics";
-import InitialDirectionCard from "../cards/InitialDirectionCard";
 
 const PeopleDirectionMapCard = dynamic(
   () => import("../cards/PeopleDirectionMapCard"),

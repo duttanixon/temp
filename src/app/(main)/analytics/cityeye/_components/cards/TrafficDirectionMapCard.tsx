@@ -30,7 +30,7 @@ import UpdateThresholds from "@/app/(main)/analytics/cityeye/_components/UpdateT
 
 interface TrafficDirectionMapCardProps {
   title: string;
-  perDeviceCountsData: ProcessedAnalyticsDirectionData[] | null;
+  perDeviceCountsData: ProcessedAnalyticsDirectionData[];
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -97,13 +97,24 @@ export default function TrafficDirectionMapCard({
   hasAttemptedFetch,
   solutionId,
 }: TrafficDirectionMapCardProps) {
-  const [resetKey, setResetKey] = useState(0);
-
   console.log(
     "TrafficDirectionMapCard perDeviceCountsData:",
     perDeviceCountsData
   );
 
+  // 閾値取得（最初のデバイスを参照）
+  const firstDeviceId = perDeviceCountsData[0]?.deviceId ?? "";
+  const Device = useGetDevice({
+    id: firstDeviceId,
+  });
+  const customerId = Device.device[0]?.customer_id ?? "";
+
+  const analyticsThresholds = useAnalyticsDirectionThreshold({
+    solutionId: solutionId ?? "",
+    customerId: customerId,
+  });
+
+  const [resetKey, setResetKey] = useState(0);
   const handleReset = useCallback(() => {
     setResetKey((k) => k + 1);
   }, [setResetKey]);
@@ -147,12 +158,6 @@ export default function TrafficDirectionMapCard({
     );
   };
 
-  // nullガード
-  const deviceDataArr = useMemo(
-    () => perDeviceCountsData ?? [],
-    [perDeviceCountsData]
-  );
-
   // 全デバイス分のdetectionZonesをまとめて処理
   const allDetectionZones: (DetectionZone & {
     deviceId: string;
@@ -160,7 +165,7 @@ export default function TrafficDirectionMapCard({
     deviceLocation?: string;
   })[] = useMemo(
     () =>
-      deviceDataArr.flatMap((device) =>
+      perDeviceCountsData.flatMap((device) =>
         (device.direction_data.detectionZones || []).map(
           (zone: {
             polygon_name?: string;
@@ -197,7 +202,7 @@ export default function TrafficDirectionMapCard({
           })
         )
       ),
-    [deviceDataArr]
+    [perDeviceCountsData]
   );
 
   // zoneごとにIN/OUT両方の線の中間地点の間にラベルを1つだけ表示するためのデータ構造を作成
@@ -229,8 +234,49 @@ export default function TrafficDirectionMapCard({
     [allDetectionZones]
   );
 
+  // 日数は全デバイスのdatesの最大長を採用
+  const days = Math.max(
+    ...perDeviceCountsData.map((d) =>
+      Array.isArray(d.dates) ? d.dates.length : 1
+    ),
+    1
+  );
+  const defaultThresholds = [0, 0, 0];
+  const baseThresholds = analyticsThresholds?.rawData?.thresholds
+    ?.traffic_count_thresholds?.length
+    ? analyticsThresholds.rawData.thresholds.traffic_count_thresholds
+    : defaultThresholds;
+
+  console.log("analyticsThresholds:", analyticsThresholds);
+
+  // 閾値取得完了まで描画を抑制
+  const isThresholdsReady = Array.isArray(
+    analyticsThresholds.rawData?.thresholds?.traffic_count_thresholds
+  );
+
+  const [thresholds, setThresholds] = useState<number[]>(
+    baseThresholds.map((t) => t * days)
+  );
+
+  if (
+    hasAttemptedFetch &&
+    analyticsThresholds?.rawData?.thresholds?.traffic_count_thresholds?.length
+  ) {
+    const newThresholds =
+      analyticsThresholds.rawData.thresholds.traffic_count_thresholds.map(
+        (t) => t * days
+      );
+    if (
+      thresholds.length !== newThresholds.length ||
+      thresholds.some((v, i) => v !== newThresholds[i])
+    ) {
+      setThresholds(newThresholds);
+    }
+  }
+
   // Polyline描画用データ
-  const polylines: Polyline[] = useMemo(() => {
+  const [polylines, setPolylines] = useState<Polyline[]>([]);
+  useEffect(() => {
     const result: Polyline[] = [];
     zoneLinePairs.forEach((zone) => {
       if (zone.inLine) {
@@ -260,8 +306,8 @@ export default function TrafficDirectionMapCard({
         });
       }
     });
-    return result;
-  }, [zoneLinePairs]);
+    setPolylines(result);
+  }, [zoneLinePairs, isThresholdsReady]);
 
   // ズーム用座標
   const coordinatesForZoom: [number, number][] = polylines.flatMap(
@@ -308,72 +354,6 @@ export default function TrafficDirectionMapCard({
     })
     .filter((label: ZoneLabel | null): label is ZoneLabel => label !== null);
 
-  // 閾値取得（最初のデバイスを参照）
-  const firstDeviceId = deviceDataArr[0]?.deviceId ?? "";
-  const Device = useGetDevice({
-    id: firstDeviceId,
-  });
-  const customerId = Device.device[0]?.customer_id ?? "";
-
-  const analyticsThresholds = useAnalyticsDirectionThreshold({
-    solutionId: solutionId ?? "",
-    customerId: customerId,
-  });
-
-  // 日数は全デバイスのdatesの最大長を採用
-  const days = Math.max(
-    ...deviceDataArr.map((d) => (Array.isArray(d.dates) ? d.dates.length : 1)),
-    1
-  );
-  const defaultThresholds = [0, 0, 0];
-  const baseThresholds = analyticsThresholds?.rawData?.thresholds
-    ?.traffic_count_thresholds?.length
-    ? analyticsThresholds.rawData.thresholds.traffic_count_thresholds
-    : defaultThresholds;
-
-  console.log("analyticsThresholds:", analyticsThresholds);
-
-  const [thresholds, setThresholds] = useState<number[]>(
-    baseThresholds.map((t) => t * days)
-  );
-
-  useEffect(() => {
-    if (
-      hasAttemptedFetch &&
-      analyticsThresholds?.rawData?.thresholds?.traffic_count_thresholds?.length
-    ) {
-      const newThresholds =
-        analyticsThresholds.rawData.thresholds.traffic_count_thresholds.map(
-          (t) => t * days
-        );
-      if (
-        thresholds.length !== newThresholds.length ||
-        thresholds.some((v, i) => v !== newThresholds[i])
-      ) {
-        setThresholds(newThresholds);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasAttemptedFetch, analyticsThresholds, days]);
-
-  // 顧客やソリューションが変わったらマップ情報をリセット
-  useEffect(() => {
-    setThresholds([]);
-  }, [customerId, solutionId]);
-
-  // customerIdが未取得の間はマップ描画も閾値取得も抑制
-  const isDeviceReady = !!customerId;
-
-  // 閾値取得完了まで描画を抑制
-  const isThresholdsReady =
-    isDeviceReady &&
-    analyticsThresholds &&
-    !analyticsThresholds.isLoading &&
-    Array.isArray(
-      analyticsThresholds.rawData?.thresholds?.human_count_thresholds
-    ) &&
-    analyticsThresholds.rawData.thresholds.human_count_thresholds.length > 0;
-
   const legendItems = useMemo(
     () => [
       {
@@ -419,132 +399,128 @@ export default function TrafficDirectionMapCard({
           </CardHeader>
 
           <CardContent className="flex-grow p-3">
-            {!isThresholdsReady ? (
-              <GenericAnalyticsCard
-                isLoading={isLoading}
-                error={hasAttemptedFetch ? error : null}
-                hasData={hasAttemptedFetch}
-                emptyMessage={
-                  hasAttemptedFetch
-                    ? undefined
-                    : "フィルターを適用して人流方向マップを表示します。"
-                }
-              >
-                {null}
-              </GenericAnalyticsCard>
-            ) : (
-              <GenericAnalyticsCard
-                isLoading={isLoading}
-                error={hasAttemptedFetch ? error : null}
-                hasData={hasAttemptedFetch}
-                emptyMessage={
-                  hasAttemptedFetch
-                    ? undefined
-                    : "フィルターを適用して交通量方向マップを表示します。"
-                }
-              >
-                {polylines.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-400 text-lg">
-                    <Info className="text-muted-foreground size-8" />
-                    データがありません。
-                  </div>
-                ) : (
-                  <div className="w-full h-120 relative z-[1] cursor-pointer overflow-hidden">
-                    <div className="absolute top-20 left-2 z-[1000]">
-                      <ResetButton onClick={handleReset} />
+            <GenericAnalyticsCard
+              isLoading={isLoading}
+              error={hasAttemptedFetch ? error : null}
+              hasData={hasAttemptedFetch}
+              emptyMessage={
+                hasAttemptedFetch
+                  ? undefined
+                  : "フィルターを適用して交通量方向マップを表示します。"
+              }
+            >
+              {!isThresholdsReady ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    データを読み込み中...
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {polylines.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-400 text-lg">
+                      <Info className="text-muted-foreground size-8" />
+                      データがありません。
                     </div>
-                    <MapContainer
-                      key={resetKey}
-                      zoom={19}
-                      style={{
-                        height: "100%",
-                        width: "100%",
-                        borderRadius: "0.5rem",
-                      }}
-                    >
-                      <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      />
-                      <AutoZoom
-                        hasAttemptedFetch
-                        coordinates={coordinatesForZoom}
-                      />
-                      {/* 矢印線描画 */}
-                      {polylines.map((line: Polyline, index: number) => {
-                        let color = "#4A83BD"; // デフォルトの青色
-                        let legendLabel = legendItems[0].label;
-                        if (line.count >= thresholds[2]) {
-                          color = legendItems[3].color;
-                          legendLabel = legendItems[3].label;
-                        } else if (line.count >= thresholds[1]) {
-                          color = legendItems[2].color;
-                          legendLabel = legendItems[2].label;
-                        } else if (line.count >= thresholds[0]) {
-                          color = legendItems[1].color;
-                          legendLabel = legendItems[1].label;
-                        }
-                        return (
-                          <ArrowPolyline
-                            key={index}
-                            positions={[
-                              [line.start.lat, line.start.lng],
-                              [line.end.lat, line.end.lng],
-                            ]}
-                            color={color}
-                            weight={10}
-                            tooltip={
-                              <>
-                                <div style={{ fontWeight: "bold" }}>
-                                  {(() => {
-                                    const zoneObj = allDetectionZones.find(
-                                      (z) => z.name === line.name
-                                    );
-                                    return zoneObj?.deviceLocation &&
-                                      zoneObj?.deviceName
-                                      ? `${zoneObj.deviceLocation}_${zoneObj.deviceName}`
-                                      : `${zoneObj?.deviceLocation ?? zoneObj?.deviceName ?? "不明なデバイス"}`;
-                                  })()}
-                                </div>
-                                <div>領域名: {line.name}</div>
-                                <div>方向: {line.type}</div>
-                                <div style={{ height: 8 }} />
-                                <div>
-                                  {legendLabel} ({line.count.toLocaleString()}{" "}
-                                  台)
-                                </div>
-                              </>
-                            }
-                          />
-                        );
-                      })}
-                      {/* zoneごとにラベルを1つだけ表示 */}
-                      {zoneLabels.map((label, idx) => {
-                        // テキストの長さに基づいてアイコンサイズを計算
-                        const textLength = label.name.length;
-                        const iconWidth = Math.max(24, textLength * 24); // 1文字あたり24pxの幅を計算
-                        const iconHeight = 30; // 高さは固定
-                        const iconAnchorX = iconWidth / 2; // 横方向の中心
-                        const iconAnchorY = iconHeight / 2; // 縦方向の中心
-                        return (
-                          <Marker
-                            key={label.name + idx}
-                            position={[label.lat, label.lng]}
-                            interactive={false}
-                            icon={L.divIcon({
-                              className: "zone-label-marker",
-                              html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;display:flex;align-items:center;justify-content:center;">${label.name}</div>`,
-                              iconSize: [iconWidth, iconHeight], // zoneごとに計算されたサイズ
-                              iconAnchor: [iconAnchorX, iconAnchorY], // zoneごとに計算されたアンカー
-                            })}
-                          />
-                        );
-                      })}
-                    </MapContainer>
-                  </div>
-                )}
-              </GenericAnalyticsCard>
-            )}
+                  ) : (
+                    <div className="w-full h-120 relative z-[1] cursor-pointer overflow-hidden">
+                      <div className="absolute top-20 left-2 z-[1000]">
+                        <ResetButton onClick={handleReset} />
+                      </div>
+                      <MapContainer
+                        key={resetKey}
+                        zoom={19}
+                        style={{
+                          height: "100%",
+                          width: "100%",
+                          borderRadius: "0.5rem",
+                        }}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <AutoZoom
+                          hasAttemptedFetch
+                          coordinates={coordinatesForZoom}
+                        />
+                        {/* 矢印線描画 */}
+                        {polylines.map((line: Polyline, index: number) => {
+                          let color = "#4A83BD"; // デフォルトの青色
+                          let legendLabel = legendItems[0].label;
+                          if (line.count >= thresholds[2]) {
+                            color = legendItems[3].color;
+                            legendLabel = legendItems[3].label;
+                          } else if (line.count >= thresholds[1]) {
+                            color = legendItems[2].color;
+                            legendLabel = legendItems[2].label;
+                          } else if (line.count >= thresholds[0]) {
+                            color = legendItems[1].color;
+                            legendLabel = legendItems[1].label;
+                          }
+                          return (
+                            <ArrowPolyline
+                              key={index}
+                              positions={[
+                                [line.start.lat, line.start.lng],
+                                [line.end.lat, line.end.lng],
+                              ]}
+                              color={color}
+                              weight={10}
+                              tooltip={
+                                <>
+                                  <div style={{ fontWeight: "bold" }}>
+                                    {(() => {
+                                      const zoneObj = allDetectionZones.find(
+                                        (z) => z.name === line.name
+                                      );
+                                      return zoneObj?.deviceLocation &&
+                                        zoneObj?.deviceName
+                                        ? `${zoneObj.deviceLocation}_${zoneObj.deviceName}`
+                                        : `${zoneObj?.deviceLocation ?? zoneObj?.deviceName ?? "不明なデバイス"}`;
+                                    })()}
+                                  </div>
+                                  <div>領域名: {line.name}</div>
+                                  <div>方向: {line.type}</div>
+                                  <div style={{ height: 8 }} />
+                                  <div>
+                                    {legendLabel} ({line.count.toLocaleString()}{" "}
+                                    台)
+                                  </div>
+                                </>
+                              }
+                            />
+                          );
+                        })}
+                        {/* zoneごとにラベルを1つだけ表示 */}
+                        {zoneLabels.map((label, idx) => {
+                          // テキストの長さに基づいてアイコンサイズを計算
+                          const textLength = label.name.length;
+                          const iconWidth = Math.max(24, textLength * 24); // 1文字あたり24pxの幅を計算
+                          const iconHeight = 30; // 高さは固定
+                          const iconAnchorX = iconWidth / 2; // 横方向の中心
+                          const iconAnchorY = iconHeight / 2; // 縦方向の中心
+                          return (
+                            <Marker
+                              key={label.name + idx}
+                              position={[label.lat, label.lng]}
+                              interactive={false}
+                              icon={L.divIcon({
+                                className: "zone-label-marker",
+                                html: `<div style="font-size:24px;font-weight:semi-bold;color:#333;white-space:nowrap;display:flex;align-items:center;justify-content:center;">${label.name}</div>`,
+                                iconSize: [iconWidth, iconHeight], // zoneごとに計算されたサイズ
+                                iconAnchor: [iconAnchorX, iconAnchorY], // zoneごとに計算されたアンカー
+                              })}
+                            />
+                          );
+                        })}
+                      </MapContainer>
+                    </div>
+                  )}
+                </>
+              )}
+            </GenericAnalyticsCard>
           </CardContent>
         </Card>
       </div>
@@ -553,7 +529,7 @@ export default function TrafficDirectionMapCard({
           <Card className="h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 border-l-0">
             <CardContent className="flex flex-col gap-4 text-xs text-gray-600">
               {baseThresholds.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[200px]">
+                <div className="flex flex-col items-center justify-center h-full">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
                   <p className="text-sm text-muted-foreground">
                     データを読み込み中...
@@ -561,29 +537,36 @@ export default function TrafficDirectionMapCard({
                 </div>
               ) : (
                 <>
-                  {legendItems.map((item) => (
-                    <div className="flex items-center gap-2" key={item.color}>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: "12px",
-                          height: "12px",
-                          background: item.color,
-                          borderRadius: "2px",
-                        }}
-                      ></span>
-                      <span>{item.label}</span>
-                      <span>{item.range}</span>
-                    </div>
-                  ))}
-                  <UpdateThresholds
-                    solution_id={solutionId ?? ""}
-                    customer_id={customerId}
-                    type="traffic"
-                    Unit="台"
-                    onUpdated={handleThresholdsUpdated}
-                    initialThresholds={baseThresholds}
-                  />
+                  {isThresholdsReady && (
+                    <>
+                      {legendItems.map((item) => (
+                        <div
+                          className="flex items-center gap-2"
+                          key={item.color}
+                        >
+                          <span
+                            style={{
+                              display: "inline-block",
+                              width: "12px",
+                              height: "12px",
+                              background: item.color,
+                              borderRadius: "2px",
+                            }}
+                          ></span>
+                          <span>{item.label}</span>
+                          <span>{item.range}</span>
+                        </div>
+                      ))}
+                      <UpdateThresholds
+                        solution_id={solutionId ?? ""}
+                        customer_id={customerId}
+                        type="traffic"
+                        Unit="台"
+                        onUpdated={handleThresholdsUpdated}
+                        initialThresholds={baseThresholds}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </CardContent>

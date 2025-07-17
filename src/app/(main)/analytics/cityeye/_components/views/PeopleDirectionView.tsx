@@ -27,6 +27,9 @@ export default function PeopleDirectionView({
   solutionId,
 }: PeopleDirectionViewProps) {
   console.log("PeopleDirectionView processedData:", processedData);
+  if (!processedData || processedData.length === 0) {
+    return;
+  }
   return (
     <>
       <PeopleDirectionMapCard

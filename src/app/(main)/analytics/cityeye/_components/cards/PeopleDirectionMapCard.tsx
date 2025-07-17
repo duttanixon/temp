@@ -30,7 +30,7 @@ import UpdateThresholds from "@/app/(main)/analytics/cityeye/_components/UpdateT
 
 interface PeopleDirectionMapCardProps {
   title: string;
-  perDeviceCountsData: ProcessedAnalyticsDirectionData[] | null;
+  perDeviceCountsData: ProcessedAnalyticsDirectionData[];
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
@@ -96,13 +96,24 @@ export default function PeopleDirectionMapCard({
   hasAttemptedFetch,
   solutionId,
 }: PeopleDirectionMapCardProps) {
-  const [resetKey, setResetKey] = useState(0);
-
   console.log(
     "PeopleDirectionMapCard perDeviceCountsData:",
     perDeviceCountsData
   );
 
+  // 閾値取得（最初のデバイスを参照）
+  const firstDeviceId = perDeviceCountsData[0].deviceId ?? "";
+  const Device = useGetDevice({
+    id: firstDeviceId,
+  });
+  const customerId = Device.device[0]?.customer_id ?? "";
+
+  const analyticsThresholds = useAnalyticsDirectionThreshold({
+    solutionId: solutionId ?? "",
+    customerId: customerId,
+  });
+
+  const [resetKey, setResetKey] = useState(0);
   const handleReset = useCallback(() => {
     setResetKey((k) => k + 1);
   }, [setResetKey]);
@@ -145,11 +156,6 @@ export default function PeopleDirectionMapCard({
       </Polyline>
     );
   };
-  // nullガード
-  const deviceDataArr = useMemo(
-    () => perDeviceCountsData ?? [],
-    [perDeviceCountsData]
-  );
 
   // 全デバイス分のdetectionZonesをまとめて処理
   const allDetectionZones: (DetectionZone & {
@@ -158,7 +164,7 @@ export default function PeopleDirectionMapCard({
     deviceLocation?: string;
   })[] = useMemo(
     () =>
-      deviceDataArr.flatMap((device) =>
+      perDeviceCountsData.flatMap((device) =>
         (device.direction_data.detectionZones || []).map(
           (zone: {
             polygon_name?: string;
@@ -195,7 +201,7 @@ export default function PeopleDirectionMapCard({
           })
         )
       ),
-    [deviceDataArr]
+    [perDeviceCountsData]
   );
 
   // zoneごとにIN/OUT両方の線の中間地点の間にラベルを1つだけ表示するためのデータ構造を作成
@@ -227,22 +233,11 @@ export default function PeopleDirectionMapCard({
     [allDetectionZones]
   );
 
-  // 閾値取得（最初のデバイスを参照）
-  const firstDeviceId = deviceDataArr[0]?.deviceId ?? "";
-  const Device = useGetDevice({
-    id: firstDeviceId,
-  });
-  const customerId = Device.device[0]?.customer_id ?? "";
-
-  const analyticsThresholds = useAnalyticsDirectionThreshold({
-    solutionId: solutionId ?? "",
-    customerId: customerId,
-  });
-
   // 日数は全デバイスのdatesの最大長を採用
   const days = Math.max(
-    ...deviceDataArr.map((d) => (Array.isArray(d.dates) ? d.dates.length : 1)),
-    1
+    ...perDeviceCountsData.map((d) =>
+      Array.isArray(d.dates) ? d.dates.length : 1
+    )
   );
   const defaultThresholds = [0, 0, 0];
   const baseThresholds = analyticsThresholds?.rawData?.thresholds
@@ -252,43 +247,30 @@ export default function PeopleDirectionMapCard({
 
   console.log("analyticsThresholds:", analyticsThresholds);
 
+  // 閾値取得完了まで描画を抑制
+  const isThresholdsReady = Array.isArray(
+    analyticsThresholds.rawData?.thresholds?.human_count_thresholds
+  );
+
   const [thresholds, setThresholds] = useState<number[]>(
     baseThresholds.map((t) => t * days)
   );
 
-  useEffect(() => {
+  if (
+    isThresholdsReady &&
+    analyticsThresholds?.rawData?.thresholds?.human_count_thresholds?.length
+  ) {
+    const newThresholds =
+      analyticsThresholds.rawData.thresholds.human_count_thresholds.map(
+        (t) => t * days
+      );
     if (
-      hasAttemptedFetch &&
-      analyticsThresholds?.rawData?.thresholds?.human_count_thresholds?.length
+      thresholds.length !== newThresholds.length ||
+      thresholds.some((v, i) => v !== newThresholds[i])
     ) {
-      const newThresholds =
-        analyticsThresholds.rawData.thresholds.human_count_thresholds.map(
-          (t) => t * days
-        );
-      if (
-        thresholds.length !== newThresholds.length ||
-        thresholds.some((v, i) => v !== newThresholds[i])
-      ) {
-        setThresholds(newThresholds);
-      }
+      setThresholds(newThresholds);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasAttemptedFetch, analyticsThresholds, days]);
-
-  // customerIdとsolutionIdが未取得の間はマップ描画も閾値取得も抑制
-  const isDeviceReady = !!customerId && !!solutionId;
-
-  // 閾値取得完了まで描画を抑制
-  const isThresholdsReady =
-    isDeviceReady &&
-    analyticsThresholds &&
-    !analyticsThresholds.isLoading &&
-    Array.isArray(
-      analyticsThresholds.rawData?.thresholds?.human_count_thresholds
-    ) &&
-    analyticsThresholds.rawData.thresholds.human_count_thresholds.length > 0 &&
-    analyticsThresholds?.rawData?.customer_id === customerId &&
-    analyticsThresholds?.rawData?.solution_id === solutionId;
+  }
 
   // Polyline描画用データ
   const [polylines, setPolylines] = useState<Polyline[]>([]);
@@ -404,12 +386,6 @@ export default function PeopleDirectionMapCard({
     }
   };
 
-  // 顧客やソリューションが変わったらマップ情報をリセット
-  useEffect(() => {
-    setThresholds([]);
-    setPolylines([]);
-  }, [perDeviceCountsData, isLoading]);
-
   return (
     <div className="grid grid-cols-4 gap-0 bg-transparent">
       <div className="col-span-3">
@@ -419,7 +395,6 @@ export default function PeopleDirectionMapCard({
               {title}
             </CardTitle>
           </CardHeader>
-
           <CardContent className="flex-grow p-3">
             <GenericAnalyticsCard
               isLoading={isLoading}
@@ -432,7 +407,7 @@ export default function PeopleDirectionMapCard({
               }
             >
               {!isThresholdsReady ? (
-                <div className="flex flex-col items-center justify-center min-h-[200px]">
+                <div className="flex flex-col items-center justify-center h-full">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
                   <p className="text-sm text-muted-foreground">
                     データを読み込み中...
@@ -551,7 +526,7 @@ export default function PeopleDirectionMapCard({
           <Card className="h-150 flex flex-col shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 border-l-0">
             <CardContent className="flex flex-col gap-4 text-xs text-gray-600">
               {baseThresholds.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[200px]">
+                <div className="flex flex-col items-center justify-center h-full">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
                   <p className="text-sm text-muted-foreground">
                     データを読み込み中...

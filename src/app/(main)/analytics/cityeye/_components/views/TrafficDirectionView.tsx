@@ -24,6 +24,9 @@ export default function TrafficDirectionView({
   solutionId,
 }: TrafficDirectionViewProps) {
   console.log("TrafficDirectionView processedData:", processedData);
+  if (!processedData || processedData.length === 0) {
+    return;
+  }
   return (
     <TrafficDirectionMapCard
       title="交通量方向マップ"

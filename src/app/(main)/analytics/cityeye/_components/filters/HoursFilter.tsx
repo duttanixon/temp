@@ -100,8 +100,7 @@ export function HoursFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
-      selectionSummary={selectionSummary}
-    >
+      selectionSummary={selectionSummary}>
       <div className="space-y-4">
         {/* Select All Option */}
         <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
@@ -113,8 +112,7 @@ export function HoursFilter({
           />
           <Label
             htmlFor="select-all-hours"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
-          >
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
             すべて
           </Label>
         </div>
@@ -133,8 +131,7 @@ export function HoursFilter({
                   isPresetSelected(preset)
                     ? "bg-blue-100 text-blue-700 border border-blue-300"
                     : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
-                }`}
-              >
+                }`}>
                 {preset.label}
               </button>
             ))}
@@ -151,8 +148,7 @@ export function HoursFilter({
               {ALL_HOURS.map((hour) => (
                 <div
                   key={hour.id}
-                  className="flex items-center space-x-2 p-1 hover:bg-white rounded transition-colors duration-200 group"
-                >
+                  className="flex items-center space-x-2 p-1 hover:bg-white rounded transition-colors duration-200 group">
                   <Checkbox
                     id={`hour-${hour.id}`}
                     checked={selectedHours.includes(hour.id)}
@@ -161,8 +157,7 @@ export function HoursFilter({
                   />
                   <Label
                     htmlFor={`hour-${hour.id}`}
-                    className="text-xs text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors whitespace-nowrap"
-                  >
+                    className="text-xs text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors whitespace-nowrap">
                     {hour.label}
                   </Label>
                 </div>

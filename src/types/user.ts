@@ -37,7 +37,7 @@ export type UserCreateData = {
   first_name: string;
   last_name: string;
   email: string;
-  password: string;
+  // password: string;
   role: UserRole;
   customer_id?: string;
 };
@@ -54,3 +54,7 @@ export type UserUpdateData = {
   customer_id?: string;
   status?: UserStatus;
 };
+
+export type ForgotPasswordData = {
+  email: string;
+}

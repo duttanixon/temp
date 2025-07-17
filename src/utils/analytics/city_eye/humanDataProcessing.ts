@@ -308,6 +308,22 @@ function processHourlyDistribution(
   for (let i = 0; i < 24; i++) {
     hourlyMap.set(formatHour(i), 0);
   }
+  // Collect all hours present in the data
+  const hoursInData = new Set<string>();
+  data.forEach((item) => {
+    if (!item.error && item.analytics_data?.hourly_distribution) {
+      item.analytics_data.hourly_distribution.forEach((hourData) => {
+        hoursInData.add(formatHour(hourData.hour));
+      });
+    }
+  });
+
+  // Remove hours not present in the data
+  Array.from(hourlyMap.keys()).forEach((hour) => {
+    if (!hoursInData.has(hour)) {
+      hourlyMap.delete(hour);
+    }
+  });
 
   const perDeviceHourlyDistribution = data.map((item) => {
     if (!item.error && item.analytics_data?.hourly_distribution) {

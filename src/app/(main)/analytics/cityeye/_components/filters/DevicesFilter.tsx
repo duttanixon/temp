@@ -153,8 +153,7 @@ export function DevicesFilter({
           />
           <Label
             htmlFor="select-all-devices"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
-          >
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
             すべて
           </Label>
         </div>
@@ -164,7 +163,7 @@ export function DevicesFilter({
           <div className="text-xs text-slate-500 font-medium mb-2">
             個別選択:
           </div>
-          <ScrollArea className="max-h-40">
+          <ScrollArea className="h-30">
             <div className="space-y-1 pr-3">
               {availableDevices.map((device) => {
                 const displayName = `${device.device_location || "N/A"}_${device.device_name || "Unknown"}`;
@@ -172,8 +171,7 @@ export function DevicesFilter({
                 return (
                   <div
                     key={device.device_id}
-                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
-                  >
+                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
                     <Checkbox
                       id={`device-${device.device_id}`}
                       checked={selectedDevices.includes(device.device_id)}
@@ -185,8 +183,7 @@ export function DevicesFilter({
                     <Label
                       htmlFor={`device-${device.device_id}`}
                       className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors truncate"
-                      title={displayName}
-                    >
+                      title={displayName}>
                       {displayName}
                     </Label>
                   </div>
@@ -206,8 +203,7 @@ export function DevicesFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
-      selectionSummary={selectionSummary}
-    >
+      selectionSummary={selectionSummary}>
       {renderContent()}
     </FilterCard>
   );

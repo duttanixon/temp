@@ -83,11 +83,6 @@ export default async function DeviceDetailsPage(
           </Breadcrumb>
           <h2 className="text-lg font-bold text-[#2C3E50]">
             {device.name}
-            {device.isOnline ? (
-              <span className="ml-8 text-green-600 text-lg">オンライン</span>
-            ) : (
-              <span className="ml-8 text-red-600 text-lg">オフライン</span>
-            )}
           </h2>
         </div>
         {/* <DeviceActions device={device} /> */}

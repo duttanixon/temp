@@ -2,7 +2,7 @@
 
 import { type FC } from "react";
 import { useRouter } from "next/navigation";
-import { Edit } from "lucide-react";
+import { Edit, Video } from "lucide-react";
 import { TbPolygon } from "react-icons/tb";
 import { Device } from "@/types/device";
 
@@ -25,6 +25,11 @@ const CityEyeDeviceActions: FC<CityEyeDeviceActionsProps> = ({ device }) => {
     router.push(`/devices/cityeye/${device.device_id}/polygon-settings`);
   };
 
+  const handleLiveStream = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/devices/cityeye/${device.device_id}/live`);
+  };
+
   return (
     <div className="flex size-full items-center justify-center gap-4">
       <button
@@ -39,6 +44,13 @@ const CityEyeDeviceActions: FC<CityEyeDeviceActionsProps> = ({ device }) => {
         title="ポリゴン設定"
       >
         <TbPolygon className="text-xl text-[#7F8C8D] transition-colors duration-300 group-hover:text-white" />
+      </button>
+      <button
+        onClick={handleLiveStream}
+        className="group flex size-[34px] items-center justify-center rounded-full transition-colors duration-300 hover:bg-[#E74C3C]"
+        title="ライブストリーム"
+      >
+        <Video className="text-xl text-[#7F8C8D] transition-colors duration-300 group-hover:text-white" />
       </button>
     </div>
   );

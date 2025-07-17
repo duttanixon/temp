@@ -1,25 +1,25 @@
 "use client";
 
-import * as React from "react";
-import { CartesianGrid, Area, AreaChart, XAxis, YAxis } from "recharts";
+import CustomTooltipContent from "@/components/charts/custom-tooltip-content";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Loader2, AlertTriangle, Info, TrendingUp } from "lucide-react";
-import CustomTooltipContent from "@/components/charts/custom-tooltip-content";
+import { AlertTriangle, Info, Loader2, TrendingUp } from "lucide-react";
+import * as React from "react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 interface AreaChartDataItem {
   [key: string]: string | number | undefined; // Allow undefined for property values
@@ -87,8 +87,7 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}
-        >
+          style={{ height: `${chartHeight}px` }}>
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">データを読み込み中...</p>
         </div>
@@ -99,8 +98,7 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center text-destructive"
-          style={{ height: `${chartHeight}px` }}
-        >
+          style={{ height: `${chartHeight}px` }}>
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">エラー</p>
           <p className="text-xs text-center px-2">{error}</p>
@@ -112,8 +110,7 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}
-        >
+          style={{ height: `${chartHeight}px` }}>
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground p-4 text-center">
             フィルターを適用してデータを表示します。
@@ -126,8 +123,7 @@ export default function ShadcnAreaChartCard({
       return (
         <div
           className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}
-        >
+          style={{ height: `${chartHeight}px` }}>
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">{emptyDataMessage}</p>
           {hasAttemptedFetch && !error && (
@@ -143,8 +139,7 @@ export default function ShadcnAreaChartCard({
       <ChartContainer
         config={chartConfig}
         className="mx-auto"
-        style={{ height: `${chartHeight}px` }}
-      >
+        style={{ height: `${chartHeight}px` }}>
         <AreaChart
           accessibilityLayer
           data={chartData}
@@ -152,8 +147,7 @@ export default function ShadcnAreaChartCard({
             left: yAxisWidth > 60 ? 12 : -4, // Adjust left margin if yAxisWidth is large
             right: 12,
             top: 10,
-          }}
-        >
+          }}>
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey={categoryKey}
@@ -175,7 +169,6 @@ export default function ShadcnAreaChartCard({
             tickFormatter={
               yAxisTickFormatter || ((value) => value.toLocaleString())
             }
-            unit={unit ? ` ${unit}` : ""}
           />
           <ChartTooltip
             cursor={false}

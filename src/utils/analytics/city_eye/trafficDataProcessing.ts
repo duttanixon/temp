@@ -1,10 +1,13 @@
 import {
   DeviceCountData,
   FilterContext,
+  FilterContextWithDirection,
+  FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse,
   FrontendCityEyeTrafficAnalyticsPerDeviceResponse,
   ProcessedHourlyDataPoint,
   ProcessedHourlyDistributionData,
   ProcessedTrafficAnalyticsData,
+  ProcessedTrafficAnalyticsDirectionData,
   ProcessedVehicleType,
   ProcessedVehicleTypeDistributionData,
 } from "@/types/cityeye/cityEyeAnalytics";
@@ -49,6 +52,33 @@ export function processTrafficAnalyticsData(
     vehicleTypeDistribution: processVehicleTypeDistribution(data),
     hourlyDistribution: processHourlyDistribution(data),
   };
+}
+
+export function processTrafficAnalyticsDirectionData(
+  data: FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse | null,
+  filterContext?: FilterContextWithDirection | null
+): ProcessedTrafficAnalyticsDirectionData[] | null {
+  if (!data) return null;
+
+  // 選択されているdatesを含める
+  const dates = (filterContext?.dates ?? []).map((d) =>
+    d instanceof Date ? d.toISOString() : d
+  );
+
+  // 各デバイスごとにProcessedAnalyticsDirectionDataを作成
+  return data.map((item) => {
+    const detectionZones =
+      item.direction_data && Array.isArray(item.direction_data.detectionZones)
+        ? item.direction_data.detectionZones
+        : [];
+    return {
+      deviceId: item.device_id,
+      deviceName: item.device_name,
+      deviceLocation: item.device_location,
+      dates,
+      direction_data: { detectionZones },
+    } as ProcessedTrafficAnalyticsDirectionData;
+  });
 }
 
 /**

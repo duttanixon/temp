@@ -1,9 +1,12 @@
 import {
   ButterflyChartDataPoint,
   FilterContext,
+  FilterContextWithDirection,
+  FrontendCityEyeAnalyticsPerDeviceDirectionResponse,
   FrontendCityEyeAnalyticsPerDeviceResponse,
   ProcessedAgeGroup,
   ProcessedAnalyticsData,
+  ProcessedAnalyticsDirectionData,
   ProcessedGenderSegment,
   ProcessedHourlyDataPoint,
 } from "@/types/cityeye/cityEyeAnalytics";
@@ -64,6 +67,33 @@ export function processHumanAnalyticsData(
     hourlyDistribution: processHourlyDistribution(data),
     ageGenderDistribution: processAgeGenderDistribution(data),
   };
+}
+
+export function processHumanAnalyticsDirectionData(
+  data: FrontendCityEyeAnalyticsPerDeviceDirectionResponse | null,
+  filterContext?: FilterContextWithDirection | null
+): ProcessedAnalyticsDirectionData[] | null {
+  if (!data) return null;
+
+  // 選択されているdatesを含める
+  const dates = (filterContext?.dates ?? []).map((d) =>
+    d instanceof Date ? d.toISOString() : d
+  );
+
+  // 各デバイスごとにProcessedAnalyticsDirectionDataを作成
+  return data.map((item) => {
+    const detectionZones =
+      item.direction_data && Array.isArray(item.direction_data.detectionZones)
+        ? item.direction_data.detectionZones
+        : [];
+    return {
+      deviceId: item.device_id,
+      deviceName: item.device_name,
+      deviceLocation: item.device_location,
+      dates,
+      direction_data: { detectionZones },
+    } as ProcessedAnalyticsDirectionData;
+  });
 }
 
 /**

@@ -11,18 +11,28 @@ import { FilterGroup } from "./filters/FilterGroup";
 import { useAnalyticsFilters } from "@/hooks/analytics/city_eye/useAnalyticsFilters";
 import { useHumanAnalyticsData } from "@/hooks/analytics/city_eye/useHumanAnalyticsData";
 import { useTrafficAnalyticsData } from "@/hooks/analytics/city_eye/useTrafficAnalyticsData";
-import { processHumanAnalyticsData } from "@/utils/analytics/city_eye/humanDataProcessing";
-import { processTrafficAnalyticsData } from "@/utils/analytics/city_eye/trafficDataProcessing";
+import {
+  processHumanAnalyticsData,
+  processHumanAnalyticsDirectionData,
+} from "@/utils/analytics/city_eye/humanDataProcessing";
+import {
+  processTrafficAnalyticsData,
+  processTrafficAnalyticsDirectionData,
+} from "@/utils/analytics/city_eye/trafficDataProcessing";
 
 import {
   FilterContext,
+  FilterContextWithDirection,
+  FrontendAnalyticsDirectionFilters,
   FrontendAnalyticsFilters,
 } from "@/types/cityeye/cityEyeAnalytics";
-import MonthlyTabContent from "./tabs/MonthlyTabContent";
-import PeopleFlowTabContent from "./tabs/PeopleFlowTabContent";
-import QuarterlyTabContent from "./tabs/QuarterlyTabContent";
-import TrafficFlowTabContent from "./tabs/TrafficFlowTabContent";
-
+import PeopleDirectionTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/PeopleDirectionTabContent";
+import PeopleFlowTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/PeopleFlowTabContent";
+import TrafficDirectionTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/TrafficDirectionTabContent";
+import TrafficFlowTabContent from "@/app/(main)/analytics/cityeye/_components/tabs/TrafficFlowTabContent";
+import { FilterDirectionGroup } from "@/app/(main)/analytics/cityeye/_components/filters/FilterDirectionGroup";
+import { useHumanAnalyticsDirectionData } from "@/hooks/analytics/city_eye/useHumanAnalyticsDirectionData";
+import { useTrafficAnalyticsDirectionData } from "@/hooks/analytics/city_eye/useTrafficAnalyticsDirectionData";
 interface CityEyeClientProps {
   solutionId: string;
 }
@@ -39,18 +49,25 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
   });
 
   // Filter management
-  const { filters, handleFilterChange, validateAndPrepareApiFilters } =
-    useAnalyticsFilters();
+  const {
+    filters,
+    handleFilterChange,
+    validateAndPrepareApiFilters,
+    validateAndPrepareDirectionFilters,
+    resetFilters,
+  } = useAnalyticsFilters();
 
   // Active API filters state
   const [activeFilters, setActiveFilters] = useState<{
     main: FrontendAnalyticsFilters | null;
     comparison: FrontendAnalyticsFilters | null;
-  }>({ main: null, comparison: null });
+    direction?: FrontendAnalyticsDirectionFilters | null;
+  }>({ main: null, comparison: null, direction: null });
   const [appliedFilterContext, setAppliedFilterContext] = useState<{
     main: FilterContext | null;
     comparison: FilterContext | null;
-  }>({ main: null, comparison: null });
+    direction?: FilterContextWithDirection | null;
+  }>({ main: null, comparison: null, direction: null });
 
   // Query parameters based on current tab
   const queryParams: Record<string, boolean> = useMemo((): Record<
@@ -92,14 +109,22 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     error: errorComparison,
   } = useHumanAnalyticsData({
     activeApiFilters:
-      horizontalTab === "people" && verticalTab === "comparison"
-        ? activeFilters.comparison
-        : null,
-    queryParams:
-      horizontalTab === "people" && verticalTab === "comparison"
-        ? queryParams
-        : {},
+      horizontalTab === "people" ? activeFilters.comparison : null,
+    queryParams: horizontalTab === "people" ? queryParams : {},
   });
+
+  const {
+    rawData: directionRawData,
+    isLoading: isLoadingDirection,
+    error: errorDirection,
+  } = useHumanAnalyticsDirectionData({
+    activeApiFilters:
+      horizontalTab === "people-direction"
+        ? (activeFilters.direction ?? null)
+        : null,
+  });
+  console.log("directionRawData", directionRawData);
+  console.log("activeFilters", activeFilters);
 
   // Fetch data for traffic analytics
   const {
@@ -117,13 +142,19 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     error: errorTrafficComparison,
   } = useTrafficAnalyticsData({
     activeApiFilters:
-      horizontalTab === "traffic" && verticalTab === "comparison"
-        ? activeFilters.comparison
+      horizontalTab === "traffic" ? activeFilters.comparison : null,
+    queryParams: horizontalTab === "traffic" ? queryParams : {},
+  });
+
+  const {
+    rawData: directionTrafficRawData,
+    isLoading: isLoadingTrafficDirection,
+    error: errorTrafficDirection,
+  } = useTrafficAnalyticsDirectionData({
+    activeApiFilters:
+      horizontalTab === "traffic-direction"
+        ? (activeFilters.direction ?? null)
         : null,
-    queryParams:
-      horizontalTab === "traffic" && verticalTab === "comparison"
-        ? queryParams
-        : {},
   });
 
   // Process data using appropriate utilities
@@ -141,6 +172,17 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     [comparisonRawData, appliedFilterContext.comparison]
   );
 
+  const processedDirectionData = useMemo(
+    () =>
+      processHumanAnalyticsDirectionData(
+        directionRawData,
+        appliedFilterContext.direction ?? null
+      ),
+    [directionRawData, appliedFilterContext.direction]
+  );
+
+  console.log("appliedFilterContext.direction", appliedFilterContext.direction);
+
   const processedTrafficMainData = useMemo(
     () =>
       processTrafficAnalyticsData(
@@ -157,6 +199,15 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         appliedFilterContext.comparison
       ),
     [comparisonTrafficRawData, appliedFilterContext.comparison]
+  );
+
+  const processedTrafficDirectionData = useMemo(
+    () =>
+      processTrafficAnalyticsDirectionData(
+        directionTrafficRawData,
+        appliedFilterContext.direction ?? null
+      ),
+    [directionTrafficRawData, appliedFilterContext.direction]
   );
 
   // Filter application handler
@@ -177,6 +228,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     const newActiveFilters: typeof activeFilters = {
       main: mainApiFilters,
       comparison: null,
+      direction: null,
     };
 
     const newAppliedFilterContext = {
@@ -188,7 +240,31 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
         dateRange: filters.comparisonPeriod,
         selectedDays: filters.selectedDays,
       },
+      direction: {
+        dates: filters.dates ?? [],
+        selectedDays: filters.selectedDays,
+      },
     };
+    // Handle direction filters if in direction tab
+    const isDirectionTab =
+      horizontalTab === "people-direction" ||
+      horizontalTab === "traffic-direction";
+    if (isDirectionTab) {
+      const directionApiFilters = validateAndPrepareDirectionFilters(
+        filters,
+        horizontalTab
+      );
+      if (!directionApiFilters) {
+        toast.error("フィルター設定を確認してください。");
+        return;
+      }
+      // Update active filters
+      newActiveFilters.direction = directionApiFilters;
+      newAppliedFilterContext.direction = {
+        dates: filters.dates ?? [],
+        selectedDays: filters.selectedDays,
+      };
+    }
 
     // Handle comparison filters if in comparison view
     if (verticalTab === "comparison") {
@@ -217,11 +293,22 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
 
     setActiveFilters(newActiveFilters);
     setAppliedFilterContext(newAppliedFilterContext);
-  }, [filters, horizontalTab, verticalTab, validateAndPrepareApiFilters]);
+  }, [
+    filters,
+    horizontalTab,
+    verticalTab,
+    validateAndPrepareApiFilters,
+    validateAndPrepareDirectionFilters,
+  ]);
 
   // Auto-apply for overview tab on initial load
   useEffect(() => {
     if (autoApplyState.overview || activeFilters.main) return;
+    if (
+      horizontalTab === "people-direction" ||
+      horizontalTab === "traffic-direction"
+    )
+      return;
 
     const canAutoApply =
       solutionId &&
@@ -242,11 +329,17 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     activeFilters.main,
     handleApplyFilters,
     verticalTab,
+    horizontalTab,
   ]);
 
   // Auto-apply for comparison tab when switching to it
   useEffect(() => {
     if (autoApplyState.comparison || activeFilters.main) return;
+    if (
+      horizontalTab === "people-direction" ||
+      horizontalTab === "traffic-direction"
+    )
+      return;
 
     const canAutoApply =
       filters.comparisonPeriod?.from &&
@@ -260,6 +353,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     }
   }, [
     verticalTab,
+    horizontalTab,
     autoApplyState.comparison,
     activeFilters.main,
     filters.comparisonPeriod,
@@ -272,10 +366,15 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     setActiveFilters({ main: null, comparison: null });
     setAppliedFilterContext({ main: null, comparison: null });
     setAutoApplyState({ overview: false, comparison: false });
-  }, [horizontalTab]);
+    resetFilters();
+  }, [horizontalTab, resetFilters]);
 
   // Check if filters are needed for current tab
-  const showFilters = horizontalTab === "people" || horizontalTab === "traffic";
+  const showFilters =
+    horizontalTab === "people" ||
+    horizontalTab === "traffic" ||
+    horizontalTab === "people-direction" ||
+    horizontalTab === "traffic-direction";
 
   // Determine loading state based on current tab
   const isLoading =
@@ -293,7 +392,7 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             verticalTab={verticalTab}
             mainProcessedData={processedMainData}
             isLoadingMain={isLoadingMain}
-            errorMain={errorMain}
+            errorMain={errorDirection}
             hasAttemptedFetchMain={!!activeFilters.main}
             mainPeriodDateRange={filters.analysisPeriod}
             comparisonProcessedData={processedComparisonData}
@@ -320,10 +419,26 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
             peopleMainProcessedData={processedMainData}
           />
         );
-      case "monthly":
-        return <MonthlyTabContent />;
-      case "quarterly":
-        return <QuarterlyTabContent />;
+      case "people-direction":
+        return (
+          <PeopleDirectionTabContent
+            mainProcessedData={processedDirectionData}
+            isLoadingMain={isLoadingDirection}
+            errorMain={errorMain}
+            hasAttemptedFetchMain={!!activeFilters.direction}
+            solutionId={solutionId}
+          />
+        );
+      case "traffic-direction":
+        return (
+          <TrafficDirectionTabContent
+            mainProcessedData={processedTrafficDirectionData}
+            isLoadingMain={isLoadingTrafficDirection}
+            errorMain={errorTrafficDirection}
+            hasAttemptedFetchMain={!!activeFilters.direction}
+            solutionId={solutionId}
+          />
+        );
       default:
         return (
           <div className="p-6 mt-4 flex items-center justify-center h-[calc(100%-var(--tabs-list-height,40px))] bg-white rounded-lg shadow">
@@ -339,42 +454,54 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
     <div className="flex flex-col md:flex-row gap-4">
       {showFilters && (
         <div className="w-full h-full md:w-[300px] border-b md:border-b-0 md:border-r bg-[#F8F9FA] flex flex-col p-2 rounded-lg shadow-sm items-center">
-          <Tabs
-            value={verticalTab}
-            onValueChange={setVerticalTab}
-            className="w-full"
-          >
-            <TabsList className="h-auto grid grid-cols-2 gap-2 rounded-xl bg-white/80 backdrop-blur-sm p-1 w-full shadow-sm border border-gray-200/50">
-              <TabsTrigger
-                value="overview"
-                className={cn(
-                  "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
-                  "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
+          {horizontalTab === "people-direction" ||
+          horizontalTab === "traffic-direction" ? (
+            <div className="overflow-y-auto mt-2 w-full">
+              <FilterDirectionGroup
+                solutionId={solutionId}
+                currentFilters={filters}
+                onFilterChange={handleFilterChange}
+              />
+            </div>
+          ) : (
+            <>
+              <Tabs
+                value={verticalTab}
+                onValueChange={setVerticalTab}
+                className="w-full"
               >
-                分析表示
-              </TabsTrigger>
-              <TabsTrigger
-                value="comparison"
-                className={cn(
-                  "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
-                  "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                )}
-              >
-                比較表示
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="overflow-y-auto mt-2 w-full">
-            <FilterGroup
-              verticalTab={verticalTab}
-              horizontalTab={horizontalTab}
-              solutionId={solutionId}
-              currentFilters={filters}
-              onFilterChange={handleFilterChange}
-            />
-          </div>
+                <TabsList className="h-auto grid grid-cols-2 gap-2 rounded-xl bg-white/80 backdrop-blur-sm p-1 w-full shadow-sm border border-gray-200/50">
+                  <TabsTrigger
+                    value="overview"
+                    className={cn(
+                      "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
+                      "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    )}
+                  >
+                    分析表示
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="comparison"
+                    className={cn(
+                      "flex-1 justify-center rounded-sm text-xs py-2 px-3 cursor-pointer",
+                      "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    )}
+                  >
+                    比較表示
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <div className="overflow-y-auto mt-2 w-full">
+                <FilterGroup
+                  verticalTab={verticalTab}
+                  horizontalTab={horizontalTab}
+                  solutionId={solutionId}
+                  currentFilters={filters}
+                  onFilterChange={handleFilterChange}
+                />
+              </div>
+            </>
+          )}
 
           <Button
             onClick={handleApplyFilters}
@@ -405,18 +532,20 @@ export default function CityEyeClient({ solutionId }: CityEyeClientProps) {
           className="w-full mb-3"
         >
           <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 gap-1 bg-muted p-0.5 rounded-md">
-            {["people", "traffic", "monthly", "quarterly"].map((tabVal) => (
-              <TabsTrigger
-                key={tabVal}
-                value={tabVal}
-                className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm cursor-pointer"
-              >
-                {tabVal === "people" && "人流"}
-                {tabVal === "traffic" && "交通量"}
-                {tabVal === "monthly" && "人流(方向)"}
-                {tabVal === "quarterly" && "交通量(方向)"}
-              </TabsTrigger>
-            ))}
+            {["people", "traffic", "people-direction", "traffic-direction"].map(
+              (tabVal) => (
+                <TabsTrigger
+                  key={tabVal}
+                  value={tabVal}
+                  className="text-xs md:text-sm py-1.5 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-sm cursor-pointer"
+                >
+                  {tabVal === "people" && "人流"}
+                  {tabVal === "traffic" && "交通量"}
+                  {tabVal === "people-direction" && "人流(方向)"}
+                  {tabVal === "traffic-direction" && "交通量(方向)"}
+                </TabsTrigger>
+              )
+            )}
           </TabsList>
         </Tabs>
 

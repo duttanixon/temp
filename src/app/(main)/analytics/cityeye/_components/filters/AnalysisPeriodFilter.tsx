@@ -10,6 +10,7 @@ import { ja } from "date-fns/locale";
 interface AnalysisPeriodFilterProps {
   currentDateRange: DateRange | undefined;
   onDateChange: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
+  limitDays?: number;
   icon?: React.ReactNode;
   iconBgColor?: string;
   collapsible?: boolean;
@@ -19,6 +20,7 @@ interface AnalysisPeriodFilterProps {
 export function AnalysisPeriodFilter({
   currentDateRange,
   onDateChange,
+  limitDays,
   icon,
   iconBgColor,
   collapsible = false,
@@ -35,6 +37,26 @@ export function AnalysisPeriodFilter({
   };
   const PeriodSummary = formatPeriodSummary(currentDateRange);
 
+  const handleDateChange: React.Dispatch<
+    React.SetStateAction<DateRange | undefined>
+  > = (value) => {
+    // If value is a function, resolve it to get the next state
+    const nextRange =
+      typeof value === "function" ? value(currentDateRange) : value;
+
+    if (limitDays && nextRange?.from && nextRange.to) {
+      const diff =
+        (nextRange.to.getTime() - nextRange.from.getTime()) /
+          (1000 * 60 * 60 * 24) +
+        1;
+      if (diff > limitDays) {
+        alert(`期間は${limitDays}日以内に設定してください。`);
+        return;
+      }
+    }
+    onDateChange(value);
+  };
+
   return (
     <FilterCard
       title="分析対象期間"
@@ -47,7 +69,7 @@ export function AnalysisPeriodFilter({
       <div className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors duration-200">
         <DatePickerWithRange
           date={currentDateRange}
-          setDate={onDateChange}
+          setDate={handleDateChange}
           childClassName="w-full"
         />
       </div>

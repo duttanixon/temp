@@ -5,34 +5,39 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { deviceSolutionService } from "@/services/deviceSolutionService";
 import { AlertCircle, Loader2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FilterCard } from "./FilterCard";
 
 interface DeviceInfo {
   device_id: string;
   device_name?: string;
   device_location?: string;
+  customer_id?: string;
 }
 
-interface DevicesFilterProps {
+interface DevicesFilterDirectionProps {
   solutionId: string;
   selectedDevices: string[];
   onSelectionChange: (selectedDevices: string[]) => void;
+  customerId?: string[];
+  userCustomerId?: string;
   icon?: React.ReactNode;
   iconBgColor?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
 }
 
-export function DevicesFilter({
+export function DevicesDirectionFilter({
   solutionId,
   selectedDevices,
   onSelectionChange,
+  customerId,
+  userCustomerId,
   icon,
   iconBgColor,
   collapsible = false,
   defaultExpanded = true,
-}: DevicesFilterProps) {
+}: DevicesFilterDirectionProps) {
   const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +47,16 @@ export function DevicesFilter({
     selectedDevices.length === availableDevices.length;
 
   const selectionSummary = `(${selectedDevices.length}/${availableDevices.length})`;
+
+  const didAutoSelectRef = useRef(false);
+
+  useEffect(() => {
+    // 初期表示時に「すべて」チェックボックスがONになるように
+    if (availableDevices.length > 0) {
+      didAutoSelectRef.current = true;
+      onSelectionChange(availableDevices.map((d) => d.device_id));
+    }
+  }, [availableDevices]);
 
   useEffect(() => {
     const fetchDevicesForSolution = async () => {
@@ -54,24 +69,39 @@ export function DevicesFilter({
 
       setIsLoading(true);
       setError(null);
-
       try {
         const devicesData =
           await deviceSolutionService.getDevicesBySolution(solutionId);
+        console.log("Fetched devices data:", devicesData);
+
         const mappedDevicesData = devicesData.map((d) => ({
           device_id: d.device_id,
           device_name: d.device_name,
           device_location: d.device_location,
+          customer_id: d.customer_id,
         }));
-        setAvailableDevices(mappedDevicesData);
 
-        if (mappedDevicesData.length > 0 && selectedDevices.length === 0) {
-          console.log("DevicesFilter: Auto-selecting all available devices.");
-          onSelectionChange(mappedDevicesData.map((d) => d.device_id));
-        } else if (
-          mappedDevicesData.length === 0 &&
-          selectedDevices.length > 0
-        ) {
+        // customerIdが指定されている場合、customerIDと紐づいたデバイスのみを選択
+        // それ以外はuserCustomerIdに紐づくデバイスを選択
+        const filteredDevices =
+          customerId && customerId.length > 0
+            ? mappedDevicesData.filter((device) =>
+                customerId.includes(device.customer_id || "")
+              )
+            : userCustomerId
+              ? mappedDevicesData.filter(
+                  (device) => device.customer_id === userCustomerId
+                )
+              : [];
+        setAvailableDevices(filteredDevices);
+
+        // filteredDevicesに基づいて選択されたデバイスを更新(存在しないdevice_idを除外)
+        const validSelectedDevices = selectedDevices.filter((id) =>
+          filteredDevices.some((d) => d.device_id === id)
+        );
+        if (validSelectedDevices.length !== selectedDevices.length) {
+          onSelectionChange(validSelectedDevices);
+        } else if (filteredDevices.length === 0 && selectedDevices.length > 0) {
           console.log(
             "DevicesFilter: No devices available for this solution, clearing selection."
           );
@@ -90,7 +120,7 @@ export function DevicesFilter({
     };
 
     fetchDevicesForSolution();
-  }, [solutionId, selectedDevices]);
+  }, [solutionId, customerId]);
 
   const handleDeviceToggle = (deviceId: string) => {
     const newSelectedDevices = selectedDevices.includes(deviceId)
@@ -135,7 +165,7 @@ export function DevicesFilter({
         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
           <span className="text-sm text-amber-700">
-            このソリューションに紐づく利用可能なデバイスがありません。
+            この顧客に紐づく利用可能なデバイスがありません。
           </span>
         </div>
       );
@@ -153,7 +183,8 @@ export function DevicesFilter({
           />
           <Label
             htmlFor="select-all-devices"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて
           </Label>
         </div>
@@ -163,7 +194,7 @@ export function DevicesFilter({
           <div className="text-xs text-slate-500 font-medium mb-2">
             個別選択:
           </div>
-          <ScrollArea className="h-30">
+          <ScrollArea className="max-h-40">
             <div className="space-y-1 pr-3">
               {availableDevices.map((device) => {
                 const displayName = `${device.device_location || "N/A"}_${device.device_name || "Unknown"}`;
@@ -171,7 +202,8 @@ export function DevicesFilter({
                 return (
                   <div
                     key={device.device_id}
-                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+                  >
                     <Checkbox
                       id={`device-${device.device_id}`}
                       checked={selectedDevices.includes(device.device_id)}
@@ -183,7 +215,8 @@ export function DevicesFilter({
                     <Label
                       htmlFor={`device-${device.device_id}`}
                       className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors truncate"
-                      title={displayName}>
+                      title={displayName}
+                    >
                       {displayName}
                     </Label>
                   </div>
@@ -203,7 +236,8 @@ export function DevicesFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
-      selectionSummary={selectionSummary}>
+      selectionSummary={selectionSummary}
+    >
       {renderContent()}
     </FilterCard>
   );

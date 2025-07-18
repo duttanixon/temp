@@ -57,26 +57,6 @@ type Polyline = {
   name: string;
 };
 
-const AutoZoom = ({
-  coordinates,
-  hasAttemptedFetch,
-}: {
-  coordinates: [number, number][];
-  hasAttemptedFetch: boolean;
-}) => {
-  const map = useMap();
-  const [lastFetchState, setLastFetchState] = useState(false);
-
-  useEffect(() => {
-    if (hasAttemptedFetch && !lastFetchState && coordinates.length > 0) {
-      map.fitBounds(coordinates, { padding: [30, 30] });
-    }
-    setLastFetchState(hasAttemptedFetch);
-  }, [hasAttemptedFetch, coordinates, map, lastFetchState]);
-
-  return null;
-};
-
 const ResetButton = ({ onClick }: { onClick: () => void }) => {
   return (
     <Button
@@ -118,6 +98,29 @@ export default function PeopleDirectionMapCard({
     setResetKey((k) => k + 1);
   }, [setResetKey]);
 
+  const AutoZoom = ({
+    coordinates,
+    hasAttemptedFetch,
+  }: {
+    coordinates: [number, number][];
+    hasAttemptedFetch: boolean;
+  }) => {
+    const map = useMap();
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        if (hasAttemptedFetch && coordinates.length > 0) {
+          map.fitBounds(coordinates, { padding: [30, 30] });
+        }
+      }, 0);
+
+      // コンポーネントがアンマウントされる際にタイマーをクリアするクリーンアップ関数
+      return () => clearTimeout(timer);
+    }, [coordinates, map, hasAttemptedFetch]);
+
+    return null;
+  };
+
   const ArrowPolyline = ({
     positions,
     color,
@@ -130,8 +133,8 @@ export default function PeopleDirectionMapCard({
     tooltip?: ReactNode;
   }) => {
     const polylineRef = useRef<L.Polyline>(null);
-
     useEffect(() => {
+      // useEffectはレンダリング後に実行されるため、タイミングの問題を回避できる
       if (polylineRef.current) {
         polylineRef.current.arrowheads({
           size: "12px",
@@ -141,6 +144,7 @@ export default function PeopleDirectionMapCard({
           fill: true,
         });
       }
+      // positionsやcolorが変更されたら、このエフェクトを再実行する
     }, [positions, color]);
     return (
       <Polyline
@@ -439,8 +443,8 @@ export default function PeopleDirectionMapCard({
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       />
                       <AutoZoom
-                        hasAttemptedFetch
                         coordinates={coordinatesForZoom}
+                        hasAttemptedFetch={hasAttemptedFetch}
                       />
                       {/* 矢印線描画 */}
                       {polylines.map((line: Polyline, index: number) => {

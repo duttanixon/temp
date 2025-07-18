@@ -164,7 +164,7 @@ export default function TimeSeriesCard({
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 col-span-1 md:col-span-2 h-[460px]">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 col-span-1 md:col-span-2 h-[406px]">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
@@ -181,7 +181,7 @@ export default function TimeSeriesCard({
               : "フィルターを適用して時系列データを表示します。"
           }
         >
-          <div className="w-full h-[340px]">
+          <div className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}

@@ -104,7 +104,7 @@ export default function AgeGenderButterflyChartCard({
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col col-span-1 md:col-span-2 h-[406px]">
       {/* Span 2 columns */}
-      <CardHeader className="pb-2 pt-3 px-4">
+      <CardHeader className="pb-0 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
@@ -114,7 +114,7 @@ export default function AgeGenderButterflyChartCard({
           </CardDescription>
         )}
       </CardHeader>
-      <CardContent className="flex-grow p-3">{renderContent()}</CardContent>
+      <CardContent className="h-full">{renderContent()}</CardContent>
     </Card>
   );
 }

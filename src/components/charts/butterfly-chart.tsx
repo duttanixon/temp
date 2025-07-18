@@ -1,6 +1,12 @@
 import { type FC, useCallback, useMemo } from "react";
 
 import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { formatCompactSI } from "@/utils/common/format";
+import {
   Bar,
   BarChart,
   CartesianGrid,
@@ -8,15 +14,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { formatCompactSI } from "@/utils/common/format";
 
-import CustomTooltipContent from "./custom-tooltip-content";
 import CustomChartLegend from "./custom-chart-legend";
+import CustomTooltipContent from "./custom-tooltip-content";
 
 type ButterflyChartProps = {
   groupALabel: string;
@@ -109,8 +109,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
       {/* グラフと中央ラベル */}
       <div
         className="flex items-center justify-center relative gap-4"
-        style={{ height: chartHeight }}
-      >
+        style={{ height: chartHeight }}>
         {/* 左側のグラフ */}
         <ChartContainer config={groupAConfig} className="h-full flex-grow">
           <BarChart
@@ -120,8 +119,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
             margin={{
               right: -59,
               left: 50,
-            }}
-          >
+            }}>
             <CartesianGrid vertical />
             <XAxis
               type="number"
@@ -166,8 +164,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
               dataKey="value"
               fill="var(--color-value)"
               radius={4}
-              barSize={barSize}
-            >
+              barSize={barSize}>
               <LabelList
                 position="right"
                 offset={5}
@@ -193,8 +190,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
         {/* 右側のグラフ */}
         <ChartContainer
           config={groupBConfig}
-          className="flex items-center h-full flex-grow"
-        >
+          className="flex items-center h-full flex-grow">
           <BarChart
             accessibilityLayer
             data={normalizedGroupBData}
@@ -202,8 +198,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
             margin={{
               right: 50,
               left: -59,
-            }}
-          >
+            }}>
             <CartesianGrid vertical />
             <XAxis
               type="number"
@@ -247,8 +242,7 @@ export const ButterflyChart: FC<ButterflyChartProps> = ({
               dataKey="value"
               fill="var(--color-value)"
               radius={4}
-              barSize={barSize}
-            >
+              barSize={barSize}>
               <LabelList
                 position="right"
                 offset={5}

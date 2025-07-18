@@ -1,16 +1,15 @@
 "use client";
 
-import React from "react";
+import ButterflyChart from "@/components/charts/butterfly-chart"; // Adjusted path
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Loader2, AlertTriangle, Info } from "lucide-react";
-import ButterflyChart from "@/components/charts/butterfly-chart"; // Adjusted path
 import { ProcessedAgeGenderDistributionData } from "@/types/cityeye/cityEyeAnalytics";
+import { AlertTriangle, Info, Loader2 } from "lucide-react";
 
 interface AgeGenderButterflyChartCardProps {
   title: string;

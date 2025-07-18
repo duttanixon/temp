@@ -85,10 +85,7 @@ export default function ShadcnAreaChartCard({
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div
-          className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}
-        >
+        <div className="flex flex-col items-center justify-center h-full">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">データを読み込み中...</p>
         </div>
@@ -97,10 +94,7 @@ export default function ShadcnAreaChartCard({
 
     if (error && hasAttemptedFetch) {
       return (
-        <div
-          className="flex flex-col items-center justify-center text-destructive"
-          style={{ height: `${chartHeight}px` }}
-        >
+        <div className="flex flex-col items-center justify-center h-full text-destructive">
           <AlertTriangle className="h-8 w-8 mb-2" />
           <p className="text-sm font-semibold">エラー</p>
           <p className="text-xs text-center px-2">{error}</p>
@@ -110,10 +104,7 @@ export default function ShadcnAreaChartCard({
 
     if (!hasAttemptedFetch) {
       return (
-        <div
-          className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}
-        >
+        <div className="flex flex-col items-center justify-center h-full">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground p-4 text-center">
             フィルターを適用してデータを表示します。
@@ -124,10 +115,7 @@ export default function ShadcnAreaChartCard({
 
     if (!chartData || chartData.length === 0) {
       return (
-        <div
-          className="flex flex-col items-center justify-center"
-          style={{ height: `${chartHeight}px` }}
-        >
+        <div className="flex flex-col items-center justify-center h-full">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">{emptyDataMessage}</p>
           {hasAttemptedFetch && !error && (
@@ -140,20 +128,16 @@ export default function ShadcnAreaChartCard({
     }
 
     return (
-      <ChartContainer
-        config={chartConfig}
-        className="mx-auto"
-        style={{ height: `${chartHeight}px` }}
-      >
+      <ChartContainer config={chartConfig} className="w-full h-full">
         <AreaChart
           accessibilityLayer
           data={chartData}
           margin={{
-            left: yAxisWidth > 60 ? 12 : -4, // Adjust left margin if yAxisWidth is large
-            right: 12,
-            top: 20,
-          }}
-        >
+            left: 0, // Adjust left margin if yAxisWidth is large
+            right: 40,
+            bottom: 20,
+            top: 0,
+          }}>
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey={categoryKey}
@@ -163,7 +147,7 @@ export default function ShadcnAreaChartCard({
             tickFormatter={xAxisTickFormatter || ((value) => value.toString())} // Use value directly if no formatter
             angle={-45} // Angle ticks for better readability if labels are long
             textAnchor="end" // Anchor angled ticks at the end
-            height={90} // Increased height for more label space
+            height={40} // Increased height for more label space
             interval="preserveStartEnd" // Ensure first and last ticks are shown
           />
           <YAxis
@@ -237,7 +221,9 @@ export default function ShadcnAreaChartCard({
         <CardTitle className="text-gray-700">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
-      <CardContent className="flex-1 pb-0">{renderContent()}</CardContent>
+      <CardContent className="flex-1 pb-0 items-center justify-center">
+        {renderContent()}
+      </CardContent>
       {(footerText || showTrending) && (
         <CardFooter className="flex-col gap-1 text-xs pt-2 pb-3">
           {showTrending && (

@@ -54,7 +54,7 @@ export default function HumanHourlyDistributionCard({
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
-      chartHeight={300} // Increased height
+      // chartHeight={300} // Increased height
       emptyDataMessage="時間別データがありません。" // "No hourly data available."
       categoryKey="hour"
       dataKeys={areaChartDataKeys}

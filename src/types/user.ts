@@ -55,6 +55,6 @@ export type UserUpdateData = {
   status?: UserStatus;
 };
 
-export type ForgotPasswordData = {
+export type ResetPasswordData = {
   email: string;
-}
+};

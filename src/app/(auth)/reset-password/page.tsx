@@ -1,48 +1,48 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import Link from "next/link";
 import { userService } from "@/services/userService";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
-const forgotPasswordSchema = z.object({
+const resetPasswordSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
 });
 
-type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ForgotPasswordFormValues>({
-    resolver: zodResolver(forgotPasswordSchema),
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
   });
 
-  const onSubmit = async (data: ForgotPasswordFormValues) => {
+  const onSubmit = async (data: ResetPasswordFormValues) => {
     try {
-      await userService.forgotPassword({ email: data.email });
-      
+      await userService.resetPassword({ email: data.email });
+
       setIsSubmitted(true);
       toast.success("メールを送信しました", {
-        description: "メールアドレスが登録されている場合、パスワードリセットリンクが送信されます。",
+        description:
+          "メールアドレスが登録されている場合、パスワードリセットリンクが送信されます。",
       });
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "エラーが発生しました";
-        
+      const errorMessage =
+        error instanceof Error ? error.message : "エラーが発生しました";
+
       toast.error("エラーが発生しました", {
         description: errorMessage,
       });
@@ -68,10 +68,7 @@ export default function ForgotPasswordPage() {
             </p>
             <div className="pt-4">
               <Link href="/login">
-                <Button 
-                  className="w-full"
-                  variant="outline"
-                >
+                <Button className="w-full" variant="outline">
                   ログインページに戻る
                 </Button>
               </Link>
@@ -107,25 +104,27 @@ export default function ForgotPasswordPage() {
                 <p className="text-sm text-red-500">{errors.email.message}</p>
               )}
             </div>
-            
+
             <Button
               type="submit"
-              className="w-full"
+              className="w-full cursor-pointer"
               style={{ backgroundColor: "#3498db", color: "white" }}
               disabled={isSubmitting}
             >
               {isSubmitting ? "送信中..." : "リセットリンクを送信"}
             </Button>
           </form>
-          
-          <div className="mt-4 text-center">
-            <Link
-              href="/login"
-              className="text-sm text-blue-500 hover:text-blue-600"
+
+          <div className="mt-4 text-left">
+            <span className="text-sm text-[#3498db]">↼ </span>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="text-sm text-blue-500 hover:text-blue-600 cursor-pointer"
               style={{ color: "#3498db" }}
             >
-              ログインページに戻る
-            </Link>
+              戻る
+            </button>
           </div>
         </CardContent>
       </Card>

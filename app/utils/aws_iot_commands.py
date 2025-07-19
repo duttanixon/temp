@@ -1,5 +1,7 @@
 import boto3
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Dict, Any, Optional, List
 from app.core.config import settings
 from app.utils.logger import get_logger
@@ -262,7 +264,11 @@ class IoTCommandService:
             
             # The response payload is a StreamingBody, so we need to read and decode it
             shadow_document = json.loads(response["payload"].read().decode("utf-8"))
-            
+            if shadow_document.get("state", {}).get("reported", {}).get("applicationStatus", {}).get("timestamp", None) is not None and shadow_document.get("metadata", {}).get("reported", {}).get("applicationStatus", {}).get("status", {}).get("timestamp", None) is not None:
+                metadata_timestamp = shadow_document["metadata"]["reported"]["applicationStatus"]["status"]["timestamp"]
+                timestamp_formatted =  datetime.fromtimestamp(metadata_timestamp, tz=ZoneInfo("Asia/Tokyo")).isoformat()
+                shadow_document["state"]["reported"]["applicationStatus"]["timestamp"] = timestamp_formatted
+
             logger.info(
                 f"Successfully retrieved classic shadow for thing: {thing_name}"
             )

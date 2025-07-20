@@ -21,15 +21,6 @@ resource "aws_security_group" "app_server_sg" {
         description = "PostgreSQL access"
     }
 
-    # Keycloak access
-    ingress {
-        from_port   = 8080
-        to_port     = 8080
-        protocol    = "tcp"
-        cidr_blocks = var.allowed_service_cidrs
-        description = "Keycloak access"
-    }
-
     # Frontend access (HTTP)
     ingress {
         from_port   = 3000
@@ -47,6 +38,27 @@ resource "aws_security_group" "app_server_sg" {
         cidr_blocks = var.allowed_service_cidrs
         description = "Backend HTTP access"
     }
+
+    # # Frontend access from ALB
+    # ingress {
+    #     from_port       = 3000
+    #     to_port         = 3000
+    #     protocol        = "tcp"
+    #     security_groups = var.alb_security_group_id != "" ? [var.alb_security_group_id] : []
+    #     cidr_blocks     = var.alb_security_group_id == "" ? var.allowed_service_cidrs : []
+    #     description     = "Frontend HTTP access"
+    # }
+
+    # # Backend access from ALB
+    # ingress {
+    #     from_port       = 8000
+    #     to_port         = 8000
+    #     protocol        = "tcp"
+    #     security_groups = var.alb_security_group_id != "" ? [var.alb_security_group_id] : []
+    #     cidr_blocks     = var.alb_security_group_id == "" ? var.allowed_service_cidrs : []
+    #     description     = "Backend HTTP access"
+    # }
+
 
     # Allow all outboud traffic
     egress {

@@ -148,3 +148,23 @@ output "superset_athena_secret_access_key" {
   value       = module.athena.superset_athena_secret_access_key
   sensitive   = true
 }
+
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = module.alb.alb_dns_name
+}
+
+output "alb_zone_id" {
+  description = "Zone ID of the Application Load Balancer"
+  value       = module.alb.alb_zone_id
+}
+
+output "acm_certificate_validation_records" {
+  description = "DNS validation records for ACM certificate - Add these to your DNS provider"
+  value       = module.alb.acm_certificate_validation_records
+}
+
+output "platform_url" {
+  description = "URL to access the platform"
+  value       = "https://${var.platform_domain}"
+}

@@ -88,3 +88,16 @@ module "athena" {
     environment           = var.environment
     edge_logs_bucket_name = module.metrics.edge_log_bucket_name
 }
+
+module "alb" {
+    source = "../../modules/alb"
+
+    # Pass required variables to the module
+    aws_region   = var.aws_region
+    environment  = var.environment
+    domain_name  = var.platform_domain
+    instance_id  = module.ec2.instance_id
+
+    # Ensure ALB is created after EC2
+    depends_on = [module.ec2]
+}

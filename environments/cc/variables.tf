@@ -93,3 +93,9 @@ variable "engineer_ssh_keys" {
     description = "List of SSH public keys for the engineers"
     type        = list(string)
 }
+
+variable "platform_domain" {
+    description = "Domain name for the platform (e.g., platform.cybercore.co.jp)"
+    type        = string
+    default     = "platform.cybercore.co.jp"
+}

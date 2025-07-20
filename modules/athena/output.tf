@@ -56,7 +56,7 @@ output "athena_queries" {
   description = "Named Athena queries for common analysis patterns"
   value = {
     error_analysis     = aws_athena_named_query.error_analysis.name
-    performance_metrics = aws_athena_named_query.performance_metrics.name
+    # performance_metrics = aws_athena_named_query.performance_metrics.name
     device_health_check = aws_athena_named_query.device_health_check.name
   }
 }

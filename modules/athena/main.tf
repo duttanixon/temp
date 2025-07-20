@@ -74,7 +74,7 @@ resource "aws_glue_catalog_database" "edge_analytics" {
 }
 
 
-# Glue table for application logs
+# Glue table for application logs with flexible context
 resource "aws_glue_catalog_table" "application_logs" {
   name          = "application_logs"
   database_name = aws_glue_catalog_database.edge_analytics.name
@@ -88,7 +88,7 @@ resource "aws_glue_catalog_table" "application_logs" {
     # Year Configuration
     "projection.year.type"      = "integer"
     "projection.year.range"     = "2024,2030"
-    "projection.year.digits"        = "4"
+    "projection.year.digits"    = "4"
 
     # Month Configuration
     "projection.month.type"     = "enum"
@@ -103,8 +103,6 @@ resource "aws_glue_catalog_table" "application_logs" {
     "classification"            = "json"
     "compressionType"           = "gzip"
   }
-
-
 
   storage_descriptor {
     location      = "s3://${var.edge_logs_bucket_name}/logs/"
@@ -141,9 +139,10 @@ resource "aws_glue_catalog_table" "application_logs" {
       type = "string"
     }
     
+    # Flexible context column that accepts any key-value pairs
     columns {
       name = "context"
-      type = "struct<event_type:string,frame_number:bigint,device_id:string,solution_type:string,capture_time:string,processing_time:double,detection_count:bigint>"
+      type = "map<string,string>"
     }
     
     columns {
@@ -172,6 +171,7 @@ resource "aws_glue_catalog_table" "application_logs" {
     type = "string"
   }
 }
+
 
 # Named queries for common analysis patterns
 resource "aws_athena_named_query" "error_analysis" {
@@ -204,36 +204,6 @@ resource "aws_athena_named_query" "error_analysis" {
   EOT
 
   description = "Analyze errors and critical issues from the last 7 days"
-}
-
-
-resource "aws_athena_named_query" "performance_metrics" {
-  name      = "${var.environment}-edge-analytics-performance"
-  workgroup = aws_athena_workgroup.edge_analytics.id
-  database  = aws_glue_catalog_database.edge_analytics.name
-  query     = <<-EOT
-    SELECT 
-      device_id,
-      DATE_FORMAT(CAST(timestamp AS timestamp), '%Y-%m-%d') as date,
-      AVG(context.processing_time) as avg_processing_time,
-      MAX(context.processing_time) as max_processing_time,
-      MIN(context.processing_time) as min_processing_time,
-      COUNT(*) as total_events,
-      SUM(context.detection_count) as total_detections
-    FROM 
-      application_logs
-    WHERE 
-      context.event_type = 'detection'
-      AND year = YEAR(CURRENT_DATE)
-      AND month = MONTH(CURRENT_DATE)
-    GROUP BY 
-      device_id,
-      DATE_FORMAT(CAST(timestamp AS timestamp), '%Y-%m-%d')
-    ORDER BY 
-      date DESC
-  EOT
-
-  description = "Analyze edge device performance metrics"
 }
 
 resource "aws_athena_named_query" "device_health_check" {

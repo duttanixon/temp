@@ -486,7 +486,7 @@ def polygon_xlines_config(
 
     # Step 1: Get and validate the target device
     # This ensures the device exists and the user has permission to modify it
-    db_device = device.get_by_id(db, device_id=command_in.device_id)
+    db_device = device.get_by_id(db, device_id=uuid.UUID(command_in.device_id))
     if not db_device:
         raise HTTPException(status_code=404, detail="Device not found")
 
@@ -497,7 +497,7 @@ def polygon_xlines_config(
     # We only allow configuration updates for devices that have active solutions deployed
     # This ensures that there's actually software running on the device that can process the config
     active_solutions = device_solution.get_active_by_device(
-        db, device_id=command_in.device_id
+        db, device_id=uuid.UUID(command_in.device_id)
     )
 
     if not active_solutions:

@@ -319,8 +319,8 @@ def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solu
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,
             timestamp=base_time,
-            polygon_id_in="entrance_1",
-            polygon_id_out="exit_1",
+            polygon_id_in="1",
+            polygon_id_out="1",
             male_less_than_18=5,
             female_less_than_18=3,
             male_18_to_29=10,
@@ -337,8 +337,8 @@ def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solu
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,
             timestamp=base_time + timedelta(hours=1),
-            polygon_id_in="entrance_2",
-            polygon_id_out="exit_2",
+            polygon_id_in="2",
+            polygon_id_out="2",
             male_less_than_18=3,
             female_less_than_18=4,
             male_18_to_29=12,
@@ -370,8 +370,8 @@ def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Soluti
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,
             timestamp=base_time,
-            polygon_id_in="entrance_1",
-            polygon_id_out="exit_1",
+            polygon_id_in="1",
+            polygon_id_out="1",
             large=5,
             normal=15,
             bicycle=8,
@@ -382,8 +382,8 @@ def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Soluti
             solution_id=city_eye_solution.solution_id,
             device_solution_id=city_eye_device_solution.id,
             timestamp=base_time + timedelta(hours=1),
-            polygon_id_in="entrance_2",
-            polygon_id_out="exit_2",
+            polygon_id_in="2",
+            polygon_id_out="2",
             large=7,
             normal=20,
             bicycle=12,
@@ -397,6 +397,64 @@ def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Soluti
     
     return test_data
 
+@pytest.fixture(scope="function")
+def city_eye_human_direction_analytics_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+    """Fixture to create human direction analytics data for testing."""
+    data = [
+        CityEyeHumanTable(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=datetime.now() - timedelta(hours=1),
+            polygon_id_in="0",
+            polygon_id_out="1",
+            male_18_to_29=2,
+            female_30_to_39=1,
+        ),
+        CityEyeHumanTable(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=datetime.now(),
+            polygon_id_in="1",
+            polygon_id_out="0",
+            female_18_to_29=3,
+        ),
+    ]
+    db.add_all(data)
+    db.commit()
+    return data
+
+
+@pytest.fixture(scope="function")
+def city_eye_traffic_direction_analytics_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+    """Fixture to create traffic direction analytics data for testing."""
+    data = [
+        CityEyeTrafficTable(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=datetime.now() - timedelta(minutes=30),
+            polygon_id_in="0",
+            polygon_id_out="1",
+            normal=5,
+            large=1,
+            bicycle=2,
+            motorcycle=3,
+        ),
+        CityEyeTrafficTable(
+            device_id=device.device_id,
+            solution_id=city_eye_solution.solution_id,
+            device_solution_id=city_eye_device_solution.id,
+            timestamp=datetime.now(),
+            polygon_id_in="1",
+            polygon_id_out="0",
+            normal=10,
+        ),
+    ]
+    db.add_all(data)
+    db.commit()
+    return data
 
 def seed_test_data(db: Session) -> None:
     """

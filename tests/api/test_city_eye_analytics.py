@@ -1,13 +1,13 @@
 """
 Test cases for City Eye analytics routes.
 """
-import pytest
 import uuid
+from datetime import date
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import User, UserRole, UserStatus, Device, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus
+from app.models import User, UserRole, UserStatus, Device, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, Customer
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from datetime import timedelta
@@ -215,8 +215,8 @@ def test_get_human_flow_analytics_with_optional_filters(
         "device_ids": [str(device.device_id)],
         "start_time": "2025-01-01T00:00:00",
         "end_time": "2025-12-31T23:59:59",
-        "polygon_ids_in": ["entrance_1"],
-        "polygon_ids_out": ["exit_1"],
+        "polygon_ids_in": ["1"],
+        "polygon_ids_out": ["1"],
         "genders": ["male", "female"],
         "age_groups": ["18_to_29", "30_to_49"]
     }
@@ -807,8 +807,8 @@ def test_get_traffic_flow_analytics_with_optional_filters(
         "device_ids": [str(device.device_id)],
         "start_time": "2025-01-01T00:00:00",
         "end_time": "2025-12-31T23:59:59",
-        "polygon_ids_in": ["entrance_1"],
-        "polygon_ids_out": ["exit_1"],
+        "polygon_ids_in": ["1"],
+        "polygon_ids_out": ["1"],
         "vehicle_types": ["large", "normal"]
     }
     
@@ -1254,3 +1254,160 @@ def test_get_traffic_flow_analytics_multiple_devices(
     device_ids = [item["device_id"] for item in data]
     assert str(device.device_id) in device_ids
     assert str(raspberry_device.device_id) in device_ids
+
+
+# Test cases for human-direction analytics
+def test_get_human_direction_analytics_success(
+    client: TestClient,
+    admin_token: str,
+    device: Device,
+    city_eye_solution: Solution,
+    city_eye_customer_solution: CustomerSolution,
+    city_eye_device_solution: DeviceSolution,
+    city_eye_analytics_data
+):
+    """Test successful retrieval of human direction analytics."""
+    today = date.today().isoformat()
+    filters = {
+        "device_ids": [str(device.device_id)],
+        "dates": [today],
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/analytics/city-eye/human-direction",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=filters,
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 1
+    device_item = data[0]
+    assert "direction_data" in device_item
+    assert "detectionZones" in device_item["direction_data"]
+
+# Test cases for traffic-direction analytics
+def test_get_traffic_direction_analytics_success(
+    client: TestClient,
+    admin_token: str,
+    device: Device,
+    city_eye_solution: Solution,
+    city_eye_customer_solution: CustomerSolution,
+    city_eye_device_solution: DeviceSolution,
+    city_eye_traffic_data
+):
+    """Test successful retrieval of traffic direction analytics."""
+    today = date.today().isoformat()
+    filters = {
+        "device_ids": [str(device.device_id)],
+        "dates": [today],
+    }
+
+    response = client.post(
+        f"{settings.API_V1_STR}/analytics/city-eye/traffic-direction",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=filters,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 1
+    device_item = data[0]
+    assert "direction_data" in device_item
+    assert "detectionZones" in device_item["direction_data"]
+
+@patch('app.utils.aws_iot_commands.iot_command_service.send_xlines_config_update')
+def test_polygon_xlines_config_success(
+    mock_send_config,
+    client: TestClient,
+    db: Session,  # Add the database session fixture here
+    admin_token: str,
+    active_device: Device,
+    city_eye_device_solution: DeviceSolution
+):
+    """Test successful update of polygon xlines config."""
+    # 💡 Assign a `thing_name` to the device to pass the provisioning check
+    # device.thing_name = "test-thing-for-pytest"
+    # db.add(device)
+    # db.commit()
+    # db.refresh(device)
+    
+    mock_send_config.return_value = True
+    config_data = {
+        "device_id": str(active_device.device_id),
+        "detectionZones": [
+            {
+                "polygonId": "1",
+                "name": "Zone 1",
+                "vertices": [
+                    {"vertexId": "1-1", "position": {"x": 10, "y": 20}},
+                    {"vertexId": "1-2", "position": {"x": 100, "y": 120}}
+                ],
+                "center": {
+                    "startPoint": {"lat": 35.0, "lng": 139.0},
+                    "endPoint": {"lat": 35.1, "lng": 139.1}
+                }
+            }
+        ]
+    }
+
+    response = client.post(
+        f"{settings.API_V1_STR}/analytics/city-eye/polygon-xlines-config",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=config_data,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "message_id" in data
+    mock_send_config.assert_called_once()
+
+# Test cases for thresholds
+def test_get_threshold_config_success(
+    client: TestClient,
+    admin_token: str,
+    customer: Customer,
+    city_eye_solution: Solution,
+    city_eye_customer_solution: CustomerSolution
+):
+    """Test successful retrieval of threshold config."""
+    response = client.get(
+        f"{settings.API_V1_STR}/analytics/city-eye/thresholds/{customer.customer_id}/{city_eye_solution.solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["customer_id"] == str(customer.customer_id)
+    assert data["solution_id"] == str(city_eye_solution.solution_id)
+    assert "thresholds" in data
+
+def test_update_threshold_config_success(
+    client: TestClient,
+    admin_token: str,
+    customer: Customer,
+    city_eye_solution: Solution,
+    city_eye_customer_solution: CustomerSolution
+):
+    """Test successful update of threshold config."""
+    update_data = {
+        "customer_id": str(customer.customer_id),
+        "solution_id": str(city_eye_solution.solution_id),
+        "thresholds": {
+            "traffic_count_thresholds": [10, 20, 30],
+            "human_count_thresholds": [50, 100]
+        }
+    }
+
+    response = client.put(
+        f"{settings.API_V1_STR}/analytics/city-eye/thresholds",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=update_data,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["thresholds"]["traffic_count_thresholds"] == [10, 20, 30]
+    assert data["thresholds"]["human_count_thresholds"] == [50, 100]

@@ -111,48 +111,6 @@ def get_solutions_admin_view(
 
     return enhanced_solutions
 
-@router.get("/available", response_model=List[SolutionSchema])
-def get_available_solutions(
-    db: Session = Depends(deps.get_db),
-    device_type: Optional[str] = None,
-    current_user: User = Depends(deps.get_current_active_user),
-) -> Any:
-    """
-    Get available solutions for the current user's customer.
-    This is a convenience endpoint for customer users.
-    """
-    if not current_user.customer_id:
-        return []
-    
-    # Get active customer solutions
-    customer_solutions = customer_solution.get_active_by_customer(
-        db, customer_id=current_user.customer_id
-    )
-
-    # Extract solution IDs
-    solution_ids = [cs.solution_id for cs in customer_solutions]
-
-    if not solution_ids:
-        return []
-
-    # Get solutions with optional device type filter
-    query = db.query(Solution).filter(
-        Solution.solution_id.in_(solution_ids),
-        Solution.status == SolutionStatus.ACTIVE
-    )
-    
-    if device_type:
-        try:
-            DeviceType(device_type)
-            query = query.filter(Solution.compatibility.contains([device_type]))
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid device type: {device_type}"
-            )
-    
-    return query.all()
-
 
 @router.post("", response_model=SolutionSchema)
 def create_solution(

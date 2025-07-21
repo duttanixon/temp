@@ -62,40 +62,6 @@ def get_customer_solutions(
     
     return results
 
-    
-
-@router.get("/customer/{customer_id}", response_model=List[CustomerSolutionAdminView])
-def get_customer_solutions_by_customer(
-    *,
-    db: Session = Depends(deps.get_db),
-    customer_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_active_user),
-) -> Any:
-    """
-    Get all solutions for a specific customer.
-    - Admins and Engineers can see for any customer
-    - Customer admins and users can only see their own customer's solutions
-    """
-    # Get the customer
-    customer_obj = customer.get_by_id(db, customer_id=customer_id)
-    if not customer_obj:
-        raise HTTPException(
-            status_code=404,
-            detail="Customer not found"
-        )
-    
-    
-    # Check permissions
-    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-        if current_user.customer_id != customer_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to access other customers' solutions"
-            )
-    
-    # Get the solutions
-    return customer_solution.get_by_customer(db, customer_id=customer_id)
-
 
 @router.post("", response_model=CustomerSolutionSchema)
 def add_solution_to_customer(

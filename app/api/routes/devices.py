@@ -10,7 +10,6 @@ from app.schemas.device import (
     DeviceProvisionResponse,
     DeviceUpdate,
     DeviceAdminView,
-    DeviceWithSolutionView,
     DeviceWithCustomerView,
     DeviceStatusInfo,
     DeviceBatchStatusRequest
@@ -153,86 +152,6 @@ def create_device(
     )
     
     return new_device
-
-
-@router.get("/with-solutions", response_model=List[DeviceWithSolutionView])
-def get_devices_with_solutions(
-    db: Session = Depends(deps.get_db),
-    customer_id: Optional[uuid.UUID] = None,
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(deps.get_current_active_user),
-) -> Any:
-    """
-    Retrieve devices with their current solution information.
-    Frontend-friendly endpoint that combines device and solution data.
-    """
-    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-        # Customer users can only see their own devices
-        if customer_id and current_user.customer_id != customer_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to access devices from other customers"
-            )
-
-    # Get devices based on user role
-    if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
-        if customer_id:
-            devices = device.get_by_customer(db, customer_id=customer_id, skip=skip, limit=limit)
-        else:
-            devices = device.get_multi(db, skip=skip, limit=limit)
-    else:
-        # Customer users can only see their own devices
-        devices = device.get_by_customer(db, customer_id=current_user.customer_id, skip=skip, limit=limit)
-    
-    # Enhance with solution information
-    result = []
-    for dev in devices:
-        # Convert device to dict
-        device_dict = {
-            "device_id": dev.device_id,
-            "name": dev.name,
-            "description": dev.description,
-            "mac_address": dev.mac_address,
-            "serial_number": dev.serial_number,
-            "device_type": dev.device_type,
-            "firmware_version": dev.firmware_version,
-            "ip_address": dev.ip_address,
-            "location": dev.location,
-            "customer_id": dev.customer_id,
-            "status": dev.status,
-            "is_online": dev.is_online,
-            "last_connected": dev.last_connected,
-            "created_at": dev.created_at,
-            "updated_at": dev.updated_at,
-            "thing_name": dev.thing_name,
-            "thing_arn": dev.thing_arn,
-            "certificate_id": dev.certificate_id,
-            "certificate_arn": dev.certificate_arn,
-            "configuration": dev.configuration,
-            # Default solution fields to None
-            "current_solution_id": None,
-            "current_solution_name": None,
-            "current_solution_status": None,
-            "deployment_id": None
-        }
-        
-        # Get device solutions
-        device_solutions = device_solution.get_by_device(db, device_id=dev.device_id)
-        
-        # Add solution info if available
-        if device_solutions and len(device_solutions) > 0:
-            ds = device_solutions[0]
-            sol = solution.get_by_id(db, solution_id=ds.solution_id)
-            
-            device_dict["current_solution_id"] = ds.solution_id
-            device_dict["current_solution_name"] = sol.name
-            device_dict["current_solution_status"] = ds.status
-            device_dict["deployment_id"] = ds.id
-        
-        result.append(device_dict)
-    
-    return result
 
 
 @router.post("/{device_id}/provision", response_model=DeviceProvisionResponse)

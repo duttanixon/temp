@@ -89,42 +89,6 @@ def get_audit_logs(
     )
 
 
-@router.get("/me", response_model=AuditLogListResponse)
-def get_my_audit_logs(
-    *,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
-    action_type: Optional[str] = Query(None, description="Filter by action type"),
-    resource_type: Optional[str] = Query(None, description="Filter by resource type"),
-    start_date: Optional[datetime] = Query(None, description="Filter logs from this date"),
-    end_date: Optional[datetime] = Query(None, description="Filter logs until this date"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=1000)
-) -> Any:
-    """
-    Get audit logs for the current user.
-    All users can access this endpoint to view their own activity.
-    """
-    filters = AuditLogFilter(
-        user_id=current_user.user_id,
-        action_type=action_type,
-        resource_type=resource_type,
-        start_date=start_date,
-        end_date=end_date,
-        skip=skip,
-        limit=limit
-    )
-    
-    logs, total_count = audit_log.get_logs_with_filters(db, filters=filters)
-    
-    return AuditLogListResponse(
-        logs=logs,
-        total=total_count,
-        skip=skip,
-        limit=limit
-    )
-
-
 @router.get("/statistics", response_model=AuditLogStats)
 def get_audit_log_statistics(
     *,
@@ -186,64 +150,6 @@ def get_resource_types(
     """
     return [resource.value for resource in AuditLogResourceType]
 
-
-# @router.get("/export")
-# def export_audit_logs(
-#     *,
-#     db: Session = Depends(deps.get_db),
-#     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
-#     format: str = Query("csv", regex="^(csv|json)$", description="Export format"),
-#     # Filter parameters (same as get_audit_logs)
-#     user_id: Optional[uuid.UUID] = Query(None),
-#     user_email: Optional[str] = Query(None),
-#     action_type: Optional[str] = Query(None),
-#     resource_type: Optional[str] = Query(None),
-#     resource_id: Optional[str] = Query(None),
-#     start_date: Optional[datetime] = Query(None),
-#     end_date: Optional[datetime] = Query(None),
-#     ip_address: Optional[str] = Query(None),
-#     search_query: Optional[str] = Query(None)
-# ) -> Any:
-#     """
-#     Export audit logs in CSV or JSON format.
-#     Only admins and engineers can access this endpoint.
-#     """
-#     # Create filter object with high limit for export
-#     filters = AuditLogFilter(
-#         user_id=user_id,
-#         user_email=user_email,
-#         action_type=action_type,
-#         resource_type=resource_type,
-#         resource_id=resource_id,
-#         start_date=start_date,
-#         end_date=end_date,
-#         ip_address=ip_address,
-#         search_query=search_query,
-#         skip=0,
-#         limit=10000  # Reasonable limit for export
-#     )
-    
-#     # Get export data
-#     export_data = audit_log.export_logs(db, filters=filters, format=format)
-    
-#     # Set appropriate headers and return
-#     if format == "csv":
-#         return StreamingResponse(
-#             io.StringIO(export_data),
-#             media_type="text/csv",
-#             headers={
-#                 "Content-Disposition": f"attachment; filename=audit_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-#             }
-#         )
-#     else:  # json
-#         return Response(
-#             content=export_data,
-#             media_type="application/json",
-#             headers={
-#                 "Content-Disposition": f"attachment; filename=audit_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-#             }
-#         )
-
 @router.get("/export")
 def export_audit_logs(
     *,
@@ -301,7 +207,7 @@ def export_audit_logs(
         logs, total_count = audit_log.get_logs_with_filters(
             db,
             filters=filters,
-            customer_id=customer_filter_id
+            customer_id=customer_filter_id # type: ignore
         )
         
         # Add to results

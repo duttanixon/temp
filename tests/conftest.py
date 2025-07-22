@@ -21,7 +21,7 @@ from app.main import app
 from app.models import (
     User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, 
     DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, 
-    LicenseStatus, SolutionStatus, CityEyeHumanTable, CityEyeTrafficTable
+    LicenseStatus, SolutionStatus, CityEyeHumanTable, CityEyeTrafficTable, DeviceCommand
 )
 
 # Test database URL - use SQLite for tests 

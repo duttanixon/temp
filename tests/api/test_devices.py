@@ -11,6 +11,9 @@ from app.models.audit_log import AuditLog
 from app.models import Device, DeviceStatus, DeviceType,  Customer, User, Solution, DeviceSolution
 from app.core.config import settings
 from datetime import datetime
+from botocore.exceptions import ClientError, NoCredentialsError
+from app.schemas.device import DeviceBatchStatusRequest
+
 
 # Test cases for device listing (GET /devices)
 def test_get_all_devices_admin(client: TestClient, admin_token: str):
@@ -664,3 +667,331 @@ def test_get_compatible_devices_nonexistent_customer(client: TestClient, admin_t
     data = response.json()
     assert "detail" in data
     assert "Customer not found" in data["detail"]
+
+# =============================================================================
+# Test cases for batch device status (POST /devices/batch-status)
+# =============================================================================
+
+def test_get_batch_device_status_admin(client: TestClient, admin_token: str, device: Device, active_device: Device):
+    """Test admin getting batch device status"""
+    batch_request = {
+        "device_ids": [str(device.device_id), str(active_device.device_id)]
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/batch-status",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=batch_request
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, dict)
+    assert str(device.device_id) in data
+    assert str(active_device.device_id) in data
+    
+    # Check device status structure
+    device_status = data[str(device.device_id)]
+    assert "device_id" in device_status
+    assert "device_name" in device_status
+    assert "is_online" in device_status
+    assert device_status["device_name"] == device.name
+
+
+def test_get_batch_device_status_customer_admin_own_devices(client: TestClient, customer_admin_token: str, device: Device):
+    """Test customer admin getting status for their own devices"""
+    batch_request = {
+        "device_ids": [str(device.device_id)]
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/batch-status",
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
+        json=batch_request
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert str(device.device_id) in data
+    device_status = data[str(device.device_id)]
+    assert device_status["device_name"] == device.name
+    assert "is_online" in device_status
+
+
+def test_get_batch_device_status_mixed_valid_invalid_devices(client: TestClient, admin_token: str, device: Device):
+    """Test batch status with mix of valid and invalid device IDs"""
+    invalid_device_id = str(uuid.uuid4())
+    
+    batch_request = {
+        "device_ids": [str(device.device_id), invalid_device_id]
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/batch-status",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=batch_request
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Valid device should have normal status
+    assert str(device.device_id) in data
+    valid_status = data[str(device.device_id)]
+    assert valid_status["device_name"] == device.name
+    assert "error" not in valid_status or valid_status["error"] is None
+    
+    # Invalid device should have error
+    assert invalid_device_id in data
+    invalid_status = data[invalid_device_id]
+    assert invalid_status["error"] == "Device not found"
+    assert invalid_status["device_name"] == "Unknown"
+
+
+def test_get_batch_device_status_empty_device_list(client: TestClient, admin_token: str):
+    """Test batch status with empty device list"""
+    batch_request = {
+        "device_ids": []
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/batch-status",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=batch_request
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, dict)
+    assert len(data) == 0
+
+
+@patch('app.api.routes.devices.iot_command_service.get_device_shadow')
+def test_get_batch_device_status_with_shadow_data(
+    mock_get_shadow, client: TestClient, admin_token: str, active_device: Device
+):
+    """Test batch status with AWS IoT shadow data"""
+    # Mock shadow response for online device
+    mock_get_shadow.return_value = {
+        "state": {
+            "reported": {
+                "applicationStatus": {
+                    "status": "online",
+                    "timestamp": "2025-01-01T00:00:00Z"
+                }
+            }
+        }
+    }
+    
+    batch_request = {
+        "device_ids": [str(active_device.device_id)]
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/batch-status",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=batch_request
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    device_status = data[str(active_device.device_id)]
+    assert device_status["is_online"] == True
+    assert device_status["last_seen"] == "2025-01-01T00:00:00Z"
+
+
+def test_get_batch_device_status_unauthorized(client: TestClient, device: Device):
+    """Test batch status without authentication"""
+    batch_request = {
+        "device_ids": [str(device.device_id)]
+    }
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/batch-status",
+        json=batch_request
+    )
+    
+    # Check response - should be unauthorized
+    assert response.status_code == 401
+
+
+# =============================================================================
+# Test cases for device image retrieval (GET /devices/{device_id}/image)
+# =============================================================================
+
+@patch('app.api.routes.devices.boto3.client')
+def test_get_device_image_admin(mock_boto_client, client: TestClient, admin_token: str, active_device: Device):
+    """Test admin getting device image"""
+    # Mock S3 client and response
+    mock_s3 = MagicMock()
+    mock_boto_client.return_value = mock_s3
+    
+    # Mock successful S3 response
+    mock_response = {
+        'Body': MagicMock(),
+        'ContentType': 'image/jpeg'
+    }
+    mock_response['Body'].read.return_value = b'fake_image_data'
+    mock_s3.get_object.return_value = mock_response
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/image?solution=City Eye",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert "no-cache" in response.headers["cache-control"]
+    assert response.content == b'fake_image_data'
+    
+    # Verify S3 call
+    mock_s3.get_object.assert_called_once_with(
+        Bucket="cc-captured-images",
+        Key=f"captures/City Eye/{active_device.name}/capture.jpg"
+    )
+
+
+@patch('app.api.routes.devices.boto3.client')
+def test_get_device_image_customer_admin_own_device(
+    mock_boto_client, client: TestClient, customer_admin_token: str, active_device: Device
+):
+    """Test customer admin getting image for their own device"""
+    # Mock S3 client
+    mock_s3 = MagicMock()
+    mock_boto_client.return_value = mock_s3
+    
+    mock_response = {
+        'Body': MagicMock(),
+        'ContentType': 'image/jpeg'
+    }
+    mock_response['Body'].read.return_value = b'customer_device_image'
+    mock_s3.get_object.return_value = mock_response
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/image?solution=City Eye",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    assert response.content == b'customer_device_image'
+
+
+def test_get_device_image_customer_admin_unauthorized(
+    client: TestClient, customer_admin_token: str, suspended_customer: Customer, admin_token: str
+):
+    """Test customer admin attempting to get image for device from different customer"""
+    # Create device for different customer
+    device_data = {
+        "description": "Device for different customer",
+        "mac_address": "FF:EE:DD:CC:BB:AA",
+        "serial_number": "SN888888888",
+        "device_type": "NVIDIA_JETSON",
+        "customer_id": str(suspended_customer.customer_id),
+        "status": "ACTIVE"
+    }
+    
+    device_response = client.post(
+        f"{settings.API_V1_STR}/devices",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=device_data
+    )
+    other_device = device_response.json()
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{other_device['device_id']}/image?solution=City Eye",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "Not authorized" in data["detail"]
+
+
+def test_get_device_image_device_not_found(client: TestClient, admin_token: str):
+    """Test getting image for non-existent device"""
+    nonexistent_id = uuid.uuid4()
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{nonexistent_id}/image?solution=City Eye",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Device not found" in data["detail"]
+
+
+@patch('app.crud.device.device.get_by_id')
+def test_get_device_image_device_inactive_mocked(mock_get_device, client: TestClient, admin_token: str, device: Device):
+    """Test getting image for inactive device using mocked device status"""
+    # Create a mock device with inactive status
+    mock_inactive_device = MagicMock()
+    mock_inactive_device.device_id = device.device_id
+    mock_inactive_device.customer_id = device.customer_id
+    mock_inactive_device.name = device.name
+    mock_inactive_device.status = DeviceStatus.CREATED  # or INACTIVE, SUSPENDED, etc.
+    
+    mock_get_device.return_value = mock_inactive_device
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{device.device_id}/image?solution=City Eye",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should fail because device is not active
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "not active" in data["detail"]
+
+
+@patch('app.api.routes.devices.boto3.client')
+def test_get_device_image_aws_credentials_error(mock_boto_client, client: TestClient, admin_token: str, active_device: Device):
+    """Test getting image when AWS credentials are not configured"""
+    # Mock S3 client to raise NoCredentialsError
+    mock_boto_client.side_effect = NoCredentialsError()
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/image?solution=City Eye",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be server error
+    assert response.status_code == 500
+    data = response.json()
+    assert "detail" in data
+    assert "credentials not configured" in data["detail"]
+
+
+def test_get_device_image_unauthorized(client: TestClient, active_device: Device):
+    """Test getting device image without authentication"""
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/image?solution=City Eye"
+    )
+    
+    # Check response - should be unauthorized
+    assert response.status_code == 401
+
+
+def test_get_device_image_missing_solution_parameter(client: TestClient, admin_token: str, active_device: Device):
+    """Test getting device image without solution parameter"""
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/image",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be validation error
+    assert response.status_code == 422
+    data = response.json()
+    assert "detail" in data

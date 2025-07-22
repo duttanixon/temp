@@ -527,7 +527,7 @@ def get_batch_device_status(
     for device_id in batch_request.device_ids:
         try:
             # Get device from database
-            db_device = device.get_by_id(db, device_id=device_id)
+            db_device = device.get_by_id(db, device_id=uuid.UUID(device_id))
             if not db_device:
                 result[str(device_id)] = DeviceStatusInfo(
                     device_id=str(device_id),

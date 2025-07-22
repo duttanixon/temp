@@ -3,14 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud import device, customer, solution, device_solution, customer_solution
-from app.models import User, UserRole, DeviceStatus
+from app.models import User, UserRole, DeviceStatus, Device as DeviceModel
 from app.schemas.device import (
     Device as DeviceSchema,
     DeviceCreate,
     DeviceProvisionResponse,
     DeviceUpdate,
     DeviceAdminView,
-    DeviceWithSolutionView,
     DeviceWithCustomerView,
     DeviceStatusInfo,
     DeviceBatchStatusRequest
@@ -31,6 +30,27 @@ logger = get_logger("api.devices")
 
 router = APIRouter()
 
+# Dependency to get device and check access
+def get_device_and_check_access(
+    device_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> DeviceModel:
+    """
+    Dependency that gets a device by ID and verifies user access.
+    Raises 404 if not found, 403 if not authorized.
+    """
+    db_device = device.get_by_id(db, device_id=device_id)
+    if not db_device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
+        if db_device.customer_id != current_user.customer_id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this device")
+            
+    return db_device
+
+
 @router.get("", response_model=List[DeviceWithCustomerView])
 def get_devices(
     db: Session = Depends(deps.get_db),
@@ -41,64 +61,36 @@ def get_devices(
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Retrieve devices added with customer_name.
+    Retrieve devices with customer_name.
     - For admins and engineers: All devices or filtered by optional solution_id
     - For customers Only their customer's devices, optionally filtered by solution_id
     """
     # Validate solution_id if provided
     if solution_id:
-        db_solution = solution.get_by_id(db, solution_id=solution_id)
-        if not db_solution:
-            raise HTTPException(
-                status_code=404,
-                detail="Solution not found"
-            )
-        
-        # For customer users, verify they have access to the solution
-        if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-            if not current_user.customer_id:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Not authorized"
-                )
-            
-            # Check if customer has access to this solution
-            has_access = customer_solution.check_customer_has_access(
-                db, 
-                customer_id=current_user.customer_id, 
-                solution_id=solution_id
-            )
-            
-            if not has_access:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Not authorized to filter by this solution"
-                )
-
+        if not solution.get_by_id(db, solution_id=solution_id):
+            raise HTTPException(status_code=404, detail="Solution not found")
 
     if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
-        # Use efficient method for all devices with optional solution filter
+        # Admins/Engineers can see all or filter by any customer/solution
         return device.get_with_customer_name_and_solution_filter(
-            db, 
-            solution_id=solution_id,
-            skip=skip, 
-            limit=limit
+            db, solution_id=solution_id, skip=skip, limit=limit
         )
     else:
         # Customer users can only see their own devices
+        if not current_user.customer_id:
+             return [] # Should not happen for customer users, but safe check
+
         if customer_id and current_user.customer_id != customer_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized"
-            )
+            raise HTTPException(status_code=403, detail="Not authorized")
         
-        # Use efficient method for customer's devices with optional solution filter
+        # Verify customer has access to the solution if filtering by it
+        if solution_id and not customer_solution.check_customer_has_access(
+            db, customer_id=current_user.customer_id, solution_id=solution_id
+        ):
+            raise HTTPException(status_code=403, detail="Not authorized to filter by this solution")
+        
         return device.get_by_customer_with_name_and_solution_filter(
-            db, 
-            customer_id=current_user.customer_id, 
-            solution_id=solution_id,
-            skip=skip, 
-            limit=limit
+            db, customer_id=current_user.customer_id, solution_id=solution_id, skip=skip, limit=limit
         )
 
 @router.post("", response_model=DeviceSchema)
@@ -110,254 +102,87 @@ def create_device(
     request: Request,
 ) -> Any:
     """
-    Create a new device (Admin or Engineer only).
-    This only creates the database entry but does not provision the device in AWS IoT.
+    Create a new device entry in the database (Admin or Engineer only).
     """
-    # Check if a device with this MAC address already exists (if provided)
-    if device_in.mac_address:
-        existing_device = device.get_by_mac_address(db, mac_address=device_in.mac_address)
-        if existing_device:
-            raise HTTPException(
-                status_code=400,
-                detail="A device with this MAC address already exists"
-            )
+    if device_in.mac_address and device.get_by_mac_address(db, mac_address=device_in.mac_address):
+        raise HTTPException(status_code=400, detail="A device with this MAC address already exists")
 
-    # Verify the customer exists
-    db_customer = customer.get_by_id(db, customer_id=device_in.customer_id)
-    if not db_customer:
-        raise HTTPException(
-            status_code=404,
-            detail="Customer not found"
-        )
+    if not customer.get_by_id(db, customer_id=device_in.customer_id):
+        raise HTTPException(status_code=404, detail="Customer not found")
 
-    # Generate device name
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     device_name = f"D-{random_chars}"
 
-    # Create device
-    new_device = device.create(db, obj_in=device_in, device_name = device_name)
+    new_device = device.create(db, obj_in=device_in, device_name=device_name)
 
-    # Log device creation
     log_action(
-        db=db,
-        user_id=current_user.user_id,
-        action_type=AuditLogActionType.DEVICE_CREATE,
-        resource_type=AuditLogResourceType.DEVICE,
-        resource_id=str(new_device.device_id),
-        details={
-            "customer_id": str(new_device.customer_id),
-            "device_type": new_device.device_type.value
-        },
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
+        db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_CREATE,
+        resource_type=AuditLogResourceType.DEVICE, resource_id=str(new_device.device_id),
+        details={"customer_id": str(new_device.customer_id), "device_type": new_device.device_type.value},
+        ip_address=request.client.host, user_agent=request.headers.get("user-agent")
     )
     
     return new_device
-
-
-@router.get("/with-solutions", response_model=List[DeviceWithSolutionView])
-def get_devices_with_solutions(
-    db: Session = Depends(deps.get_db),
-    customer_id: Optional[uuid.UUID] = None,
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(deps.get_current_active_user),
-) -> Any:
-    """
-    Retrieve devices with their current solution information.
-    Frontend-friendly endpoint that combines device and solution data.
-    """
-    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-        # Customer users can only see their own devices
-        if customer_id and current_user.customer_id != customer_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to access devices from other customers"
-            )
-
-    # Get devices based on user role
-    if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
-        if customer_id:
-            devices = device.get_by_customer(db, customer_id=customer_id, skip=skip, limit=limit)
-        else:
-            devices = device.get_multi(db, skip=skip, limit=limit)
-    else:
-        # Customer users can only see their own devices
-        devices = device.get_by_customer(db, customer_id=current_user.customer_id, skip=skip, limit=limit)
-    
-    # Enhance with solution information
-    result = []
-    for dev in devices:
-        # Convert device to dict
-        device_dict = {
-            "device_id": dev.device_id,
-            "name": dev.name,
-            "description": dev.description,
-            "mac_address": dev.mac_address,
-            "serial_number": dev.serial_number,
-            "device_type": dev.device_type,
-            "firmware_version": dev.firmware_version,
-            "ip_address": dev.ip_address,
-            "location": dev.location,
-            "customer_id": dev.customer_id,
-            "status": dev.status,
-            "is_online": dev.is_online,
-            "last_connected": dev.last_connected,
-            "created_at": dev.created_at,
-            "updated_at": dev.updated_at,
-            "thing_name": dev.thing_name,
-            "thing_arn": dev.thing_arn,
-            "certificate_id": dev.certificate_id,
-            "certificate_arn": dev.certificate_arn,
-            "configuration": dev.configuration,
-            # Default solution fields to None
-            "current_solution_id": None,
-            "current_solution_name": None,
-            "current_solution_status": None,
-            "deployment_id": None
-        }
-        
-        # Get device solutions
-        device_solutions = device_solution.get_by_device(db, device_id=dev.device_id)
-        
-        # Add solution info if available
-        if device_solutions and len(device_solutions) > 0:
-            ds = device_solutions[0]
-            sol = solution.get_by_id(db, solution_id=ds.solution_id)
-            
-            device_dict["current_solution_id"] = ds.solution_id
-            device_dict["current_solution_name"] = sol.name
-            device_dict["current_solution_status"] = ds.status
-            device_dict["deployment_id"] = ds.id
-        
-        result.append(device_dict)
-    
-    return result
 
 
 @router.post("/{device_id}/provision", response_model=DeviceProvisionResponse)
 def provision_device(
     *,
     db: Session = Depends(deps.get_db),
-    device_id: uuid.UUID,
+    db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
 ) -> Any:
     """
-    Provision a device in AWS IoT (Admin or Engineer only):
-    1. Create a Thing in AWS IoT Core
-    2. Generate certificates
-    3. Attach certificates to the Thing
-    4. Add the Thing to the customer's Thing Group
-    5. Upload certificates to S3 for download
+    Provision a device in AWS IoT (Admin or Engineer only).
     """
-    # Get the device
-    db_device = device.get_by_id(db, device_id=device_id)
-    if not db_device:
-        raise HTTPException(
-            status_code=404,
-            detail="Device not found"
-        )
-
-    # Check if device is already provisioned
     if db_device.thing_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Device is already provisioned"
-        )
-    # Get the customer
+        raise HTTPException(status_code=400, detail="Device is already provisioned")
+
     db_customer = customer.get_by_id(db, customer_id=db_device.customer_id)
     if not db_customer or not db_customer.iot_thing_group_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Customer does not have a valid IoT Thing Group"
-        )
-
+        raise HTTPException(status_code=400, detail="Customer does not have a valid IoT Thing Group")
 
     try:
-        # Provision the device in AWS IoT
         provision_info = iot_core.provision_device(
-            device_id=db_device.device_id,
-            thing_name=db_device.name,
-            device_type=db_device.device_type.value,
-            mac_address=db_device.mac_address,
+            device_id=db_device.device_id, thing_name=db_device.name,
+            device_type=db_device.device_type.value, mac_address=db_device.mac_address,
             customer_group_name=db_customer.iot_thing_group_name
         )
 
-        # Update device with IoT information
         updated_device = device.update_cloud_info(
-            db,
-            device_id=device_id,
-            thing_name=provision_info["thing_name"],
-            thing_arn=provision_info["thing_arn"],
-            certificate_id=provision_info["certificate_id"],
-            certificate_arn=provision_info["certificate_arn"],
-            certificate_path=provision_info["certificate_path"],
-            private_key_path=provision_info["private_key_path"],
-            status=DeviceStatus.PROVISIONED
+            db, device_id=db_device.device_id, **provision_info, status=DeviceStatus.PROVISIONED
         )
 
-        # Log provisioning
         log_action(
-            db=db,
-            user_id=current_user.user_id,
-            action_type=AuditLogActionType.DEVICE_PROVISION,
-            resource_type=AuditLogResourceType.DEVICE,
-            resource_id=str(device_id),
-            details={
-                "thing_name": provision_info["thing_name"],
-                "certificate_id": provision_info["certificate_id"]
-            },
-            ip_address=request.client.host,
-            user_agent=request.headers.get("user-agent")
+            db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_PROVISION,
+            resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
+            details={"thing_name": provision_info["thing_name"], "certificate_id": provision_info["certificate_id"]},
+            ip_address=request.client.host, user_agent=request.headers.get("user-agent")
         )
 
-        # 4. Return provisioning information
-        response = DeviceProvisionResponse(
-            device_id=str(device_id),
+        return DeviceProvisionResponse(
+            device_id=str(db_device.device_id),
             thing_name=provision_info["thing_name"],
             certificate_url=provision_info["certificate_url"],
             private_key_url=provision_info["private_key_url"],
             status=updated_device.status
         )
 
-        return response
-
     except Exception as e:
-        logger.error(f"Error provisioning and creating device: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error provisioning and creating device: {str(e)}"
-        )
+        logger.error(f"Error provisioning device {db_device.device_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error provisioning device: {str(e)}")
+
 
 @router.get("/{device_id}", response_model=DeviceAdminView)
 def get_device(
-    *,
-    db: Session = Depends(deps.get_db),
-    device_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_active_user),
+    db_device: DeviceModel = Depends(get_device_and_check_access)
 ) -> Any:
     """
-    Get a specific device by ID.
-    - Admins and Engineers can access any device
-    - Customer users can only access their customer's devices
+    Get a specific device by ID. Access is handled by the dependency.
     """
-    db_device = device.get_by_id(db, device_id=device_id)
-    if not db_device:
-        raise HTTPException(
-            status_code=404,
-            detail="Device not found"
-        )
-    
-    # Check access permissions
-    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-        if db_device.customer_id != current_user.customer_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to access this device"
-            )
-    
     return db_device
+
 
 @router.put("/{device_id}", response_model=DeviceSchema)
 def update_device(
@@ -443,11 +268,12 @@ def update_device(
     
     return updated_device
 
+
 @router.delete("/{device_id}", response_model=DeviceSchema)
 def delete_device(
     *,
     db: Session = Depends(deps.get_db),
-    device_id: uuid.UUID,
+    db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
 ) -> Any:
@@ -455,40 +281,22 @@ def delete_device(
     バックエンド用
     Delete a device and remove from AWS IoT (Admin or Engineer only).
     """
-    db_device = device.get_by_id(db, device_id=device_id)
-    if not db_device:
-        raise HTTPException(
-            status_code=404,
-            detail="Device not found"
-        )
-
-    # If device is provisioned in AWS IoT, clean up cloud resources
     if db_device.thing_name and db_device.certificate_arn:
         try:
             iot_core.delete_thing_certificate(
-                thing_name=db_device.thing_name,
-                certificate_arn=db_device.certificate_arn
+                thing_name=db_device.thing_name, certificate_arn=db_device.certificate_arn
             )
         except Exception as e:
-            logger.error(f"Error removing device from AWS IoT: {str(e)}")
-            # Continue with deletion even if cloud cleanup fails
+            logger.error(f"Error removing device {db_device.device_id} from AWS IoT: {str(e)}")
+            # Continue with DB deletion even if cloud cleanup fails
 
-    # Delete device from database
-    deleted_device = device.remove(db, id=device_id)
+    deleted_device = device.remove(db, id=db_device.device_id)
     
-    # Log device deletion
     log_action(
-        db=db,
-        user_id=current_user.user_id,
-        action_type=AuditLogActionType.DEVICE_DELETE,
-        resource_type=AuditLogResourceType.DEVICE,
-        resource_id=str(device_id),
-        details={
-            "device_name": db_device.name,
-            "customer_id": str(db_device.customer_id)
-        },
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
+        db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_DELETE,
+        resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
+        details={"device_name": db_device.name, "customer_id": str(db_device.customer_id)},
+        ip_address=request.client.host, user_agent=request.headers.get("user-agent")
     )
     
     return deleted_device
@@ -498,40 +306,22 @@ def delete_device(
 def decommission_device(
     *,
     db: Session = Depends(deps.get_db),
-    device_id: uuid.UUID,
+    db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
 ) -> Any:
     """
     Decommission a device (Admin or Engineer only).
-    This marks the device as decommissioned but keeps it in the system.
     """
-    db_device = device.get_by_id(db, device_id=device_id)
-    if not db_device:
-        raise HTTPException(
-            status_code=404,
-            detail="Device not found"
-        )
-
-    # Add validation to check if the device is in CREATED state
     if db_device.status == DeviceStatus.CREATED:
-        raise HTTPException(
-            status_code=400,
-            detail="Device is not provisioned yet"
-        )
+        raise HTTPException(status_code=400, detail="Device is not provisioned yet")
     
-    # Mark device as decommissioned
-    decommissioned_device = device.decommission(db, device_id=device_id)
+    decommissioned_device = device.decommission(db, device_id=db_device.device_id)
     
-    # Log device decommissioning
     log_action(
-        db=db,
-        user_id=current_user.user_id,
-        action_type=AuditLogActionType.DEVICE_DECOMMISSION,
-        resource_type=AuditLogResourceType.DEVICE,
-        resource_id=str(device_id),
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
+        db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_DECOMMISSION,
+        resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
+        ip_address=request.client.host, user_agent=request.headers.get("user-agent")
     )
     
     return decommissioned_device
@@ -541,33 +331,19 @@ def decommission_device(
 def activate_device(
     *,
     db: Session = Depends(deps.get_db),
-    device_id: uuid.UUID,
+    db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
 ) -> Any:
     """
-    Activate a device (Admin or Engineer only).
-    This marks a provisioned or inactive device as active.
+    Activate a provisioned or inactive device (Admin or Engineer only).
     """
-    db_device = device.get_by_id(db, device_id=device_id)
-    if not db_device:
-        raise HTTPException(
-            status_code=404,
-            detail="Device not found"
-        )
+    activated_device = device.activate(db, device_id=db_device.device_id)
     
-    # Activate the device
-    activated_device = device.activate(db, device_id=device_id)
-    
-    # Log device activation
     log_action(
-        db=db,
-        user_id=current_user.user_id,
-        action_type=AuditLogActionType.DEVICE_ACTIVATE,
-        resource_type=AuditLogResourceType.DEVICE,
-        resource_id=str(device_id),
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
+        db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_ACTIVATE,
+        resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
+        ip_address=request.client.host, user_agent=request.headers.get("user-agent")
     )
     
     return activated_device
@@ -628,6 +404,7 @@ def get_compatible_devices_for_solution_by_customer(
             compatible_devices.append(dev)
     
     return compatible_devices
+
 
 @router.get("/{device_id}/image")
 def get_device_image(
@@ -750,7 +527,7 @@ def get_batch_device_status(
     for device_id in batch_request.device_ids:
         try:
             # Get device from database
-            db_device = device.get_by_id(db, device_id=device_id)
+            db_device = device.get_by_id(db, device_id=uuid.UUID(device_id))
             if not db_device:
                 result[str(device_id)] = DeviceStatusInfo(
                     device_id=str(device_id),

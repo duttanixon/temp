@@ -312,60 +312,6 @@ def remove_solution_from_device(
     return removed_deployment
 
 
-@router.get("/current/device/{device_id}", response_model=Optional[DeviceSolutionDetailView])
-def get_current_device_solution(
-    *,
-    db: Session = Depends(deps.get_db),
-    device_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_active_user),
-) -> Any:
-    """
-    Get the currently deployed solution for a device.
-    Returns null if no solution is deployed.
-    """
-    # Get the device
-    db_device = device.get_by_id(db, device_id=device_id)
-    if not db_device:
-        raise HTTPException(
-            status_code=404,
-            detail="Device not found"
-        )
-    
-    # Check if user has access to this device
-    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-        if db_device.customer_id != current_user.customer_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to view solutions for this device"
-            )
-    
-    # Get the solution deployment (should be at most one with our business rules)
-    device_solutions = device_solution.get_by_device(db, device_id=device_id)
-    
-    if not device_solutions or len(device_solutions) == 0:
-        return None
-    
-    # Get the first (and should be only) solution
-    ds = device_solutions[0]
-    sol = solution.get_by_id(db, solution_id=ds.solution_id)
-    
-    # Create a proper DeviceSolutionDetailView object
-    detail_view = {
-        "id": ds.id,
-        "device_id": ds.device_id,
-        "solution_id": ds.solution_id,
-        "status": ds.status,
-        "configuration": ds.configuration,
-        "version_deployed": ds.version_deployed,
-        "last_update": ds.last_update,
-        "created_at": ds.created_at,
-        "updated_at": ds.updated_at,
-        "solution_name": sol.name,
-        "solution_description": sol.description
-    }
-    
-    return detail_view
-
 @router.get("/solution/{solution_id}", response_model=List[DeviceSolutionDetailView])
 def get_devices_by_solution(
     *,

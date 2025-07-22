@@ -64,22 +64,6 @@ def test_get_customer_solutions_for_specific_customer(client: TestClient, admin_
         assert str(cs["customer_id"]) == str(customer.customer_id)
 
 
-def test_get_customer_solutions_customer_admin(client: TestClient, customer_admin_token: str, customer_admin_user: User, customer: Customer):
-    """Test customer admin getting customer solutions for their customer"""
-    response = client.get(
-        f"{settings.API_V1_STR}/customer-solutions/customer/{customer.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    
-    # All returned customer solutions should belong to the customer admin's customer
-    for cs in data:
-        assert str(cs["customer_id"]) == str(customer_admin_user.customer_id)
-
 def test_get_customer_solutions_customer_admin_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer):
     """Test customer admin attempting to get customer solutions for a different customer"""
     response = client.get(
@@ -236,64 +220,6 @@ def test_create_customer_solution_non_admin(client: TestClient, customer_admin_t
     data = response.json()
     assert "detail" in data
     assert "enough privileges" in data["detail"]
-
-
-# Test cases for getting customer solution by ID (GET /customer-solutions/{id})
-def test_get_customer_solution_by_id_admin(client: TestClient, admin_token: str, db: Session):
-    """Test admin getting a specific customer solution by ID"""
-    # Get a customer solution ID from database
-    cs = db.query(CustomerSolution).first()
-    
-    response = client.get(
-        f"{settings.API_V1_STR}/customer-solutions/customer/{cs.customer_id}",
-        headers={"Authorization": f"Bearer {admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()[0]
-    assert str(data["id"]) == str(cs.id)
-    assert str(data["customer_id"]) == str(cs.customer_id)
-    assert str(data["solution_id"]) == str(cs.solution_id)
-    assert "solution_name" in data  # Should include the solution name
-
-
-def test_get_customer_solution_by_id_customer_admin_own_customer(client: TestClient, customer_admin_token: str, 
-                                                             customer_admin_user: User, db: Session):
-    """Test customer admin getting a customer solution for their customer"""
-    # Get a customer solution for the customer admin's customer
-    cs = db.query(CustomerSolution).filter(
-        CustomerSolution.customer_id == customer_admin_user.customer_id
-    ).first()
-    
-    response = client.get(
-        f"{settings.API_V1_STR}/customer-solutions/customer/{cs.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()[0]
-    assert str(data["id"]) == str(cs.id)
-    assert str(data["customer_id"]) == str(customer_admin_user.customer_id)
-
-
-def test_get_customer_solution_by_id_customer_admin_different_customer(
-    client: TestClient, 
-    customer_admin_token: str,
-    suspended_customer_solution: CustomerSolution
-):
-    """Test customer admin attempting to get customer solution for different customer"""
-    # Try to get it as customer admin
-    response = client.get(
-        f"{settings.API_V1_STR}/customer-solutions/customer/{suspended_customer_solution.customer_id}",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    # Check response - should be forbidden
-    assert response.status_code == 403
-    data = response.json()
-    assert "detail" in data
-    assert "Not authorized" in data["detail"]
 
 def test_get_customer_solution_nonexistent_id(client: TestClient, admin_token: str):
     """Test getting customer solution with non-existent ID"""

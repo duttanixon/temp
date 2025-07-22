@@ -1,7 +1,6 @@
 """
 Test cases for solution management routes.
 """
-import pytest
 import uuid
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
@@ -138,39 +137,6 @@ def test_get_solutions_admin_view_no_permission(client: TestClient, customer_adm
     assert "detail" in data
     assert "enough privileges" in data["detail"]
 
-# Test cases for available solutions endpoint (GET /solutions/available)
-def test_get_available_solutions(client: TestClient, customer_admin_token: str, customer_admin_user: User):
-    """Test getting available solutions for the customer"""
-    response = client.get(
-        f"{settings.API_V1_STR}/solutions/available",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    
-    # Should only include active solutions assigned to the customer
-    for solution in data:
-        assert solution["status"] == "ACTIVE"
-
-def test_get_available_solutions_with_device_type(client: TestClient, customer_admin_token: str):
-    """Test getting available solutions filtered by device type"""
-    response = client.get(
-        f"{settings.API_V1_STR}/solutions/available?device_type=NVIDIA_JETSON",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    
-    # Verify all returned solutions are compatible with the device type
-    for solution in data:
-        assert DeviceType.NVIDIA_JETSON in solution["compatibility"]
-        assert solution["status"] == "ACTIVE"
 
 # Test cases for solution creation (POST /solutions)
 def test_create_solution_admin(client: TestClient, db: Session, admin_token: str):

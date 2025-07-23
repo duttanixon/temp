@@ -104,7 +104,7 @@ type LeafletMapProps = {
   }[];
 };
 
-export default function LeafletMap({
+export const LeafletMap = ({
   polylines,
   coordinatesForZoom,
   hasAttemptedFetch,
@@ -113,7 +113,7 @@ export default function LeafletMap({
   legendItems,
   thresholds,
   allDetectionZones = [],
-}: LeafletMapProps) {
+}: LeafletMapProps) => {
   return (
     <MapContainer
       key={resetKey}
@@ -201,4 +201,4 @@ export default function LeafletMap({
       })}
     </MapContainer>
   );
-}
+};

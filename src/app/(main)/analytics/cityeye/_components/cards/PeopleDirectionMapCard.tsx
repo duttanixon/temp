@@ -14,7 +14,10 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Polyline } from "react-leaflet";
 const LeafletMap = dynamic(
-  () => import("@/app/(main)/analytics/cityeye/_components/LeafletMap"),
+  () =>
+    import("@/app/(main)/analytics/cityeye/_components/LeafletMap").then(
+      (mod) => mod.LeafletMap
+    ),
   {
     ssr: false,
   }

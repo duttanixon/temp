@@ -109,7 +109,7 @@ export default function TrafficComparisonView({
             }
           />
           <TrafficHourlyDistributionCard
-            title="時間別交通量 (分析期間)"
+            title="時系列分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
@@ -190,7 +190,7 @@ export default function TrafficComparisonView({
             }
           />
           <TrafficHourlyDistributionCard
-            title="時間別交通量 (比較期間)"
+            title="時系列分析 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}

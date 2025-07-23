@@ -1,8 +1,7 @@
 "use client";
 
-import React from "react";
-import { ProcessedAgeGroup } from "@/types/cityeye/cityEyeAnalytics";
 import ShadcnPieChartDonutCard from "@/components/charts/piechart-donut-card";
+import { ProcessedAgeGroup } from "@/types/cityeye/cityEyeAnalytics";
 
 interface AgeDistributionCardProps {
   title: string;
@@ -37,7 +36,7 @@ export default function AgeDistributionCard({
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
       chartColors={chartColors}
-      emptyDataMessage="データがありません。"
+      emptyDataMessage="年齢層別データがありません。"
       dataKey="value"
       nameKey="name"
       unit="人"

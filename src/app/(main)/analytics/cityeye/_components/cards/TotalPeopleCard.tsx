@@ -35,9 +35,8 @@ export default function TotalPeopleCard({
           emptyMessage={
             hasAttemptedFetch
               ? "人流データがありません。"
-              : "フィルターを適用して総人数データを表示します。"
-          }
-        >
+              : "フィルターを適用してデータを表示します。"
+          }>
           {/* Actual content to display when data is available */}
           {hasData ? (
             <div className="h-full flex flex-col justify-center">

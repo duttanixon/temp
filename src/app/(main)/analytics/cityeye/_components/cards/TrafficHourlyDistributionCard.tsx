@@ -49,13 +49,13 @@ export default function TrafficHourlyDistributionCard({
   return (
     <ShadcnAreaChartCard
       title={title}
-      description="時間帯別の交通量" // "Traffic volume by time slot"
+      // description="時間帯別の交通量" // "Traffic volume by time slot"
       data={hourlyDistributionData}
       isLoading={isLoading}
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
       chartHeight={300}
-      emptyDataMessage="時間別交通量データがありません。" // "No hourly traffic data available."
+      emptyDataMessage="時系列データがありません。" // "No hourly traffic data available."
       categoryKey="hour"
       dataKeys={areaChartDataKeys}
       unit="台" // Unit for vehicles

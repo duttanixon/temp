@@ -67,7 +67,7 @@ export default function AgeGenderButterflyChartCard({
         <div className="flex flex-col items-center justify-center h-full">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground p-4 text-center">
-            フィルターを適用して年齢性別構成データを表示します。
+            フィルターを適用してデータを表示します。
           </p>
         </div>
       );

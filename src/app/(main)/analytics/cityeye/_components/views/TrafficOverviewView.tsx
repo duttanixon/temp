@@ -6,8 +6,8 @@ import DailyAverageVehiclesCard from "../cards/DailyAverageVehiclesCard";
 import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
-import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 import TrafficTimeSeriesCard from "../cards/TrafficTimeSeriesCard";
+import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 
 // ✅ Dynamically import map card client-side only
 const TrafficMapCard = dynamic(() => import("../cards/TrafficMapCard"), {
@@ -30,7 +30,7 @@ export default function TrafficOverviewView({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
       <div className="grid grid-cols-2 gap-3">
-        <div className="grid grid-rows-2 gap-3">
+        <div className="grid grid-rows-2 gap-3 h-[406px]">
           <TotalVehiclesCard
             title="総交通量"
             totalCountData={processedData?.totalVehicles?.totalCount ?? null}
@@ -78,7 +78,7 @@ export default function TrafficOverviewView({
         }
       />
       <TrafficHourlyDistributionCard
-        title="時間別交通量"
+        title="時系列分析"
         isLoading={isLoading}
         error={error}
         hasAttemptedFetch={hasAttemptedFetch}

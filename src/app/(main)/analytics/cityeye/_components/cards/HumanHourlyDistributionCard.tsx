@@ -55,7 +55,7 @@ export default function HumanHourlyDistributionCard({
       error={error}
       hasAttemptedFetch={hasAttemptedFetch}
       // chartHeight={300} // Increased height
-      emptyDataMessage="時間別データがありません。" // "No hourly data available."
+      emptyDataMessage="時系列データがありません。" // "No hourly data available."
       categoryKey="hour"
       dataKeys={areaChartDataKeys}
       unit="人" // Unit is handled by yAxisTickFormatter if needed or can be "人"

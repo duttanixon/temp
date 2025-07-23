@@ -177,8 +177,8 @@ export default function TimeSeriesCard({
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "時系列データがありません。"
-              : "フィルターを適用して時系列データを表示します。"
+              ? "期間分析データがありません。"
+              : "フィルターを適用してデータを表示します。"
           }>
           <div className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">

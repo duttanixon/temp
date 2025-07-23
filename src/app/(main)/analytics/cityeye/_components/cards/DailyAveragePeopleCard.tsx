@@ -33,9 +33,8 @@ export default function DailyAveragePeopleCard({
           emptyMessage={
             hasAttemptedFetch
               ? "日平均人数データがありません。"
-              : "フィルターを適用して日平均人数データを表示します。"
-          }
-        >
+              : "フィルターを適用してデータを表示します。"
+          }>
           {hasData ? (
             <div className="h-full flex flex-col justify-center">
               <div className="text-center mb-3">

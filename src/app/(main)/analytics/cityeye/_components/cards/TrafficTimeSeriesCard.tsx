@@ -64,7 +64,7 @@ export default function TrafficTimeSeriesCard({
     // regionStartがnullでない場合、最後の領域をregionsに追加
     if (regionStart !== null) {
       regions.push({
-        startIndex: regionStart - 1,
+        startIndex: Math.max(regionStart - 1, 0),
         endIndex: timeSeriesData.data.length - 1,
       });
     }
@@ -153,21 +153,21 @@ export default function TrafficTimeSeriesCard({
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3">
+      <CardContent className="p-3 h-full">
         <GenericAnalyticsCard
           isLoading={isLoading}
           error={hasAttemptedFetch ? error : null}
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "時系列交通データがありません。"
-              : "フィルターを適用して時系列交通データを表示します。"
+              ? "期間分析データがありません。"
+              : "フィルターを適用してデータを表示します。"
           }>
-          <div className="w-full">
-            <ResponsiveContainer width="100%" height={320}>
+          <div className="w-full h-full">
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
+                margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient
                     id="colorTrafficTimeSeries"
@@ -197,14 +197,14 @@ export default function TrafficTimeSeriesCard({
                   tickFormatter={xAxisTickFormatter}
                   angle={-45}
                   textAnchor="end"
-                  height={60}
+                  height={40}
                 />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
                   tick={{ fontSize: 11 }}
                   tickFormatter={yAxisTickFormatter}
-                  width={80}
+                  width={60}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 {noDataRegions.map((region, idx) => {
@@ -239,7 +239,7 @@ export default function TrafficTimeSeriesCard({
                   dataKey="value"
                   stroke="var(--chart-analysis-1)"
                   strokeWidth={1}
-                  fill="url(#colorTrafficTimeSeries)"
+                  fill="var(--chart-analysis-1)"
                   fillOpacity={0.4}
                   connectNulls={false}
                   dot={{

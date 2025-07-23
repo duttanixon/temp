@@ -33,8 +33,8 @@ export default function PerDevicePeopleCard({
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "デバイスデータがありません。"
-              : "フィルターを適用してデバイスデータを表示します。"
+              ? "デバイス別人数データがありません。"
+              : "フィルターを適用してデータを表示します。"
           }>
           {/* Actual content to display when data is available */}
           <ScrollArea className="h-64 pr-3">

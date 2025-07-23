@@ -1,15 +1,15 @@
 /*
-* This component list all the devices based on application, common accross all application
-*/
+ * This component list all the devices based on application, common accross all application
+ */
 
 "use client";
 
-import { type FC, type ReactNode, useState, useMemo } from "react";
+import { useBatchDeviceStatus } from "@/hooks/useBatchDeviceStatus";
 import { Device } from "@/types/device";
-import { Solution } from "@/types/solution"; 
+import { Solution } from "@/types/solution";
+import { type FC, type ReactNode, useMemo, useState } from "react";
 import { DeviceTableHeader } from "./DeviceTableHeader";
 import { DeviceTableRow } from "./DeviceTableRow";
-import { useBatchDeviceStatus } from "@/hooks/useBatchDeviceStatus";
 
 type SortKey = "name" | "device_type" | "customer_name";
 type SortDirection = "asc" | "desc";
@@ -19,7 +19,6 @@ type DeviceTableProps = {
   devices?: Device[];
   solution?: Solution;
   isShowInactive?: boolean;
-
 };
 
 /**
@@ -30,12 +29,13 @@ export const DeviceTable: FC<DeviceTableProps> = ({
   solution,
   isShowInactive = false,
 }) => {
+  console.log("solution in DeviceTable:", solution);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   // Get all device IDs for batch status fetch
-  const deviceIds = useMemo(() => 
-    devices.map(device => device.device_id),
+  const deviceIds = useMemo(
+    () => devices.map((device) => device.device_id),
     [devices]
   );
 
@@ -56,8 +56,8 @@ export const DeviceTable: FC<DeviceTableProps> = ({
 
   const filteredAndSortedDevices = useMemo(() => {
     // Filter devices based on inactive visibility
-    const filtered = devices.filter((device) =>
-      isShowInactive || device.status !== "INACTIVE"
+    const filtered = devices.filter(
+      (device) => isShowInactive || device.status !== "INACTIVE"
     );
 
     // Sort devices
@@ -74,7 +74,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
       <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
         <thead className="bg-[#ECF0F1]">
-          <DeviceTableHeader 
+          <DeviceTableHeader
             sortKey={sortKey}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -86,7 +86,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
               <DeviceTableRow
                 key={device.device_id}
                 device={device}
-                solution={solution}
+                solution={solution as Solution}
                 statusInfo={statuses[device.device_id]}
               />
             ))
@@ -94,8 +94,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
             <tr>
               <td
                 colSpan={5}
-                className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
-              >
+                className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
                 デバイスが見つかりません
               </td>
             </tr>

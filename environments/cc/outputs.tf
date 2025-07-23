@@ -168,3 +168,33 @@ output "platform_url" {
   description = "URL to access the platform"
   value       = "https://${var.platform_domain}"
 }
+
+# output "ses_user_access_key_id" {
+#   description = "Access key ID for the SES user"
+#   value       = module.common.ses_user_access_key_id
+# }
+
+# output "ses_user_secret_access_key" {
+#   description = "Secret access key for the SES user"
+#   value       = module.common.ses_user_secret_access_key
+#   sensitive   = true
+# }
+
+output "ses_dkim_dns_records" {
+  description = "DKIM CNAME records to add to your DNS provider (Sakura Cloud)"
+  value = {
+    for token in module.common.ses_dkim_tokens :
+    "${token}._domainkey.cybercore.co.jp" => "${token}.dkim.amazonses.com"
+  }
+}
+
+output "ses_smtp_user_access_key_id" {
+  description = "Access key ID for the SES SMTP user (SMTP Username)"
+  value       = module.common.ses_smtp_user_access_key_id
+}
+
+output "ses_smtp_password" {
+  description = "The generated SMTP password for the SES user."
+  value       = module.common.ses_smtp_password
+  sensitive   = true
+}

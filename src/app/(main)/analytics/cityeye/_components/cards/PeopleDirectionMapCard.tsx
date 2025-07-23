@@ -74,8 +74,6 @@ export default function PeopleDirectionMapCard({
     perDeviceCountsData
   );
 
-  console.log("hasAttemptedFetch:", hasAttemptedFetch);
-
   // 閾値取得（最初のデバイスを参照）
   const firstDeviceId = perDeviceCountsData[0].deviceId ?? "";
   const Device = useGetDevice({

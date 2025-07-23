@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
 import { RefreshCcw } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // Import Leaflet CSS only on client side
 if (typeof window !== "undefined") {
@@ -50,7 +50,6 @@ const LeafletMap = dynamic<MapProps>(
         return (
           <MapContainer
             key={resetKey}
-            center={coordinatesForZoom[0] || [33.5597, 133.5311]}
             zoom={16}
             style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
           >
@@ -160,25 +159,34 @@ export default function CameraMapCard({
 
   console.log("CameraMapCard perDeviceCountsData:", perDeviceCountsData);
 
-  const validDevices = perDeviceCountsData.filter(
-    (d): d is DeviceCountData & { lat: number; lng: number } =>
-      typeof d.lat === "number" &&
-      typeof d.lng === "number" &&
-      typeof d.count === "number" &&
-      !d.error
-  );
+  const { validDevices, coordinatesForZoom, min, max } = useMemo(() => {
+    const devices = perDeviceCountsData.filter(
+      (d): d is DeviceCountData & { lat: number; lng: number } =>
+        typeof d.lat === "number" &&
+        typeof d.lng === "number" &&
+        typeof d.count === "number" &&
+        !d.error
+    );
 
-  console.log("Valid devices for map:", validDevices);
+    const coordinates: [number, number][] = devices
+      .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
+      .map((d) => [d.lat as number, d.lng as number]);
 
-  const devicesToShow = validDevices;
-  const coordinatesForZoom: [number, number][] = devicesToShow
-    .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
-    .map((d) => [d.lat as number, d.lng as number]);
+    const counts = devices.map((d) => d.count);
+    const minCount = counts.length > 0 ? Math.min(...counts) : 0;
+    const maxCount = counts.length > 0 ? Math.max(...counts) : 0;
 
-  console.log("Coordinates for zoom:", coordinatesForZoom);
-  const counts = devicesToShow.map((d) => d.count);
-  const min = counts.length > 0 ? Math.min(...counts) : 0;
-  const max = counts.length > 0 ? Math.max(...counts) : 0;
+    return {
+      validDevices: devices,
+      coordinatesForZoom: coordinates,
+      min: minCount,
+      max: maxCount,
+    };
+  }, [perDeviceCountsData]);
+
+  console.log("validDevices:", validDevices);
+  console.log("coordinatesForZoom:", coordinatesForZoom);
+  console.log("min:", min, "max:", max);
 
   const hasData = hasAttemptedFetch;
 
@@ -228,7 +236,7 @@ export default function CameraMapCard({
             </div>
             {/* Use the dynamic Leaflet map component */}
             <LeafletMap
-              devicesToShow={devicesToShow}
+              devicesToShow={validDevices}
               coordinatesForZoom={coordinatesForZoom}
               min={min}
               max={max}

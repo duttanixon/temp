@@ -15,9 +15,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Polyline } from "react-leaflet";
 const LeafletMap = dynamic(
   () =>
-    import("@/app/(main)/analytics/cityeye/_components/LeafletMap").then(
-      (mod) => mod.LeafletMap
-    ),
+    import(
+      "@/app/(main)/analytics/cityeye/_components/LeafletDirectionMap"
+    ).then((mod) => mod.LeafletDirectionMap),
   {
     ssr: false,
   }

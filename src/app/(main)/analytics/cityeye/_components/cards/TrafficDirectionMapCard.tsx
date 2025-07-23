@@ -14,9 +14,9 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 const LeafletMap = dynamic(
   () =>
-    import("@/app/(main)/analytics/cityeye/_components/LeafletMap").then(
-      (mod) => mod.LeafletMap
-    ),
+    import(
+      "@/app/(main)/analytics/cityeye/_components/LeafletDirectionMap"
+    ).then((mod) => mod.LeafletDirectionMap),
   {
     ssr: false,
   }
@@ -236,11 +236,13 @@ export default function TrafficDirectionMapCard({
   }, [zoneLinePairs, isThresholdsReady]);
 
   // ズーム用座標
-  const coordinatesForZoom: [number, number][] = polylines.flatMap(
-    (line: Polyline) => [
-      [line.start.lat, line.start.lng],
-      [line.end.lat, line.end.lng],
-    ]
+  const coordinatesForZoom: [number, number][] = useMemo(
+    () =>
+      polylines.flatMap((line: Polyline) => [
+        [line.start.lat, line.start.lng],
+        [line.end.lat, line.end.lng],
+      ]),
+    [polylines]
   );
 
   // zoneごとにIN/OUT両方の線がある場合は中点同士の中点、片方だけならその線の中点

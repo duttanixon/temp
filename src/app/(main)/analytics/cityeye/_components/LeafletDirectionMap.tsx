@@ -104,7 +104,7 @@ type LeafletMapProps = {
   }[];
 };
 
-export const LeafletMap = ({
+export const LeafletDirectionMap = ({
   polylines,
   coordinatesForZoom,
   hasAttemptedFetch,

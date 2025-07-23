@@ -36,6 +36,22 @@ export interface FrontendAnalyticsFilters {
   genders?: string[];
   /** Age group filters (["under_18", "18_to_29", ...]) */
   age_groups?: string[];
+  /** For direction tabs: freely selectable dates (YYYY-MM-DD) */
+}
+
+export interface FrontendAnalyticsDirectionFilters {
+  /** Array of device UUIDs to include in analysis */
+  device_ids?: string[];
+  dates?: string[];
+  /** Days of week to include (e.g., ["sunday", "monday"]) */
+  days?: string[];
+  /** Hours of day to include (e.g., ["10:00", "14:00"]) */
+  hours?: string[];
+  /** Gender filters (["male", "female"]) */
+  genders?: string[];
+  /** Age group filters (["under_18", "18_to_29", ...]) */
+  age_groups?: string[];
+  /** For direction tabs: freely selectable dates (YYYY-MM-DD) */
 }
 
 export interface FilterContext {
@@ -43,6 +59,10 @@ export interface FilterContext {
   selectedDays?: string[];
 }
 
+export interface FilterContextWithDirection {
+  dates?: Date[];
+  selectedDays?: string[];
+}
 /**
  * Traffic-specific API filter parameters
  */
@@ -63,6 +83,18 @@ export interface FrontendTrafficAnalyticsFilters {
   polygon_ids_out?: string[]; // not used yet
   /** Vehicle types to filter (["large", "normal", "bicycle", "motorcycle"]) */
   vehicle_types?: string[];
+  dates?: string[];
+}
+
+export interface FrontendTrafficAnalyticsDirectionFilters {
+  /** Array of device UUIDs to include in analysis */
+  device_ids?: string[];
+  dates?: string[];
+  /** Days of week to include (e.g., ["sunday", "monday"]) */
+  days?: string[];
+  /** Hours of day to include (e.g., ["10:00", "14:00"]) */
+  hours?: string[];
+  vehicle_types?: string[];
 }
 
 /**
@@ -74,12 +106,16 @@ export interface CityEyeFilterState {
   analysisPeriod?: DateRange;
   /** Comparison time period for trend analysis */
   comparisonPeriod?: DateRange;
+  /** For direction tabs: freely selectable dates (max 7) */
+  dates?: Date[];
   /** Selected days of week */
   selectedDays: string[];
   /** Selected hours of day */
   selectedHours: string[];
   /** Selected device IDs */
   selectedDevices: string[];
+  /** Selected customer IDs */
+  selectedCustomers: string[];
   /** Selected age groups */
   selectedAges: string[];
   /** Selected genders */
@@ -186,6 +222,23 @@ export interface FrontendPerDeviceAnalyticsData {
   time_series_data?: FrontendTimeSeriesDataPoint[];
 }
 
+export interface FrontendPerDeviceAnalyticsDirectionData {
+  detectionZones?: Array<{
+    polygon_id: number;
+    polygon_name: string;
+    in_data: {
+      start_point: { lat: number; lng: number };
+      end_point: { lat: number; lng: number };
+      count: number;
+    };
+    out_data: {
+      start_point: { lat: number; lng: number };
+      end_point: { lat: number; lng: number };
+      count: number;
+    };
+  }>;
+}
+
 /**
  * Traffic analytics data for a single device
  */
@@ -215,6 +268,21 @@ export interface FrontendDeviceAnalyticsItem {
   error?: string;
 }
 
+export interface FrontendDeviceAnalyticsDirectionItem {
+  /** Device UUID */
+  device_id: string;
+  /** Human-readable device name */
+  device_name?: string;
+  /** Device physical location description */
+  device_location?: string;
+  /** Device latitude and longitude for mapping */
+  device_position?: number[]; // [lat, lng]
+  /** All analytics data for this device */
+  direction_data: FrontendPerDeviceAnalyticsDirectionData;
+  /** Error message if analytics failed for this device */
+  error?: string;
+}
+
 /**
  * Device information with traffic analytics data
  */
@@ -233,17 +301,51 @@ export interface FrontendDeviceTrafficAnalyticsItem {
   error?: string;
 }
 
+export interface FrontendDeviceTrafficAnalyticsDirectionItem {
+  /** Device UUID */
+  device_id: string;
+  /** Human-readable device name */
+  device_name?: string;
+  /** Device physical location description */
+  device_location?: string;
+  /** Device latitude and longitude for mapping */
+  device_position?: number[]; // [lat, lng]
+  /** All analytics data for this device */
+  direction_data: FrontendPerDeviceAnalyticsDirectionData;
+  /** Error message if analytics failed for this device */
+  error?: string;
+}
+
+export interface FrontendDeviceAnalyticsDirectionThresholds {
+  solution_id: string;
+  customer_id: string;
+  customer_name?: string;
+  thresholds?: {
+    traffic_count_thresholds?: number[];
+    human_count_thresholds?: number[];
+  };
+}
+
+export type FrontendCityEyeAnalyticsPerDeviceDirectionThresholdsResponse =
+  FrontendDeviceAnalyticsDirectionThresholds;
+
 /**
  * Complete response type for per-device analytics API
  */
 export type FrontendCityEyeAnalyticsPerDeviceResponse =
   FrontendDeviceAnalyticsItem[];
 
+export type FrontendCityEyeAnalyticsPerDeviceDirectionResponse =
+  FrontendDeviceAnalyticsDirectionItem[];
+
 /**
  * Complete response type for per-device traffic analytics API
  */
 export type FrontendCityEyeTrafficAnalyticsPerDeviceResponse =
   FrontendDeviceTrafficAnalyticsItem[];
+
+export type FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse =
+  FrontendDeviceTrafficAnalyticsDirectionItem[];
 
 // ============================================================================
 // SECTION 3: PROCESSED DATA TYPES (FOR UI COMPONENTS)
@@ -489,6 +591,29 @@ export interface ProcessedAnalyticsData {
   timeSeries: ProcessedTimeSeriesData | null;
 }
 
+export interface ProcessedAnalyticsDirectionData {
+  deviceId: string;
+  deviceName?: string;
+  deviceLocation?: string;
+  dates?: string[];
+  direction_data: {
+    detectionZones?: Array<{
+      polygon_id: number;
+      polygon_name: string;
+      in_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+      out_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+    }>;
+  };
+}
+
 /**
  * Master processed traffic analytics data container
  * Contains all traffic analytics ready for dashboard consumption
@@ -513,4 +638,27 @@ export interface ProcessedTrafficAnalyticsData {
 
   /** Time series analysis */
   timeSeries: ProcessedTimeSeriesData | null;
+}
+
+export interface ProcessedTrafficAnalyticsDirectionData {
+  deviceId: string;
+  deviceName?: string;
+  deviceLocation?: string;
+  dates?: string[];
+  direction_data: {
+    detectionZones?: Array<{
+      polygon_id: number;
+      polygon_name: string;
+      in_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+      out_data: {
+        start_point: { lat: number; lng: number };
+        end_point: { lat: number; lng: number };
+        count: number;
+      };
+    }>;
+  };
 }

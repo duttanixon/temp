@@ -1,26 +1,28 @@
 import {
   DeviceCountData,
   FilterContext,
+  FilterContextWithDirection,
+  FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse,
+  FrontendCityEyeTrafficAnalyticsPerDeviceResponse,
   ProcessedHourlyDataPoint,
   ProcessedHourlyDistributionData,
+  ProcessedTimeSeriesData,
+  ProcessedTimeSeriesDataPoint,
   ProcessedTrafficAnalyticsData,
+  ProcessedTrafficAnalyticsDirectionData,
   ProcessedVehicleType,
   ProcessedVehicleTypeDistributionData,
 } from "@/types/cityeye/cityEyeAnalytics";
-import { eachDayOfInterval, isValid } from "date-fns";
-import { DateRange } from "react-day-picker";
 import {
-  parseISO,
+  eachDayOfInterval,
   eachHourOfInterval,
-  startOfHour,
   endOfHour,
   format,
+  isValid,
+  parseISO,
+  startOfHour,
 } from "date-fns";
-import {
-  ProcessedTimeSeriesData,
-  ProcessedTimeSeriesDataPoint,
-  FrontendCityEyeTrafficAnalyticsPerDeviceResponse,
-} from "@/types/cityeye/cityEyeAnalytics";
+import { DateRange } from "react-day-picker";
 
 // Configuration for vehicle types
 const CONFIG = {
@@ -61,6 +63,33 @@ export function processTrafficAnalyticsData(
     hourlyDistribution: processHourlyDistribution(data),
     timeSeries: processTrafficTimeSeries(data, filterContext ?? null),
   };
+}
+
+export function processTrafficAnalyticsDirectionData(
+  data: FrontendCityEyeTrafficAnalyticsPerDeviceDirectionResponse | null,
+  filterContext?: FilterContextWithDirection | null
+): ProcessedTrafficAnalyticsDirectionData[] | null {
+  if (!data) return null;
+
+  // 選択されているdatesを含める
+  const dates = (filterContext?.dates ?? []).map((d) =>
+    d instanceof Date ? d.toISOString() : d
+  );
+
+  // 各デバイスごとにProcessedAnalyticsDirectionDataを作成
+  return data.map((item) => {
+    const detectionZones =
+      item.direction_data && Array.isArray(item.direction_data.detectionZones)
+        ? item.direction_data.detectionZones
+        : [];
+    return {
+      deviceId: item.device_id,
+      deviceName: item.device_name,
+      deviceLocation: item.device_location,
+      dates,
+      direction_data: { detectionZones },
+    } as ProcessedTrafficAnalyticsDirectionData;
+  });
 }
 
 /**

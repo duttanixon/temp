@@ -18,7 +18,7 @@ export default auth(async function middleware(req) {
   const path = req.nextUrl.pathname;
 
   // Public paths that don't require authentication
-  const publicPaths = ["/login", "/api/auth"];
+  const publicPaths = ["/login", "/api/auth", "/set-password", "/forgot-password"];
 
   // Check for valid session (exists AND has no error)
   const hasValidSession = session && !session.error;
@@ -41,8 +41,8 @@ export default auth(async function middleware(req) {
       "🔒 MIDDLEWARE: Redirecting to login - protected route with no valid session"
     );
     const loginUrl = new URL("/login", req.url);
-    // Store the original URL to redirect back after login
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    // Removed: Store the original URL to redirect back after login
+    // loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 

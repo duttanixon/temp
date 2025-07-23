@@ -28,7 +28,7 @@ export function useSessionExpiration() {
       console.log("⏱️ SESSION HOOK: Session expired, logging out");
       // Logout and redirect to login page on session error
       signOut({ redirect: false }).then(() => {
-        router.push(`/login?error=Session expired. Please log in again.`);
+        router.push("/login?error=Session expired. Please log in again.");
       });
       return;
     }
@@ -90,7 +90,8 @@ export function useSessionExpiration() {
       // If refresh fails, sign out
       console.log("⏱️ SESSION HOOK: Refresh failed, signing out");
       signOut({ redirect: false }).then(() => {
-        router.push(`/login?error=Session expired. Please log in again.`);
+        // Removed callbackUrl parameter - just redirect to login with error
+        router.push("/login?error=Session expired. Please log in again.");
       });
     }
   };

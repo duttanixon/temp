@@ -61,6 +61,12 @@ export function FilterGroup({
     onFilterChange({ comparisonPeriod: newDate });
   };
 
+  // useEffect(() => {
+  //   onFilterChange({ selectedDevices: [] });
+  // }, [currentFilters.selectedCustomers, solutionId]);
+
+  console.log("FilterGroup currentFilters:", currentFilters);
+
   return (
     <div className="bg-gradient-to-br from-slate-50 to-white flex flex-col gap-3">
       <div className="space-y-4">
@@ -105,7 +111,6 @@ export function FilterGroup({
           collapsible={true}
           defaultExpanded={false}
         />
-
         <DevicesFilter
           solutionId={solutionId}
           selectedDevices={currentFilters.selectedDevices}

@@ -15,6 +15,7 @@ const createDefaultFilters = (): CityEyeFilterState => ({
     from: startOfDay(subDays(new Date(), 13)),
     to: endOfDay(subDays(new Date(), 7)),
   },
+  dates: [new Date()],
   selectedDays: [
     "monday",
     "tuesday",
@@ -29,6 +30,7 @@ const createDefaultFilters = (): CityEyeFilterState => ({
     (_, i) => `${String(i).padStart(2, "0")}:00`
   ),
   selectedDevices: [],
+  selectedCustomers: [],
   selectedAges: ["under_18", "18_to_29", "30_to_49", "50_to_64", "over_64"],
   selectedGenders: ["male", "female"],
   selectedTrafficTypes: ["Large", "Normal", "Motorcycle", "Bicycle"],
@@ -63,9 +65,9 @@ export function useAnalyticsFilters() {
       horizontalTab: string,
       periodType: "analysisPeriod" | "comparisonPeriod"
     ): FrontendAnalyticsFilters | null => {
-      const period = currentFilters[periodType];
-
-      // Basic validation
+      // 通常のrange型
+      const period =
+        currentFilters[periodType as "analysisPeriod" | "comparisonPeriod"];
       if (!period?.from || !period?.to) {
         return null;
       }
@@ -112,20 +114,48 @@ export function useAnalyticsFilters() {
         "yyyy-MM-dd'T'HH:mm:ss"
       );
       const endTime = format(endOfDay(period.to), "yyyy-MM-dd'T'HH:mm:ss");
-
-      // Build API filters object
       return {
         device_ids: currentFilters.selectedDevices,
         start_time: startTime,
         end_time: endTime,
         days: currentFilters.selectedDays,
         hours: currentFilters.selectedHours,
-        // Include demographic filters only for people analytics
         ...(horizontalTab === "people" && {
           genders: currentFilters.selectedGenders,
           age_groups: currentFilters.selectedAges,
         }),
         ...(horizontalTab === "traffic" && {
+          vehicle_types: currentFilters.selectedTrafficTypes,
+        }),
+      };
+    },
+    []
+  );
+
+  // direction専用フィルター生成
+  const validateAndPrepareDirectionFilters = useCallback(
+    (
+      currentFilters: CityEyeFilterState,
+      horizontalTab: string
+    ):
+      | import("@/types/cityeye/cityEyeAnalytics").FrontendAnalyticsDirectionFilters
+      | null => {
+      const dates = currentFilters.dates;
+      if (!dates || dates.length === 0) return null;
+      if (currentFilters.selectedDevices.length === 0) return null;
+
+      return {
+        device_ids: currentFilters.selectedDevices,
+        dates: currentFilters.dates!.map((d) =>
+          typeof d === "string" ? d : format(d, "yyyy-MM-dd")
+        ),
+        days: currentFilters.selectedDays,
+        hours: currentFilters.selectedHours,
+        ...(horizontalTab === "people-direction" && {
+          genders: currentFilters.selectedGenders,
+          age_groups: currentFilters.selectedAges,
+        }),
+        ...(horizontalTab === "traffic-direction" && {
           vehicle_types: currentFilters.selectedTrafficTypes,
         }),
       };
@@ -145,6 +175,7 @@ export function useAnalyticsFilters() {
     filters,
     handleFilterChange,
     validateAndPrepareApiFilters,
+    validateAndPrepareDirectionFilters, // direction専用
     resetFilters,
   };
 }

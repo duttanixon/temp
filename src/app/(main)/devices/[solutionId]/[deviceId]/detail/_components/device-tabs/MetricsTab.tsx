@@ -1,16 +1,15 @@
 "use client";
 
-import { format, isSameDay, startOfDay, endOfDay } from "date-fns";
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { MetricsResponse } from "@/types/metrics";
 import { metricsService } from "@/services/metricsService";
-import { 
-  transformMetricData, 
+import { MetricsResponse } from "@/types/metrics";
+import {
   getSeriesNames,
   kiloBytesToMB,
-  kiloBytesToGB
+  transformMetricData,
 } from "@/utils/metrics/metricsHelpers";
+import { endOfDay, format, startOfDay } from "date-fns";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import MetricGraph from "./metrics/MetricGraph";
 import MetricsControls from "./metrics/MetricsControls";
 
@@ -22,9 +21,11 @@ export default function MetricsTab() {
   const [deviceName, setDeviceName] = useState<string>("");
   const [timeRange, setTimeRange] = useState<string>("1h");
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-  const [memoryMetrics, setMemoryMetrics] = useState<MetricsResponse | null>(null);
+  const [memoryMetrics, setMemoryMetrics] = useState<MetricsResponse | null>(
+    null
+  );
   const [cpuMetrics, setCpuMetrics] = useState<MetricsResponse | null>(null);
-  const [diskMetrics, setDiskMetrics] = useState<MetricsResponse | null>(null);
+  const [tempMetrics, setTempMetrics] = useState<MetricsResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +33,7 @@ export default function MetricsTab() {
   useEffect(() => {
     async function fetchDeviceName() {
       if (!deviceId) return;
-      
+
       try {
         const name = await metricsService.getDeviceName(deviceId);
         setDeviceName(name);
@@ -54,10 +55,13 @@ export default function MetricsTab() {
       setError(null);
 
       try {
-        const { memory, cpu, disk } = await metricsService.getAllMetrics(deviceName, timeRange);
+        const { memory, cpu, temp } = await metricsService.getAllMetrics(
+          deviceName,
+          timeRange
+        );
         setMemoryMetrics(memory);
         setCpuMetrics(cpu);
-        setDiskMetrics(disk);
+        setTempMetrics(temp);
       } catch (err) {
         setError("メトリクスの取得に失敗しました");
         console.error("Error fetching metrics:", err);
@@ -74,19 +78,18 @@ export default function MetricsTab() {
     if (deviceName) {
       setMemoryMetrics(null);
       setCpuMetrics(null);
-      setDiskMetrics(null);
+      setTempMetrics(null);
       setIsLoading(true);
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
     }
   };
 
-
   const handleDateRangeChange = async (from: Date, to: Date) => {
     if (!deviceName) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const adjustedFrom = startOfDay(from);
       const adjustedTo = endOfDay(to);
@@ -96,23 +99,47 @@ export default function MetricsTab() {
       // The backend (timestream.py) converts these to UTC.
       const startTime = format(adjustedFrom, "yyyy-MM-dd'T'HH:mm:ssXXX");
       const endTime = format(adjustedTo, "yyyy-MM-dd'T'HH:mm:ssXXX");
-      
+
       // Calculate appropriate interval based on date range (in minutes)
-      const diffHours = (adjustedTo.getTime() - adjustedFrom.getTime()) / (1000 * 60 * 60);
-      let interval = 5; // default 5 minutes
-      
-      if (diffHours > 72) interval = 60; // 1 hour intervals for > 3 days
-      else if (diffHours > 24) interval = 30; // 30 min intervals for > 1 day
-      else if (diffHours > 12) interval = 15; // 15 min intervals for > 12 hours
-      
+      // const diffHours =
+      //   (adjustedTo.getTime() - adjustedFrom.getTime()) / (1000 * 60 * 60);
+      const interval = 5; // default 5 minutes
+
+      // if (diffHours > 72)
+      //   interval = 60; // 1 hour intervals for > 3 days
+      // else if (diffHours > 24)
+      //   interval = 30; // 30 min intervals for > 1 day
+      // else if (diffHours > 12) interval = 15; // 15 min intervals for > 12 hours
+
       // Fetch metrics with custom date range
-      const memory = await metricsService.getMetrics(deviceName, "memory", "custom", startTime, endTime, interval);
-      const cpu = await metricsService.getMetrics(deviceName, "cpu", "custom", startTime, endTime, interval);
-      const disk = await metricsService.getMetrics(deviceName, "disk", "custom", startTime, endTime, interval);
-      
+      const memory = await metricsService.getMetrics(
+        deviceName,
+        "memory",
+        "custom",
+        startTime,
+        endTime,
+        interval
+      );
+      const cpu = await metricsService.getMetrics(
+        deviceName,
+        "cpu",
+        "custom",
+        startTime,
+        endTime,
+        interval
+      );
+      const temp = await metricsService.getMetrics(
+        deviceName,
+        "temperature",
+        "custom",
+        startTime,
+        endTime,
+        interval
+      );
+
       setMemoryMetrics(memory);
       setCpuMetrics(cpu);
-      setDiskMetrics(disk);
+      setTempMetrics(temp);
     } catch (err) {
       setError("メトリクスの取得に失敗しました");
       console.error("Error fetching metrics with custom date range:", err);
@@ -124,7 +151,7 @@ export default function MetricsTab() {
   // Custom formatters for different units
   const memoryFormatter = (value: number) => `${value.toFixed(0)}`;
   const cpuFormatter = (value: number) => `${value.toFixed(0)}`;
-  const diskFormatter = (value: number) => `${value.toFixed(1)}`;
+  const tempFormatter = (value: number) => `${value.toFixed(1)}`;
 
   return (
     <div className="space-y-4 p-3">
@@ -148,7 +175,7 @@ export default function MetricsTab() {
       {/* Graphs */}
       <div className="flex flex-col lg:flex-row gap-4">
         <MetricGraph
-          title="メモリ使用率"
+          title="Memory Usage"
           data={transformMetricData(memoryMetrics, kiloBytesToMB)}
           seriesNames={getSeriesNames(memoryMetrics)}
           unit="MB"
@@ -156,27 +183,26 @@ export default function MetricsTab() {
           domain={[0, 8000]} // Start from 0, auto-scale the max
           tickFormatter={memoryFormatter}
           axisFontSize={10}
-
         />
         <MetricGraph
-          title="CPU 使用率"
+          title="CPU Usage"
           data={transformMetricData(cpuMetrics)}
           seriesNames={getSeriesNames(cpuMetrics)}
           unit="%"
           isLoading={isLoading}
           domain={[0, 100]} // CPU percentage: 0-100%
           tickFormatter={cpuFormatter}
-          axisFontSize={11}          
+          axisFontSize={10}
         />
         <MetricGraph
-          title="ディスク使用率"
-          data={transformMetricData(diskMetrics, kiloBytesToGB)}
-          seriesNames={getSeriesNames(diskMetrics)}
-          unit="MB"
+          title="CPU/GPU Temperature"
+          data={transformMetricData(tempMetrics)}
+          seriesNames={getSeriesNames(tempMetrics)}
+          unit="℃"
           isLoading={isLoading}
-          domain={[0, 1000]} // Start from 0, auto-scale the max
-          tickFormatter={diskFormatter}
-          axisFontSize={11}
+          domain={[0, 100]} // Start from 0, auto-scale the max
+          tickFormatter={tempFormatter}
+          axisFontSize={10}
         />
       </div>
     </div>

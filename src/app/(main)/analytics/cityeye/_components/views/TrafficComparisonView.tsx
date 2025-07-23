@@ -8,6 +8,7 @@ import PerDeviceTrafficCard from "../cards/PerDeviceTrafficCard";
 import TotalVehiclesCard from "../cards/TotalVehiclesCard";
 import TrafficHourlyDistributionCard from "../cards/TrafficHourlyDistributionCard";
 import TrafficMapCard from "../cards/TrafficMapCard";
+import TrafficTimeSeriesCard from "../cards/TrafficTimeSeriesCard";
 import VehicleTypeDistributionCard from "../cards/VehicleTypeDistributionCard";
 
 interface TrafficComparisonViewProps {
@@ -108,7 +109,7 @@ export default function TrafficComparisonView({
             }
           />
           <TrafficHourlyDistributionCard
-            title="時間別交通量 (分析期間)"
+            title="時系列分析 (分析期間)"
             isLoading={isLoadingMain}
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
@@ -116,6 +117,13 @@ export default function TrafficComparisonView({
               mainPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
+          />
+          <TrafficTimeSeriesCard
+            title="期間分析 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            timeSeriesData={mainPeriodProcessedData?.timeSeries ?? null}
           />
         </div>
 
@@ -182,7 +190,7 @@ export default function TrafficComparisonView({
             }
           />
           <TrafficHourlyDistributionCard
-            title="時間別交通量 (比較期間)"
+            title="時系列分析 (比較期間)"
             isLoading={isLoadingComparison}
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
@@ -190,6 +198,13 @@ export default function TrafficComparisonView({
               comparisonPeriodProcessedData?.hourlyDistribution
                 ?.overallHourlyDistribution ?? null
             }
+          />
+          <TrafficTimeSeriesCard
+            title="期間分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            timeSeriesData={comparisonPeriodProcessedData?.timeSeries ?? null}
           />
         </div>
       </div>

@@ -15,7 +15,8 @@ export function transformMetricData(
     const startTime = new Date(metricsResponse.start_time);
     const endTime = new Date(metricsResponse.end_time);
     // Check if the date range is more than 24 hours
-    isMultipleDays = (endTime.getTime() - startTime.getTime()) > (24 * 60 * 60 * 1000);
+    isMultipleDays =
+      endTime.getTime() - startTime.getTime() > 24 * 60 * 60 * 1000;
   }
 
   // Process each series
@@ -23,66 +24,77 @@ export function transformMetricData(
     series.data.forEach((point) => {
       // Keep the original ISO timestamp for sorting
       const originalTimestamp = new Date(point.timestamp);
-      
+
       // Format the timestamp based on whether it spans multiple days
       let displayTimestamp;
       if (isMultipleDays) {
         // Include date for multi-day ranges (e.g., "MM/DD HH:MM")
-        displayTimestamp = originalTimestamp.toLocaleDateString('ja-JP', {
-          month: 'numeric',
-          day: 'numeric',
-        }) + ' ' + originalTimestamp.toLocaleTimeString('ja-JP', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        displayTimestamp =
+          originalTimestamp.toLocaleDateString("ja-JP", {
+            month: "numeric",
+            day: "numeric",
+          }) +
+          " " +
+          originalTimestamp.toLocaleTimeString("ja-JP", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
       } else {
         // Just time for single day (e.g., "HH:MM")
-        displayTimestamp = originalTimestamp.toLocaleTimeString('ja-JP', {
-          hour: '2-digit',
-          minute: '2-digit',
+        displayTimestamp = originalTimestamp.toLocaleTimeString("ja-JP", {
+          hour: "2-digit",
+          minute: "2-digit",
         });
       }
 
       // Store the formatted date for the tooltip (DD/MM/YYYY format)
-      const formattedDate = originalTimestamp.toLocaleDateString('ja-JP', {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
+      const formattedDate = originalTimestamp.toLocaleDateString("ja-JP", {
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
       });
-      const formattedTime = originalTimestamp.toLocaleTimeString('ja-JP', {
-        hour: '2-digit',
-        minute: '2-digit',
+      const formattedTime = originalTimestamp.toLocaleTimeString("ja-JP", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
-      
 
-      
       // Use the formatted timestamp as the key
       if (!dataMap.has(displayTimestamp)) {
-        dataMap.set(displayTimestamp, { 
+        dataMap.set(displayTimestamp, {
           timestamp: displayTimestamp,
           fullTimestamp: `${formattedDate} ${formattedTime}`,
           // Store the original timestamp for sorting
-          _originalTimestamp: originalTimestamp.getTime() 
+          _originalTimestamp: originalTimestamp.getTime(),
+          hasData: false,
         });
       }
-  
+
       // Convert value if converter is provided
-      let value = parseFloat(point.value.toFixed(2));
+      let value: number | null = parseFloat(point.value.toFixed(2));
       if (unitConverter) {
         value = parseFloat(unitConverter(value).toFixed(2));
       }
 
       // Add this series' value to the data point
       dataMap.get(displayTimestamp)[series.name] = value;
+
+      // Update hasData flag - if any series has hasData=true for this timestamp, set overall hasData to true
+      const currentDataPoint = dataMap.get(displayTimestamp);
+      if (point.hasData === true) {
+        currentDataPoint.hasData = true;
+      } else if (point.hasData === false && currentDataPoint.hasData !== true) {
+        // Only set to false if it hasn't been set to true by another series
+        currentDataPoint.hasData = false;
+      }
     });
   });
 
   // Convert map to array and sort by original timestamp
   const dataArray = Array.from(dataMap.values());
   dataArray.sort((a, b) => a._originalTimestamp - b._originalTimestamp);
-  
+
   // Remove the _originalTimestamp property as we don't need it in the chart
-  return dataArray.map(item => {
+  return dataArray.map((item) => {
     const { _originalTimestamp, ...rest } = item;
     return rest;
   });
@@ -110,7 +122,6 @@ export const LINE_COLORS = [
   "var(--chart-4)",
   "var(--chart-5)",
 ];
-
 
 export function kiloBytesToMB(kilobytes: number): number {
   return kilobytes / 1024;

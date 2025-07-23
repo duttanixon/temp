@@ -20,21 +20,21 @@ export default function PerDevicePeopleCard({
 }: PerDevicePeopleCardProps) {
   const hasData = hasAttemptedFetch && perDeviceCountsData.length > 0;
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[406px]">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow p-3">
+      <CardContent className="flex-grow p-3 flex flex-col justify-center">
         <GenericAnalyticsCard
           isLoading={isLoading}
           error={hasAttemptedFetch ? error : null}
           hasData={hasData}
           emptyMessage={
             hasAttemptedFetch
-              ? "デバイスデータがありません。"
-              : "フィルターを適用してデバイスデータを表示します。"
+              ? "デバイス別人数データがありません。"
+              : "フィルターを適用してデータを表示します。"
           }>
           {/* Actual content to display when data is available */}
           <ScrollArea className="h-64 pr-3">

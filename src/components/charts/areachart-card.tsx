@@ -32,7 +32,7 @@ interface ShadcnAreaChartCardProps {
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
-  _chartHeight?: number;
+  chartHeight?: number;
   emptyDataMessage?: string;
   categoryKey: string; // Key for x-axis (e.g., "hour", "date")
   dataKeys: Array<{

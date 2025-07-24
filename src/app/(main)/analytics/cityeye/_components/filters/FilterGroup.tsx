@@ -122,6 +122,7 @@ export function FilterGroup({
           collapsible={true}
           defaultExpanded={false}
           horizontalTab={horizontalTab}
+          verticalTab={verticalTab}
         />
 
         {showPeopleFilters && (

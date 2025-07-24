@@ -23,6 +23,7 @@ interface DevicesFilterProps {
   collapsible?: boolean;
   defaultExpanded?: boolean;
   horizontalTab?: string;
+  verticalTab?: string;
 }
 
 export function DevicesFilter({
@@ -34,6 +35,7 @@ export function DevicesFilter({
   collapsible = false,
   defaultExpanded = true,
   horizontalTab,
+  verticalTab,
 }: DevicesFilterProps) {
   const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +47,12 @@ export function DevicesFilter({
       setTab(horizontalTab);
     }
   }, [horizontalTab]);
+
+  useEffect(() => {
+    if (verticalTab) {
+      setTab(verticalTab);
+    }
+  }, [verticalTab]);
 
   const isAllSelected =
     availableDevices.length > 0 &&

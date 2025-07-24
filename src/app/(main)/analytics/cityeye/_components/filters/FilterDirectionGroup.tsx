@@ -1,12 +1,12 @@
 "use client";
 
+import { CustomerFilter } from "@/app/(main)/analytics/cityeye/_components/filters/CustomerFilter";
 import { CityEyeFilterState } from "@/types/cityeye/cityEyeAnalytics";
 import { CalendarDays, MapPin, Users } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { AnalysisPeriodDirectionFilter } from "./AnalysisPeriodDirectionFilter";
 import { DevicesDirectionFilter } from "./DevicesDirectionFilter";
-import { CustomerFilter } from "@/app/(main)/analytics/cityeye/_components/filters/CustomerFilter";
-import { useSession } from "next-auth/react";
 
 interface FilterDirectionGroupProps {
   solutionId: string;

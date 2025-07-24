@@ -5,9 +5,6 @@
 */
 
 import { auth } from "@/auth";
-import { notFound, redirect } from "next/navigation";
-import DeviceEditForm from "./DeviceEditForm";
-import type { Metadata, ResolvingMetadata } from "next";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,6 +12,27 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Solution } from "@/types/solution";
+import { notFound, redirect } from "next/navigation";
+import DeviceEditForm from "./DeviceEditForm";
+
+async function getSolutionDetails(
+  solutionId: string,
+  accessToken: string
+): Promise<Solution | null> {
+  const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/${solutionId}`;
+  try {
+    const response = await fetch(apiUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching solution details:", error);
+    return null;
+  }
+}
 
 async function getDevice(deviceId: string, accessToken: string) {
   try {
@@ -49,25 +67,24 @@ async function getDevice(deviceId: string, accessToken: string) {
 // };
 
 type Props = {
-  params: Promise<{ deviceId: string }>;
+  params: Promise<{ deviceId: string; solutionId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function EditDevicePage(
-  { params, searchParams }: Props,
-  parent: ResolvingMetadata
-) {
+export default async function EditDevicePage({ params }: Props) {
   // Handle params as a potential Promise
   const resolvedParams = await params;
   const session = await auth();
   const accessToken = session?.accessToken ?? "";
   const deviceId = resolvedParams.deviceId;
+  const solutionId = resolvedParams.solutionId;
 
   if (!accessToken) {
     redirect("/login");
   }
 
   const device = await getDevice(deviceId, accessToken);
+  const solution = await getSolutionDetails(solutionId, accessToken);
 
   if (!device) {
     notFound();
@@ -80,6 +97,12 @@ export default async function EditDevicePage(
           <BreadcrumbList>
             <BreadcrumbItem className="hover:underline">
               <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#7F8C8D]" />
+            <BreadcrumbItem className="hover:underline">
+              <BreadcrumbLink href={`/devices/${solution?.solution_id}`}>
+                {solution?.name}
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem>{device.name}</BreadcrumbItem>

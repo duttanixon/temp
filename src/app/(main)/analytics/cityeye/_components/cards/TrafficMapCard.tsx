@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeviceCountData } from "@/types/cityeye/cityEyeAnalytics";
 import { RefreshCcw } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // Import Leaflet CSS only on client side
 if (typeof window !== "undefined") {
@@ -50,9 +50,9 @@ const LeafletMap = dynamic<MapProps>(
         return (
           <MapContainer
             key={resetKey}
-            center={coordinatesForZoom[0] || [33.5597, 133.5311]}
             zoom={16}
-            style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}>
+            style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
+          >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -68,13 +68,15 @@ const LeafletMap = dynamic<MapProps>(
                   fillOpacity: 0.6,
                 }}
                 interactive={true}
-                className="cursor-pointer">
+                className="cursor-pointer"
+              >
                 <Tooltip
                   direction="auto"
                   offset={[5, -5]}
                   opacity={1}
                   permanent={false}
-                  sticky={true}>
+                  sticky={true}
+                >
                   <div className="flex flex-col whitespace-nowrap">
                     <span className="font-semibold">
                       {device.deviceLocation}_{device.deviceName}
@@ -127,7 +129,8 @@ function ResetButton({ onClick }: { onClick: () => void }) {
     <Button
       size="sm"
       className="cursor-pointer text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-md"
-      onClick={onClick}>
+      onClick={onClick}
+    >
       <RefreshCcw />
     </Button>
   );
@@ -154,27 +157,32 @@ export default function CameraMapCard({
     setResetKey((k) => k + 1);
   };
 
-  const validDevices = perDeviceCountsData.filter(
-    (d): d is DeviceCountData & { lat: number; lng: number } =>
-      typeof d.lat === "number" &&
-      typeof d.lng === "number" &&
-      typeof d.count === "number" &&
-      !d.error
-  );
-
-  const devicesToShow = validDevices;
-  const coordinatesForZoom: [number, number][] = devicesToShow
-    .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
-    .map((d) => [d.lat as number, d.lng as number]);
-
-  const counts = devicesToShow.map((d) => d.count);
-  const min = counts.length > 0 ? Math.min(...counts) : 0;
-  const max = counts.length > 0 ? Math.max(...counts) : 0;
+  const { validDevices, coordinatesForZoom, min, max } = useMemo(() => {
+    const devices = perDeviceCountsData.filter(
+      (d): d is DeviceCountData & { lat: number; lng: number } =>
+        typeof d.lat === "number" &&
+        typeof d.lng === "number" &&
+        typeof d.count === "number" &&
+        !d.error
+    );
+    const coordinates: [number, number][] = devices
+      .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
+      .map((d) => [d.lat as number, d.lng as number]);
+    const counts = devices.map((d) => d.count);
+    const min = counts.length > 0 ? Math.min(...counts) : 0;
+    const max = counts.length > 0 ? Math.max(...counts) : 0;
+    return {
+      validDevices: devices,
+      coordinatesForZoom: coordinates,
+      min,
+      max,
+    };
+  }, [perDeviceCountsData]);
 
   const hasData = hasAttemptedFetch;
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[406px]">
       <CardHeader className="pb-2 pt-3 px-4 flex justify-between items-center">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
@@ -183,15 +191,18 @@ export default function CameraMapCard({
           <div className="flex items-center gap-2">
             <span>人数</span>
             <div
-              className={`flex-grow h-2 ${min === max ? "bg-red-500" : "bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"} rounded-sm relative`}>
+              className={`flex-grow h-2 ${min === max ? "bg-red-500" : "bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"} rounded-sm relative`}
+            >
               <span
                 className="absolute left-0 text-[10px] text-muted-foreground"
-                style={{ transform: "translateY(-150%)" }}>
+                style={{ transform: "translateY(-150%)" }}
+              >
                 {min.toLocaleString()}
               </span>
               <span
                 className="absolute right-0 text-[10px] text-muted-foreground"
-                style={{ transform: "translateY(-150%)" }}>
+                style={{ transform: "translateY(-150%)" }}
+              >
                 {max.toLocaleString()}
               </span>
             </div>
@@ -207,7 +218,8 @@ export default function CameraMapCard({
             hasAttemptedFetch
               ? undefined
               : "フィルターを適用してカメラマップを表示します。"
-          }>
+          }
+        >
           <div className="h-72 w-full cursor-pointer relative z-[1]">
             {/* 地図上に配置するリセットボタン */}
             <div className="absolute top-20 left-2 z-[1000]">
@@ -215,7 +227,7 @@ export default function CameraMapCard({
             </div>
             {/* Use the dynamic Leaflet map component */}
             <LeafletMap
-              devicesToShow={devicesToShow}
+              devicesToShow={validDevices}
               coordinatesForZoom={coordinatesForZoom}
               min={min}
               max={max}

@@ -27,7 +27,6 @@ export default function PeopleDirectionView({
   hasAttemptedFetch,
   solutionId,
 }: PeopleDirectionViewProps) {
-  console.log("PeopleDirectionView processedData:", processedData);
   const cardTitle = "人流方向マップ";
   if (!processedData || processedData.length === 0) {
     return (

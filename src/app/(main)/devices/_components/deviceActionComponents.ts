@@ -1,13 +1,15 @@
-import { FC } from 'react';
-import { Device } from '@/types/device';
-import CityEyeDeviceActions from '../cityeye/_components/DeviceActions';
+import { Device } from "@/types/device";
+import { Solution } from "@/types/solution";
+import { FC } from "react";
+import CityEyeDeviceActions from "../[solutionId]/[deviceId]/_components/DeviceActions";
 // import DefaultDeviceActions from './DefaultDeviceActions';
 
 type DeviceActionProps = {
-    device: Device;
-}
+  device: Device;
+  solution: Solution;
+};
 
 export const deviceActionComponents: Record<string, FC<DeviceActionProps>> = {
   cityeye: CityEyeDeviceActions,
-//   default: DefaultDeviceActions,
+  //   default: DefaultDeviceActions,
 };

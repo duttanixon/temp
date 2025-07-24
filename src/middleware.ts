@@ -46,8 +46,8 @@ export default auth(async function middleware(req) {
       "🔒 MIDDLEWARE: Redirecting to login - protected route with no valid session"
     );
     const loginUrl = new URL("/login", req.url);
-    // Store the original URL to redirect back after login
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    // Removed: Store the original URL to redirect back after login
+    // loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 

@@ -1,21 +1,20 @@
 /*
-* This component list all table rows for the device table, common accross all application
-*/
+ * This component list all table rows for the device table, common accross all application
+ */
 
 "use client";
 
-import { type FC } from "react";
-import { useRouter } from "next/navigation";
+import { Device, DeviceStatusInfo } from "@/types/device";
+import { Solution } from "@/types/solution";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Device } from "@/types/device";
-import { Solution } from "@/types/solution";
-import { deviceActionComponents } from './deviceActionComponents';
-import { DeviceStatusInfo } from '@/types/device';
+import { useRouter } from "next/navigation";
+import { type FC } from "react";
+import { deviceActionComponents } from "./deviceActionComponents";
 
 type DeviceTableRowProps = {
   device: Device;
-  solution?: Solution;
+  solution: Solution;
   statusInfo?: DeviceStatusInfo;
 };
 
@@ -25,16 +24,18 @@ type DeviceTableRowProps = {
 export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   device,
   solution,
-  statusInfo
+  statusInfo,
 }) => {
   const router = useRouter();
 
   const handleViewDetails = () => {
-    router.push(`/devices/detail/${device.device_id}`);
+    router.push(`/devices/${solution?.solution_id}/${device.device_id}/detail`);
   };
 
   // const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
-  const ActionComponent = solution ? deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()] : null;
+  const ActionComponent = solution
+    ? deviceActionComponents[solution.name.replace(/\s+/g, "").toLowerCase()]
+    : null;
   const isActive = device.status === "ACTIVE";
 
   // Get status display
@@ -48,9 +49,9 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
         <div className="flex items-center justify-center gap-2">
           <span
             className={`inline-block w-2 h-2 rounded-full ${
-              isOnline ? 'bg-green-500' : 'bg-gray-400'
+              isOnline ? "bg-green-500" : "bg-gray-400"
             }`}
-            title={isOnline ? 'オンライン' : 'オフライン'}
+            title={isOnline ? "オンライン" : "オフライン"}
           />
           {!isOnline && lastSeen && (
             <span className="text-sm text-gray-600">
@@ -64,9 +65,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       );
     }
     // Fallback to device's last_connected if no status info
-    return (
-      <div>-</div>
-    );
+    return <div>-</div>;
   };
 
   return (
@@ -76,8 +75,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
         isActive
           ? "cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
           : "cursor-pointer bg-gray-50/50 hover:bg-gray-100/50 transition-colors duration-150"
-      }
-    >
+      }>
       <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0 text-center">
         <div className="truncate">{device.name}</div>
       </td>
@@ -93,7 +91,9 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="w-[240px]">
         <div className="relative flex items-center justify-center gap-2 px-2">
           <div className="absolute left-0 top-0 h-full border-l border-[#BDC3C7]" />
-          {ActionComponent && <ActionComponent device={device} />}
+          {ActionComponent && (
+            <ActionComponent device={device} solution={solution} />
+          )}
         </div>
       </td>
     </tr>

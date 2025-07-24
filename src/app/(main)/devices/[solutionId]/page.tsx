@@ -5,11 +5,6 @@
 */
 
 import { auth } from "@/auth";
-import { Device } from "@/types/device";
-import { Solution } from "@/types/solution";
-import DeviceList from "../_components/DeviceList";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,9 +12,16 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Device } from "@/types/device";
+import { Solution } from "@/types/solution";
+import Link from "next/link";
+import DeviceList from "../_components/DeviceList";
 
-
-async function getSolutionDetails(solutionId: string, accessToken: string): Promise<Solution | null> {
+async function getSolutionDetails(
+  solutionId: string,
+  accessToken: string
+): Promise<Solution | null> {
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/${solutionId}`;
   try {
     const response = await fetch(apiUrl, {
@@ -34,8 +36,10 @@ async function getSolutionDetails(solutionId: string, accessToken: string): Prom
   }
 }
 
-
-async function getDevicesBySolution(solutionId: string, accessToken: string): Promise<Device[]> {
+async function getDevicesBySolution(
+  solutionId: string,
+  accessToken: string
+): Promise<Device[]> {
   // Assuming an API endpoint like this exists. You may need to adjust it.
   const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/devices?solution_id=${solutionId}`;
 
@@ -59,38 +63,37 @@ async function getDevicesBySolution(solutionId: string, accessToken: string): Pr
 }
 
 type DeviceListPageProps = {
-  params:  Promise<{ applicationId: string }>;
+  params: Promise<{ solutionId: string }>;
 };
 
 export default async function DeviceListPage({ params }: DeviceListPageProps) {
   const resolvedParams = await params;
-  const  solutionId  = resolvedParams.applicationId;
+  const solutionId = resolvedParams.solutionId;
   const session = await auth();
-  const accessToken = session?.accessToken ?? "";    
-  
+  const accessToken = session?.accessToken ?? "";
+
   const solution = await getSolutionDetails(solutionId, accessToken);
   const devices = await getDevicesBySolution(solutionId, accessToken);
 
   if (!solution) {
     return (
-        <div className="text-center p-10">
-            <h1 className="text-xl font-bold">ソリューションが見つかりません</h1>
-            <p>このソリューションは存在しないか、アクセス権がありません。</p>
-            <Button asChild className="mt-4">
-                <Link href="/devices">デバイス管理に戻る</Link>
-            </Button>
-        </div>
-    )
+      <div className="text-center p-10">
+        <h1 className="text-xl font-bold">ソリューションが見つかりません</h1>
+        <p>このソリューションは存在しないか、アクセス権がありません。</p>
+        <Button asChild className="mt-4">
+          <Link href="/devices">デバイス管理に戻る</Link>
+        </Button>
+      </div>
+    );
   }
 
-
-/*
+  /*
 This page lists all the devicesb for a particular solution
 */
 
   return (
     <div className="space-y-6">
-       <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <div>
           <Breadcrumb className="text-sm text-[#7F8C8D]">
             <BreadcrumbList>
@@ -101,9 +104,7 @@ This page lists all the devicesb for a particular solution
               <BreadcrumbItem>{solution.name}</BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-2xl font-bold text-[#2C3E50]">
-          {solution.name}
-          </h1>
+          <h1 className="text-2xl font-bold text-[#2C3E50]">{solution.name}</h1>
         </div>
       </div>
       <DeviceList initialDevices={devices} solution={solution} />

@@ -71,11 +71,6 @@ export default function TrafficDirectionMapCard({
   hasAttemptedFetch,
   solutionId,
 }: TrafficDirectionMapCardProps) {
-  console.log(
-    "TrafficDirectionMapCard perDeviceCountsData:",
-    perDeviceCountsData
-  );
-
   // 閾値取得（最初のデバイスを参照）
   const firstDeviceId = perDeviceCountsData[0]?.deviceId ?? "";
   const Device = useGetDevice({
@@ -181,8 +176,6 @@ export default function TrafficDirectionMapCard({
     ?.traffic_count_thresholds?.length
     ? analyticsThresholds.rawData.thresholds.traffic_count_thresholds
     : defaultThresholds;
-
-  console.log("analyticsThresholds:", analyticsThresholds);
 
   // 閾値取得完了まで描画を抑制
   const isThresholdsReady = Array.isArray(

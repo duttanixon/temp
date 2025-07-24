@@ -157,8 +157,6 @@ export default function CameraMapCard({
     setResetKey((k) => k + 1);
   };
 
-  console.log("CameraMapCard perDeviceCountsData:", perDeviceCountsData);
-
   const { validDevices, coordinatesForZoom, min, max } = useMemo(() => {
     const devices = perDeviceCountsData.filter(
       (d): d is DeviceCountData & { lat: number; lng: number } =>
@@ -183,10 +181,6 @@ export default function CameraMapCard({
       max: maxCount,
     };
   }, [perDeviceCountsData]);
-
-  console.log("validDevices:", validDevices);
-  console.log("coordinatesForZoom:", coordinatesForZoom);
-  console.log("min:", min, "max:", max);
 
   const hasData = hasAttemptedFetch;
 

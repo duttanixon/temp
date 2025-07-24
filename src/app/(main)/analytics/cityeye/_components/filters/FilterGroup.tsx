@@ -121,6 +121,7 @@ export function FilterGroup({
           iconBgColor="bg-blue-100 group-hover:bg-blue-200"
           collapsible={true}
           defaultExpanded={false}
+          horizontalTab={horizontalTab}
         />
 
         {showPeopleFilters && (

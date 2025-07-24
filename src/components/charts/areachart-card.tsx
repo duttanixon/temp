@@ -32,7 +32,7 @@ interface ShadcnAreaChartCardProps {
   isLoading: boolean;
   error: string | null;
   hasAttemptedFetch: boolean;
-  chartHeight?: number;
+  _chartHeight?: number;
   emptyDataMessage?: string;
   categoryKey: string; // Key for x-axis (e.g., "hour", "date")
   dataKeys: Array<{
@@ -57,7 +57,6 @@ export default function ShadcnAreaChartCard({
   isLoading,
   error,
   hasAttemptedFetch,
-  chartHeight = 250,
   emptyDataMessage = "データがありません。",
   categoryKey,
   dataKeys,
@@ -137,7 +136,8 @@ export default function ShadcnAreaChartCard({
             right: 40,
             bottom: 20,
             top: 0,
-          }}>
+          }}
+        >
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey={categoryKey}

@@ -22,6 +22,7 @@ interface DevicesFilterProps {
   iconBgColor?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  horizontalTab?: string;
 }
 
 export function DevicesFilter({
@@ -32,10 +33,18 @@ export function DevicesFilter({
   iconBgColor,
   collapsible = false,
   defaultExpanded = true,
+  horizontalTab,
 }: DevicesFilterProps) {
   const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [tab, setTab] = useState(horizontalTab || "");
+  useEffect(() => {
+    if (horizontalTab) {
+      setTab(horizontalTab);
+    }
+  }, [horizontalTab]);
 
   const isAllSelected =
     availableDevices.length > 0 &&
@@ -90,7 +99,7 @@ export function DevicesFilter({
     };
 
     fetchDevicesForSolution();
-  }, [solutionId, selectedDevices]);
+  }, [solutionId, tab]);
 
   const handleDeviceToggle = (deviceId: string) => {
     const newSelectedDevices = selectedDevices.includes(deviceId)
@@ -153,7 +162,8 @@ export function DevicesFilter({
           />
           <Label
             htmlFor="select-all-devices"
-            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer">
+            className="text-sm font-medium text-slate-700 group-hover:text-slate-900 cursor-pointer"
+          >
             すべて
           </Label>
         </div>
@@ -171,7 +181,8 @@ export function DevicesFilter({
                 return (
                   <div
                     key={device.device_id}
-                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group">
+                    className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded-lg transition-colors duration-200 group"
+                  >
                     <Checkbox
                       id={`device-${device.device_id}`}
                       checked={selectedDevices.includes(device.device_id)}
@@ -183,7 +194,8 @@ export function DevicesFilter({
                     <Label
                       htmlFor={`device-${device.device_id}`}
                       className="text-sm text-slate-600 group-hover:text-slate-800 cursor-pointer transition-colors truncate"
-                      title={displayName}>
+                      title={displayName}
+                    >
                       {displayName}
                     </Label>
                   </div>
@@ -203,7 +215,8 @@ export function DevicesFilter({
       iconBgColor={iconBgColor}
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
-      selectionSummary={selectionSummary}>
+      selectionSummary={selectionSummary}
+    >
       {renderContent()}
     </FilterCard>
   );

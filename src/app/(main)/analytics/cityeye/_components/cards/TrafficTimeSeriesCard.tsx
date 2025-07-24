@@ -1,6 +1,13 @@
 "use client";
 
+import CustomTooltipContent from "@/components/charts/custom-tooltip-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { ProcessedTimeSeriesData } from "@/types/cityeye/cityEyeAnalytics";
 import { useMemo } from "react";
 import {
@@ -9,7 +16,6 @@ import {
   CartesianGrid,
   ReferenceArea,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -115,29 +121,28 @@ export default function TrafficTimeSeriesCard({
     return point.date;
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload[0]) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-          <p className="text-sm font-medium text-gray-700">
-            {data.date} {data.hour}
-          </p>
-          {data.hasData ? (
-            <p className="text-sm mt-1">
-              <span className="text-gray-500">交通量:</span>{" "}
-              <span className="font-semibold">
-                {data.count.toLocaleString()}
-              </span>
-            </p>
-          ) : (
-            <p className="text-sm text-gray-500 mt-1">データなし</p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
+  const dataKeys = useMemo(
+    () => [
+      {
+        name: "台数", // "Number of Units"
+        dataKey: "count",
+        color: "var(--chart-analysis-1)", // Or any other suitable chart color
+        label: "期間別交通量", // "Period-wise Units Count"
+      },
+    ],
+    []
+  );
+
+  const chartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    dataKeys.forEach((dk) => {
+      config[dk.dataKey] = {
+        label: dk.label || dk.name,
+        color: dk.color,
+      };
+    });
+    return config;
+  }, [dataKeys]);
 
   const yAxisTickFormatter = (value: number) => {
     if (value >= 1000) {
@@ -162,19 +167,22 @@ export default function TrafficTimeSeriesCard({
             hasAttemptedFetch
               ? "期間分析データがありません。"
               : "フィルターを適用してデータを表示します。"
-          }>
-          <div className="w-full h-full">
+          }
+        >
+          <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
+                margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient
                     id="colorTrafficTimeSeries"
                     x1="0"
                     y1="0"
                     x2="0"
-                    y2="1">
+                    y2="1"
+                  >
                     <stop
                       offset="5%"
                       stopColor="var(--chart-analysis-1)"
@@ -206,7 +214,33 @@ export default function TrafficTimeSeriesCard({
                   tickFormatter={yAxisTickFormatter}
                   width={60}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      hideLabel
+                      hideIndicator
+                      formatter={(
+                        value,
+                        _name,
+                        item,
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        _index
+                      ) => {
+                        const getIndicatorClass = chartConfig?.count?.color;
+                        return (
+                          <CustomTooltipContent
+                            label={item?.payload?.["displayLabel"]}
+                            seriesName={String(chartConfig?.count?.label ?? "")}
+                            value={value}
+                            unit="台"
+                            indicatorClass={getIndicatorClass}
+                          />
+                        );
+                      }}
+                    />
+                  }
+                />
                 {noDataRegions.map((region, idx) => {
                   const regionLength = region.endIndex - region.startIndex + 1;
                   const showLabel = regionLength > 5;
@@ -258,7 +292,7 @@ export default function TrafficTimeSeriesCard({
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
+          </ChartContainer>
         </GenericAnalyticsCard>
       </CardContent>
     </Card>

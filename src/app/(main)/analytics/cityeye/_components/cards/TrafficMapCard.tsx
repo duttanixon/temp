@@ -182,7 +182,7 @@ export default function CameraMapCard({
   const hasData = hasAttemptedFetch;
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[406px]">
       <CardHeader className="pb-2 pt-3 px-4 flex justify-between items-center">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}

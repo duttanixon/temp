@@ -19,12 +19,12 @@
  * - activeApiFilters come from validated filter state
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { analyticsService } from "@/services/cityeye/cityEyeAnalyticsService";
 import {
   FrontendAnalyticsFilters,
   FrontendCityEyeAnalyticsPerDeviceResponse,
 } from "@/types/cityeye/cityEyeAnalytics";
-import { analyticsService } from "@/services/cityeye/cityEyeAnalyticsService";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 // ============================================================================

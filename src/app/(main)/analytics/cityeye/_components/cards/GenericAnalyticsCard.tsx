@@ -1,5 +1,5 @@
+import { AlertTriangle, Info, Loader2 } from "lucide-react";
 import React from "react";
-import { Loader2, AlertTriangle, Info } from "lucide-react";
 
 interface GenericAnalyticsCardProps {
   isLoading: boolean;
@@ -44,7 +44,7 @@ export function GenericAnalyticsCard({
       return (
         <div className="flex flex-col items-center justify-center h-full">
           <Info className="h-8 w-8 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+          <p className="text-sm text-muted-foreground pb-6">{emptyMessage}</p>
         </div>
       );
     }

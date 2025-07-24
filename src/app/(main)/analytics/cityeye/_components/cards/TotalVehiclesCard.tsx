@@ -19,13 +19,13 @@ export default function TotalVehiclesCard({
   const hasData = hasAttemptedFetch && totalCountData !== null;
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-none duration-300 flex flex-col h-[198px]">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-base font-semibold text-gray-700">
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow p-3">
+      <CardContent className="flex-grow p-3 flex flex-col justify-center">
         <GenericAnalyticsCard
           isLoading={isLoading}
           error={hasAttemptedFetch ? error : null}
@@ -33,17 +33,19 @@ export default function TotalVehiclesCard({
           emptyMessage={
             hasAttemptedFetch
               ? "交通量データがありません。"
-              : "フィルターを適用して交通量データを表示します。"
+              : "フィルターを適用してデータを表示します。"
           }>
           {/* Actual content to display when data is available */}
-          <div className="h-full flex flex-col">
-            <div className="text-center mb-3">
-              <p className="text-3xl font-bold text-primary">
-                {totalCountData?.toLocaleString() ?? "N/A"}
-                <span className="text-sm text-muted-foreground"> 台</span>
-              </p>
+          {hasData ? (
+            <div className="h-full flex flex-col justify-center">
+              <div className="text-center mb-3">
+                <p className="text-3xl font-bold text-primary">
+                  {totalCountData?.toLocaleString() ?? "N/A"}
+                  <span className="text-sm text-muted-foreground pl-1">台</span>
+                </p>
+              </div>
             </div>
-          </div>
+          ) : null}
         </GenericAnalyticsCard>
       </CardContent>
     </Card>

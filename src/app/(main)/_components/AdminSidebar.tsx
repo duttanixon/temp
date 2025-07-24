@@ -18,9 +18,9 @@ export function AdminSidebar() {
   const sections: MenuSection[] = [
     {
       items: [
-        { href: "/dashboard", icon: LayoutDashboard, label: "ダッシュボード" },
+        // { href: "/dashboard", icon: LayoutDashboard, label: "ダッシュボード" },
         { href: "/analytics", icon: BarChart2, label: "分析" },
-        { href: "/alerts", icon: AlertCircle, label: "通知" },
+        // { href: "/alerts", icon: AlertCircle, label: "通知" },
       ],
     },
     {
@@ -30,8 +30,8 @@ export function AdminSidebar() {
         { href: "/solutions", icon: LightbulbIcon, label: "ソリューション" },
         { href: "/customers", icon: Building, label: "顧客" },
         { href: "/users", icon: Users, label: "ユーザー" },
-        { href: "/maintenance", icon: WrenchIcon, label: "メンテナンス" },
-        { href: "/settings", icon: Settings, label: "システム設定" },
+        // { href: "/maintenance", icon: WrenchIcon, label: "メンテナンス" },
+        // { href: "/settings", icon: Settings, label: "システム設定" },
         { href: "/audit-logs", icon: FileText, label: "ログ" },
       ],
     },

@@ -19,6 +19,7 @@
 */
 
 import { auth } from "@/auth";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -27,9 +28,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Blocks, Laptop } from "lucide-react";
 import { Solution } from "@/types/solution";
+import { Blocks, Laptop } from "lucide-react";
 import Link from "next/link";
 
 // Function to get available solutions from the API
@@ -75,8 +75,10 @@ export default async function DevicesPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス管理</h1>
-        <p className="text-muted-foreground">ソリューションを選択してデバイスを表示</p>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス</h1>
+        <p className="text-muted-foreground">
+          ソリューションを選択してデバイスを表示
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -84,21 +86,21 @@ export default async function DevicesPage() {
           solutions.map((solution, index) => (
             <Card
               key={solution.solution_id}
-              className="overflow-hidden hover:shadow-lg transition-shadow duration-300"
-            >
+              className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <CardTitle className="text-xl">{solution.name}</CardTitle>
                     <CardDescription className="text-sm text-muted-foreground">
-                      {solution.description || "このソリューションに割り当てられたデバイスを表示します"}
+                      {solution.description ||
+                        "このソリューションに割り当てられたデバイスを表示します"}
                     </CardDescription>
                   </div>
                   {getSolutionIcon(index)}
                 </div>
               </CardHeader>
               <CardContent>
-                 <div className="h-28 bg-gray-50 rounded-md flex items-center justify-center">
+                <div className="h-28 bg-gray-50 rounded-md flex items-center justify-center">
                   <p className="text-sm text-muted-foreground">
                     クリックしてデバイスを表示
                   </p>
@@ -107,8 +109,7 @@ export default async function DevicesPage() {
               <CardFooter className="border-t bg-gray-50/50 px-6 py-3">
                 <Button
                   className="w-full bg-primary hover:bg-primary/90"
-                  asChild
-                >
+                  asChild>
                   <Link href={`/devices/${solution.solution_id}`}>
                     デバイスを表示
                   </Link>

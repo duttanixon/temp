@@ -10,6 +10,7 @@ import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
+import TimeSeriesCard from "../cards/TimeSeriesCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 interface ComparisonViewProps {
@@ -68,6 +69,7 @@ export default function HumanComparisonView({
                 isLoading={isLoadingMain}
                 error={errorMain}
                 hasAttemptedFetch={hasAttemptedFetchMain}
+                // Fixed height for card
               />
               <DailyAveragePeopleCard
                 title="日平均人数 (分析期間)"
@@ -135,6 +137,14 @@ export default function HumanComparisonView({
             error={errorMain}
             hasAttemptedFetch={hasAttemptedFetchMain}
             data={mainPeriodProcessedData?.ageGenderDistribution ?? null}
+            barSize={25}
+          />
+          <TimeSeriesCard
+            title="期間分析 (分析期間)"
+            isLoading={isLoadingMain}
+            error={errorMain}
+            hasAttemptedFetch={hasAttemptedFetchMain}
+            timeSeriesData={mainPeriodProcessedData?.timeSeries ?? null}
           />
         </div>
 
@@ -224,6 +234,14 @@ export default function HumanComparisonView({
             error={errorComparison}
             hasAttemptedFetch={hasAttemptedFetchComparison}
             data={comparisonPeriodProcessedData?.ageGenderDistribution ?? null}
+            barSize={25}
+          />
+          <TimeSeriesCard
+            title="期間分析 (比較期間)"
+            isLoading={isLoadingComparison}
+            error={errorComparison}
+            hasAttemptedFetch={hasAttemptedFetchComparison}
+            timeSeriesData={comparisonPeriodProcessedData?.timeSeries ?? null}
           />
         </div>
       </div>

@@ -11,6 +11,7 @@ import DailyAveragePeopleCard from "../cards/DailyAveragePeopleCard";
 import GenderDistributionCard from "../cards/GenderDistributionCard";
 import HumanHourlyDistributionCard from "../cards/HumanHourlyDistributionCard";
 import PerDevicePeopleCard from "../cards/PerDevicePeopleCard";
+import TimeSeriesCard from "../cards/TimeSeriesCard";
 import TotalPeopleCard from "../cards/TotalPeopleCard";
 
 // ✅ Dynamically import map card client-side only
@@ -35,7 +36,7 @@ export default function OverviewView({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3">
       <div className="grid grid-cols-2 gap-3">
-        <div className="grid grid-rows-2 gap-3">
+        <div className="grid grid-rows-2 gap-3 h-[406px]">
           <TotalPeopleCard
             title="総人数"
             totalCountData={processedData?.totalPeople?.totalCount ?? null}
@@ -101,13 +102,21 @@ export default function OverviewView({
       <div className="col-span-1">
         <AgeGenderButterflyChartCard
           title="年齢層・性別構成"
-          description="指定期間内の年齢層別・性別の人数構成"
+          // description="指定期間内の年齢層別・性別の人数構成"
           isLoading={isLoading}
           error={error} // This error is general for the API call
           hasAttemptedFetch={hasAttemptedFetch}
           data={processedData?.ageGenderDistribution ?? null}
+          barSize={25}
         />
       </div>
+      <TimeSeriesCard
+        title="期間分析"
+        isLoading={isLoading}
+        error={error}
+        hasAttemptedFetch={hasAttemptedFetch}
+        timeSeriesData={processedData?.timeSeries ?? null}
+      />
     </div>
   );
 }

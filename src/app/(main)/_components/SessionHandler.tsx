@@ -28,7 +28,8 @@ export default function SessionHandler({
     // Handle unauthenticated state
     if (status === "unauthenticated" && !pathname.startsWith("/login")) {
       console.log("🔄 SESSION HANDLER: Unauthenticated, redirecting to login");
-      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+      // Removed callbackUrl parameter
+      router.push("/login");
     }
   }, [status, router, pathname]);
 

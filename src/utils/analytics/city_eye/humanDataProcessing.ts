@@ -9,8 +9,18 @@ import {
   ProcessedAnalyticsDirectionData,
   ProcessedGenderSegment,
   ProcessedHourlyDataPoint,
+  ProcessedTimeSeriesData,
+  ProcessedTimeSeriesDataPoint,
 } from "@/types/cityeye/cityEyeAnalytics";
-import { eachDayOfInterval, isValid } from "date-fns";
+import {
+  eachDayOfInterval,
+  eachHourOfInterval,
+  endOfHour,
+  format,
+  isValid,
+  parseISO,
+  startOfHour,
+} from "date-fns";
 import { DateRange } from "react-day-picker";
 
 // Consolidated configuration for all data types
@@ -66,6 +76,7 @@ export function processHumanAnalyticsData(
     genderDistribution: processGenderDistribution(data),
     hourlyDistribution: processHourlyDistribution(data),
     ageGenderDistribution: processAgeGenderDistribution(data),
+    timeSeries: processTimeSeries(data, filterContext),
   };
 }
 
@@ -430,5 +441,72 @@ function processAgeGenderDistribution(
     error: !Object.values(aggregated).some((v) => v > 0)
       ? "該当するデータがありません。"
       : null,
+  };
+}
+
+/**
+ * Process time series data
+ * Creates hourly data points for the entire period, marking gaps as no data
+ */
+function processTimeSeries(
+  data: FrontendCityEyeAnalyticsPerDeviceResponse,
+  filterContext: FilterContext | null
+): ProcessedTimeSeriesData | null {
+  if (!filterContext?.dateRange?.from || !filterContext?.dateRange?.to) {
+    return null;
+  }
+
+  // Create a map to store hourly aggregated data
+  const hourlyDataMap = new Map<string, number>();
+  // Process time series data from all devices
+  data.forEach((item) => {
+    if (!item.error && item.analytics_data?.time_series_data) {
+      item.analytics_data.time_series_data.forEach((point) => {
+        const timestamp = parseISO(point.timestamp);
+        const hourKey = format(timestamp, "yyyy-MM-dd HH:00");
+
+        hourlyDataMap.set(
+          hourKey,
+          (hourlyDataMap.get(hourKey) || 0) + point.count
+        );
+      });
+    }
+  });
+  // Generate all hours in the date range
+  const allHours = eachHourOfInterval({
+    start: startOfHour(filterContext.dateRange.from),
+    end: endOfHour(filterContext.dateRange.to),
+  });
+
+  // Create processed data points for all hours
+  const processedData: ProcessedTimeSeriesDataPoint[] = allHours.map((hour) => {
+    const hourKey = format(hour, "yyyy-MM-dd HH:00");
+    // Get the count for this hour, defaulting to 0 if no data exists
+    const count = hourlyDataMap.get(hourKey) || 0;
+
+    return {
+      date: format(hour, "MM/dd"),
+      hour: format(hour, "HH:00"),
+      timestamp: hour.toISOString(),
+      count,
+      hasData: hourlyDataMap.has(hourKey),
+    };
+  });
+  // Calculate summary statistics
+  const dataPoints = processedData.filter((p) => p.hasData);
+  const values = dataPoints.map((p) => p.count);
+
+  return {
+    data: processedData,
+    summary: {
+      totalDays: Math.ceil(
+        (filterContext.dateRange.to.getTime() -
+          filterContext.dateRange.from.getTime()) /
+          (1000 * 60 * 60 * 24)
+      ),
+      daysWithData: new Set(dataPoints.map((p) => p.date)).size,
+      maxValue: values.length > 0 ? Math.max(...values) : 0,
+      minValue: values.length > 0 ? Math.min(...values) : 0,
+    },
   };
 }

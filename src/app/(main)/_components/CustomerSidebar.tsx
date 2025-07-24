@@ -15,10 +15,10 @@ export function CustomerSidebar() {
   const sections: MenuSection[] = [
     {
       items: [
-        { href: "/dashboard", icon: LayoutDashboard, label: "ダッシュボード" },
+        // { href: "/dashboard", icon: LayoutDashboard, label: "ダッシュボード" },
         { href: "/analytics", icon: BarChart2, label: "分析" },
-        { href: "/alerts", icon: AlertCircle, label: "通知" },
-        { href: "/support", icon: HeadphonesIcon, label: "サポート" },
+        // { href: "/alerts", icon: AlertCircle, label: "通知" },
+        // { href: "/support", icon: HeadphonesIcon, label: "サポート" },
       ],
     },
     {

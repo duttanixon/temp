@@ -95,7 +95,10 @@ export default function UserTable({
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
               >
                 <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                  <span>ユーザー名</span>
+                  <div className="flex flex-col items-center">
+                    <div>ユーザー名</div>
+                    <div className="text-xs text-[#7F8C8D]">User Name</div>
+                  </div>
                   {sortIcon("last_name")}
                 </div>
               </th>
@@ -105,7 +108,10 @@ export default function UserTable({
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
               >
                 <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                  <span>メールアドレス</span>
+                  <div className="flex flex-col items-center">
+                    <div>メールアドレス</div>
+                    <div className="text-xs text-[#7F8C8D]">Email Address</div>
+                  </div>
                   {sortIcon("email")}
                 </div>
               </th>
@@ -115,7 +121,10 @@ export default function UserTable({
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
               >
                 <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                  <span>状態</span>
+                  <div className="flex flex-col items-center">
+                    <div>状態</div>
+                    <div className="text-xs text-[#7F8C8D]">Status</div>
+                  </div>
                   {sortIcon("status")}
                 </div>
               </th>
@@ -124,12 +133,14 @@ export default function UserTable({
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
               >
                 最終ログイン
+                <div className="text-xs text-[#7F8C8D]">Last Login</div>
               </th>
               <th
                 scope="col"
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
               >
                 アクション
+                <div className="text-xs text-[#7F8C8D]">Action</div>
               </th>
             </tr>
           </thead>
@@ -215,7 +226,10 @@ export default function UserTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                <span>ユーザー名</span>
+                <div className="flex flex-col items-center">
+                  <div>ユーザー名</div>
+                  <div className="text-xs text-[#7F8C8D]">User Name</div>
+                </div>
                 {sortIcon("last_name")}
               </div>
             </th>
@@ -225,7 +239,10 @@ export default function UserTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                <span>メールアドレス</span>
+                <div className="flex flex-col items-center">
+                  <div>メールアドレス</div>
+                  <div className="text-xs text-[#7F8C8D]">Email Address</div>
+                </div>
                 {sortIcon("email")}
               </div>
             </th>
@@ -235,7 +252,10 @@ export default function UserTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                <span>権限</span>
+                <div className="flex flex-col items-center">
+                  <div>権限</div>
+                  <div className="text-xs text-[#7F8C8D]">Role</div>
+                </div>
                 {sortIcon("role")}
               </div>
             </th>
@@ -245,7 +265,10 @@ export default function UserTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                <span>顧客名</span>
+                <div className="flex flex-col items-center">
+                  <div>顧客名</div>
+                  <div className="text-xs text-[#7F8C8D]">Customer Name</div>
+                </div>
                 {sortIcon("customer_name")}
               </div>
             </th>
@@ -255,7 +278,10 @@ export default function UserTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                <span>状態</span>
+                <div className="flex flex-col items-center">
+                  <div>状態</div>
+                  <div className="text-xs text-[#7F8C8D]">Status</div>
+                </div>
                 {sortIcon("status")}
               </div>
             </th>
@@ -264,12 +290,14 @@ export default function UserTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
             >
               最終ログイン
+              <div className="text-xs text-[#7F8C8D]">Last Login</div>
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
             >
               アクション
+              <div className="text-xs text-[#7F8C8D]">Action</div>
             </th>
           </tr>
         </thead>

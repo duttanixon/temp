@@ -103,7 +103,10 @@ export default function CustomerTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>顧客名</span>
+                <div className="flex flex-col items-center">
+                  <div>顧客名</div>
+                  <div className="text-xs text-[#7F8C8D]">Customer Name</div>
+                </div>
                 {sortIcon("name")}
               </div>
             </th>
@@ -112,7 +115,10 @@ export default function CustomerTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>メールアドレス</span>
+                <div className="flex flex-col items-center">
+                  <div>メールアドレス</div>
+                  <div className="text-xs text-[#7F8C8D]">Contact Email</div>
+                </div>
                 {sortIcon("contact_email")}
               </div>
             </th>
@@ -121,7 +127,10 @@ export default function CustomerTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>デバイス</span>
+                <div className="flex flex-col items-center">
+                  <div>デバイス</div>
+                  <div className="text-xs text-[#7F8C8D]">Device</div>
+                </div>
                 {sortIcon("device")}
               </div>
             </th>
@@ -130,7 +139,10 @@ export default function CustomerTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>状態</span>
+                <div className="flex flex-col items-center">
+                  <div>状態</div>
+                  <div className="text-xs text-[#7F8C8D]">Status</div>
+                </div>
                 {sortIcon("status")}
               </div>
             </th>
@@ -139,12 +151,17 @@ export default function CustomerTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>作成日</span>
+                <div className="flex flex-col items-center">
+                  <div>作成日</div>
+                  <div className="text-xs text-[#7F8C8D]">Created At</div>
+                </div>
                 {sortIcon("created_at")}
               </div>
             </th>
-            <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+            <th className="relative px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
               アクション
+              <div className="text-xs text-[#7F8C8D]">Actions</div>
             </th>
           </tr>
         </thead>
@@ -187,7 +204,8 @@ export default function CustomerTable({
                 <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
                   {new Date(customer.created_at).toISOString().split("T")[0]}
                 </td>
-                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
+                <td className="relative px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
+                  <div className="absolute left-0 top-1/2 h-3/4 -translate-y-1/2 border-l border-[#BDC3C7]" />
                   <span className="px-2 py-1">-</span>
                 </td>
               </tr>

@@ -112,8 +112,8 @@ export default function SolutionTable({
             >
               <div className="flex justify-center items-center gap-1 select-none">
                 <div className="flex flex-col items-center">
-                  <div>名前</div>
-                  <div className="text-xs text-[#7F8C8D]">Name</div>
+                  <div>ソリューション名</div>
+                  <div className="text-xs text-[#7F8C8D]">Solution Name</div>
                 </div>
                 {renderSortIndicator("name")}
               </div>
@@ -170,7 +170,7 @@ export default function SolutionTable({
             </th>
             <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
               アクション
-              <div className="text-xs text-[#7F8C8D]">Action</div>
+              <div className="text-xs text-[#7F8C8D]">Actions</div>
             </th>
           </tr>
         </thead>

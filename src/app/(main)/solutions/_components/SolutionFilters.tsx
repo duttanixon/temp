@@ -19,7 +19,7 @@ export default function SolutionFilters({
   setQuery,
 }: Props) {
   return (
-    <div className="w-full max-w-[900px] border border-gray-400 rounded-md px-4 py-3 bg-white overflow-hidden">
+    <div className="inline-block border border-gray-400 rounded-md px-4 py-3 bg-white overflow-hidden">
       <div className="flex items-center gap-6 flex-wrap">
         <div className="flex items-center gap-2">
           <label className="text-gray-800 text-sm whitespace-nowrap">
@@ -54,7 +54,7 @@ export default function SolutionFilters({
             </select>
           </div>
         </div>
-        <div className="relative flex-1 min-w-[150px]">
+        <div className="relative min-w-[150px]">
           <Input
             placeholder="ソリューションを検索…"
             className="h-[30px] w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"

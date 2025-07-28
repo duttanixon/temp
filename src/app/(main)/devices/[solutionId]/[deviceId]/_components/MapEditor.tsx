@@ -35,8 +35,6 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 }) => {
   const tileLayer = isOsm ? TILE_LAYERS.OSM : TILE_LAYERS.GSI;
 
-  console.log("MapEditor polygons:", polygons);
-  console.log("MapEditor polygonsState:", polygonsState);
   return (
     <div className="w-[1000px]">
       <div className="mb-4">

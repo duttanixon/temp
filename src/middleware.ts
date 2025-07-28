@@ -66,5 +66,5 @@ export default auth(async function middleware(req) {
 
 // Apply middleware to all routes
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|public/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|images|media).*)"],
 };

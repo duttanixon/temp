@@ -51,21 +51,18 @@ export const PolygonList: React.FC<PolygonListProps> = ({
                   onClick={() => {
                     onToggleActive(polygon.polygonId);
                   }}
-                  className="p-1 hover:bg-gray-200 rounded transition-colors cursor-pointer"
+                  className={`p-1 rounded transition-colors cursor-pointer ${
+                    polygonsState[polygon.polygonId]?.active
+                      ? "bg-purple-300 hover:bg-purple-400"
+                      : "hover:bg-gray-200"
+                  }`}
                   aria-label={
                     polygonsState[polygon.polygonId]?.active
-                      ? "Hide zone"
-                      : "Show zone"
+                      ? "Deactivate zone"
+                      : "Activate zone"
                   }
                 >
-                  {polygonsState[polygon.polygonId]?.active ? (
-                    <SquarePen
-                      size={20}
-                      className="text-gray-600 bg-purple-300 rounded transition-colors"
-                    />
-                  ) : (
-                    <SquarePen size={20} className="text-gray-600" />
-                  )}
+                  <SquarePen size={20} className="text-gray-600" />
                 </button>
                 <button
                   onClick={(e) => {

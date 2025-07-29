@@ -65,7 +65,7 @@ export const usePolygonManager = ({
       ...prev,
       [newPolygonId]: { visible: true, active: true },
     }));
-  }, [polygons]);
+  }, [polygons, latitude, longitude]);
 
   const removePolygon = useCallback(
     (index: number) => {

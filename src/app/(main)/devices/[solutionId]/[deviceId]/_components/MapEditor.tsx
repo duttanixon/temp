@@ -25,6 +25,8 @@ interface MapEditorProps {
     point: "start" | "end",
     position: Point
   ) => void;
+  latitude?: number;
+  longitude?: number;
 }
 
 const ResetButton = ({ onClick }: { onClick: () => void }) => {
@@ -46,6 +48,8 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   isOsm,
   onToggleMap,
   onUpdateRouteMarker,
+  latitude,
+  longitude,
 }) => {
   const tileLayer = isOsm ? TILE_LAYERS.OSM : TILE_LAYERS.GSI;
   const [resetKey, setResetKey] = useState(0);
@@ -70,8 +74,8 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         <MapContainer
           key={resetKey}
           center={
-            polygons.length > 0
-              ? polygons[0].center.startPoint
+            latitude != null && longitude != null
+              ? { lat: latitude, lng: longitude }
               : POLYGON_CONFIG.DEFAULT_MAP_CENTER
           }
           zoom={POLYGON_CONFIG.DEFAULT_MAP_ZOOM}

@@ -10,7 +10,13 @@ import {
 import { useCallback, useState } from "react";
 
 // Custom hook for managing polygon state
-export const usePolygonManager = () => {
+export const usePolygonManager = ({
+  latitude,
+  longitude,
+}: {
+  latitude: number;
+  longitude: number;
+}) => {
   const [polygons, setPolygons] = useState<PolygonWithRoute[]>([]);
   const [polygonsState, setPolygonsState] = useState<PolygonStates>({});
 
@@ -46,10 +52,10 @@ export const usePolygonManager = () => {
       name: `New Zone ${newPolygonId}`,
       vertices: createDefaultVertices(newPolygonId),
       center: {
-        startPoint: POLYGON_CONFIG.DEFAULT_MAP_CENTER,
+        startPoint: { lat: latitude, lng: longitude },
         endPoint: {
-          lat: POLYGON_CONFIG.DEFAULT_MAP_CENTER.lat - 0.0002,
-          lng: POLYGON_CONFIG.DEFAULT_MAP_CENTER.lng - 0.0003,
+          lat: latitude - 0.0002,
+          lng: longitude - 0.0003,
         },
       },
     };

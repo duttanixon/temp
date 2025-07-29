@@ -59,7 +59,10 @@ export const PolygonList: React.FC<PolygonListProps> = ({
                   }
                 >
                   {polygonsState[polygon.polygonId]?.active ? (
-                    <SquarePen size={20} className="text-gray-400" />
+                    <SquarePen
+                      size={20}
+                      className="text-gray-600 bg-purple-300 rounded transition-colors"
+                    />
                   ) : (
                     <SquarePen size={20} className="text-gray-600" />
                   )}

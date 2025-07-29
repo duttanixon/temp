@@ -1,7 +1,10 @@
-import React from 'react';
-import { Eye, EyeOff, Trash2, Plus } from 'lucide-react';
-import { PolygonWithRoute, PolygonStates } from '@/types/cityeye/cityEyePolygon';
-import { POLYGON_CONFIG } from '@/utils/analytics/city_eye/polygon.utils';
+import {
+  PolygonStates,
+  PolygonWithRoute,
+} from "@/types/cityeye/cityEyePolygon";
+import { POLYGON_CONFIG } from "@/utils/analytics/city_eye/polygon.utils";
+import { Eye, EyeOff, Plus, SquarePen, Trash2 } from "lucide-react";
+import React from "react";
 
 interface PolygonListProps {
   polygons: PolygonWithRoute[];
@@ -28,58 +31,72 @@ export const PolygonList: React.FC<PolygonListProps> = ({
       {polygons.map((polygon, index) => (
         <div
           key={polygon.polygonId}
-          className={`flex items-center justify-between rounded-lg px-4 py-2 cursor-pointer transition-colors ${
-            polygonsState[polygon.polygonId]?.active
-              ? "bg-purple-100"
-              : "hover:bg-gray-50"
-          }`}
-          onClick={() => onToggleActive(polygon.polygonId)}
+          className="flex items-center justify-between rounded-lg px-4 py-2 transition-colors"
         >
           <div className="flex-1">
-            <input
-              type="text"
-              value={polygon.name}
-              onChange={(e) => {
-                e.stopPropagation();
-                onNameChange(index, e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-              maxLength={POLYGON_CONFIG.MAX_NAME_LENGTH}
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={polygon.name}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onNameChange(index, e.target.value);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                maxLength={POLYGON_CONFIG.MAX_NAME_LENGTH}
+              />
+              <div className="flex gap-2 ml-4">
+                <button
+                  onClick={() => {
+                    onToggleActive(polygon.polygonId);
+                  }}
+                  className="p-1 hover:bg-gray-200 rounded transition-colors cursor-pointer"
+                  aria-label={
+                    polygonsState[polygon.polygonId]?.active
+                      ? "Hide zone"
+                      : "Show zone"
+                  }
+                >
+                  {polygonsState[polygon.polygonId]?.active ? (
+                    <SquarePen size={20} className="text-gray-400" />
+                  ) : (
+                    <SquarePen size={20} className="text-gray-600" />
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleVisibility(polygon.polygonId);
+                  }}
+                  className="p-1 hover:bg-gray-200 rounded transition-colors cursor-pointer"
+                  aria-label={
+                    polygonsState[polygon.polygonId]?.visible
+                      ? "Hide zone"
+                      : "Show zone"
+                  }
+                >
+                  {polygonsState[polygon.polygonId]?.visible ? (
+                    <Eye size={20} className="text-gray-600" />
+                  ) : (
+                    <EyeOff size={20} className="text-gray-400" />
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(index);
+                  }}
+                  className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500 hover:text-red-500 cursor-pointer"
+                  aria-label="Delete zone"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            </div>
             <span className="text-xs text-gray-500 mt-1">
               Max {POLYGON_CONFIG.MAX_NAME_LENGTH} characters
             </span>
-          </div>
-          <div className="flex gap-2 ml-4">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleVisibility(polygon.polygonId);
-              }}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
-              aria-label={
-                polygonsState[polygon.polygonId]?.visible
-                  ? "Hide zone"
-                  : "Show zone"
-              }
-            >
-              {polygonsState[polygon.polygonId]?.visible ? (
-                <Eye size={20} className="text-gray-600" />
-              ) : (
-                <EyeOff size={20} className="text-gray-400" />
-              )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(index);
-              }}
-              className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500 hover:text-red-500"
-              aria-label="Delete zone"
-            >
-              <Trash2 size={20} />
-            </button>
           </div>
         </div>
       ))}

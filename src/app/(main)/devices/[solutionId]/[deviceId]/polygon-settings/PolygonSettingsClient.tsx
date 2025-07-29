@@ -110,7 +110,7 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleReset}
-              className="p-2 rounded-lg boarder bg-white text-gray-600 border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
+              className="p-2 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
               aria-label="Reset Zone"
             >
               <Undo2 size={20} />

@@ -9,8 +9,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Solution } from "@/types/solution";
+import { promises as fs } from "fs";
 import { Blocks, Laptop, Plus } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import path from "path";
 
 // Function to get available solutions from the API
 async function getSolutions(accessToken: string): Promise<Solution[]> {
@@ -34,7 +37,24 @@ async function getSolutions(accessToken: string): Promise<Solution[]> {
     return [];
   }
 }
+async function getSolutionImagePath(solutionName: string): Promise<string> {
+  const specificImageName = `${solutionName}.png`;
+  const defaultImageName = "cybercorelogo_fin_lec.png";
+  const publicPath = "/images/media";
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    publicPath,
+    specificImageName
+  );
 
+  try {
+    await fs.access(filePath);
+    return `${publicPath}/${specificImageName}`;
+  } catch {
+    return `${publicPath}/${defaultImageName}`;
+  }
+}
 // Helper to get the appropriate icon for a solution
 function getSolutionIcon(index: number) {
   const icons = [
@@ -71,54 +91,61 @@ export default async function SolutionsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {solutions.length > 0 ? (
-          solutions.map((solution, index) => (
-            <Card
-              key={solution.solution_id}
-              className="overflow-hidden hover:shadow-lg transition-shadow duration-300"
-            >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl">{solution.name}</CardTitle>
-                    <CardDescription className="text-sm text-muted-foreground">
-                      {solution.description ||
-                        "このソリューション情報を表示します"}
-                    </CardDescription>
-                  </div>
-                  {getSolutionIcon(index)}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-28 bg-gray-50 rounded-md flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">
-                    クリックしてソリューション情報を表示
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter
-                className={`border-t bg-gray-50/50 px-6 py-3 grid ${isAdmin ? "grid-cols-2" : "grid-cols-1"} gap-4`}
+          solutions.map(async (solution, index) => {
+            const imagePath = await getSolutionImagePath(solution.name);
+            return (
+              <Card
+                key={solution.solution_id}
+                className="overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
-                {isAdmin && (
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl">{solution.name}</CardTitle>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {solution.description ||
+                          "このソリューション情報を表示します"}
+                      </CardDescription>
+                    </div>
+                    {getSolutionIcon(index)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-28 bg-gray-50 rounded-md flex items-center justify-center overflow-hidden relative">
+                    <Image
+                      src={imagePath}
+                      alt={`${solution.name} の画像`}
+                      layout="fill"
+                      objectFit="cover"
+                      priority={index < 3} // 最初の3枚を優先的に読み込む
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter
+                  className={`border-t bg-gray-50/50 px-6 py-3 grid ${isAdmin ? "grid-cols-2" : "grid-cols-1"} gap-4`}
+                >
+                  {isAdmin && (
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90"
+                      asChild
+                    >
+                      <Link href={`/solutions/${solution.solution_id}/details`}>
+                        詳細情報
+                      </Link>
+                    </Button>
+                  )}
                   <Button
                     className="w-full bg-primary hover:bg-primary/90"
                     asChild
                   >
-                    <Link href={`/solutions/${solution.solution_id}/details`}>
-                      詳細情報
+                    <Link href={`/solutions/${solution.solution_id}/actions`}>
+                      デバイスアクション
                     </Link>
                   </Button>
-                )}
-                <Button
-                  className="w-full bg-primary hover:bg-primary/90"
-                  asChild
-                >
-                  <Link href={`/solutions/${solution.solution_id}/actions`}>
-                    デバイスアクション
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))
+                </CardFooter>
+              </Card>
+            );
+          })
         ) : (
           <div className="col-span-3 py-12 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-dashed">
             <div className="p-4 mb-4 bg-gray-100 rounded-full">

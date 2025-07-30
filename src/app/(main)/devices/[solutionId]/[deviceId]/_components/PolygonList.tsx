@@ -104,7 +104,7 @@ export const PolygonList: React.FC<PolygonListProps> = ({
       <button
         onClick={onAdd}
         disabled={polygons.length >= POLYGON_CONFIG.MAX_POLYGONS}
-        className={`mt-2 py-2 rounded-lg border transition-colors ${
+        className={`mt-2 py-2 rounded-lg border transition-colors cursor-pointer ${
           polygons.length >= POLYGON_CONFIG.MAX_POLYGONS
             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
             : "bg-white text-purple-600 border-purple-600 hover:bg-purple-50"

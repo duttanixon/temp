@@ -61,10 +61,17 @@ export const usePolygonManager = ({
     };
 
     setPolygons((prev) => [...prev, newPolygon]);
-    setPolygonsState((prev) => ({
-      ...prev,
-      [newPolygonId]: { visible: true, active: true },
-    }));
+    setPolygonsState((prev) => {
+      const newState = { ...prev };
+      Object.keys(newState).forEach((id) => {
+        newState[id] = {
+          ...newState[id],
+          active: false, // Reset all to inactive
+        };
+      });
+      newState[newPolygonId] = { visible: true, active: true };
+      return newState;
+    });
   }, [polygons, latitude, longitude]);
 
   const removePolygon = useCallback(

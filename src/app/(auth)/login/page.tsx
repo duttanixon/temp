@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { ErrorMessage } from "./_components/ErrorMessage";
@@ -23,9 +24,12 @@ export default function LoginPage() {
       {/* Left sidebar */}
       <div className="w-full max-w-md p-8 text-white flex flex-col bg-[#2c5d82]">
         <div className="flex items-center mb-8">
-          <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center">
-            <span className="text-3xl font-bold text-[#3498db]">CP</span>
-          </div>
+          <Image
+            src="/images/media/cybercorelogo_fin_sq_white.png"
+            alt="Cybercore"
+            width={80}
+            height={80}
+          />
         </div>
 
         <h1 className="text-4xl font-bold mb-4">Cybercore Platform</h1>
@@ -42,7 +46,8 @@ export default function LoginPage() {
       {/* Right side login form */}
       <div
         className="w-full flex items-center justify-center p-8"
-        style={{ backgroundColor: "#f5f7f9" }}>
+        style={{ backgroundColor: "#f5f7f9" }}
+      >
         <LoginForm />
       </div>
 

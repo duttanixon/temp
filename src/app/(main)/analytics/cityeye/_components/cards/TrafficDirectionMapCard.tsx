@@ -12,7 +12,7 @@ import "leaflet/dist/leaflet.css";
 import { Info, Loader2, RefreshCcw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
-const LeafletMap = dynamic(
+const LeafletDirectionMap = dynamic(
   () =>
     import(
       "@/app/(main)/analytics/cityeye/_components/LeafletDirectionMap"
@@ -348,7 +348,7 @@ export default function TrafficDirectionMapCard({
                     <div className="absolute top-20 left-2 z-[1000]">
                       <ResetButton onClick={handleReset} />
                     </div>
-                    <LeafletMap
+                    <LeafletDirectionMap
                       polylines={polylines}
                       coordinatesForZoom={coordinatesForZoom}
                       hasAttemptedFetch={hasAttemptedFetch}

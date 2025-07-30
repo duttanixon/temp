@@ -1,6 +1,13 @@
 "use client";
 
+import CustomTooltipContent from "@/components/charts/custom-tooltip-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { ProcessedTimeSeriesData } from "@/types/cityeye/cityEyeAnalytics";
 import { useMemo } from "react";
 import {
@@ -9,7 +16,6 @@ import {
   CartesianGrid,
   ReferenceArea,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -130,30 +136,28 @@ export default function TimeSeriesCard({
     return point.date;
   };
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload[0]) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-          <p className="text-sm font-medium text-gray-700">
-            {data.date} {data.hour}
-          </p>
-          {data.hasData ? (
-            <p className="text-sm mt-1">
-              <span className="text-gray-500">人数:</span>{" "}
-              <span className="font-semibold">
-                {data.count.toLocaleString()}
-              </span>
-            </p>
-          ) : (
-            <p className="text-sm text-gray-500 mt-1">データなし</p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
+  const dataKeys = useMemo(
+    () => [
+      {
+        name: "人数", // "Number of People"
+        dataKey: "count",
+        color: "var(--chart-analysis-1)", // Or any other suitable chart color
+        label: "期間別人数", // "Period-wise People Count"
+      },
+    ],
+    []
+  );
+
+  const chartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    dataKeys.forEach((dk) => {
+      config[dk.dataKey] = {
+        label: dk.label || dk.name,
+        color: dk.color,
+      };
+    });
+    return config;
+  }, [dataKeys]);
 
   // Y-axis formatter
   const yAxisTickFormatter = (value: number) => {
@@ -179,19 +183,22 @@ export default function TimeSeriesCard({
             hasAttemptedFetch
               ? "期間分析データがありません。"
               : "フィルターを適用してデータを表示します。"
-          }>
-          <div className="w-full h-full">
+          }
+        >
+          <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
+                margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient
                     id="colorPeopleTimeSeries"
                     x1="0"
                     y1="0"
                     x2="0"
-                    y2="1">
+                    y2="1"
+                  >
                     <stop
                       offset="5%"
                       stopColor="var(--chart-analysis-1)"
@@ -204,9 +211,7 @@ export default function TimeSeriesCard({
                     />
                   </linearGradient>
                 </defs>
-
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-
                 <XAxis
                   dataKey="index"
                   type="number"
@@ -218,7 +223,6 @@ export default function TimeSeriesCard({
                   textAnchor="end"
                   height={40}
                 />
-
                 <YAxis
                   tickLine={false}
                   axisLine={false}
@@ -226,8 +230,33 @@ export default function TimeSeriesCard({
                   tickFormatter={yAxisTickFormatter}
                   width={60}
                 />
-
-                <Tooltip content={<CustomTooltip />} />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      hideLabel
+                      hideIndicator
+                      formatter={(
+                        value,
+                        _name,
+                        item,
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        _index
+                      ) => {
+                        const getIndicatorClass = chartConfig?.count?.color;
+                        return (
+                          <CustomTooltipContent
+                            label={item?.payload?.["displayLabel"]}
+                            seriesName={String(chartConfig?.count?.label ?? "")}
+                            value={value}
+                            unit="人"
+                            indicatorClass={getIndicatorClass}
+                          />
+                        );
+                      }}
+                    />
+                  }
+                />
 
                 {/* Render reference areas for no-data regions */}
                 {noDataRegions.map((region, idx) => {
@@ -283,7 +312,7 @@ export default function TimeSeriesCard({
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
+          </ChartContainer>
         </GenericAnalyticsCard>
       </CardContent>
     </Card>

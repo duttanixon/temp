@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Solution } from "@/types/solution";
-import SolutionStatusBadge from "./SolutionStatusBadge";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import SolutionStatusBadge from "./SolutionStatusBadge";
 
 type SolutionTableProps = {
   initialSolutions: Solution[];
@@ -98,6 +98,7 @@ export default function SolutionTable({
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
       <table className="w-full min-w-[900px]">
         <colgroup>
+          <col className="w-1/5" />
           <col className="w-1/10" />
           <col className="w-1/5" />
           <col className="w-1/5" />
@@ -111,7 +112,10 @@ export default function SolutionTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>名前</span>
+                <div className="flex flex-col items-center">
+                  <div>ソリューション名</div>
+                  <div className="text-xs text-[#7F8C8D]">Solution Name</div>
+                </div>
                 {renderSortIndicator("name")}
               </div>
             </th>
@@ -120,7 +124,10 @@ export default function SolutionTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>バージョン</span>
+                <div className="flex flex-col items-center">
+                  <div>バージョン</div>
+                  <div className="text-xs text-[#7F8C8D]">Version</div>
+                </div>
                 {renderSortIndicator("version")}
               </div>
             </th>
@@ -129,7 +136,12 @@ export default function SolutionTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>互換デバイス</span>
+                <div className="flex flex-col items-center">
+                  <div>互換デバイス</div>
+                  <div className="text-xs text-[#7F8C8D]">
+                    Compatible Devices
+                  </div>
+                </div>
                 {renderSortIndicator("compatibility")}
               </div>
             </th>
@@ -138,7 +150,10 @@ export default function SolutionTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>ステータス</span>
+                <div className="flex flex-col items-center">
+                  <div>ステータス</div>
+                  <div className="text-xs text-[#7F8C8D]">Status</div>
+                </div>
                 {renderSortIndicator("status")}
               </div>
             </th>
@@ -147,12 +162,17 @@ export default function SolutionTable({
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
             >
               <div className="flex justify-center items-center gap-1 select-none">
-                <span>導入数</span>
+                <div className="flex flex-col items-center">
+                  <div>導入数</div>
+                  <div className="text-xs text-[#7F8C8D]">Install Count</div>
+                </div>
                 {renderSortIndicator("installCount")}
               </div>
             </th>
-            <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+            <th className="relative px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
               アクション
+              <div className="text-xs text-[#7F8C8D]">Actions</div>
             </th>
           </tr>
         </thead>
@@ -182,7 +202,8 @@ export default function SolutionTable({
                   {solution.customers_count || 0} 顧客 /{" "}
                   {solution.devices_count || 0} デバイス
                 </td>
-                <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
+                <td className="relative px-6 py-3 text-sm text-[#2C3E50] text-center">
+                  <div className="absolute left-0 top-1/2 h-3/4 -translate-y-1/2 border-l border-[#BDC3C7]" />
                   <span className="px-2 py-1">-</span>
                 </td>
               </tr>

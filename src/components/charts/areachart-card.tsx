@@ -57,7 +57,6 @@ export default function ShadcnAreaChartCard({
   isLoading,
   error,
   hasAttemptedFetch,
-  chartHeight = 250,
   emptyDataMessage = "データがありません。",
   categoryKey,
   dataKeys,
@@ -137,7 +136,8 @@ export default function ShadcnAreaChartCard({
             right: 40,
             bottom: 20,
             top: 0,
-          }}>
+          }}
+        >
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey={categoryKey}

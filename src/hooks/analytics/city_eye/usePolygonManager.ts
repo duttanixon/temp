@@ -1,9 +1,22 @@
-import { useState, useCallback } from 'react';
-import { PolygonWithRoute, PolygonStates } from '@/types/cityeye/cityEyePolygon';
-import { generateNewPolygonId, createDefaultVertices, POLYGON_CONFIG } from '@/utils/analytics/city_eye/polygon.utils';
+import {
+  PolygonStates,
+  PolygonWithRoute,
+} from "@/types/cityeye/cityEyePolygon";
+import {
+  createDefaultVertices,
+  generateNewPolygonId,
+  POLYGON_CONFIG,
+} from "@/utils/analytics/city_eye/polygon.utils";
+import { useCallback, useState } from "react";
 
 // Custom hook for managing polygon state
-export const usePolygonManager = () => {
+export const usePolygonManager = ({
+  latitude,
+  longitude,
+}: {
+  latitude: number;
+  longitude: number;
+}) => {
   const [polygons, setPolygons] = useState<PolygonWithRoute[]>([]);
   const [polygonsState, setPolygonsState] = useState<PolygonStates>({});
 
@@ -39,30 +52,40 @@ export const usePolygonManager = () => {
       name: `New Zone ${newPolygonId}`,
       vertices: createDefaultVertices(newPolygonId),
       center: {
-        startPoint: POLYGON_CONFIG.DEFAULT_MAP_CENTER,
-        endPoint: { 
-          lat: POLYGON_CONFIG.DEFAULT_MAP_CENTER.lat - 0.0002, 
-          lng: POLYGON_CONFIG.DEFAULT_MAP_CENTER.lng - 0.0003 
+        startPoint: { lat: latitude, lng: longitude },
+        endPoint: {
+          lat: latitude - 0.0002,
+          lng: longitude - 0.0003,
         },
       },
     };
 
     setPolygons((prev) => [...prev, newPolygon]);
-    setPolygonsState((prev) => ({
-      ...prev,
-      [newPolygonId]: { visible: true, active: true },
-    }));
-  }, [polygons]);
-
-  const removePolygon = useCallback((index: number) => {
-    const polygonId = polygons[index].polygonId;
-    setPolygons((prev) => prev.filter((_, i) => i !== index));
     setPolygonsState((prev) => {
       const newState = { ...prev };
-      delete newState[polygonId];
+      Object.keys(newState).forEach((id) => {
+        newState[id] = {
+          ...newState[id],
+          active: false, // Reset all to inactive
+        };
+      });
+      newState[newPolygonId] = { visible: true, active: true };
       return newState;
     });
-  }, [polygons]);
+  }, [polygons, latitude, longitude]);
+
+  const removePolygon = useCallback(
+    (index: number) => {
+      const polygonId = polygons[index].polygonId;
+      setPolygons((prev) => prev.filter((_, i) => i !== index));
+      setPolygonsState((prev) => {
+        const newState = { ...prev };
+        delete newState[polygonId];
+        return newState;
+      });
+    },
+    [polygons]
+  );
 
   const updatePolygonName = useCallback((index: number, name: string) => {
     setPolygons((prev) =>
@@ -70,44 +93,50 @@ export const usePolygonManager = () => {
     );
   }, []);
 
-  const updatePolygonVertices = useCallback((activeId: string, deltaX: number, deltaY: number) => {
-    setPolygons((prevPolygons) =>
-      prevPolygons.map((poly) => ({
-        ...poly,
-        vertices: poly.vertices.map((vertex) =>
-          vertex.vertexId === activeId
+  const updatePolygonVertices = useCallback(
+    (activeId: string, deltaX: number, deltaY: number) => {
+      setPolygons((prevPolygons) =>
+        prevPolygons.map((poly) => ({
+          ...poly,
+          vertices: poly.vertices.map((vertex) =>
+            vertex.vertexId === activeId
+              ? {
+                  ...vertex,
+                  position: {
+                    x: Math.round(vertex.position.x + deltaX),
+                    y: Math.round(vertex.position.y + deltaY),
+                  },
+                }
+              : vertex
+          ),
+        }))
+      );
+    },
+    []
+  );
+
+  const updateRouteMarker = useCallback(
+    (
+      polygonId: string,
+      point: "start" | "end",
+      position: { lat: number; lng: number }
+    ) => {
+      setPolygons((prev) =>
+        prev.map((poly) =>
+          poly.polygonId === polygonId
             ? {
-                ...vertex,
-                position: {
-                  x: Math.round(vertex.position.x + deltaX),
-                  y: Math.round(vertex.position.y + deltaY),
+                ...poly,
+                center: {
+                  ...poly.center,
+                  [point === "start" ? "startPoint" : "endPoint"]: position,
                 },
               }
-            : vertex
-        ),
-      }))
-    );
-  }, []);
-
-  const updateRouteMarker = useCallback((
-    polygonId: string,
-    point: "start" | "end",
-    position: { lat: number; lng: number }
-  ) => {
-    setPolygons((prev) =>
-      prev.map((poly) =>
-        poly.polygonId === polygonId
-          ? {
-              ...poly,
-              center: {
-                ...poly.center,
-                [point === "start" ? "startPoint" : "endPoint"]: position,
-              },
-            }
-          : poly
-      )
-    );
-  }, []);
+            : poly
+        )
+      );
+    },
+    []
+  );
 
   return {
     polygons,

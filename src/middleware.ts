@@ -18,7 +18,12 @@ export default auth(async function middleware(req) {
   const path = req.nextUrl.pathname;
 
   // Public paths that don't require authentication
-  const publicPaths = ["/login", "/api/auth", "/set-password", "/forgot-password"];
+  const publicPaths = [
+    "/login",
+    "/api/auth",
+    "/set-password",
+    "/reset-password",
+  ];
 
   // Check for valid session (exists AND has no error)
   const hasValidSession = session && !session.error;
@@ -61,5 +66,5 @@ export default auth(async function middleware(req) {
 
 // Apply middleware to all routes
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|public/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|images|media).*)"],
 };

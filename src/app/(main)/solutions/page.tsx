@@ -33,6 +33,7 @@ export default function SolutionsPage() {
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [deviceType, setDeviceType] = useState("");
   const [status, setStatus] = useState("");
+  const [query, setQuery] = useState("");
   const isAdmin = session?.user?.role === "ADMIN";
   const [page, setPage] = useState(0);
   const itemsPerPage = 10;
@@ -46,13 +47,15 @@ export default function SolutionsPage() {
   }, [session]);
 
   const filteredSolutions = useMemo(() => {
+    const q = query.toLowerCase();
     return solutions.filter((solution) => {
       const matchesDeviceType =
         !deviceType || solution.compatibility.includes(deviceType);
       const matchesStatus = !status || solution.status === status;
-      return matchesDeviceType && matchesStatus;
+      const matchesQuery = !q || solution.name.toLowerCase().includes(q);
+      return matchesDeviceType && matchesStatus && matchesQuery;
     });
-  }, [solutions, deviceType, status]);
+  }, [solutions, deviceType, status, query]);
 
   const paginatedSolutions = useMemo(() => {
     const start = page * itemsPerPage;
@@ -60,6 +63,9 @@ export default function SolutionsPage() {
     return filteredSolutions.slice(start, end);
   }, [filteredSolutions, page, itemsPerPage]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [deviceType, status, query]);
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -81,6 +87,8 @@ export default function SolutionsPage() {
         setDeviceType={setDeviceType}
         status={status}
         setStatus={setStatus}
+        query={query}
+        setQuery={setQuery}
       />
 
       <SolutionTable initialSolutions={paginatedSolutions} />

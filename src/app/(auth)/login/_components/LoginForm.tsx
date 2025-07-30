@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -96,7 +96,7 @@ export function LoginForm() {
             />
             <div className="text-right">
               <Link
-                href="/forgot-password"
+                href="/reset-password"
                 className="text-sm text-blue-500 hover:text-blue-600"
                 style={{ color: "#3498db" }}
               >

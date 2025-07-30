@@ -2,7 +2,7 @@
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Loader2, RefreshCw, Save } from "lucide-react";
+import { Loader2, RefreshCw, Save, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // Types and Utils
@@ -48,7 +48,10 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
     updatePolygonName,
     updatePolygonVertices,
     updateRouteMarker,
-  } = usePolygonManager();
+  } = usePolygonManager({
+    latitude: device.latitude ?? 0,
+    longitude: device.longitude ?? 0,
+  });
 
   const {
     isCapturing,
@@ -84,6 +87,9 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
     await savePolygonConfig(polygons);
   };
 
+  const handleReset = () => {
+    loadPolygonConfig();
+  };
   // Show loading state
   if (isLoadingConfig) {
     return (
@@ -101,18 +107,32 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
           <h2 className="text-2xl font-bold text-gray-800">
             {device.location} {device.name}
           </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCaptureImage}
-            disabled={isCapturing}>
-            {isCapturing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Update Image
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              size="sm"
+              aria-label="Reset Zone"
+              className="cursor-pointer"
+            >
+              <Undo2 size={20} />
+              変更をリセット
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCaptureImage}
+              disabled={isCapturing}
+              className="cursor-pointer"
+            >
+              {isCapturing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              画像を更新
+            </Button>
+          </div>
         </div>
 
         {/* Content */}
@@ -157,6 +177,8 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
                   isOsm={isOsm}
                   onToggleMap={setIsOsm}
                   onUpdateRouteMarker={updateRouteMarker}
+                  latitude={device.latitude}
+                  longitude={device.longitude}
                 />
               )}
             </div>
@@ -168,7 +190,8 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
+          >
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -177,7 +200,7 @@ export default function PolygonSettingsForm({ device }: PolygonEditorProps) {
             ) : (
               <>
                 <Save className="mr-2 h-5 w-5" />
-                Update Detection Zones
+                保存
               </>
             )}
           </button>

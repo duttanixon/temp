@@ -35,17 +35,17 @@ export default function SearchFilters({
 
   return (
     <div
-      className={`border border-gray-400 rounded-md px-4 py-3 w-full ${userRole === "ADMIN" ? "max-w-[900px]" : "max-w-[600px]"} bg-white overflow-hidden`}>
-      <div className="flex items-center gap-6 flex-wrap">
-        <div className="flex flex-1 items-center gap-2">
+      className={`inline-block border border-gray-400 rounded-md px-4 py-3  bg-white overflow-hidden`}>
+      <div className="flex items-end gap-6 flex-wrap">
+        <div className="flex flex-1 flex-col items-start gap-1">
           <label className="text-gray-800 text-sm whitespace-nowrap">
-            状態:
+            状態
           </label>
 
           {/* Select Box */}
-          <div className="w-full">
+          <div className="w-full sm:w-40">
             <select
-              className="cursor-pointer w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+              className="w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500 cursor-pointer"
               value={status}
               onChange={(e) => setStatus(e.target.value)}>
               <option>すべて</option>
@@ -55,16 +55,15 @@ export default function SearchFilters({
             {/* Right-pointing triangle icon */}
           </div>
         </div>
-        {userRole === "ADMIN" ? (
+        {userRole === "ADMIN" && (
           <>
-            <div className="flex flex-1 items-center gap-2">
+            <div className="flex flex-1 flex-col items-start gap-1">
               <label className="text-gray-800 text-sm whitespace-nowrap">
-                権限:
+                権限
               </label>
-
-              <div className="w-full">
+              <div className="w-full sm:w-40">
                 <select
-                  className="cursor-pointer w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  className="w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500 cursor-pointer "
                   value={role}
                   onChange={(e) => setRole(e.target.value)}>
                   <option>すべて</option>
@@ -73,14 +72,13 @@ export default function SearchFilters({
                 </select>
               </div>
             </div>
-            <div className="flex flex-1 items-center gap-2">
+            <div className="flex flex-1 flex-col items-start gap-1">
               <label className="text-gray-800 text-sm whitespace-nowrap">
-                顧客:
+                顧客
               </label>
-
-              <div className="w-full">
+              <div className="w-full sm:w-40">
                 <select
-                  className="cursor-pointer w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  className="w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500 cursor-pointer"
                   value={customer}
                   onChange={(e) => setCustomer(e.target.value)}>
                   <option>すべて</option>
@@ -93,15 +91,13 @@ export default function SearchFilters({
               </div>
             </div>
           </>
-        ) : (
-          <></>
         )}
 
         {/* Input Box */}
-        <div className="relative flex-1 min-w-[150px]">
+        <div className="relative">
           <Input
             placeholder="ユーザーを検索…"
-            className="cursor-pointer h-[30px] w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+            className="h-[30px] w-full bg-white border border-gray-400 rounded-full pr-12 pl-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

@@ -6,13 +6,23 @@ import { CustomerAssignment } from "@/types/customerSolution";
 import { Solution } from "@/types/solution";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AssignToCustomerModal from "./AssignToCustomerModal";
 
+type SortKey =
+  | "name"
+  | "status"
+  | "devices_count"
+  | "expiration_date"
+  | "assigned_at";
+type SortDirection = "asc" | "desc";
+
 interface CustomerAssignmentsTabProps {
   solution: Solution;
+  isShowInactive?: boolean;
 }
 
 export default function CustomerAssignmentsTab({
@@ -25,6 +35,26 @@ export default function CustomerAssignmentsTab({
   const [isFetching, setIsFetching] = useState(true);
 
   const isAdmin = session?.user?.role === "ADMIN";
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const renderSortIcon = (key: SortKey) => {
+    return sortKey === key ? (
+      sortDirection === "asc" ? (
+        <ChevronUp size={16} />
+      ) : (
+        <ChevronDown size={16} />
+      )
+    ) : null;
+  };
 
   // Fetch customer assignments when component mounts
   useEffect(() => {
@@ -150,7 +180,8 @@ export default function CustomerAssignmentsTab({
         {isAdmin && (
           <Button
             onClick={() => setIsAssignModalOpen(true)}
-            className="bg-[#27AE60] text-white hover:bg-[#219955]">
+            className="bg-[#27AE60] text-white hover:bg-[#219955]"
+          >
             新規アサイン
           </Button>
         )}
@@ -161,24 +192,75 @@ export default function CustomerAssignmentsTab({
         <table className="min-w-full divide-y divide-[#BDC3C7]">
           <thead className="bg-[#ECF0F1]">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50]">
-                顧客名
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("name")}
+              >
+                <div className="flex justify-center items-center gap-1 select-none">
+                  <div className="flex flex-col items-center">
+                    <div>顧客名</div>
+                    <div className="text-xs text-[#7F8C8D]">Customer</div>
+                  </div>
+                  {renderSortIcon("name")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50]">
-                ステータス
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("status")}
+              >
+                <div className="flex justify-center items-center gap-1 select-none">
+                  <div className="flex flex-col items-center">
+                    <div>ステータス</div>
+                    <div className="text-xs text-[#7F8C8D]">Status</div>
+                  </div>
+                  {renderSortIcon("status")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50]">
-                デバイス数
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("devices_count")}
+              >
+                <div className="flex justify-center items-center gap-1 select-none">
+                  <div className="flex flex-col items-center">
+                    <div>デバイス数</div>
+                    <div className="text-xs text-[#7F8C8D]">Devices</div>
+                  </div>
+                  {renderSortIcon("devices_count")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50]">
-                有効期限
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("expiration_date")}
+              >
+                <div className="flex justify-center items-center gap-1 select-none">
+                  <div className="flex flex-col items-center">
+                    <div>有効期限</div>
+                    <div className="text-xs text-[#7F8C8D]">Expiration</div>
+                  </div>
+                  {renderSortIcon("expiration_date")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-[#2C3E50]">
-                アサイン日
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("assigned_at")}
+              >
+                <div className="flex justify-center items-center gap-1 select-none">
+                  <div className="flex flex-col items-center">
+                    <div>アサイン日</div>
+                    <div className="text-xs text-[#7F8C8D]">Assigned</div>
+                  </div>
+                  {renderSortIcon("assigned_at")}
+                </div>
               </th>
               {isAdmin && (
-                <th className="px-6 py-3 text-right text-sm font-semibold text-[#2C3E50]">
-                  アクション
+                <th className="relative px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+                  <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
+                  <div className="flex justify-center items-center gap-1 select-none">
+                    <div className="flex flex-col items-center">
+                      <div>アクション</div>
+                      <div className="text-xs text-[#7F8C8D]">Actions</div>
+                    </div>
+                  </div>
                 </th>
               )}
             </tr>
@@ -188,50 +270,54 @@ export default function CustomerAssignmentsTab({
               <tr>
                 <td
                   colSpan={isAdmin ? 6 : 5}
-                  className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                  className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
+                >
                   読み込み中...
                 </td>
               </tr>
             ) : assignments.length > 0 ? (
               assignments.map((assignment) => (
                 <tr key={assignment.id} className="hover:bg-[#F8F9FA]">
-                  <td className="px-6 py-4 text-sm text-[#2C3E50]">
+                  <td className="px-6 py-4 text-sm text-[#2C3E50] text-center">
                     {assignment.customer_name}
                   </td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4 text-sm text-center">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         assignment.license_status === "ACTIVE"
                           ? "bg-green-100 text-green-800"
                           : "bg-orange-100 text-orange-800"
-                      }`}>
+                      }`}
+                    >
                       {assignment.license_status === "ACTIVE" ? "有効" : "停止"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#2C3E50]">
+                  <td className="px-6 py-4 text-sm text-[#2C3E50] text-center">
                     {assignment.devices_count} / {assignment.max_devices}
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#2C3E50]">
+                  <td className="px-6 py-4 text-sm text-[#2C3E50] text-center">
                     {assignment.expiration_date
                       ? new Date(assignment.expiration_date).toLocaleDateString(
                           "ja-JP"
                         )
                       : "無期限"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#2C3E50]">
+                  <td className="px-6 py-4 text-sm text-[#2C3E50] text-center">
                     {formatDistanceToNow(new Date(assignment.created_at), {
                       addSuffix: true,
                       locale: ja,
                     })}
                   </td>
                   {isAdmin && (
-                    <td className="px-6 py-4 text-sm text-right space-x-2">
+                    <td className="relative px-6 py-4 text-sm space-x-2 text-center">
+                      <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
                       <button
                         className="text-blue-600 hover:text-blue-800"
                         onClick={() => {
                           /* Would open edit modal */
                         }}
-                        disabled={isLoading}>
+                        disabled={isLoading}
+                      >
                         編集
                       </button>
                       <button
@@ -249,7 +335,8 @@ export default function CustomerAssignmentsTab({
                               : "ACTIVE"
                           )
                         }
-                        disabled={isLoading}>
+                        disabled={isLoading}
+                      >
                         {assignment.license_status === "ACTIVE"
                           ? "停止"
                           : "有効化"}
@@ -263,7 +350,8 @@ export default function CustomerAssignmentsTab({
                             assignment.customer_name
                           )
                         }
-                        disabled={isLoading}>
+                        disabled={isLoading}
+                      >
                         削除
                       </button>
                     </td>
@@ -274,7 +362,8 @@ export default function CustomerAssignmentsTab({
               <tr>
                 <td
                   colSpan={isAdmin ? 6 : 5}
-                  className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
+                  className="px-6 py-4 text-center text-sm text-[#7F8C8D]"
+                >
                   まだこのソリューションをアサインされた顧客はありません
                 </td>
               </tr>

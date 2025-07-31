@@ -71,9 +71,13 @@ export default async function SolutionDetailsPage({
               </BreadcrumbItem>
               <BreadcrumbSeparator className="text-[#7F8C8D]" />
               <BreadcrumbItem>{solution.name}</BreadcrumbItem>
+              <BreadcrumbSeparator className="text-[#7F8C8D]" />
+              <BreadcrumbItem>詳細情報</BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-2xl font-bold text-[#2C3E50]">{solution.name}</h1>
+          <h1 className="text-2xl font-bold text-[#2C3E50]">
+            {solution.name} - 詳細情報
+          </h1>
         </div>
         {isAdmin && <SolutionActions solution={solution} />}
       </div>
@@ -83,7 +87,7 @@ export default async function SolutionDetailsPage({
             value="info"
             className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
           >
-            情報
+            ソリューション情報
           </TabsTrigger>
           <TabsTrigger
             value="customers"

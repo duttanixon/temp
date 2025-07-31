@@ -96,9 +96,13 @@ export default async function SolutionActionsPage({
               </BreadcrumbItem>
               <BreadcrumbSeparator className="text-[#7F8C8D]" />
               <BreadcrumbItem>{solution.name}</BreadcrumbItem>
+              <BreadcrumbSeparator className="text-[#7F8C8D]" />
+              <BreadcrumbItem>デバイスアクション</BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-2xl font-bold text-[#2C3E50]">{solution.name}</h1>
+          <h1 className="text-2xl font-bold text-[#2C3E50]">
+            {solution.name} - デバイスアクション
+          </h1>
         </div>
       </div>
       <DeviceList initialDevices={devices} solution={solution} />

@@ -1,6 +1,7 @@
 import { Solution } from "@/types/solution";
-import SolutionStatusBadge from "../../_components/SolutionStatusBadge";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
+import { BookOpen, CalendarDays, Monitor, Users } from "lucide-react";
+import SolutionStatusBadge from "../../_components/SolutionStatusBadge";
 
 type SolutionInfoCardProps = {
   solution: Solution;
@@ -8,7 +9,7 @@ type SolutionInfoCardProps = {
 
 export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
   return (
-    <div className="bg-white rounded-lg border border-[#BDC3C7] overflow-hidden">
+    <div className="max-w-[1000px] bg-white rounded-lg border border-[#BDC3C7] overflow-hidden">
       <div className="px-6 py-4 border-b border-[#BDC3C7]">
         <h2 className="text-lg font-semibold text-[#2C3E50]">
           ソリューション情報
@@ -18,29 +19,32 @@ export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium text-[#7F8C8D]">基本情報</h3>
+            <div className="flex items-center gap-2">
+              <Monitor className="size-4" />
+              <h3 className="text-sm font-medium">基本情報</h3>
+            </div>
             <div className="mt-2 space-y-2">
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">名前</span>
-                <span className="text-sm font-medium text-[#2C3E50]">
+                <span className="text-sm font-medium text-[#2C3E50] ">
                   {solution.name}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">バージョン</span>
-                <span className="text-sm font-medium text-[#2C3E50]">
+                <span className="text-sm font-medium text-[#2C3E50] ">
                   {solution.version}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">ステータス</span>
-                <span className="text-sm font-medium text-[#2C3E50]">
+                <span className="text-sm font-medium text-[#2C3E50] ">
                   <SolutionStatusBadge status={solution.status} />
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">互換デバイス</span>
-                <span className="text-sm font-medium text-[#2C3E50]">
+                <span className="text-sm font-medium text-[#2C3E50] ">
                   {solution.compatibility
                     .map((device) => formatDeviceType(device))
                     .join(", ")}
@@ -50,7 +54,10 @@ export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-[#7F8C8D]">説明</h3>
+            <div className="flex items-center gap-2">
+              <BookOpen className="size-4" />
+              <h3 className="text-sm font-medium">説明</h3>
+            </div>
             <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm text-[#2C3E50]">
               {solution.description || "説明はありません。"}
             </div>
@@ -59,15 +66,18 @@ export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
 
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium text-[#7F8C8D]">利用状況</h3>
+            <div className="flex items-center gap-2">
+              <Users className="size-4" />
+              <h3 className="text-sm font-medium">利用状況</h3>
+            </div>
             <div className="mt-2 space-y-2">
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">導入顧客数</span>
                 <span className="text-sm font-medium text-[#2C3E50]">
                   {solution.customers_count || 0}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">導入デバイス数</span>
                 <span className="text-sm font-medium text-[#2C3E50]">
                   {solution.devices_count || 0}
@@ -77,15 +87,18 @@ export default function SolutionInfoCard({ solution }: SolutionInfoCardProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-[#7F8C8D]">登録情報</h3>
+            <div className="flex items-center gap-2">
+              <CalendarDays className="size-4" />
+              <h3 className="text-sm font-medium">登録情報</h3>
+            </div>
             <div className="mt-2 space-y-2">
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">作成日</span>
                 <span className="text-sm font-medium text-[#2C3E50]">
                   {new Date(solution.created_at).toLocaleDateString("ja-JP")}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="grid grid-cols-2">
                 <span className="text-sm text-[#7F8C8D]">最終更新</span>
                 <span className="text-sm font-medium text-[#2C3E50]">
                   {solution.updated_at

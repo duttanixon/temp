@@ -70,9 +70,7 @@ export default async function SolutionDetailsPage({
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="text-[#7F8C8D]" />
-              <BreadcrumbItem>{solution.name}</BreadcrumbItem>
-              <BreadcrumbSeparator className="text-[#7F8C8D]" />
-              <BreadcrumbItem>詳細情報</BreadcrumbItem>
+              <BreadcrumbItem>{solution.name} - 詳細情報</BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <h1 className="text-2xl font-bold text-[#2C3E50]">

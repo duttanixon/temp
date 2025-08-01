@@ -69,7 +69,7 @@ export default async function EditSolutionPage({ params }: Props) {
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem className="hover:underline">
               <BreadcrumbLink href={`/solutions/${solutionId}/details`}>
-                {solution.name}
+                {solution.name} - 詳細情報
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />

@@ -295,7 +295,7 @@ export default function DeviceDeploymentsTab({
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
                 onClick={() => handleSort("version_deployed")}
               >
                 <div className="flex justify-center items-center gap-1 select-none">
@@ -307,7 +307,7 @@ export default function DeviceDeploymentsTab({
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
                 onClick={() => handleSort("updated_at")}
               >
                 <div className="flex justify-center items-center gap-1 select-none">

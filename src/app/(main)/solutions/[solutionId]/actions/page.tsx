@@ -1,4 +1,3 @@
-import DeviceList from "@/app/(main)/devices/_components/DeviceList";
 import { auth } from "@/auth";
 import {
   Breadcrumb,
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Device } from "@/types/device";
 import { Solution } from "@/types/solution";
 import Link from "next/link";
+import SolutionDeviceList from "../../_components/SolutionDeviceList";
 
 async function getSolution(
   solutionId: string,
@@ -94,10 +94,10 @@ export default async function SolutionActionsPage({
                   ソリューション
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="text-[#7F8C8D]" />
-              <BreadcrumbItem>{solution.name}</BreadcrumbItem>
-              <BreadcrumbSeparator className="text-[#7F8C8D]" />
-              <BreadcrumbItem>デバイスアクション</BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                {solution.name} - デバイスアクション
+              </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <h1 className="text-2xl font-bold text-[#2C3E50]">
@@ -105,7 +105,7 @@ export default async function SolutionActionsPage({
           </h1>
         </div>
       </div>
-      <DeviceList initialDevices={devices} solution={solution} />
+      <SolutionDeviceList initialDevices={devices} solution={solution} />
     </div>
   );
 }

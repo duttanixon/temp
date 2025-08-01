@@ -69,7 +69,7 @@ export default async function SolutionDetailsPage({
                   ソリューション
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="text-[#7F8C8D]" />
+              <BreadcrumbSeparator />
               <BreadcrumbItem>{solution.name} - 詳細情報</BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -83,20 +83,17 @@ export default async function SolutionDetailsPage({
         <TabsList className="grid w-fit h-full grid-cols-3 bg-white border border-[#BDC3C7] overflow-hidden">
           <TabsTrigger
             value="info"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
-          >
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2">
             ソリューション情報
           </TabsTrigger>
           <TabsTrigger
             value="customers"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
-          >
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2">
             顧客アサイン
           </TabsTrigger>
           <TabsTrigger
             value="devices"
-            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2"
-          >
+            className="min-w-[115px] data-[state=active]:bg-[#3498DB] data-[state=active]:text-white data-[state=inactive]:text-gray-600 hover:cursor-pointer py-2">
             デバイスデプロイ
           </TabsTrigger>
         </TabsList>

@@ -12,7 +12,12 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import DeployToDeviceModal from "./DeployToDeviceModal";
 
-type SortKey = "device_name" | "customer_name" | "status";
+type SortKey =
+  | "device_name"
+  | "customer_name"
+  | "status"
+  | "version_deployed"
+  | "updated_at";
 type SortDirection = "asc" | "desc";
 
 interface DeviceDeploymentsTabProps {
@@ -104,6 +109,7 @@ export default function DeviceDeploymentsTab({
       .sort((a, b) => {
         const aValue = a[sortKey];
         const bValue = b[sortKey];
+        if (aValue === undefined || bValue === undefined) return 0;
         if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
         if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
         return 0;
@@ -288,20 +294,28 @@ export default function DeviceDeploymentsTab({
                   {renderSortIcon("status")}
                 </div>
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+                onClick={() => handleSort("version_deployed")}
+              >
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>バージョン</div>
                     <div className="text-xs text-[#7F8C8D]">Version</div>
                   </div>
+                  {renderSortIcon("version_deployed")}
                 </div>
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+                onClick={() => handleSort("updated_at")}
+              >
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
-                    <div>最終更新</div>
+                    <div>最終更新日</div>
                     <div className="text-xs text-[#7F8C8D]">Last Updated</div>
                   </div>
+                  {renderSortIcon("updated_at")}
                 </div>
               </th>
               <th className="relative px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
@@ -360,7 +374,7 @@ export default function DeviceDeploymentsTab({
                   <td className="relative px-6 py-4 text-sm space-x-2 text-center">
                     <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
                     <button
-                      className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                      className="text-blue-600 hover:text-blue-800"
                       onClick={() => {
                         /* Would open update modal */
                       }}
@@ -369,7 +383,7 @@ export default function DeviceDeploymentsTab({
                       更新
                     </button>
                     <button
-                      className="text-red-600 hover:text-red-800 cursor-pointer"
+                      className="text-red-600 hover:text-red-800"
                       onClick={() =>
                         handleRemoveDeployment(
                           deployment.device_id,

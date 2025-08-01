@@ -12,7 +12,12 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import AssignToCustomerModal from "./AssignToCustomerModal";
 
-type SortKey = "customer_name" | "license_status";
+type SortKey =
+  | "customer_name"
+  | "license_status"
+  | "devices_count"
+  | "expiration_date"
+  | "created_at";
 type SortDirection = "asc" | "desc";
 
 interface CustomerAssignmentsTabProps {
@@ -226,28 +231,40 @@ export default function CustomerAssignmentsTab({
                   {renderSortIcon("license_status")}
                 </div>
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("devices_count")}
+              >
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>デバイス数</div>
                     <div className="text-xs text-[#7F8C8D]">Device Counts</div>
                   </div>
+                  {renderSortIcon("devices_count")}
                 </div>
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("expiration_date")}
+              >
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>有効期限</div>
                     <div className="text-xs text-[#7F8C8D]">Expiration</div>
                   </div>
+                  {renderSortIcon("expiration_date")}
                 </div>
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
+              <th
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+                onClick={() => handleSort("created_at")}
+              >
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>アサイン日</div>
                     <div className="text-xs text-[#7F8C8D]">Assigned At</div>
                   </div>
+                  {renderSortIcon("created_at")}
                 </div>
               </th>
               {isAdmin && (

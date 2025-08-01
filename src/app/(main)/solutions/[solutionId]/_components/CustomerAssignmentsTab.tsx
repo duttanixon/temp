@@ -8,16 +8,11 @@ import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import AssignToCustomerModal from "./AssignToCustomerModal";
 
-type SortKey =
-  | "name"
-  | "status"
-  | "devices_count"
-  | "expiration_date"
-  | "assigned_at";
+type SortKey = "customer_name" | "license_status";
 type SortDirection = "asc" | "desc";
 
 interface CustomerAssignmentsTabProps {
@@ -27,6 +22,7 @@ interface CustomerAssignmentsTabProps {
 
 export default function CustomerAssignmentsTab({
   solution,
+  isShowInactive = false,
 }: CustomerAssignmentsTabProps) {
   const { data: session } = useSession();
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -35,7 +31,7 @@ export default function CustomerAssignmentsTab({
   const [isFetching, setIsFetching] = useState(true);
 
   const isAdmin = session?.user?.role === "ADMIN";
-  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortKey, setSortKey] = useState<SortKey>("customer_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -55,6 +51,20 @@ export default function CustomerAssignmentsTab({
       )
     ) : null;
   };
+
+  const filteredAssignments = useMemo(() => {
+    const filtered = assignments.filter(
+      (assignment) =>
+        isShowInactive || assignment.license_status !== "SUSPENDED"
+    );
+    return filtered.sort((a, b) => {
+      const valA = (a[sortKey] || "").toString().toLowerCase();
+      const valB = (b[sortKey] || "").toString().toLowerCase();
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [assignments, isShowInactive, sortDirection, sortKey]);
 
   // Fetch customer assignments when component mounts
   useEffect(() => {
@@ -194,62 +204,50 @@ export default function CustomerAssignmentsTab({
             <tr>
               <th
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-                onClick={() => handleSort("name")}
+                onClick={() => handleSort("customer_name")}
               >
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>顧客名</div>
-                    <div className="text-xs text-[#7F8C8D]">Customer</div>
+                    <div className="text-xs text-[#7F8C8D]">Customer Name</div>
                   </div>
-                  {renderSortIcon("name")}
+                  {renderSortIcon("customer_name")}
                 </div>
               </th>
               <th
                 className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-                onClick={() => handleSort("status")}
+                onClick={() => handleSort("license_status")}
               >
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>ステータス</div>
                     <div className="text-xs text-[#7F8C8D]">Status</div>
                   </div>
-                  {renderSortIcon("status")}
+                  {renderSortIcon("license_status")}
                 </div>
               </th>
-              <th
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-                onClick={() => handleSort("devices_count")}
-              >
+              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>デバイス数</div>
-                    <div className="text-xs text-[#7F8C8D]">Devices</div>
+                    <div className="text-xs text-[#7F8C8D]">Device Counts</div>
                   </div>
-                  {renderSortIcon("devices_count")}
                 </div>
               </th>
-              <th
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-                onClick={() => handleSort("expiration_date")}
-              >
+              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>有効期限</div>
                     <div className="text-xs text-[#7F8C8D]">Expiration</div>
                   </div>
-                  {renderSortIcon("expiration_date")}
                 </div>
               </th>
-              <th
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-                onClick={() => handleSort("assigned_at")}
-              >
+              <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>アサイン日</div>
-                    <div className="text-xs text-[#7F8C8D]">Assigned</div>
+                    <div className="text-xs text-[#7F8C8D]">Assigned At</div>
                   </div>
-                  {renderSortIcon("assigned_at")}
                 </div>
               </th>
               {isAdmin && (
@@ -275,10 +273,10 @@ export default function CustomerAssignmentsTab({
                   読み込み中...
                 </td>
               </tr>
-            ) : assignments.length > 0 ? (
-              assignments.map((assignment) => (
+            ) : filteredAssignments.length > 0 ? (
+              filteredAssignments.map((assignment) => (
                 <tr key={assignment.id} className="hover:bg-[#F8F9FA]">
-                  <td className="px-6 py-4 text-sm text-[#2C3E50] text-center">
+                  <td className="px-6 py-4 text-sm text-[#2C3E50]">
                     {assignment.customer_name}
                   </td>
                   <td className="px-6 py-4 text-sm text-center">
@@ -312,7 +310,7 @@ export default function CustomerAssignmentsTab({
                     <td className="relative px-6 py-4 text-sm space-x-2 text-center">
                       <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
                       <button
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-blue-600 hover:text-blue-800 cursor-pointer"
                         onClick={() => {
                           /* Would open edit modal */
                         }}
@@ -321,7 +319,7 @@ export default function CustomerAssignmentsTab({
                         編集
                       </button>
                       <button
-                        className={`${
+                        className={`cursor-pointer ${
                           assignment.license_status === "ACTIVE"
                             ? "text-orange-600 hover:text-orange-800"
                             : "text-green-600 hover:text-green-800"
@@ -342,7 +340,7 @@ export default function CustomerAssignmentsTab({
                           : "有効化"}
                       </button>
                       <button
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-600 hover:text-red-800 cursor-pointer"
                         onClick={() =>
                           handleRemoveAssignment(
                             assignment.id,

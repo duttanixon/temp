@@ -271,7 +271,7 @@ export default function DeviceDeploymentsTab({
                 <div className="flex justify-center items-center gap-1 select-none">
                   <div className="flex flex-col items-center">
                     <div>顧客名</div>
-                    <div className="text-xs text-[#7F8C8D]">Customer</div>
+                    <div className="text-xs text-[#7F8C8D]">Customer Name</div>
                   </div>
                   {renderSortIcon("customer_name")}
                 </div>
@@ -328,13 +328,13 @@ export default function DeviceDeploymentsTab({
             ) : filteredDeployments.length > 0 ? (
               filteredDeployments.map((deployment) => (
                 <tr key={deployment.id} className="hover:bg-[#F8F9FA]">
-                  <td className="px-6 py-4 text-sm text-[#2C3E50] text-center">
+                  <td className="px-6 py-4 text-sm text-[#2C3E50]">
                     {deployment.device_name}
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#2C3E50] text-center">
+                  <td className="px-6 py-4 text-sm text-[#2C3E50]">
                     {deployment.customer_name}
                   </td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4 text-sm text-center">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(
                         deployment.status
@@ -360,7 +360,7 @@ export default function DeviceDeploymentsTab({
                   <td className="relative px-6 py-4 text-sm space-x-2 text-center">
                     <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
                     <button
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800 cursor-pointer"
                       onClick={() => {
                         /* Would open update modal */
                       }}
@@ -369,7 +369,7 @@ export default function DeviceDeploymentsTab({
                       更新
                     </button>
                     <button
-                      className="text-red-600 hover:text-red-800"
+                      className="text-red-600 hover:text-red-800 cursor-pointer"
                       onClick={() =>
                         handleRemoveDeployment(
                           deployment.device_id,

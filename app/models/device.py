@@ -60,3 +60,10 @@ class Device(Base):
 
     # N:N
     device_solutions = relationship("DeviceSolution", back_populates="device")
+
+    # 1. For the one-to-many relationship (a device has many jobs)
+    jobs = relationship("Job", foreign_keys="Job.device_id", back_populates="device")
+    
+    # 2. For the one-to-one relationship (a device has one latest job)
+    latest_job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=True)
+    latest_job = relationship("Job", foreign_keys="Device.latest_job_id")

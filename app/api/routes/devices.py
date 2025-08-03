@@ -10,7 +10,7 @@ from app.schemas.device import (
     DeviceProvisionResponse,
     DeviceUpdate,
     DeviceAdminView,
-    DeviceWithCustomerView,
+    DeviceDetailView,
     DeviceStatusInfo,
     DeviceBatchStatusRequest
 )
@@ -51,7 +51,7 @@ def get_device_and_check_access(
     return db_device
 
 
-@router.get("", response_model=List[DeviceWithCustomerView])
+@router.get("", response_model=List[DeviceDetailView])
 def get_devices(
     db: Session = Depends(deps.get_db),
     customer_id: Optional[uuid.UUID] = None,

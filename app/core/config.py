@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     # API Key for internal services
     INTERNAL_API_KEY: Optional[str] = None
     FRONTEND_URL: Optional[str] = None
+    RESTART_APP_TEMPLATE_ARN: Optional[str] = None
+    REBOOT_TEMPLATE_ARN: Optional[str] = None
 
 
     class Config:

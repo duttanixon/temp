@@ -8,6 +8,7 @@ def check_device_access(
     current_user: User, db_device, action: str = "send commands to"
 ):
     """Helper function to check if user has access to device"""
+    
     if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
         if (
             not current_user.customer_id

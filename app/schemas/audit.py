@@ -62,6 +62,10 @@ class AuditLogActionType(str, Enum):
     THRESHOLD_CONFIG_CREATE = "THRESHOLD_CONFIG_CREATE"
     THRESHOLD_CONFIG_UPDATE = "THRESHOLD_CONFIG_UPDATE"
 
+    # Job Management
+    JOB_CREATE = "JOB_CREATE"
+    JOB_CANCEL = "JOB_CANCEL"
+    JOB_CLEANUP = "JOB_CLEANUP"
 
 class AuditLogResourceType(str, Enum):
     """Enumeration of resource types"""
@@ -72,6 +76,7 @@ class AuditLogResourceType(str, Enum):
     CUSTOMER_SOLUTION = "CUSTOMER_SOLUTION"
     DEVICE_SOLUTION = "DEVICE_SOLUTION"
     DEVICE_COMMAND = "DEVICE_COMMAND"
+    JOB = "JOB"
 
 
 class AuditLogBase(BaseModel):

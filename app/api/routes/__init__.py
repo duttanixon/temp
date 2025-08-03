@@ -10,3 +10,4 @@ from app.api.routes.services.city_eye.city_eye_analytics import router as city_e
 from app.api.routes.device_commands import router as device_commands_router
 from app.api.routes.sse import router as sse_router
 from app.api.routes.audit_logs import router as audit_logs_router
+from app.api.routes.jobs import router as jobs_router

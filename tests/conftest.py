@@ -21,7 +21,7 @@ from app.main import app
 from app.models import (
     User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, 
     DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, 
-    LicenseStatus, SolutionStatus, CityEyeHumanTable, CityEyeTrafficTable, DeviceCommand
+    LicenseStatus, SolutionStatus, CityEyeHumanTable, CityEyeTrafficTable, Job, JobType, JobStatus
 )
 
 # Test database URL - use SQLite for tests 
@@ -106,6 +106,11 @@ def customer_admin_user2(db: Session) -> User:
     """Get the customer admin user created by the seed function"""
     return db.query(User).filter(User.role == UserRole.CUSTOMER_ADMIN, User.email == "customeradmin@example2.com").first()
 
+@pytest.fixture
+def customer_admin_user3(db: Session) -> User:
+    """Get the customer admin user created by the seed function"""
+    return db.query(User).filter(User.role == UserRole.CUSTOMER_ADMIN, User.email == "customeradmin@example3.com").first()
+
 
 @pytest.fixture
 def suspended_user(db: Session) -> User:
@@ -165,6 +170,14 @@ def customer_admin_token2(customer_admin_user2: User) -> str:
     """Generate a customer admin token for tests"""
     return create_access_token(
         subject=str(customer_admin_user2.user_id),
+        expires_delta=timedelta(minutes=30)
+    )
+
+@pytest.fixture
+def customer_admin_token3(customer_admin_user3: User) -> str:
+    """Generate a customer admin token for tests"""
+    return create_access_token(
+        subject=str(customer_admin_user3.user_id),
         expires_delta=timedelta(minutes=30)
     )
 
@@ -456,6 +469,23 @@ def city_eye_traffic_direction_analytics_data(db: Session, device: Device, city_
     db.commit()
     return data
 
+@pytest.fixture
+def test_job(db: Session, active_device: Device, admin_user: User) -> Job:
+    """Fixture to create a test job in the database."""
+    job_obj = Job(
+        job_id=f"test-job-{uuid.uuid4().hex[:8]}",
+        device_id=active_device.device_id,
+        user_id=admin_user.user_id,
+        job_type=JobType.RESTART_APPLICATION,
+        status=JobStatus.QUEUED,
+        parameters={"services": "test.service"}
+    )
+    db.add(job_obj)
+    db.commit()
+    db.refresh(job_obj)
+    return job_obj
+
+
 def seed_test_data(db: Session) -> None:
     """
     Populate the test database with sample data for testing
@@ -465,6 +495,13 @@ def seed_test_data(db: Session) -> None:
         customer_id=uuid.uuid4(),
         name="Test Customer",
         contact_email="contact@testcustomer.com",
+        address="123 Test Street, Testville",
+        status=CustomerStatus.ACTIVE
+    )
+    semi_active_customer = Customer(
+        customer_id=uuid.uuid4(),
+        name="Test Customer 2",
+        contact_email="contact2@testcustomer.com",
         address="123 Test Street, Testville",
         status=CustomerStatus.ACTIVE
     )
@@ -478,6 +515,7 @@ def seed_test_data(db: Session) -> None:
     )
     
     db.add(active_customer)
+    db.add(semi_active_customer)
     db.add(suspended_customer)
     db.commit()
     
@@ -521,6 +559,17 @@ def seed_test_data(db: Session) -> None:
         last_name="Admin2",
         role=UserRole.CUSTOMER_ADMIN,
         customer_id=active_customer.customer_id,
+        status=UserStatus.ACTIVE
+    )
+
+    customer_admin_user3 = User(
+        user_id=uuid.uuid4(),
+        email="customeradmin@example3.com",
+        password_hash=get_password_hash("customeradminpassword"),
+        first_name="Customer3",
+        last_name="Admin3",
+        role=UserRole.CUSTOMER_ADMIN,
+        customer_id=semi_active_customer.customer_id,
         status=UserStatus.ACTIVE
     )
     
@@ -641,6 +690,7 @@ def seed_test_data(db: Session) -> None:
     db.add(engineer_user)
     db.add(customer_admin_user)
     db.add(customer_admin_user2)
+    db.add(customer_admin_user3)
     db.add(suspended_user)
     db.add(basic_device)
     db.add(raspberry_device)

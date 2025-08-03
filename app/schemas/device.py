@@ -84,9 +84,13 @@ class DeviceWithSolutionView(DeviceAdminView):
     class Config:
         from_attributes = True
 
-class DeviceWithCustomerView(Device):
-    """Extended device view with customer information"""
+class DeviceDetailView(Device):
+    """Extended device view with customer, solution and latest job information"""
     customer_name: Optional[str] = None
+    solution_name: Optional[str] = None
+    solution_version: Optional[str] = None
+    latest_job_type: Optional[str] = None
+    latest_job_status: Optional[str] = None
     
     class Config:
         from_attributes = True

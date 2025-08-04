@@ -1,15 +1,13 @@
 "use client";
 
 import {
-  LayoutDashboard,
-  Database,
   BarChart2,
-  AlertCircle,
-  HeadphonesIcon,
-  Users,
+  Database,
   FileText,
+  LightbulbIcon,
+  Users,
 } from "lucide-react";
-import { SidebarBase, MenuSection } from "./SidebarBase";
+import { MenuSection, SidebarBase } from "./SidebarBase";
 
 export function CustomerSidebar() {
   const sections: MenuSection[] = [
@@ -25,6 +23,7 @@ export function CustomerSidebar() {
       title: "管理",
       items: [
         { href: "/devices", icon: Database, label: "デバイス" },
+        { href: "/solutions", icon: LightbulbIcon, label: "ソリューション" },
         { href: "/users", icon: Users, label: "ユーザー" },
         { href: "/audit-logs", icon: FileText, label: "ログ" },
       ],

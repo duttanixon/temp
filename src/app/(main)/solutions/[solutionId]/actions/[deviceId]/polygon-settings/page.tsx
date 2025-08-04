@@ -137,21 +137,21 @@ export default function PolygonSettingsPage() {
         <Breadcrumb className="text-sm text-[#7F8C8D]">
           <BreadcrumbList>
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
+              <BreadcrumbLink href="/solutions">ソリューション</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href={`/devices/${solutionId}`}>
-                {solution?.name}
+              <BreadcrumbLink href={`/solutions/${solutionId}/actions`}>
+                {solution?.name} - デバイスアクション
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
-            <BreadcrumbItem>{device.name}</BreadcrumbItem>
-            <BreadcrumbSeparator className="text-[#7F8C8D]" />
-            <BreadcrumbItem>ポリゴン設定</BreadcrumbItem>
+            <BreadcrumbItem>{device.name} - ポリゴン設定</BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="text-2xl font-bold text-[#2C3E50]">ポリゴン設定</h1>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">
+          {device.name} - ポリゴン設定
+        </h1>
       </div>
 
       <PolygonEditor device={device} />

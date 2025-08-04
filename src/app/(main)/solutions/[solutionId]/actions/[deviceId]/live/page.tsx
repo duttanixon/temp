@@ -1,6 +1,4 @@
 import { auth } from "@/auth";
-import { notFound, redirect } from "next/navigation";
-import LiveStreamView from "./LiveStreamView";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,6 +6,27 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Solution } from "@/types/solution";
+import { notFound, redirect } from "next/navigation";
+import LiveStreamView from "./LiveStreamView";
+
+async function getSolutionDetails(
+  solutionId: string,
+  accessToken: string
+): Promise<Solution | null> {
+  const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/${solutionId}`;
+  try {
+    const response = await fetch(apiUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching solution details:", error);
+    return null;
+  }
+}
 
 async function getDevice(deviceId: string, accessToken: string) {
   try {
@@ -37,7 +56,7 @@ async function getDevice(deviceId: string, accessToken: string) {
 }
 
 type Props = {
-  params: Promise<{ deviceId: string }>;
+  params: Promise<{ deviceId: string; solutionId: string }>;
 };
 
 export default async function LiveStreamPage({ params }: Props) {
@@ -50,6 +69,10 @@ export default async function LiveStreamPage({ params }: Props) {
   }
 
   const device = await getDevice(resolvedParams.deviceId, accessToken);
+  const solution = await getSolutionDetails(
+    resolvedParams.solutionId,
+    accessToken
+  );
 
   if (!device) {
     notFound();
@@ -60,15 +83,18 @@ export default async function LiveStreamPage({ params }: Props) {
       {/* Breadcrumb Navigation */}
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
+          <BreadcrumbItem className="hover:underline">
+            <BreadcrumbLink href="/solutions">ソリューション</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator className="text-[#7F8C8D]" />
+          <BreadcrumbItem className="hover:underline">
+            <BreadcrumbLink
+              href={`/solutions/${solution?.solution_id}/actions`}>
+              {solution?.name} - デバイスアクション
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem>CityEye</BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>{device.name}</BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>ライブストリーム</BreadcrumbItem>
+          <BreadcrumbItem>{device.name} - ライブストリーム</BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 

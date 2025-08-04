@@ -2,8 +2,8 @@
 
 import { FormField } from "@/components/forms/FormField";
 import {
-  DeviceUpdateFormValues,
   DeviceUpdateFormInput,
+  DeviceUpdateFormValues,
   deviceUpdateSchema,
 } from "@/schemas/deviceSchemas";
 import { deviceService } from "@/services/deviceService";
@@ -14,11 +14,13 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-type DeviceEditFormProps = {
+type SolutionDeviceEditFormProps = {
   device: Device;
 };
 
-export default function DeviceEditForm({ device }: DeviceEditFormProps) {
+export default function SolutionDeviceEditForm({
+  device,
+}: SolutionDeviceEditFormProps) {
   const router = useRouter();
 
   // Determine if device is provisioned to handle field restrictions
@@ -38,7 +40,6 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
       ip_address: device.ip_address || "",
       latitude: device.latitude?.toString() || "",
       longitude: device.longitude?.toString() || "",
-
     },
   });
 
@@ -51,7 +52,7 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
       });
 
       // Redirect back to device details page
-      router.push(`/devices`);
+      router.push(`/solutions`);
       router.refresh();
     } catch (error) {
       console.error("Error updating device:", error);
@@ -64,12 +65,13 @@ export default function DeviceEditForm({ device }: DeviceEditFormProps) {
     }
   };
   // Create a wrapper that handles the form submission with proper typing
-  const handleFormSubmit = handleSubmit(async (formData: DeviceUpdateFormInput) => {
-    // The zodResolver will automatically transform the input to the validated output type
-    const validatedData = deviceUpdateSchema.parse(formData);
-    await onSubmit(validatedData);
-  });
-
+  const handleFormSubmit = handleSubmit(
+    async (formData: DeviceUpdateFormInput) => {
+      // The zodResolver will automatically transform the input to the validated output type
+      const validatedData = deviceUpdateSchema.parse(formData);
+      await onSubmit(validatedData);
+    }
+  );
 
   return (
     <div className="bg-white rounded-lg border border-[#BDC3C7] overflow-hidden">

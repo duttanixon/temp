@@ -281,6 +281,10 @@
   h3 {
     font-size: var(--font-size-lg);
   }
+  button,
+  select {
+    cursor: pointer;
+  }
 }
 
 /* Utility classes for text */

@@ -4,14 +4,13 @@
 
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Device, DeviceStatusInfo } from "@/types/device";
 import { Solution } from "@/types/solution";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { type FC } from "react";
-import { deviceActionComponents } from "./deviceActionComponents";
-import { Checkbox } from "@/components/ui/checkbox";
 
 type DeviceTableRowProps = {
   device: Device;
@@ -37,9 +36,6 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     router.push(`/devices/${solution?.solution_id}/${device.device_id}/detail`);
   };
 
-  const ActionComponent = solution
-    ? deviceActionComponents[solution.name.replace(/\s+/g, "").toLowerCase()]
-    : null;
   const isActive = device.status === "ACTIVE";
 
   // Get status display
@@ -178,14 +174,6 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       </td>
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
         {getStatusDisplay()}
-      </td>
-      <td className="w-[240px]">
-        <div className="relative flex items-center justify-center gap-2 px-2">
-          <div className="absolute left-0 top-0 h-full border-l border-[#BDC3C7]" />
-          {ActionComponent && (
-            <ActionComponent device={device} solution={solution} />
-          )}
-        </div>
       </td>
     </tr>
   );

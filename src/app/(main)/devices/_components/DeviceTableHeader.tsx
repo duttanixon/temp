@@ -3,15 +3,19 @@
 */
 
 import { type FC } from 'react';
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-type SortKey = "name" | "device_type" | "customer_name";
+type SortKey = "name" | "device_type" | "customer_name" | "solution_name";
 type SortDirection = "asc" | "desc";
 
 type DeviceTableHeaderProps = {
   sortKey: SortKey;
   sortDirection: SortDirection;
   onSort: (key: SortKey) => void;
+  onCheckedChange: (checked: boolean) => void;
+  selectedDevices?: string[];
+  devices?: { device_id: string }[];
 };
 
 /**
@@ -21,6 +25,10 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
   sortKey,
   sortDirection,
   onSort,
+  onCheckedChange,
+  selectedDevices = [],
+  devices = [],
+
 }) => {
   const renderSortIcon = (key: SortKey) => {
     return sortKey === key ? (
@@ -34,6 +42,16 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
 
   return (
     <tr>
+      <th className="px-6 py-3 text-center">
+        <Checkbox
+          checked={
+            selectedDevices.length === devices.length &&
+            devices.length > 0
+          }
+          onCheckedChange={onCheckedChange}
+          className="w-5 h-5  border-gray-400"
+        />
+      </th>      
       <th 
         onClick={() => onSort("name")}
         className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
@@ -68,6 +86,28 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
             <div className="text-xs text-[#7F8C8D]">Customer</div>
           </div>
           {renderSortIcon("customer_name")}
+        </div>
+      </th>
+      <th 
+        onClick={() => onSort("solution_name")}
+        className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+      >
+        <div className="flex justify-center items-center gap-1 select-none">
+          <div className="flex flex-col items-center">
+            <div>ソリューション</div>
+            <div className="text-xs text-[#7F8C8D]">Solution</div>
+          </div>
+          {renderSortIcon("solution_name")}
+        </div>
+      </th>
+      <th 
+        className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+      >
+        <div className="flex justify-center items-center gap-1 select-none">
+          <div className="flex flex-col items-center">
+            <div>ジョブ</div>
+            <div className="text-xs text-[#7F8C8D]">Job</div>
+          </div>
         </div>
       </th>
       <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">

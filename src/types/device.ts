@@ -31,6 +31,10 @@ export interface Device {
   updated_at?: string;
   latitude?: number;
   longitude?: number;
+  solution_name?: string;
+  solution_version?: string;
+  latest_job_type?: string;
+  latest_job_status?: string;
 }
 
 // Types for create/update operations

@@ -9,3 +9,4 @@ from app.models.services.city_eye.human_table import CityEyeHumanTable
 from app.models.services.city_eye.traffic_table import CityEyeTrafficTable
 from app.models.device_command import CommandType, CommandStatus, DeviceCommand
 from app.models.password_reset_token import PasswordResetToken
+from app.models.job import Job, JobType, JobStatus

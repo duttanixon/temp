@@ -13,6 +13,7 @@ from app.api.routes import (
     device_commands_router,
     sse_router,
     audit_logs_router,
+    jobs_router,
 )
 from app.core.config import settings
 from app.api import deps
@@ -95,6 +96,11 @@ app.include_router(
     tags=["audit-logs"],
 )
 
+app.include_router(
+    jobs_router,
+    prefix=f"{settings.API_V1_STR}/jobs",
+    tags=["jobs"],
+)
 
 # Startup event
 @app.on_event("startup")

@@ -32,7 +32,6 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     router.push(`/devices/${solution?.solution_id}/${device.device_id}/detail`);
   };
 
-  // const ActionComponent = deviceActionComponents[solution.name.replace(/\s+/g, '').toLowerCase()]
   const ActionComponent = solution
     ? deviceActionComponents[solution.name.replace(/\s+/g, "").toLowerCase()]
     : null;
@@ -68,6 +67,56 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     return <div>-</div>;
   };
 
+  // Get solution display
+  const getSolutionDisplay = () => {
+    if (device.solution_name) {
+      return (
+        <div className="flex flex-col items-center">
+          <div className="font-medium">{device.solution_name}</div>
+          {device.solution_version && (
+            <div className="text-xs text-gray-500">{device.solution_version}</div>
+          )}
+        </div>
+      );
+    }
+    return <div>-</div>;
+  };
+
+  // Get job status display
+  const getJobDisplay = () => {
+    if (device.latest_job_type) {
+      // Map job status to appropriate colors
+      const getStatusColor = (status?: string) => {
+        switch (status?.toUpperCase()) {
+          case 'SUCCEEDED':
+            return 'text-green-600';
+          case 'FAILED':
+            return 'text-red-600';
+          case 'IN_PROGRESS':
+            return 'text-blue-600';
+          case 'PENDING':
+            return 'text-yellow-600';
+          default:
+            return 'text-gray-600';
+        }
+      };
+
+      return (
+        <div className="flex flex-col items-center">
+          <div className="font-medium text-sm">
+            {device.latest_job_type.replace(/_/g, ' ')}
+          </div>
+          {device.latest_job_status && (
+            <div className={`text-xs ${getStatusColor(device.latest_job_status)}`}>
+              {device.latest_job_status}
+            </div>
+          )}
+        </div>
+      );
+    }
+    return <div>-</div>;
+  };
+
   return (
     <tr
       onClick={handleViewDetails}
@@ -84,6 +133,12 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       </td>
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
         <div className="truncate">{device.customer_name || "-"}</div>
+      </td>
+      <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
+        {getSolutionDisplay()}
+      </td>
+      <td className="px-6 py-3 text-xs text-[#2C3E50] text-center">
+        {getJobDisplay()}
       </td>
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
         {getStatusDisplay()}

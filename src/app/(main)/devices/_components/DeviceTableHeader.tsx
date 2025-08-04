@@ -5,7 +5,7 @@
 import { type FC } from 'react';
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-type SortKey = "name" | "device_type" | "customer_name";
+type SortKey = "name" | "device_type" | "customer_name" | "solution_name";
 type SortDirection = "asc" | "desc";
 
 type DeviceTableHeaderProps = {
@@ -68,6 +68,28 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
             <div className="text-xs text-[#7F8C8D]">Customer</div>
           </div>
           {renderSortIcon("customer_name")}
+        </div>
+      </th>
+      <th 
+        onClick={() => onSort("solution_name")}
+        className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+      >
+        <div className="flex justify-center items-center gap-1 select-none">
+          <div className="flex flex-col items-center">
+            <div>ソリューション</div>
+            <div className="text-xs text-[#7F8C8D]">Solution</div>
+          </div>
+          {renderSortIcon("solution_name")}
+        </div>
+      </th>
+      <th 
+        className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+      >
+        <div className="flex justify-center items-center gap-1 select-none">
+          <div className="flex flex-col items-center">
+            <div>ジョブ</div>
+            <div className="text-xs text-[#7F8C8D]">Job</div>
+          </div>
         </div>
       </th>
       <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">

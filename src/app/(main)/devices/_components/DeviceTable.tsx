@@ -11,7 +11,7 @@ import { type FC, type ReactNode, useMemo, useState } from "react";
 import { DeviceTableHeader } from "./DeviceTableHeader";
 import { DeviceTableRow } from "./DeviceTableRow";
 
-type SortKey = "name" | "device_type" | "customer_name";
+type SortKey = "name" | "device_type" | "customer_name" | "solution_name";
 type SortDirection = "asc" | "desc";
 
 type DeviceTableProps = {
@@ -72,7 +72,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
-      <table className="w-full min-w-[800px] divide-y divide-[#BDC3C7]">
+      <table className="w-full min-w-[1000px] divide-y divide-[#BDC3C7]">
         <thead className="bg-[#ECF0F1]">
           <DeviceTableHeader
             sortKey={sortKey}
@@ -93,7 +93,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
           ) : (
             <tr>
               <td
-                colSpan={5}
+                colSpan={7}
                 className="px-6 py-4 text-center text-sm text-[#7F8C8D]">
                 デバイスが見つかりません
               </td>

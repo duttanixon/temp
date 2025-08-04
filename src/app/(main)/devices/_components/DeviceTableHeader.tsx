@@ -3,6 +3,7 @@
 */
 
 import { type FC } from 'react';
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 type SortKey = "name" | "device_type" | "customer_name" | "solution_name";
@@ -12,6 +13,9 @@ type DeviceTableHeaderProps = {
   sortKey: SortKey;
   sortDirection: SortDirection;
   onSort: (key: SortKey) => void;
+  onCheckedChange: (checked: boolean) => void;
+  selectedDevices?: string[];
+  devices?: { device_id: string }[];
 };
 
 /**
@@ -21,6 +25,10 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
   sortKey,
   sortDirection,
   onSort,
+  onCheckedChange,
+  selectedDevices = [],
+  devices = [],
+
 }) => {
   const renderSortIcon = (key: SortKey) => {
     return sortKey === key ? (
@@ -34,6 +42,16 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
 
   return (
     <tr>
+      <th className="px-6 py-3 text-center">
+        <Checkbox
+          checked={
+            selectedDevices.length === devices.length &&
+            devices.length > 0
+          }
+          onCheckedChange={onCheckedChange}
+          className="w-5 h-5  border-gray-400"
+        />
+      </th>      
       <th 
         onClick={() => onSort("name")}
         className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"

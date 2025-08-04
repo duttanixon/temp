@@ -11,11 +11,14 @@ import { ja } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { type FC } from "react";
 import { deviceActionComponents } from "./deviceActionComponents";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type DeviceTableRowProps = {
   device: Device;
   solution: Solution;
   statusInfo?: DeviceStatusInfo;
+  isSelected: boolean;
+  onSelect: (deviceId: string, checked: boolean) => void;
 };
 
 /**
@@ -25,6 +28,8 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   device,
   solution,
   statusInfo,
+  isSelected,
+  onSelect,
 }) => {
   const router = useRouter();
 
@@ -74,7 +79,9 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
         <div className="flex flex-col items-center">
           <div className="font-medium">{device.solution_name}</div>
           {device.solution_version && (
-            <div className="text-xs text-gray-500">{device.solution_version}</div>
+            <div className="text-xs text-gray-500">
+              {device.solution_version}
+            </div>
           )}
         </div>
       );
@@ -87,29 +94,49 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
     if (device.latest_job_type) {
       // Map job status to appropriate colors
       const getStatusColor = (status?: string) => {
-        switch (status?.toUpperCase()) {
-          case 'SUCCEEDED':
-            return 'text-green-600';
-          case 'FAILED':
-            return 'text-red-600';
-          case 'IN_PROGRESS':
-            return 'text-blue-600';
-          case 'PENDING':
-            return 'text-yellow-600';
+        switch (status) {
+          case "QUEUED":
+            return "bg-blue-100 text-blue-800";
+          case "IN_PROGRESS":
+            return "bg-yellow-100 text-yellow-800";
+          case "SUCCEEDED":
+            return "bg-green-100 text-green-800";
+          case "FAILED":
+            return "bg-red-100 text-red-800";
+          case "TIMED_OUT":
+            return "bg-orange-100 text-orange-800";
+          case "CANCELED":
+            return "bg-gray-100 text-gray-800";
           default:
-            return 'text-gray-600';
+            return "bg-gray-100 text-gray-800";
+        }
+      };
+
+      // Map job type to display name
+      const getJobTypeName = (type?: string) => {
+        switch (type) {
+          case "RESTART_APPLICATION":
+            return "アプリ再起動";
+          case "REBOOT_DEVICE":
+            return "デバイス再起動";
+          default:
+            return type || "-";
         }
       };
 
       return (
-        <div className="flex flex-col items-center">
-          <div className="font-medium text-sm">
-            {device.latest_job_type.replace(/_/g, ' ')}
+        <div className="flex flex-col items-center gap-1">
+          <div className="text-sm font-medium">
+            {getJobTypeName(device.latest_job_type)}
           </div>
           {device.latest_job_status && (
-            <div className={`text-xs ${getStatusColor(device.latest_job_status)}`}>
+            <span
+              className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                device.latest_job_status
+              )}`}
+            >
               {device.latest_job_status}
-            </div>
+            </span>
           )}
         </div>
       );
@@ -124,7 +151,16 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
         isActive
           ? "cursor-pointer hover:bg-[#F9F9F9] transition-colors duration-150 bg-white"
           : "cursor-pointer bg-gray-50/50 hover:bg-gray-100/50 transition-colors duration-150"
-      }>
+      }
+    >
+      <td className="px-6 py-3 text-center">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onSelect(device.device_id, !!checked)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-5 h-5 border-gray-400"
+        />
+      </td>
       <td className="px-6 py-3 text-sm text-[#2C3E50] max-w-0 text-center">
         <div className="truncate">{device.name}</div>
       </td>

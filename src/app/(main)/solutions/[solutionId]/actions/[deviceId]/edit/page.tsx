@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Solution } from "@/types/solution";
 import { notFound, redirect } from "next/navigation";
-import DeviceEditForm from "./DeviceEditForm";
+import SolutionDeviceEditForm from "./SolutionDeviceEditForm";
 
 async function getSolutionDetails(
   solutionId: string,
@@ -96,24 +96,25 @@ export default async function EditDevicePage({ params }: Props) {
         <Breadcrumb className="text-sm text-[#7F8C8D]">
           <BreadcrumbList>
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href="/devices">デバイス</BreadcrumbLink>
+              <BreadcrumbLink href="/solutions">ソリューション</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href={`/devices/${solution?.solution_id}`}>
-                {solution?.name}
+              <BreadcrumbLink
+                href={`/solutions/${solution?.solution_id}/actions`}>
+                {solution?.name} - デバイスアクション
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
-            <BreadcrumbItem>{device.name}</BreadcrumbItem>
-            <BreadcrumbSeparator className="text-[#7F8C8D]" />
-            <BreadcrumbItem>編集</BreadcrumbItem>
+            <BreadcrumbItem>{device.name} - 編集</BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス編集</h1>
+        <h1 className="text-2xl font-bold text-[#2C3E50]">
+          {device.name} - 編集
+        </h1>
       </div>
 
-      <DeviceEditForm device={device} />
+      <SolutionDeviceEditForm device={device} />
     </div>
   );
 }

@@ -1,7 +1,5 @@
 // src/app/(main)/solutions/[solutionId]/edit/page.tsx
 import { auth } from "@/auth";
-import { notFound, redirect } from "next/navigation";
-import SolutionEditForm from "../../_components/SolutionEditForm";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,6 +7,8 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { notFound, redirect } from "next/navigation";
+import SolutionEditForm from "../../_components/SolutionEditForm";
 
 async function getSolution(solutionId: string, accessToken: string) {
   try {
@@ -68,8 +68,8 @@ export default async function EditSolutionPage({ params }: Props) {
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
             <BreadcrumbItem className="hover:underline">
-              <BreadcrumbLink href={`/solutions/${solutionId}`}>
-                {solution.name}
+              <BreadcrumbLink href={`/solutions/${solutionId}/details`}>
+                {solution.name} - 詳細情報
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-[#7F8C8D]" />
@@ -77,7 +77,7 @@ export default async function EditSolutionPage({ params }: Props) {
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="text-2xl font-bold text-[#2C3E50]">
-          ソリューション編集
+          {solution.name} - 編集
         </h1>
       </div>
       <SolutionEditForm solution={solution} />

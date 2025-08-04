@@ -1,71 +1,78 @@
-"use client";
-
-import SolutionPagination from "@/app/(main)/users/_components/Pagination";
+import { auth } from "@/auth";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Solution } from "@/types/solution";
-import axios from "axios";
-import { Plus } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { promises as fs } from "fs";
+import { Blocks, Laptop, Plus } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import SolutionFilters from "./_components/SolutionFilters";
-import SolutionTable from "./_components/SolutionTable";
+import path from "path";
 
+// Function to get available solutions from the API
 async function getSolutions(accessToken: string): Promise<Solution[]> {
-  const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions/admin`;
+  const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions`;
 
   try {
-    const response = await axios.get<Solution[]>(apiUrl, {
+    const response = await fetch(apiUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
+      cache: "no-store", // Always fetch fresh data
     });
 
-    return response.data;
+    if (!response.ok) {
+      throw new Error(`Failed to fetch solutions: ${response.status}`);
+    }
+    return await response.json();
   } catch (error) {
     console.error("Error fetching solutions:", error);
     return [];
   }
 }
+async function getSolutionImagePath(solutionName: string): Promise<string> {
+  const specificImageName = `${solutionName}.png`;
+  const defaultImageName = "cybercorelogo_fin_lec.png";
+  const publicPath = "/images/media";
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    publicPath,
+    specificImageName
+  );
 
-export default function SolutionsPage() {
-  const { data: session } = useSession();
-  const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [deviceType, setDeviceType] = useState("");
-  const [status, setStatus] = useState("");
-  const [query, setQuery] = useState("");
+  try {
+    await fs.access(filePath);
+    return `${publicPath}/${specificImageName}`;
+  } catch {
+    return `${publicPath}/${defaultImageName}`;
+  }
+}
+// Helper to get the appropriate icon for a solution
+function getSolutionIcon(index: number) {
+  const icons = [
+    <Blocks key="blocks" className="h-8 w-8 text-primary" />,
+    <Laptop key="laptop" className="h-8 w-8 text-primary" />,
+  ];
+  return icons[index % icons.length];
+}
+
+/*
+This page list all the solutions card such as cityeye, traffic eye, licence eye, flow eye
+*/
+export default async function SolutionsPage() {
+  const session = await auth();
+  const accessToken = session?.accessToken ?? "";
   const isAdmin = session?.user?.role === "ADMIN";
-  const [page, setPage] = useState(0);
-  const itemsPerPage = 10;
+  const solutions = await getSolutions(accessToken);
 
-  useEffect(() => {
-    if (!session?.accessToken) return;
-
-    getSolutions(session.accessToken).then((result) => {
-      setSolutions(result);
-    });
-  }, [session]);
-
-  const filteredSolutions = useMemo(() => {
-    const q = query.toLowerCase();
-    return solutions.filter((solution) => {
-      const matchesDeviceType =
-        !deviceType || solution.compatibility.includes(deviceType);
-      const matchesStatus = !status || solution.status === status;
-      const matchesQuery = !q || solution.name.toLowerCase().includes(q);
-      return matchesDeviceType && matchesStatus && matchesQuery;
-    });
-  }, [solutions, deviceType, status, query]);
-
-  const paginatedSolutions = useMemo(() => {
-    const start = page * itemsPerPage;
-    const end = start + itemsPerPage;
-    return filteredSolutions.slice(start, end);
-  }, [filteredSolutions, page, itemsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [deviceType, status, query]);
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -82,23 +89,77 @@ export default function SolutionsPage() {
         )}
       </div>
 
-      <SolutionFilters
-        deviceType={deviceType}
-        setDeviceType={setDeviceType}
-        status={status}
-        setStatus={setStatus}
-        query={query}
-        setQuery={setQuery}
-      />
-
-      <SolutionTable initialSolutions={paginatedSolutions} />
-
-      <SolutionPagination
-        page={page}
-        setPage={setPage}
-        totalItems={filteredSolutions.length}
-        itemsPerPage={itemsPerPage}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {solutions.length > 0 ? (
+          solutions.map(async (solution, index) => {
+            const imagePath = await getSolutionImagePath(solution.name);
+            return (
+              <Card
+                key={solution.solution_id}
+                className="overflow-hidden hover:shadow-lg transition-shadow duration-300"
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl">{solution.name}</CardTitle>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {solution.description ||
+                          "このソリューション情報を表示します"}
+                      </CardDescription>
+                    </div>
+                    {getSolutionIcon(index)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-28 bg-gray-50 rounded-md flex items-center justify-center overflow-hidden relative">
+                    <Image
+                      src={imagePath}
+                      alt={`${solution.name} の画像`}
+                      layout="fill"
+                      objectFit="cover"
+                      priority={index < 3} // 最初の3枚を優先的に読み込む
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter
+                  className={`border-t bg-gray-50/50 px-6 py-3 grid ${isAdmin ? "grid-cols-2" : "grid-cols-1"} gap-4`}
+                >
+                  {isAdmin && (
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90"
+                      asChild
+                    >
+                      <Link href={`/solutions/${solution.solution_id}/details`}>
+                        詳細情報
+                      </Link>
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full bg-primary hover:bg-primary/90"
+                    asChild
+                  >
+                    <Link href={`/solutions/${solution.solution_id}/actions`}>
+                      デバイスアクション
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })
+        ) : (
+          <div className="col-span-3 py-12 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-dashed">
+            <div className="p-4 mb-4 bg-gray-100 rounded-full">
+              <Blocks className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">
+              利用可能なソリューションがありません
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              ソリューションが作成されると、ここに表示されます
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

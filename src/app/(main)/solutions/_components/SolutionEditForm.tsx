@@ -43,7 +43,7 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
         description: `ソリューション「${solution.name}」の情報が正常に更新されました。`,
       });
 
-      router.push(`/solutions/${solution.solution_id}`);
+      router.push(`/solutions/${solution.solution_id}/details`);
       router.refresh();
     } catch (error) {
       console.error("Error updating solution:", error);
@@ -92,7 +92,8 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
           <div className="flex flex-col gap-1 md:col-span-2">
             <label
               htmlFor="compatibility"
-              className="text-sm font-normal text-[#7F8C8D]">
+              className="text-sm font-normal text-[#7F8C8D]"
+            >
               互換デバイスタイプ
             </label>
             <div className="space-y-2">
@@ -137,13 +138,15 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
           <div className="flex flex-col gap-1 md:col-span-2">
             <label
               htmlFor="status"
-              className="text-sm font-normal text-[#7F8C8D]">
+              className="text-sm font-normal text-[#7F8C8D]"
+            >
               ステータス
             </label>
             <select
               id="status"
               {...register("status")}
-              className="w-full h-[35.56px] border border-[#BDC3C7] rounded">
+              className="w-full h-[35.56px] border border-[#BDC3C7] rounded"
+            >
               <option value="ACTIVE">有効</option>
               <option value="BETA">ベータ版</option>
               <option value="DEPRECATED">非推奨</option>
@@ -169,13 +172,15 @@ export default function SolutionEditForm({ solution }: SolutionEditFormProps) {
             type="button"
             onClick={() => router.back()}
             className="px-4 py-2 border border-[#BDC3C7] rounded-md text-sm text-[#7F8C8D] hover:bg-[#ECF0F1]"
-            disabled={isSubmitting}>
+            disabled={isSubmitting}
+          >
             キャンセル
           </button>
           <button
             type="submit"
             className="px-4 py-2 bg-[#27AE60] text-white rounded-md text-sm hover:bg-[#219955]"
-            disabled={isSubmitting}>
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "更新中..." : "保存"}
           </button>
         </div>

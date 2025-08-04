@@ -55,6 +55,10 @@ jobs:
         SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
         EMAIL_FROM=${{ secrets.EMAIL_FROM }}
         FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+        RESTART_APP_TEMPLATE_ARN=${{ secrets.RESTART_APP_TEMPLATE_ARN }}
+        REBOOT_TEMPLATE_ARN=${{ secrets.REBOOT_TEMPLATE_ARN }}
+
+
         EOL"
 
     - name: Deploy to EC2

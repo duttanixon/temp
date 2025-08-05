@@ -33,7 +33,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   const router = useRouter();
 
   const handleViewDetails = () => {
-    router.push(`/devices/${device.device_id}/detail`);
+    router.push(`/devices/${device.device_id}`);
   };
 
   const isActive = device.status === "ACTIVE";

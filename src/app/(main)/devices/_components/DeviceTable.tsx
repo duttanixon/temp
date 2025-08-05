@@ -95,7 +95,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
       toast.success("Restart device job created successfully.");
       setSelectedDevices([]);
       setIsRestartDeviceDialogOpen(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to create restart device job.");
     }
   };
@@ -108,7 +108,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
       toast.success("Restart application job created successfully.");
       setSelectedDevices([]);
       setIsRestartApplicationDialogOpen(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to create restart application job.");
     }
   };

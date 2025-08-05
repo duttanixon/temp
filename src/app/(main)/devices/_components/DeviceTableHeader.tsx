@@ -6,7 +6,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { type FC } from "react";
 
-type SortKey = "name" | "device_type" | "customer_name" | "solution_name";
+type SortKey =
+  | "name"
+  | "device_type"
+  | "customer_name"
+  | "solution_name"
+  | "last_connected";
 type SortDirection = "asc" | "desc";
 
 type DeviceTableHeaderProps = {
@@ -81,7 +86,7 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
         <div className="flex justify-center items-center gap-1 select-none">
           <div className="flex flex-col items-center">
             <div>顧客名</div>
-            <div className="text-xs text-[#7F8C8D]">Customer</div>
+            <div className="text-xs text-[#7F8C8D]">Customer Name</div>
           </div>
           {renderSortIcon("customer_name")}
         </div>
@@ -101,15 +106,21 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
       <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
         <div className="flex justify-center items-center gap-1 select-none">
           <div className="flex flex-col items-center">
-            <div>ジョブ</div>
-            <div className="text-xs text-[#7F8C8D]">Job</div>
+            <div>ジョブ状況</div>
+            <div className="text-xs text-[#7F8C8D]">Job Status</div>
           </div>
         </div>
       </th>
-      <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-        <div className="flex flex-col items-center">
-          <div>最終接続</div>
-          <div className="text-xs text-[#7F8C8D]">Last Connected</div>
+      <th
+        onClick={() => onSort("last_connected")}
+        className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+      >
+        <div className="flex justify-center items-center gap-1 select-none">
+          <div className="flex flex-col items-center">
+            <div>最終接続</div>
+            <div className="text-xs text-[#7F8C8D]">Last Connected</div>
+          </div>
+          {renderSortIcon("last_connected")}
         </div>
       </th>
     </tr>

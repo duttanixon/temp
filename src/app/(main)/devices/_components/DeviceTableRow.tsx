@@ -122,12 +122,12 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
 
       return (
         <div className="flex flex-col items-center gap-1">
-          <div className="text-sm font-medium">
+          <div className="font-medium">
             {getJobTypeName(device.latest_job_type)}
           </div>
           {device.latest_job_status && (
             <span
-              className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+              className={`px-2 py-1 text-[10px] font-medium rounded-full ${getStatusColor(
                 device.latest_job_status
               )}`}
             >
@@ -169,7 +169,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
         {getSolutionDisplay()}
       </td>
-      <td className="px-6 py-3 text-xs text-[#2C3E50] text-center">
+      <td className="px-6 py-1 text-xs text-[#2C3E50] text-center">
         {getJobDisplay()}
       </td>
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">

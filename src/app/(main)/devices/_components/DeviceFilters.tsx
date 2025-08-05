@@ -4,6 +4,7 @@ import { useGetCustomer } from "@/app/(main)/_components/_hooks/useGetCustomer";
 import { useGetSolution } from "@/app/(main)/_components/_hooks/useGetSolution";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 type Props = {
   deviceType: string;
@@ -26,6 +27,9 @@ export default function DeviceFilters({
   query,
   setQuery,
 }: Props) {
+  const { data: session } = useSession();
+  console.log("Session:", session);
+  const role = session?.user?.role;
   const { customer: customers, isLoading: isLoadingCustomers } =
     useGetCustomer();
   const { solution: solutions, isLoading: isLoadingSolutions } =
@@ -50,26 +54,28 @@ export default function DeviceFilters({
             </select>
           </div>
         </div>
-        <div className="flex flex-col flex-1 items-start gap-1">
-          <label className="text-gray-800 text-sm whitespace-nowrap">
-            顧客
-          </label>
-          <div className="w-full sm:w-40">
-            <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 cursor-pointer "
-              disabled={isLoadingCustomers}
-            >
-              <option value="">すべて</option>
-              {customers?.map((c) => (
-                <option key={c.customer_id} value={c.customer_id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+        {(role === "ADMIN" || role === "ENGINEER") && (
+          <div className="flex flex-col flex-1 items-start gap-1">
+            <label className="text-gray-800 text-sm whitespace-nowrap">
+              顧客
+            </label>
+            <div className="w-full sm:w-40">
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                className="w-full min-w-20 bg-white border border-gray-400 rounded-lg px-3 py-1 text-sm text-gray-700 cursor-pointer "
+                disabled={isLoadingCustomers}
+              >
+                <option value="">すべて</option>
+                {customers?.map((c) => (
+                  <option key={c.customer_id} value={c.customer_id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex flex-col flex-1 items-start gap-1">
           <label className="text-gray-800 text-sm whitespace-nowrap">
             ソリューション

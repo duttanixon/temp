@@ -6,15 +6,14 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Device, DeviceStatusInfo } from "@/types/device";
-import { Solution } from "@/types/solution";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { type FC } from "react";
 
 type DeviceTableRowProps = {
   device: Device;
-  solution: Solution;
   statusInfo?: DeviceStatusInfo;
   isSelected: boolean;
   onSelect: (deviceId: string, checked: boolean) => void;
@@ -25,15 +24,16 @@ type DeviceTableRowProps = {
  */
 export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   device,
-  solution,
   statusInfo,
   isSelected,
   onSelect,
 }) => {
+  const { data: session } = useSession();
+  const role = session?.user?.role;
   const router = useRouter();
 
   const handleViewDetails = () => {
-    router.push(`/devices/${solution?.solution_id}/${device.device_id}/detail`);
+    router.push(`/devices/${device.device_id}/detail`);
   };
 
   const isActive = device.status === "ACTIVE";
@@ -163,9 +163,11 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="px-6 py-3 text-sm text-[#2C3E50] whitespace-nowrap text-center">
         {device.device_type}
       </td>
-      <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
-        <div className="truncate">{device.customer_name || "-"}</div>
-      </td>
+      {(role === "ADMIN" || role === "ENGINEER") && (
+        <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
+          <div className="truncate">{device.customer_name || "-"}</div>
+        </td>
+      )}
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
         {getSolutionDisplay()}
       </td>

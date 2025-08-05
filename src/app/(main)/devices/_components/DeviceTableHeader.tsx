@@ -4,6 +4,7 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { type FC } from "react";
 
 type SortKey =
@@ -34,6 +35,8 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
   selectedDevices = [],
   devices = [],
 }) => {
+  const { data: session } = useSession();
+  const role = session?.user?.role;
   const renderSortIcon = (key: SortKey) => {
     return sortKey === key ? (
       sortDirection === "asc" ? (
@@ -79,18 +82,20 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
           {renderSortIcon("device_type")}
         </div>
       </th>
-      <th
-        onClick={() => onSort("customer_name")}
-        className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-      >
-        <div className="flex justify-center items-center gap-1 select-none">
-          <div className="flex flex-col items-center">
-            <div>顧客名</div>
-            <div className="text-xs text-[#7F8C8D]">Customer Name</div>
+      {(role === "ADMIN" || role === "ENGINEER") && (
+        <th
+          onClick={() => onSort("customer_name")}
+          className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+        >
+          <div className="flex justify-center items-center gap-1 select-none">
+            <div className="flex flex-col items-center">
+              <div>顧客名</div>
+              <div className="text-xs text-[#7F8C8D]">Customer Name</div>
+            </div>
+            {renderSortIcon("customer_name")}
           </div>
-          {renderSortIcon("customer_name")}
-        </div>
-      </th>
+        </th>
+      )}
       <th
         onClick={() => onSort("solution_name")}
         className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"

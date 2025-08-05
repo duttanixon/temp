@@ -73,7 +73,7 @@ export default async function DeviceListPage() {
           <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス</h1>
         </div>
       </div>
-      <DeviceList initialDevices={devices} solution={solution} />
+      <DeviceList initialDevices={devices} />
     </div>
   );
 }

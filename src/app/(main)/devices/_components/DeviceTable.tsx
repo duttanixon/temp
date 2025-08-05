@@ -17,7 +17,6 @@ import {
 import { useBatchDeviceStatus } from "@/hooks/useBatchDeviceStatus";
 import { jobService } from "@/services/jobService";
 import { Device } from "@/types/device";
-import { Solution } from "@/types/solution";
 import { type FC, type ReactNode, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DeviceTableHeader } from "./DeviceTableHeader";
@@ -34,7 +33,6 @@ type SortDirection = "asc" | "desc";
 type DeviceTableProps = {
   children?: ReactNode;
   devices?: Device[];
-  solution?: Solution;
   isShowInactive?: boolean;
 };
 
@@ -43,7 +41,6 @@ type DeviceTableProps = {
  */
 export const DeviceTable: FC<DeviceTableProps> = ({
   devices = [],
-  solution,
   isShowInactive = false,
 }) => {
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -210,7 +207,6 @@ export const DeviceTable: FC<DeviceTableProps> = ({
                 <DeviceTableRow
                   key={device.device_id}
                   device={device}
-                  solution={solution as Solution}
                   statusInfo={statuses[device.device_id]}
                   isSelected={selectedDevices.includes(device.device_id)}
                   onSelect={handleSelectDevice}

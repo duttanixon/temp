@@ -72,9 +72,15 @@ def get_devices(
 
     if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
         # Admins/Engineers can see all or filter by any customer/solution
-        return device.get_with_customer_name_and_solution_filter(
-            db, solution_id=solution_id, skip=skip, limit=limit
-        )
+        if customer_id:
+            return device.get_by_customer_with_name_and_solution_filter(
+                db, customer_id=customer_id, solution_id=solution_id, skip=skip, limit=limit
+            )
+        else:
+            return device.get_with_customer_name_and_solution_filter(
+                db, solution_id=solution_id, skip=skip, limit=limit
+            )
+
     else:
         # Customer users can only see their own devices
         if not current_user.customer_id:

@@ -215,7 +215,7 @@ def verify_reset_token(
         name=f"{user_obj.first_name or ''} {user_obj.last_name or ''}".strip() or user_obj.email
     )
 
-@router.post("/forgot-password")
+@router.post("/reset-password")
 def forgot_password(
     *,
     db: Session = Depends(deps.get_db),

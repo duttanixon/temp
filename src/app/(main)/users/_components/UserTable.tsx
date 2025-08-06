@@ -16,6 +16,7 @@ interface UserTableProps {
   setPage: (page: number) => void;
   itemsPerPage: number;
   userRole: string;
+  hideCustomerColumn?: boolean;
 }
 
 type SortKey =
@@ -33,6 +34,7 @@ export default function UserTable({
   setPage,
   itemsPerPage,
   userRole,
+  hideCustomerColumn = false,
 }: UserTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("last_name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
@@ -137,7 +139,7 @@ export default function UserTable({
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+                className="relative px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
               >
                 <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
                 アクション
@@ -215,7 +217,7 @@ export default function UserTable({
           <col className="w-1/5" />
           <col className="w-1/5" />
           <col className="w-1/10" />
-          <col className="w-1/5" />
+          {!hideCustomerColumn && <col className="w-1/5" />}
           <col className="w-1/10" />
           <col className="w-1/10" />
           <col className="w-1/10" />
@@ -261,19 +263,21 @@ export default function UserTable({
                 {sortIcon("role")}
               </div>
             </th>
-            <th
-              scope="col"
-              onClick={() => handleSort("customer_name")}
-              className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
-            >
-              <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
-                <div className="flex flex-col items-center">
-                  <div>顧客名</div>
-                  <div className="text-xs text-[#7F8C8D]">Customer Name</div>
+            {!hideCustomerColumn && (
+              <th
+                scope="col"
+                onClick={() => handleSort("customer_name")}
+                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"
+              >
+                <div className="flex justify-center items-center gap-1 select-none whitespace-nowrap">
+                  <div className="flex flex-col items-center">
+                    <div>顧客名</div>
+                    <div className="text-xs text-[#7F8C8D]">Customer Name</div>
+                  </div>
+                  {sortIcon("customer_name")}
                 </div>
-                {sortIcon("customer_name")}
-              </div>
-            </th>
+              </th>
+            )}
             <th
               scope="col"
               onClick={() => handleSort("status")}
@@ -340,10 +344,12 @@ export default function UserTable({
                         : "エンジニア"}
                   </span>
                 </td>
-                {/* 顧客名 */}
-                <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
-                  <div className="truncate">{user.customer_name}</div>
-                </td>
+                {!hideCustomerColumn && (
+                  /* 顧客名 */
+                  <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
+                    <div className="truncate">{user.customer_name}</div>
+                  </td>
+                )}
                 {/* 状態 */}
                 <td className="px-6 py-3 whitespace-nowrap text-sm text-[#2C3E50] text-center">
                   <span

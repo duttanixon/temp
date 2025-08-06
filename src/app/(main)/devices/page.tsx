@@ -1,136 +1,79 @@
-/*
-  This page is the entry point for the device management section of the application. The overall structure of the /devices route is as follows:
-
-  1.  /devices:
-      - This is the solutions landing page. It displays a list of all available solutions (e.g., CityEye, TrafficEye).
-      - Each solution card links to the device list page for that specific solution.
-
-  2.  /devices/[applicationId]:
-      - This is the device list page. It's a dynamic route that displays all devices associated with the selected solution (`applicationId`).
-      - It fetches the devices based on the solution and renders the `DeviceList` component.
-
-  3.  /devices/detail/[deviceId]:
-      - This is the device detail page. It's a dynamic route that shows detailed information for a specific device (`deviceId`).
-      - This page is generic and can display details for any device, regardless of its solution.
-
-  4.  /devices/[solution_name]/[deviceId]/[action]:
-      - This represents solution-specific device action pages. For example, `/devices/cityeye/[deviceId]/edit` is used for editing a device within the CityEye solution.
-      - These pages handle actions that are unique to a particular solution.
-*/
-
+import DeviceList from "@/app/(main)/devices/_components/DeviceList";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Solution } from "@/types/solution";
-import { Blocks, Laptop } from "lucide-react";
+import { getDeviceLatestJob, getDevicesBySolution } from "@/lib/api/devices";
+import { getSolution, getSolutions } from "@/lib/api/solutions";
+import { JobStatus } from "@/types/job";
 import Link from "next/link";
 
-// Function to get available solutions from the API
-async function getSolutions(accessToken: string): Promise<Solution[]> {
-  const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/${process.env.NEXT_PUBLIC_BACKEND_API_VERSION}/solutions`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store", // Always fetch fresh data
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch solutions: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching solutions:", error);
-    return [];
-  }
-}
-
-// Helper to get the appropriate icon for a solution
-function getSolutionIcon(index: number) {
-  const icons = [
-    <Blocks key="blocks" className="h-8 w-8 text-primary" />,
-    <Laptop key="laptop" className="h-8 w-8 text-primary" />,
-  ];
-  return icons[index % icons.length];
-}
-
-/*
-This page list all the solutions card such as cityeye, traffic eye, licence eye, flow eye
-*/
-export default async function DevicesPage() {
+export default async function DeviceListPage() {
   const session = await auth();
   const accessToken = session?.accessToken ?? "";
+
   const solutions = await getSolutions(accessToken);
+  const solutionId = solutions[0]?.solution_id;
+  const solution = await getSolution(solutionId, accessToken);
+  const devices = await getDevicesBySolution(solutionId, accessToken);
+
+  const terminalJobStatuses: (JobStatus | null)[] = [
+    null,
+    "SUCCEEDED",
+    "FAILED",
+    "TIMED_OUT",
+    "CANCELED",
+    "ARCHIVED",
+  ];
+
+  const devicesToUpdate = devices.filter((device) => {
+    if (device.latest_job_status === undefined) {
+      return true;
+    }
+    return !terminalJobStatuses.includes(
+      device.latest_job_status as JobStatus | null
+    );
+  });
+
+  if (devicesToUpdate.length > 0) {
+    const jobPromises = devicesToUpdate.map((device) =>
+      getDeviceLatestJob(device.device_id, accessToken)
+    );
+    const results = await Promise.all(jobPromises);
+
+    const jobStatusMap = new Map<string, JobStatus>();
+    results.forEach((job, index) => {
+      if (job) {
+        jobStatusMap.set(devicesToUpdate[index].device_id, job.status);
+      }
+    });
+
+    devices.forEach((device) => {
+      if (jobStatusMap.has(device.device_id)) {
+        device.latest_job_status =
+          jobStatusMap.get(device.device_id) ?? device.latest_job_status;
+      }
+    });
+  }
+
+  if (!solution) {
+    return (
+      <div className="text-center p-10">
+        <h1 className="text-xl font-bold">ソリューションが見つかりません</h1>
+        <p>このソリューションは存在しないか、アクセス権がありません。</p>
+        <Button asChild className="mt-4">
+          <Link href="/devices">デバイス管理に戻る</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス</h1>
-        <p className="text-muted-foreground">
-          ソリューションを選択してデバイスを表示
-        </p>
+      <div className="flex items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#2C3E50]">デバイス</h1>
+        </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {solutions.length > 0 ? (
-          solutions.map((solution, index) => (
-            <Card
-              key={solution.solution_id}
-              className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl">{solution.name}</CardTitle>
-                    <CardDescription className="text-sm text-muted-foreground">
-                      {solution.description ||
-                        "このソリューションに割り当てられたデバイスを表示します"}
-                    </CardDescription>
-                  </div>
-                  {getSolutionIcon(index)}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-28 bg-gray-50 rounded-md flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">
-                    クリックしてデバイスを表示
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t bg-gray-50/50 px-6 py-3">
-                <Button
-                  className="w-full bg-primary hover:bg-primary/90"
-                  asChild>
-                  <Link href={`/devices/${solution.solution_id}`}>
-                    デバイスを表示
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))
-        ) : (
-          <div className="col-span-3 py-12 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-dashed">
-            <div className="p-4 mb-4 bg-gray-100 rounded-full">
-              <Blocks className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900">
-              利用可能なソリューションがありません
-            </h3>
-            <p className="mt-2 text-sm text-gray-500">
-              ソリューションが作成されると、ここに表示されます
-            </p>
-          </div>
-        )}
-      </div>
+      <DeviceList initialDevices={devices} />
     </div>
   );
 }

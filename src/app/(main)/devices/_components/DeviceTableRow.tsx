@@ -4,21 +4,20 @@
 
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Device, DeviceStatusInfo } from "@/types/device";
-import { Solution } from "@/types/solution";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { type FC } from "react";
-import { deviceActionComponents } from "./deviceActionComponents";
-import { Checkbox } from "@/components/ui/checkbox";
 
 type DeviceTableRowProps = {
   device: Device;
-  solution: Solution;
   statusInfo?: DeviceStatusInfo;
   isSelected: boolean;
   onSelect: (deviceId: string, checked: boolean) => void;
+  hideCustomerColumn?: boolean;
 };
 
 /**
@@ -26,20 +25,19 @@ type DeviceTableRowProps = {
  */
 export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   device,
-  solution,
   statusInfo,
   isSelected,
   onSelect,
+  hideCustomerColumn = false,
 }) => {
+  const { data: session } = useSession();
+  const role = session?.user?.role;
   const router = useRouter();
 
   const handleViewDetails = () => {
-    router.push(`/devices/${solution?.solution_id}/${device.device_id}/detail`);
+    router.push(`/devices/${device.device_id}`);
   };
 
-  const ActionComponent = solution
-    ? deviceActionComponents[solution.name.replace(/\s+/g, "").toLowerCase()]
-    : null;
   const isActive = device.status === "ACTIVE";
 
   // Get status display
@@ -126,12 +124,12 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
 
       return (
         <div className="flex flex-col items-center gap-1">
-          <div className="text-sm font-medium">
+          <div className="font-medium">
             {getJobTypeName(device.latest_job_type)}
           </div>
           {device.latest_job_status && (
             <span
-              className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+              className={`px-2 py-1 text-[10px] font-medium rounded-full ${getStatusColor(
                 device.latest_job_status
               )}`}
             >
@@ -167,25 +165,19 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="px-6 py-3 text-sm text-[#2C3E50] whitespace-nowrap text-center">
         {device.device_type}
       </td>
-      <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
-        <div className="truncate">{device.customer_name || "-"}</div>
-      </td>
+      {!hideCustomerColumn && (role === "ADMIN" || role === "ENGINEER") && (
+        <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
+          <div className="truncate">{device.customer_name || "-"}</div>
+        </td>
+      )}
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center">
         {getSolutionDisplay()}
       </td>
-      <td className="px-6 py-3 text-xs text-[#2C3E50] text-center">
+      <td className="px-6 py-1 text-xs text-[#2C3E50] text-center">
         {getJobDisplay()}
       </td>
       <td className="px-6 py-3 text-sm text-[#2C3E50] text-center whitespace-nowrap">
         {getStatusDisplay()}
-      </td>
-      <td className="w-[240px]">
-        <div className="relative flex items-center justify-center gap-2 px-2">
-          <div className="absolute left-0 top-0 h-full border-l border-[#BDC3C7]" />
-          {ActionComponent && (
-            <ActionComponent device={device} solution={solution} />
-          )}
-        </div>
       </td>
     </tr>
   );

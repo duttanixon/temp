@@ -5,7 +5,6 @@
 "use client";
 
 import { Device } from "@/types/device";
-import { Solution } from "@/types/solution";
 import { useMemo, useState } from "react";
 import DevicePagination from "../../users/_components/Pagination";
 import DeviceFilters from "./DeviceFilters";
@@ -13,15 +12,12 @@ import { DeviceTable } from "./DeviceTable";
 
 interface DeviceListProps {
   initialDevices: Device[];
-  solution: Solution;
 }
 
-export default function DeviceList({
-  initialDevices,
-  solution,
-}: DeviceListProps) {
+export default function DeviceList({ initialDevices }: DeviceListProps) {
   const [deviceType, setDeviceType] = useState("");
-  const [status, setStatus] = useState("");
+  const [customerId, setCustomerId] = useState("");
+  const [solutionName, setSolutionName] = useState("");
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState("");
   const itemsPerPage = 10;
@@ -31,12 +27,16 @@ export default function DeviceList({
     return initialDevices.filter((device) => {
       const matchesDeviceType =
         !deviceType || device.device_type === deviceType;
-      const matchesStatus = !status || device.status === status;
+      const matchesCustomer = !customerId || device.customer_id === customerId;
+      const matchesSolution =
+        !solutionName || device.solution_name === solutionName;
       const matchesQuery = !q || device.name.toLowerCase().includes(q);
-      return matchesDeviceType && matchesStatus && matchesQuery;
+      return (
+        matchesDeviceType && matchesCustomer && matchesSolution && matchesQuery
+      );
     });
-  }, [initialDevices, deviceType, status, query]);
-
+  }, [initialDevices, deviceType, customerId, solutionName, query]);
+  console.log("Filtered Devices:", initialDevices);
   const paginatedDevices = useMemo(() => {
     const start = page * itemsPerPage;
     const end = start + itemsPerPage;
@@ -48,13 +48,15 @@ export default function DeviceList({
       <DeviceFilters
         deviceType={deviceType}
         setDeviceType={setDeviceType}
-        status={status}
-        setStatus={setStatus}
+        customerId={customerId}
+        setCustomerId={setCustomerId}
+        solutionName={solutionName}
+        setSolutionName={setSolutionName}
         query={query}
         setQuery={setQuery}
       />
 
-      <DeviceTable devices={paginatedDevices} solution={solution} />
+      <DeviceTable devices={paginatedDevices} />
 
       <DevicePagination
         page={page}

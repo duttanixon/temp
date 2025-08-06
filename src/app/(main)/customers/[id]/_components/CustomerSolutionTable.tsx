@@ -2,8 +2,8 @@
 
 import { CustomerAssignment } from "@/types/customerSolution";
 import { formatDeviceType } from "@/utils/solutions/solutionHelpers";
-import { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useMemo, useState } from "react";
 
 type CustomerSolutionTableProps = {
   initialSolutions: CustomerAssignment[];
@@ -85,12 +85,12 @@ export default function CustomerSolutionTable({
     <div className="overflow-x-auto rounded-lg border border-[#BDC3C7]">
       <table className="w-full min-w-[800px]">
         <colgroup>
-          <col className="w-1/5" /> {/* 名前 */}
-          <col className="w-1/5" /> {/* バージョン */}
-          <col className="w-1/5" /> {/* 互換デバイス */}
-          <col className="w-1/10" /> {/* ライセンスステータス */}
-          <col className="w-1/5" /> {/* 導入数 */}
-          <col className="w-1/10" /> {/* アクション */}
+          <col className="w-1/5" />
+          <col className="w-1/5" />
+          <col className="w-1/5" />
+          <col className="w-1/10" />
+          <col className="w-1/5" />
+          <col className="w-1/10" />
         </colgroup>
         <thead className="bg-[#ECF0F1] border-b border-[#BDC3C7]">
           <tr>
@@ -98,44 +98,67 @@ export default function CustomerSolutionTable({
               onClick={() => handleSort("solution_name")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
             >
-              <div className="flex items-center justify-center">
-                名前{renderSortIcon("solution_name")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <div className="flex flex-col items-center">
+                  <div>ソリューション名</div>
+                  <div className="text-xs text-[#7F8C8D]">Solution Name</div>
+                </div>
+                {renderSortIcon("solution_name")}
               </div>
             </th>
             <th
               onClick={() => handleSort("solution_version")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
             >
-              <div className="flex items-center justify-center">
-                バージョン{renderSortIcon("solution_version")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <div className="flex flex-col items-center">
+                  <div>バージョン</div>
+                  <div className="text-xs text-[#7F8C8D]">Version</div>
+                </div>
+                {renderSortIcon("solution_version")}
               </div>
             </th>
             <th
               onClick={() => handleSort("compatibility")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
             >
-              <div className="flex items-center justify-center">
-                互換デバイス{renderSortIcon("compatibility")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <div className="flex flex-col items-center">
+                  <div>互換デバイス</div>
+                  <div className="text-xs text-[#7F8C8D]">Compatibility</div>
+                </div>
+                {renderSortIcon("compatibility")}
               </div>
             </th>
             <th
               onClick={() => handleSort("license_status")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
             >
-              <div className="flex items-center justify-center">
-                ステータス{renderSortIcon("license_status")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <div className="flex flex-col items-center">
+                  <div>ステータス</div>
+                  <div className="text-xs text-[#7F8C8D]">Status</div>
+                </div>
+                {renderSortIcon("license_status")}
               </div>
             </th>
             <th
               onClick={() => handleSort("devices_count")}
               className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer select-none"
             >
-              <div className="flex items-center justify-center">
-                導入数{renderSortIcon("devices_count")}
+              <div className="flex justify-center items-center gap-1 select-none">
+                <div className="flex flex-col items-center">
+                  <div>導入数</div>
+                  <div className="text-xs text-[#7F8C8D]">Devices Count</div>
+                </div>
+                {renderSortIcon("devices_count")}
               </div>
             </th>
             <th className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]">
-              アクション
+              <div className="flex flex-col items-center">
+                <div>アクション</div>
+                <div className="text-xs text-[#7F8C8D]">Actions</div>
+              </div>
             </th>
           </tr>
         </thead>

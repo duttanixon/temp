@@ -232,7 +232,7 @@ export default function CustomerOverviewPage() {
         </TabsContent>
 
         <TabsContent value="device">
-          <DeviceTable devices={devices} />
+          <DeviceTable devices={devices} hideCustomerColumn={true} />
         </TabsContent>
 
         <TabsContent value="user">
@@ -242,6 +242,7 @@ export default function CustomerOverviewPage() {
             setPage={setUserPage}
             itemsPerPage={10}
             userRole="ADMIN"
+            hideCustomerColumn={true}
           />
 
           <div>

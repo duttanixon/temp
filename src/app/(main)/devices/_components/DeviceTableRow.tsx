@@ -17,6 +17,7 @@ type DeviceTableRowProps = {
   statusInfo?: DeviceStatusInfo;
   isSelected: boolean;
   onSelect: (deviceId: string, checked: boolean) => void;
+  hideCustomerColumn?: boolean;
 };
 
 /**
@@ -27,6 +28,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
   statusInfo,
   isSelected,
   onSelect,
+  hideCustomerColumn = false,
 }) => {
   const { data: session } = useSession();
   const role = session?.user?.role;
@@ -163,7 +165,7 @@ export const DeviceTableRow: FC<DeviceTableRowProps> = ({
       <td className="px-6 py-3 text-sm text-[#2C3E50] whitespace-nowrap text-center">
         {device.device_type}
       </td>
-      {(role === "ADMIN" || role === "ENGINEER") && (
+      {!hideCustomerColumn && (role === "ADMIN" || role === "ENGINEER") && (
         <td className="px-6 py-3 text-sm text-[#2C3E50] text-center max-w-0">
           <div className="truncate">{device.customer_name || "-"}</div>
         </td>

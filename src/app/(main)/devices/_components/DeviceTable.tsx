@@ -34,6 +34,7 @@ type DeviceTableProps = {
   children?: ReactNode;
   devices?: Device[];
   isShowInactive?: boolean;
+  hideCustomerColumn?: boolean;
 };
 
 /**
@@ -42,6 +43,7 @@ type DeviceTableProps = {
 export const DeviceTable: FC<DeviceTableProps> = ({
   devices = [],
   isShowInactive = false,
+  hideCustomerColumn = false,
 }) => {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -199,6 +201,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
               onCheckedChange={handleSelectAll}
               selectedDevices={selectedDevices}
               devices={devices}
+              hideCustomerColumn={hideCustomerColumn}
             />
           </thead>
           <tbody className="bg-white divide-y divide-[#BDC3C7]">
@@ -210,6 +213,7 @@ export const DeviceTable: FC<DeviceTableProps> = ({
                   statusInfo={statuses[device.device_id]}
                   isSelected={selectedDevices.includes(device.device_id)}
                   onSelect={handleSelectDevice}
+                  hideCustomerColumn={hideCustomerColumn}
                 />
               ))
             ) : (

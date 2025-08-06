@@ -22,6 +22,7 @@ type DeviceTableHeaderProps = {
   onCheckedChange: (checked: boolean) => void;
   selectedDevices?: string[];
   devices?: { device_id: string }[];
+  hideCustomerColumn?: boolean;
 };
 
 /**
@@ -34,6 +35,7 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
   onCheckedChange,
   selectedDevices = [],
   devices = [],
+  hideCustomerColumn = false,
 }) => {
   const { data: session } = useSession();
   const role = session?.user?.role;
@@ -82,7 +84,7 @@ export const DeviceTableHeader: FC<DeviceTableHeaderProps> = ({
           {renderSortIcon("device_type")}
         </div>
       </th>
-      {(role === "ADMIN" || role === "ENGINEER") && (
+      {!hideCustomerColumn && (role === "ADMIN" || role === "ENGINEER") && (
         <th
           onClick={() => onSort("customer_name")}
           className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50] cursor-pointer"

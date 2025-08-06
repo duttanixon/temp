@@ -18,6 +18,7 @@ class DeviceSolution(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     device_id = Column(UUID(as_uuid=True), ForeignKey("devices.device_id"), nullable=False)
     solution_id = Column(UUID(as_uuid=True), ForeignKey("solutions.solution_id"), nullable=False)
+    package_id = Column(UUID(as_uuid=True), ForeignKey("solution_package.package_id"), nullable=False)
     status = Column(Enum(DeviceSolutionStatus), nullable=False, default=DeviceSolutionStatus.PROVISIONING)
     configuration = Column(JSON, nullable=True)  # Solution-specific configuration
     metrics = Column(JSON, nullable=True)  # Performance metrics
@@ -29,3 +30,4 @@ class DeviceSolution(Base):
     # Relationships
     device = relationship("Device", back_populates="device_solutions")
     solution = relationship("Solution", back_populates="device_solutions")
+    package = relationship("SolutionPackage", back_populates="device_solutions")

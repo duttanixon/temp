@@ -139,7 +139,7 @@ export default function UserTable({
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
+                className="relative px-6 py-3 text-center text-sm font-semibold text-[#2C3E50]"
               >
                 <div className="absolute left-0 top-0 h-1/2 translate-y-1/2 border-l border-[#BDC3C7]" />
                 アクション

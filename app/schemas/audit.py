@@ -67,6 +67,10 @@ class AuditLogActionType(str, Enum):
     JOB_CANCEL = "JOB_CANCEL"
     JOB_CLEANUP = "JOB_CLEANUP"
 
+    # AI Model Management
+    AI_MODEL_CREATE = "AI_MODEL_CREATE"
+    AI_MODEL_UPDATE = "AI_MODEL_UPDATE"
+
 class AuditLogResourceType(str, Enum):
     """Enumeration of resource types"""
     USER = "USER"
@@ -77,6 +81,7 @@ class AuditLogResourceType(str, Enum):
     DEVICE_SOLUTION = "DEVICE_SOLUTION"
     DEVICE_COMMAND = "DEVICE_COMMAND"
     JOB = "JOB"
+    AI_MODEL = "AI_MODEL"
 
 
 class AuditLogBase(BaseModel):

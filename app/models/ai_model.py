@@ -20,6 +20,8 @@ class AIModel(Base):
     version = Column(String, nullable=False)
     description = Column(String, nullable=True)
     status = Column(Enum(AIModelStatus), nullable=False, default=AIModelStatus.ACTIVE)
+    s3_bucket = Column(String, nullable=False)
+    s3_key = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), default=jst_now)
     updated_at = Column(DateTime(timezone=True), default=jst_now, onupdate=jst_now)
     

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     S3_CERTIFICATES_PATH: Optional[str] = None
     TIMESTREAM_DATABASE: Optional[str] = None
     TIMESTREAM_RAW_TABLE: Optional[str] = None
+    AI_MODEL_BUCKET_NAME: Optional[str] = None
 
     # API Key for internal services
     INTERNAL_API_KEY: Optional[str] = None

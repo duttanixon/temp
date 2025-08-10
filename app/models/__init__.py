@@ -4,8 +4,8 @@ from app.models.audit_log import AuditLog
 from app.models.device import Device, DeviceStatus, DeviceType
 from app.models.solution import Solution, SolutionStatus
 from app.models.ai_model import AIModel, AIModelStatus
-# from app.models.solution_package import SolutionPackage
-# from app.models.solution_package_model import SolutionPackageModel
+from app.models.solution_package import SolutionPackage
+from app.models.solution_package_model import SolutionPackageModel
 from app.models.customer_solution import CustomerSolution, LicenseStatus
 from app.models.device_solution import DeviceSolution, DeviceSolutionStatus
 from app.models.services.city_eye.human_table import CityEyeHumanTable

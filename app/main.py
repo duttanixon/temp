@@ -15,6 +15,7 @@ from app.api.routes import (
     audit_logs_router,
     jobs_router,
     ai_models_router,
+    solution_packages_router,
 )
 from app.core.config import settings
 from app.api import deps
@@ -107,6 +108,12 @@ app.include_router(
     ai_models_router,
     prefix=f"{settings.API_V1_STR}/ai-models",
     tags=["ai-models"],
+)
+
+app.include_router(
+    solution_packages_router,
+    prefix=f"{settings.API_V1_STR}/solution-packages",
+    tags=["solution-packages"],
 )
 
 # Startup event

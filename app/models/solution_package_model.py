@@ -9,7 +9,6 @@ class SolutionPackageModel(Base):
     
     package_id = Column(UUID(as_uuid=True), ForeignKey("solution_package.package_id"), nullable=False)
     model_id = Column(UUID(as_uuid=True), ForeignKey("ai_models.model_id"), nullable=False)
-    model_role = Column(String, nullable=False)  # e.g., "detection", "classification"
     
     # Composite primary key
     __table_args__ = (

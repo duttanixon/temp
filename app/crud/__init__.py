@@ -11,3 +11,4 @@ from app.crud.audit_log import audit_log
 from app.crud.password_reset_token import password_reset_token
 from app.crud.job import job
 from app.crud.crud_ai_model import ai_model
+from app.crud.solution_package import solution_package

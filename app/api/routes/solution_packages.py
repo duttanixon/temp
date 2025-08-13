@@ -1,13 +1,15 @@
 # app/api/routes/solution_packages.py
-from typing import Any, List, Optional
+from typing import Any, Dict, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, BackgroundTasks, status
 from sqlalchemy.orm import Session
 import uuid
+import os
 from datetime import datetime, timedelta
 
 from app.api import deps
-from app.crud import solution_package, solution, ai_model
-from app.models import User
+from app.crud import solution_package, solution, ai_model, device, job
+from app.models.solution_package import SolutionPackage
+from app.models import User, JobType
 from app.schemas.solution_package import (
     SolutionPackage as SolutionPackageSchema,
     SolutionPackageCreate,
@@ -19,12 +21,18 @@ from app.schemas.solution_package import (
     PackageUploadVerifyRequest,
     PackageUploadVerifyResponse,
     PackageDownloadUrlResponse,
-    PackageModelAssociationCreate
+    PackageModelAssociationCreate,
+    DeployPackageRequest
 )
 from app.utils.solution_package_s3 import solution_package_s3_manager
+from app.utils.ai_model_s3 import ai_model_s3_manager
+from app.utils.util import check_device_access, validate_device_for_commands
 from app.utils.audit import log_action
 from app.utils.logger import get_logger
+from app.utils.aws_iot_jobs import iot_jobs_service
 from app.schemas.audit import AuditLogActionType, AuditLogResourceType
+from app.core.config import settings
+from app.schemas.job import JobCreate
 
 logger = get_logger("api.solution_packages")
 
@@ -643,3 +651,207 @@ def dissociate_package_from_model(
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
     )
+
+
+@router.post("/{package_id}/deploy", response_model=Dict[str, Any], status_code=status.HTTP_202_ACCEPTED)
+async def deploy_solution_package(
+    *,
+    db: Session = Depends(deps.get_db),
+    package_id: uuid.UUID, # Get package_id from path parameter
+    deploy_request: DeployPackageRequest, # Use the new request schema
+    current_user: User = Depends(deps.get_current_admin_or_engineer_user),
+    background_tasks: BackgroundTasks,
+    request: Request,
+) -> Any:
+    """
+    Deploy a solution package to specified devices using AWS IoT Core Jobs.
+
+    This endpoint:
+    1. Validates the package and targets
+    2. Generate download URLs for package and associated models
+    3. Creates an AWS IoT Core Job to deploy the package and models to target devices.
+    """
+    logger.info(f"Deployment request for package {package_id} to devices: {deploy_request.device_ids}")
+
+    # 1. Validate Package ID and retrieve metadata
+    db_package = solution_package.get_by_id(db, package_id=package_id)
+    if not db_package:
+        raise HTTPException(
+            status_code=404,
+            detail="Package not found"
+        )
+    
+    # Get associated solution name for logging/S3 key generation if needed
+    db_solution = solution.get_by_id(db, solution_id=db_package.solution_id)
+    if not db_solution:
+        raise HTTPException(
+            status_code=404,
+            detail="Associated solution not found for this package"
+        )
+    
+    # 2. Generate Download Links
+    job_document_steps = []
+    # Add step for package file download
+    package_filename = f"{db_package.name}_{db_package.version}.zip".replace(" ", "_")
+    package_download_url = solution_package_s3_manager.generate_download_url(
+        s3_key=db_package.s3_key,
+        expires_in=3600 * 24, # URL valid for 24 hours for job execution
+        filename=package_filename
+    )
+
+    job_document_steps.append({
+        "action": {
+            "name": f"Download Package {db_package.name}_{db_package.version}",
+            "type": "runHandler",
+            "input": {
+                "handler": "software_dl.sh", 
+                "args": [
+                    package_download_url,
+                    f"/tmp/{package_filename}" # Example local destination path
+                ],
+                "path": deploy_request.path_to_handler
+            },
+            "runAsUser": deploy_request.run_as_user
+        }
+    })
+
+    # Add steps for associated model downloads
+    model_associations = solution_package.get_model_associations(db, package_id=package_id)
+    for assoc in model_associations:
+        db_model = ai_model.get_by_id(db, model_id=assoc.model_id)
+        if db_model:
+            model_filename = os.path.basename(db_model.s3_key)
+
+            model_download_url = ai_model_s3_manager.generate_download_url(
+                s3_key=db_model.s3_key,
+                expires_in=3600 * 24, # URL valid for 24 hours
+                filename=model_filename
+            )
+            job_document_steps.append({
+                "action": {
+                    "name": f"Download Model {db_model.name}_{db_model.version}",
+                    "type": "runHandler",
+                    "input": {
+                        "handler": "download_aimodel.sh",
+                        "args": [
+                            model_download_url,
+                            f"/tmp/{model_filename}"
+                        ],
+                        "path": deploy_request.path_to_handler
+                    },
+                    "runAsUser": deploy_request.run_as_user
+                }
+            })
+        else:
+            logger.warning(f"Associated model {assoc.model_id} not found for package {package_id}. Skipping download step.")
+
+    # Add final installation/setup step
+    job_document_steps.append({
+        "action": {
+            "name": "Install and setup the application",
+            "type": "runHandler",
+            "input": {
+                "handler": "install-application.sh", # Assuming this script handles installation
+                "args": deploy_request.install_script_args, # Pass any custom args
+                "path": deploy_request.path_to_handler
+            },
+            "runAsUser": deploy_request.run_as_user
+        }
+    })
+
+    # Create the job document
+    job_document = {
+        "version": "1.0",
+        "steps": job_document_steps
+    }
+
+
+    # 3. AWS IoT Core Job Creation (as a background task for multiple devices)
+    
+    # Inner function for the background task
+    def create_deployment_jobs_task(
+        db_session: Session,
+        package: SolutionPackage,
+        target_device_ids: List[uuid.UUID],
+        job_doc: Dict[str, Any],
+        user: User,
+        ip: str,
+        ua: str,
+    ):
+        logger.info(f"Background task started: Creating deployment jobs for package {package.package_id} on {len(target_device_ids)} devices.")
+        success_count = 0
+        for device_id in target_device_ids:
+            try:
+                db_device = device.get_by_id(db_session, device_id=device_id)
+                if not db_device:
+                    logger.warning(f"Device {device_id} not found. Skipping job creation.")
+                    continue
+                
+                check_device_access(user, db_device, action="deploy packages to")
+                thing_name = validate_device_for_commands(db_device)
+
+                # Create the IoT Job using the iot_jobs_service
+                aws_job_info = iot_jobs_service.create_package_deployment_job(
+                    job_id_prefix=f"deploy-package-{package.name.replace(' ', '-')}-{package.version.replace('.', '-')}",
+                    targets=[f"arn:aws:iot:{settings.AWS_REGION}:{settings.AWS_ACCOUNT_ID}:thing/{thing_name}"],
+                    document=job_doc,
+                    target_selection='SNAPSHOT',
+                    description=f"Deploy package {package.name} v{package.version} to {thing_name}"
+                )
+
+                # Record job in our database
+                job_create_schema = JobCreate(
+                    device_id=device_id,
+                    job_type=JobType.PACKAGE_DEPLOYMENT,
+                    parameters={
+                        "package_id": str(package.package_id),
+                        "package_name": package.name,
+                        "package_version": package.version,
+                        "job_document_steps": job_doc["steps"] # Store the steps for audit
+                    }
+                )
+                db_job = job.create_with_device_update(
+                    db_session, obj_in=job_create_schema, job_id=aws_job_info["job_id"], user_id=user.user_id
+                )
+                db_job.aws_job_arn = aws_job_info.get("job_arn")
+                db_session.add(db_job)
+                db_session.commit()
+
+                log_action(
+                    db=db_session, user_id=user.user_id, action_type=AuditLogActionType.JOB_CREATE,
+                    resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
+                    details={
+                        "job_id": db_job.job_id,
+                        "job_type": "PACKAGE_DEPLOYMENT",
+                        "device_id": str(device_id),
+                        "device_name": db_device.name,
+                        "package_id": str(package.package_id),
+                        "package_name": package.name,
+                        "package_version": package.version
+                    },
+                    ip_address=ip, user_agent=ua
+                )
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Failed to create deployment job for device {device_id} and package {package.package_id}: {e}")
+                db_session.rollback() # Rollback session on error for this device
+        logger.info(f"Background task finished: Successfully initiated {success_count}/{len(target_device_ids)} deployment jobs.")
+
+    # Add the deployment task to background tasks
+    background_tasks.add_task(
+        create_deployment_jobs_task,
+        db_session=db, # Pass the session to the background task
+        package=db_package,
+        target_device_ids=deploy_request.device_ids,
+        job_doc=job_document,
+        user=current_user,
+        ip=request.client.host,
+        ua=request.headers.get("user-agent"),
+    )
+
+    return {
+        "message": f"Deployment of package {package_id} to {len(deploy_request.device_ids)} devices has been initiated.",
+        "package_id": str(package_id),
+        "devices_count": len(deploy_request.device_ids)
+    }
+

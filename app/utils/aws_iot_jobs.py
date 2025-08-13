@@ -2,7 +2,7 @@
 import boto3
 import json
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from app.core.config import settings
 from app.utils.logger import get_logger
 import uuid
@@ -23,6 +23,54 @@ class IoTJobsService:
         self.REBOOT_TEMPLATE_ARN = settings.REBOOT_TEMPLATE_ARN or "arn:aws:iot:ap-northeast-1::jobtemplate/AWS-Reboot:1.0"
         
         logger.info("IoT Jobs Service initialized")
+
+
+    def create_package_deployment_job(
+            self,
+            job_id_prefix: str,
+            targets: List[str],
+            document: Dict[str, Any],
+            target_selection: str = 'SNAPSHOT',
+            description: Optional[str] = None,
+            timeout_in_minutes: int = 60 # Default job timeout
+    ) -> Dict[str, Any]:
+        """
+        Create a package deployment job in AWS IoT Core with a custom document
+        Args:
+            job_id_prefix: Prefix for the job ID (a unique suffix will be added)
+            targets: List of target ARNs (e.g., thing ARNs, thing group ARNs)
+            document: The full job document to be executed on the device
+            target_selection: How targets are selected (e.g., 'SNAPSHOT', 'CONTINUOUS')
+            description: Optional job description
+            timeout_in_minutes: How long the job can run before timing out
+
+        Returns:
+            Dictionary with job_id, job_arn, and initial status
+        """
+        job_id = f"{job_id_prefix}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
+
+        try:
+            response = self.iot_client.create_job(
+                jobId=job_id,
+                targets=targets,
+                document=json.dumps(document),  # Document needs to be a JSON string
+                targetSelection=target_selection,
+                description=description,
+                timeoutConfig={
+                    'inProgressTimeoutInMinutes': timeout_in_minutes
+                }
+            )
+            
+            logger.info(f"Created package deployment job: {job_id} with targets: {targets}")
+            
+            return {
+                "job_id": job_id,
+                "job_arn": response.get('jobArn'),
+                "status": "QUEUED"
+            }
+        except Exception as e:
+            logger.error(f"Error creating package deployment job: {str(e)}")
+            raise
 
     def create_restart_application_job(
         self,

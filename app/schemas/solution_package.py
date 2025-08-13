@@ -141,3 +141,10 @@ class PackageModelAssociation(BaseModel):
 class PackageModelAssociationCreate(BaseModel):
     """Create a package-model association"""
     model_id: UUID
+
+class DeployPackageRequest(BaseModel):
+    # package_id: UUID = Field(..., description="ID of the solution package to deploy")
+    device_ids: List[UUID] = Field(..., min_items=1, description="List of device IDs to deploy the package to")
+    path_to_handler: str = Field(default="/home/cybercore/jobs", description="Path to job handler on device")
+    run_as_user: str = Field(default="cybercore", description="User to run the job as on device")
+    install_script_args: Optional[List[str]] = Field(default=[], description="Arguments for the install-application.sh script")

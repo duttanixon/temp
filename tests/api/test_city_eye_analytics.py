@@ -7,7 +7,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import User, UserRole, UserStatus, Device, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, Customer
+from app.models import User, UserRole, UserStatus, Device, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, Customer,SolutionPackage
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from datetime import timedelta
@@ -1221,11 +1221,25 @@ def test_get_traffic_flow_analytics_multiple_devices(
 ):
     """Test traffic analytics with multiple devices"""
     # Create device solution for raspberry device
+
+    solution_package = SolutionPackage(
+        package_id=uuid.uuid4(),
+        solution_id=city_eye_solution.solution_id,
+        name=f"test-package-for-{city_eye_solution.name}",
+        version="1.0.0",
+        s3_bucket="test-bucket",
+        s3_key=f"solutions/{city_eye_solution.name}/package.zip",
+    )
+    db.add(solution_package)
+    db.commit()
+    db.refresh(solution_package)
+
     raspberry_device_solution = DeviceSolution(
         id=uuid.uuid4(),
         device_id=raspberry_device.device_id,
         solution_id=city_eye_solution.solution_id,
         status=DeviceSolutionStatus.ACTIVE,
+        package_id=solution_package.package_id,
         version_deployed="1.0.0",
         configuration={"param1": "value1"}
     )

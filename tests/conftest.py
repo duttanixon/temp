@@ -21,7 +21,7 @@ from app.main import app
 from app.models import (
     User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, 
     DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, 
-    LicenseStatus, SolutionStatus, CityEyeHumanTable, CityEyeTrafficTable, Job, JobType, JobStatus
+    LicenseStatus, SolutionStatus, SolutionPackage, CityEyeHumanTable, CityEyeTrafficTable, Job, JobType, JobStatus
 )
 
 # Test database URL - use SQLite for tests 
@@ -306,11 +306,29 @@ def city_eye_device_solution(db: Session, device: Device, city_eye_solution: Sol
     
     if existing:
         return existing
-    
+
+    solution_package = db.query(SolutionPackage).filter(
+        SolutionPackage.solution_id == city_eye_solution.solution_id
+    ).first()
+    if not solution_package:
+        solution_package = SolutionPackage(
+            package_id=uuid.uuid4(),
+            solution_id=city_eye_solution.solution_id,
+            name=f"test-package-for-{city_eye_solution.name}",
+            version="1.0.0",
+            s3_bucket="test-bucket",
+            s3_key=f"solutions/{city_eye_solution.name}/package.zip",
+        )
+        db.add(solution_package)
+        db.commit()
+        db.refresh(solution_package)
+
+
     device_solution = DeviceSolution(
         id=uuid.uuid4(),
         device_id=device.device_id,
         solution_id=city_eye_solution.solution_id,
+        package_id=solution_package.package_id,  # FIX: Add the required package_id
         status=DeviceSolutionStatus.ACTIVE,
         version_deployed="1.0.0",
         configuration={"param1": "value1"}
@@ -648,7 +666,7 @@ def seed_test_data(db: Session) -> None:
     )
 
 
-    # Create test solutions
+   # Create test solutions
     test_solution = Solution(
         solution_id=uuid.uuid4(),
         name="Test Solution",
@@ -667,6 +685,31 @@ def seed_test_data(db: Session) -> None:
         status=SolutionStatus.BETA
     )
 
+
+    # IMPORTANT: Add solution packages for each solution
+    # These are required because DeviceSolution now has a NOT NULL constraint on package_id
+    from app.models.solution_package import SolutionPackage
+    
+    test_solution_package = SolutionPackage(
+        package_id=uuid.uuid4(),
+        solution_id=test_solution.solution_id,
+        name="Test Solution Package",
+        version="1.0.0",
+        s3_bucket="test-bucket",
+        s3_key="test-solution-package.tar.gz",
+        description="Test package for test solution"
+    )
+    
+    beta_solution_package = SolutionPackage(
+        package_id=uuid.uuid4(),
+        solution_id=beta_solution.solution_id,
+        name="Beta Solution Package",
+        version="0.5.0",
+        s3_bucket="test-bucket",
+        s3_key="beta-solution-package.tar.gz",
+        description="Beta package for beta solution"
+    )
+
     # Create customer-solution relationships
     test_customer_solution = CustomerSolution(
         id=uuid.uuid4(),
@@ -682,6 +725,7 @@ def seed_test_data(db: Session) -> None:
         device_id=active_device.device_id,
         solution_id=test_solution.solution_id,
         status=DeviceSolutionStatus.ACTIVE,
+        package_id=test_solution_package.package_id,  # FIX: Add the required package_id
         version_deployed=test_solution.version,
         configuration={"param1": "value1", "param2": "value2"}
     )
@@ -698,6 +742,8 @@ def seed_test_data(db: Session) -> None:
     db.add(suspended_device)
     db.add(test_solution)
     db.add(beta_solution)
+    db.add(test_solution_package)  # Add the solution packages
+    db.add(beta_solution_package)
     db.add(test_customer_solution)
     db.add(test_device_solution)
     db.commit()

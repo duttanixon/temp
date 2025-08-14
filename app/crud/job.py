@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.crud.base import CRUDBase
-from app.models.job import Job, JobStatus
+from app.models.job import Job, JobStatus, JobType
 from app.models.device import Device
 from app.schemas.job import JobCreate
 import uuid
@@ -31,6 +31,17 @@ class CRUDJob(CRUDBase[Job, JobCreate, None]):
         return (
             db.query(Job)
             .filter(Job.device_id == device_id)
+            .order_by(desc(Job.created_at))
+            .first()
+        )
+
+    def get_latest_by_device_and_type(
+        self, db: Session, *, device_id: uuid.UUID, job_type: JobType
+    ) -> Optional[Job]:
+        """Get the latest job of a specific type for a device."""
+        return (
+            db.query(Job)
+            .filter(Job.device_id == device_id, Job.job_type == job_type)
             .order_by(desc(Job.created_at))
             .first()
         )

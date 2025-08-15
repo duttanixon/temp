@@ -180,4 +180,46 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         db.refresh(device)
         return device
 
+    def get_with_customer_name_and_solution(
+        self,
+        db: Session,
+        *,
+        device_id: uuid.UUID
+    ) -> Optional[Dict[str, Any]]:
+        # Query the device with customer information
+        result = (
+            db.query(Device, Customer.name.label("customer_name"))
+            .join(Customer, Customer.customer_id == Device.customer_id)
+            .filter(Device.device_id == device_id)
+            .first()
+        )
+        
+        if not result:
+            return None
+            
+        device_obj, customer_name = result
+        
+        # Convert to dict and add customer name
+        device_dict = {
+            **device_obj.__dict__,
+            "customer_name": customer_name,
+        }
+        
+        # Get associated solutions
+        solution = (
+            db.query(
+                DeviceSolution.solution_id,
+                DeviceSolution.status,
+                Solution.name.label("solution_name")
+            )
+            .join(Solution, Solution.solution_id == DeviceSolution.solution_id)
+            .filter(DeviceSolution.device_id == device_id)
+            .first()
+        )
+        
+        # Add solutions information
+        device_dict["solution_name"] = solution.solution_name if solution else None
+        
+        return device_dict
+
 device = CRUDDevice(Device)

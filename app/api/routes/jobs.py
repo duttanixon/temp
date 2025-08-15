@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks,
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud import job, device
-from app.models import User, UserRole, Job, JobStatus, JobType
+from app.models import User, Job, JobStatus, JobType
 from app.schemas.job import (
     RestartApplicationJob,
     RebootDeviceJob,
@@ -447,3 +447,44 @@ def cleanup_old_jobs(
         "message": "Job cleanup process has been started in the background.",
         "details": f"Will keep the latest {keep_latest} completed jobs for each device."
     }
+
+@router.get("/device/{device_id}/latest-deployment-job", response_model=JobResponse)
+def get_device_latest_deployment_job(
+    *,
+    db: Session = Depends(deps.get_db),
+    device_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get the latest PACKAGE_DEPLOYMENT job for a device.
+    """
+    # Get and validate device access
+    db_device = device.get_by_id(db, device_id=device_id)
+    check_device_access(current_user, db_device, action="view jobs for")
+
+    # Get latest deployment job
+    job_obj = job.get_latest_by_device_and_type(db, device_id=device_id, job_type=JobType.PACKAGE_DEPLOYMENT)
+
+    if not job_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="No PACKAGE_DEPLOYMENT jobs found for this device"
+        )
+
+    # Sync status if needed
+    job_obj = sync_job_status(db, job_obj)
+
+    return JobResponse(
+        id=job_obj.id,
+        job_id=job_obj.job_id,
+        device_id=job_obj.device_id,
+        device_name=db_device.name,
+        job_type=job_obj.job_type,
+        status=job_obj.status,
+        parameters=job_obj.parameters,
+        created_at=job_obj.created_at,
+        started_at=job_obj.started_at,
+        completed_at=job_obj.completed_at,
+        status_details=job_obj.status_details,
+        error_message=job_obj.error_message
+    )

@@ -27,3 +27,4 @@ class Solution(Base):
     # Relationships
     customer_solutions = relationship("CustomerSolution", back_populates="solution")
     device_solutions = relationship("DeviceSolution", back_populates="solution")
+    packages = relationship("SolutionPackage", back_populates="solution")

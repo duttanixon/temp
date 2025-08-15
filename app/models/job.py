@@ -8,6 +8,7 @@ from app.db.session import Base, jst_now
 class JobType(str, enum.Enum):
     RESTART_APPLICATION = "RESTART_APPLICATION"
     REBOOT_DEVICE = "REBOOT_DEVICE"
+    PACKAGE_DEPLOYMENT = "PACKAGE_DEPLOYMENT" 
 
 class JobStatus(str, enum.Enum):
     QUEUED = "QUEUED"

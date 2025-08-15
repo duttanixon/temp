@@ -43,6 +43,14 @@ class AuditLogActionType(str, Enum):
     SOLUTION_ACTIVATE = "SOLUTION_ACTIVATE"
     SOLUTION_DEPLOYMENT = "SOLUTION_DEPLOYMENT"
     SOLUTION_REMOVAL = "SOLUTION_REMOVAL"
+
+    # Solution Package Management
+    PACKAGE_CREATE = "PACKAGE_CREATE"
+    PACKAGE_UPDATE = "PACKAGE_UPDATE"
+    PACKAGE_DELETE = "PACKAGE_DELETE"
+    PACKAGE_DOWNLOAD = "PACKAGE_DOWNLOAD"
+    PACKAGE_UPLOAD_INIT = "PACKAGE_UPLOAD_INIT"
+    PACKAGE_UPLOAD_COMPLETE = "PACKAGE_UPLOAD_COMPLETE"
     
     # Customer Solution Management
     CUSTOMER_SOLUTION_ADD = "CUSTOMER_SOLUTION_ADD"
@@ -67,6 +75,10 @@ class AuditLogActionType(str, Enum):
     JOB_CANCEL = "JOB_CANCEL"
     JOB_CLEANUP = "JOB_CLEANUP"
 
+    # AI Model Management
+    AI_MODEL_CREATE = "AI_MODEL_CREATE"
+    AI_MODEL_UPDATE = "AI_MODEL_UPDATE"
+
 class AuditLogResourceType(str, Enum):
     """Enumeration of resource types"""
     USER = "USER"
@@ -77,7 +89,8 @@ class AuditLogResourceType(str, Enum):
     DEVICE_SOLUTION = "DEVICE_SOLUTION"
     DEVICE_COMMAND = "DEVICE_COMMAND"
     JOB = "JOB"
-
+    AI_MODEL = "AI_MODEL"
+    SOLUTION_PACKAGE = "SOLUTION_PACKAGE"
 
 class AuditLogBase(BaseModel):
     """Base audit log schema"""

@@ -180,14 +180,23 @@ def provision_device(
         raise HTTPException(status_code=500, detail=f"Error provisioning device: {str(e)}")
 
 
-@router.get("/{device_id}", response_model=DeviceAdminView)
+@router.get("/{device_id}", response_model=DeviceDetailView)
 def get_device(
+    *,
+    db: Session = Depends(deps.get_db),
     db_device: DeviceModel = Depends(get_device_and_check_access)
 ) -> Any:
     """
     Get a specific device by ID. Access is handled by the dependency.
+    Returns the device with customer name and solution info in the same format as get_devices.
     """
-    return db_device
+    result = device.get_with_customer_name_and_solution(db, device_id=db_device.device_id)
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Device not found"
+        )
+    return result
 
 
 @router.put("/{device_id}", response_model=DeviceSchema)

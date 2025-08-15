@@ -11,3 +11,5 @@ from app.api.routes.device_commands import router as device_commands_router
 from app.api.routes.sse import router as sse_router
 from app.api.routes.audit_logs import router as audit_logs_router
 from app.api.routes.jobs import router as jobs_router
+from app.api.routes.ai_models import router as ai_models_router
+from app.api.routes.solution_packages import router as solution_packages_router

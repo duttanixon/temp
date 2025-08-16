@@ -10,6 +10,7 @@ import PackageList from "./packages/PackageList";
 import PackageFilters from "./packages/PackageFilters";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 /**
  * Main Packages Tab Component
@@ -26,6 +27,9 @@ export default function PackagesTab() {
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // state for deployment
+  const [isDeploying, setIsDeploying] = useState(false);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,6 +121,27 @@ export default function PackagesTab() {
     }
   };
 
+  const handleDeploy = async (packageId: string) => {
+    setIsDeploying(true);
+    try {
+      if (!deviceId) {
+        throw new Error("Device ID is missing.");
+      }
+      await packageService.deployPackage(packageId, [deviceId]);
+      toast.success("Deployment initiated successfully!", {
+        description: `Package ${packageId} is being deployed to device ${deviceId}.`,
+      });
+    } catch (err) {
+      console.error("Failed to deploy package:", err);
+      toast.error("Deployment Failed", {
+        description:
+          err instanceof Error ? err.message : "An unexpected error occurred.",
+      });
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="bg-white p-6 min-h-[300px] rounded-b-lg">
@@ -145,7 +170,7 @@ export default function PackagesTab() {
           </div>
         </div>
 
-        {/* Filters Section */}
+        {/* Filters and Package List */}
         <PackageFilters
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -154,9 +179,12 @@ export default function PackagesTab() {
           onRefresh={handleRefresh}
           totalCount={filteredPackages.length}
         />
-
-        {/* Package List */}
-        <PackageList packages={filteredPackages} loading={loading} />
+        <PackageList
+          packages={filteredPackages}
+          loading={loading}
+          onDeploy={handleDeploy}
+          isDeploying={isDeploying}
+        />
       </div>
     </div>
   );

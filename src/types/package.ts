@@ -42,3 +42,9 @@ export interface PackageFilters {
   skip?: number;
   limit?: number;
 }
+
+export interface PakcageJobResponse {
+  message: string;
+  device_count: number;
+  package_id: string;
+}

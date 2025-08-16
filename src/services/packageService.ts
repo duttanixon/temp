@@ -1,15 +1,13 @@
-// src/services/packageService.ts
-
 import { apiClient, handleApiError } from "./baseApiClient";
 import {
   SolutionPackage,
   PackageListResponse,
   PackageFilters,
 } from "@/types/package";
+import { PakcageJobResponse } from "@/types/package";
 
 /**
  * Service for managing solution packages
- * Follows Single Responsibility Principle - handles only package-related API calls
  */
 export const packageService = {
   /**
@@ -36,6 +34,28 @@ export const packageService = {
 
       const url = `/solution-packages${params.toString() ? `?${params.toString()}` : ""}`;
       const response = await apiClient.get<PackageListResponse>(url);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  /**
+   * Deploy a specific package to one or more devices.
+   * @param packageId The ID of the package to deploy.
+   * @param deviceIds An array of device IDs to deploy the package to.
+   * @returns A promise with the deployment job response.
+   */
+  async deployPackage(
+    packageId: string,
+    deviceIds: string[]
+  ): Promise<PakcageJobResponse> {
+    try {
+      const payload = { device_ids: deviceIds };
+      const response = await apiClient.post<PakcageJobResponse>(
+        `/solution-packages/${packageId}/deploy`,
+        payload
+      );
       return response.data;
     } catch (error) {
       return handleApiError(error);

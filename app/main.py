@@ -88,7 +88,7 @@ app.include_router(
 
 app.include_router(
     sse_router,
-    prefix=f"{settings.API_V1_STR}/sse/commands",
+    prefix=f"{settings.API_V1_STR}/sse",
     tags=["sse"],
 )
 

@@ -57,8 +57,8 @@ jobs:
         FRONTEND_URL=${{ secrets.FRONTEND_URL }}
         RESTART_APP_TEMPLATE_ARN=${{ secrets.RESTART_APP_TEMPLATE_ARN }}
         REBOOT_TEMPLATE_ARN=${{ secrets.REBOOT_TEMPLATE_ARN }}
-
-
+        AI_MODEL_BUCKET_NAME=${{ secrets.AI_MODEL_BUCKET_NAME }}
+        S3_SOLUTION_PACKAGE_BUCKET=${{ secrets.S3_SOLUTION_PACKAGE_BUCKET }}
         EOL"
 
     - name: Deploy to EC2

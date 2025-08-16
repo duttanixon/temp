@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { deviceService } from '@/services/deviceService';
-import { POLYGON_CONFIG } from '@/utils/analytics/city_eye/polygon.utils';
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
+import { deviceService } from "@/services/deviceService";
 
 // Custom hook for image capture functionality
 export const useImageCapture = (deviceId: string) => {
@@ -40,19 +39,20 @@ export const useImageCapture = (deviceId: string) => {
           if (data.status === "SUCCESS") {
             isCompleted = true;
             toast.success("Image captured successfully! Refreshing...");
-            
+
             // Revoke old image URL to prevent memory leak
             if (imageUrl) {
               deviceService.revokeImageUrl(imageUrl);
             }
-            
+
             // Load the new image
             await loadDeviceImage();
             eventSource?.close();
             setIsCapturing(false);
           } else if (data.status === "FAILED" || data.status === "TIMEOUT") {
             isCompleted = true;
-            const errorMsg = data.error_message || data.error || "Unknown error";
+            const errorMsg =
+              data.error_message || data.error || "Unknown error";
             toast.error(`Failed to capture image: ${errorMsg}`);
             eventSource?.close();
             setIsCapturing(false);
@@ -78,7 +78,7 @@ export const useImageCapture = (deviceId: string) => {
           console.log("SSE connection closed normally after completion");
           return; // This is expected, don't show error
         }
-  
+
         // Check if the connection was closed normally without error
         if (eventSource?.readyState === EventSource.CLOSED) {
           console.log("SSE connection closed");
@@ -91,18 +91,18 @@ export const useImageCapture = (deviceId: string) => {
           console.error("SSE connection error:", error);
           toast.error("Connection to status updates failed. Please try again.");
         }
-        
+
         eventSource?.close();
         if (!isCompleted) {
           setIsCapturing(false);
         }
       };
-  
+
       // Handle connection open
       eventSource.onopen = () => {
         console.log("SSE connection established");
       };
-  
+
       // Set a timeout in case the command takes too long
       const timeout = setTimeout(() => {
         if (!isCompleted && eventSource?.readyState !== EventSource.CLOSED) {
@@ -111,12 +111,11 @@ export const useImageCapture = (deviceId: string) => {
           setIsCapturing(false);
         }
       }, 30 * 1000); // 30 seconds timeout
-  
+
       // Clean up timeout when event source closes
-      eventSource.addEventListener('close', () => {
+      eventSource.addEventListener("close", () => {
         clearTimeout(timeout);
       });
-  
     } catch (error) {
       console.error("Failed to initiate capture command:", error);
       toast.error("Failed to send capture command to the device.");

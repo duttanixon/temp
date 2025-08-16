@@ -49,6 +49,15 @@ export const jobService = {
       return handleApiError(error);
     }
   },
+  // New function to get latest deployment job for a device
+  async getLatestDeploymentJob(deviceId: string): Promise<Job | null> {
+    try {
+      const response = await apiClient.get<Job | null>(
+        `/jobs/device/${deviceId}/latest-deployment-job`
+      );
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
 };
-
-

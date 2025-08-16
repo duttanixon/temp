@@ -12,8 +12,8 @@ export default function DeviceDetailsTabs() {
 
   const tabs = [
     { id: "metrics", label: "Metrics" },
-    { id: "updates", label: "Updates" },
     { id: "packages", label: "Packages" },
+    { id: "updates", label: "Updates" },
     { id: "remoteAccess", label: "Remote Access" },
   ];
 
@@ -38,8 +38,8 @@ export default function DeviceDetailsTabs() {
 
       <div>
         {activeTab === "metrics" && <MetricsTab />}
-        {activeTab === "updates" && <UpdatesTab />}
         {activeTab === "packages" && <PackagesTab />}
+        {activeTab === "updates" && <UpdatesTab />}
         {activeTab === "remoteAccess" && <RemoteAccessTab />}
       </div>
     </div>

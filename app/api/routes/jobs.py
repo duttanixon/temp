@@ -13,6 +13,7 @@ from app.schemas.job import (
     JobCreate
 )
 from app.utils.aws_iot_jobs import iot_jobs_service
+from app.api.routes.sse import notify_job_update
 from app.utils.audit import log_action
 from app.utils.util import check_device_access, validate_device_for_commands
 from app.utils.logger import get_logger
@@ -55,6 +56,22 @@ def sync_job_status(db: Session, job_obj: Job) -> Job:
                         job_id=job_obj.job_id,
                         status=new_status,
                         status_details=aws_status.get("status_details")
+                    )
+
+                    # Notify any connected SSE clients
+                    # Calculate a simple progress percentage for the frontend
+                    progress = 0
+                    if new_status == JobStatus.IN_PROGRESS:
+                        progress = 50
+                    elif new_status in [JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.TIMED_OUT, JobStatus.CANCELED, JobStatus.ARCHIVED]:
+                        progress = 100
+                    
+                    notify_job_update(
+                        job_id=job_obj.job_id,
+                        status=new_status.value,
+                        progress_percentage=progress,
+                        status_details=job_obj.status_details,
+                        error_message=job_obj.error_message
                     )
     
     return job_obj

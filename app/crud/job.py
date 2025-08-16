@@ -6,6 +6,7 @@ from app.crud.base import CRUDBase
 from app.models.job import Job, JobStatus, JobType
 from app.models.device import Device
 from app.schemas.job import JobCreate
+from app.utils.aws_iot_jobs import iot_jobs_service
 import uuid
 from datetime import datetime
 
@@ -125,5 +126,41 @@ class CRUDJob(CRUDBase[Job, JobCreate, None]):
             .all()
         )
         return archivable_jobs
+    
+
+    def sync_job_status(self, db: Session, job_obj: Job) -> Job:
+        """
+        Sync job status with AWS IoT if the job is not in a terminal state
+        """
+        if job_obj.status not in [JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.TIMED_OUT, JobStatus.CANCELED, JobStatus.ARCHIVED]:
+            # Get current status from AWS
+            device_obj = db.query(Device).filter(Device.device_id == job_obj.device_id).first()
+            if device_obj and device_obj.thing_name:
+                aws_status = iot_jobs_service.get_job_execution_status(
+                    job_id=job_obj.job_id,
+                    thing_name=device_obj.thing_name
+                )
+                
+                if aws_status:
+                    # Map AWS status to our status enum
+                    status_mapping = {
+                        "QUEUED": JobStatus.QUEUED,
+                        "IN_PROGRESS": JobStatus.IN_PROGRESS,
+                        "SUCCEEDED": JobStatus.SUCCEEDED,
+                        "FAILED": JobStatus.FAILED,
+                        "TIMED_OUT": JobStatus.TIMED_OUT,
+                        "CANCELED": JobStatus.CANCELED
+                    }
+                    
+                    new_status = status_mapping.get(aws_status["status"])
+                    if new_status and new_status != job_obj.status:
+                        job_obj = self.update_status(
+                            db,
+                            job_id=job_obj.job_id,
+                            status=new_status,
+                            status_details=aws_status.get("status_details")
+                        )
+        
+        return job_obj
 
 job = CRUDJob(Job)

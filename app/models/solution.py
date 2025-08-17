@@ -17,7 +17,7 @@ class Solution(Base):
     solution_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    version = Column(String, nullable=False)
+    version = Column(String, nullable=True)
     compatibility = Column(JSON, nullable=False)  # Array of compatible device types
     configuration_template = Column(JSON, nullable=True) # Common configuration accoss all devies running the solution
     status = Column(Enum(SolutionStatus), nullable=False, default=SolutionStatus.ACTIVE)

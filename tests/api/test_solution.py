@@ -28,7 +28,6 @@ def test_get_all_solutions_admin(client: TestClient, admin_token: str):
     assert "solution_id" in solution
     assert "name" in solution
     assert "compatibility" in solution
-    assert "version" in solution
 
 def test_get_all_solutions_engineer(client: TestClient, engineer_token: str):
     """Test engineer getting all solutions"""
@@ -144,7 +143,6 @@ def test_create_solution_admin(client: TestClient, db: Session, admin_token: str
     solution_data = {
         "name": "New Test Solution",
         "description": "A new test solution for testing",
-        "version": "1.0.0",
         "compatibility": ["NVIDIA_JETSON", "RASPBERRY_PI"],
         "status": "ACTIVE",
         "configuration_template": {"param1": "default1", "param2": "default2"}
@@ -160,14 +158,12 @@ def test_create_solution_admin(client: TestClient, db: Session, admin_token: str
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == solution_data["name"]
-    assert data["version"] == solution_data["version"]
     assert "solution_id" in data
     
     # Verify solution was created in database
     db.expire_all()
     created_solution = db.query(Solution).filter(Solution.name == solution_data["name"]).first()
     assert created_solution is not None
-    assert created_solution.version == solution_data["version"]
     
     # Verify audit log
     audit_log = db.query(AuditLog).filter(
@@ -184,7 +180,6 @@ def test_create_solution_existing_name(client: TestClient, admin_token: str, db:
     solution_data = {
         "name": existing_solution.name,  # Already exists
         "description": "A duplicate solution",
-        "version": "1.0.0",
         "compatibility": ["NVIDIA_JETSON"],
         "status": "ACTIVE"
     }
@@ -208,7 +203,6 @@ def test_create_solution_invalid_device_type(client: TestClient, admin_token: st
     solution_data = {
         "name": "Invalid Device Type Solution",
         "description": "A solution with invalid device type",
-        "version": "1.0.0",
         "compatibility": ["INVALID_DEVICE_TYPE"],
         "status": "ACTIVE"
     }
@@ -233,7 +227,6 @@ def test_create_solution_non_admin(client: TestClient, customer_admin_token: str
     solution_data = {
         "name": "Unauthorized Solution",
         "description": "A solution from unauthorized user",
-        "version": "1.0.0",
         "compatibility": ["NVIDIA_JETSON"],
         "status": "ACTIVE"
     }
@@ -325,7 +318,6 @@ def test_update_solution_admin(client: TestClient, db: Session, admin_token: str
     update_data = {
         "name": "Updated Test Solution",
         "description": "An updated test solution",
-        "version": "1.1.0"
     }
     
     response = client.put(
@@ -338,13 +330,11 @@ def test_update_solution_admin(client: TestClient, db: Session, admin_token: str
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == update_data["name"]
-    assert data["version"] == update_data["version"]
     
     # Verify database updates
     db.expire_all()
     updated_solution = db.query(Solution).filter(Solution.solution_id == solution.solution_id).first()
     assert updated_solution.name == update_data["name"]
-    assert updated_solution.version == update_data["version"]
     
     # Verify audit log
     audit_log = db.query(AuditLog).filter(
@@ -637,7 +627,6 @@ def test_get_available_customers(client: TestClient, admin_token: str, customer:
     new_solution_data = {
         "name": "Unassigned Solution",
         "description": "A solution not assigned to any customer",
-        "version": "1.0.0",
         "compatibility": ["NVIDIA_JETSON", "RASPBERRY_PI"],
         "status": "ACTIVE"
     }
@@ -717,7 +706,6 @@ def test_get_assigned_customers(client: TestClient, admin_token: str, customer: 
     new_solution_data = {
         "name": "Unassigned Solution 2",
         "description": "A solution not assigned to any customer",
-        "version": "1.0.0",
         "compatibility": ["NVIDIA_JETSON", "RASPBERRY_PI"],
         "status": "ACTIVE"
     }

@@ -152,7 +152,7 @@ def create_solution(
         action_type="SOLUTION_CREATE",
         resource_type="SOLUTION",
         resource_id=str(new_solution.solution_id),
-        details={"name": new_solution.name, "version": new_solution.version},
+        details={"name": new_solution.name},
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
     )

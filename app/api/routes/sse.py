@@ -156,7 +156,8 @@ async def job_status_stream(
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    SSE endpoint for real-time job status updates
+    SSE endpoint for real-time job status updates.
+    The stream will proactively sync with AWS IoT to ensure status updates.
     """
     db_job = crud_job.get_by_job_id(db, job_id=job_id)
     if not db_job:
@@ -192,15 +193,49 @@ async def job_status_stream(
             }
             yield f"data: {json.dumps(initial_data)}\n\n"
 
-            while True:
+            # Set a timeout for the entire stream
+            timeout_time = datetime.now(ZoneInfo("Asia/Tokyo")) + timedelta(minutes=30)
+            
+            while datetime.now(ZoneInfo("Asia/Tokyo")) < timeout_time:
                 try:
+                    # Wait for update with a 30-second timeout.
+                    # This allows the loop to periodically check AWS.
                     update_data = await asyncio.wait_for(connection_queue.get(), timeout=30.0)
                     yield f"data: {json.dumps(update_data)}\n\n"
+                    
                     if update_data.get("status") in [JobStatus.SUCCEEDED.value, JobStatus.FAILED.value, JobStatus.TIMED_OUT.value, JobStatus.CANCELED.value, JobStatus.ARCHIVED.value]:
                         break
+                
                 except asyncio.TimeoutError:
+                    # Check for updates from AWS in case the queue is empty
+                    synced_job = crud_job.sync_job_status(db, db_job)
+                    # If status has changed to terminal, send it and break
+                    if synced_job.status.value != db_job.status.value and synced_job.status.value in [JobStatus.SUCCEEDED.value, JobStatus.FAILED.value, JobStatus.TIMED_OUT.value, JobStatus.CANCELED.value, JobStatus.ARCHIVED.value]:
+                        data = {
+                            "status": synced_job.status.value,
+                            "completed_at": synced_job.completed_at.isoformat() if synced_job.completed_at else None,
+                            "error_message": synced_job.error_message,
+                            "status_details": synced_job.status_details,
+                            "progress_percentage": 100,
+                        }
+                        yield f"data: {json.dumps(data)}\n\n"
+                        break
+                    elif synced_job.status.value != db_job.status.value:
+                        # If status has changed but not terminal, send the update
+                        data = {
+                            "status": synced_job.status.value,
+                            "status_details": synced_job.status_details,
+                        }
+                        yield f"data: {json.dumps(data)}\n\n"
+                    
+                    # Otherwise, just send a heartbeat
                     yield f"data: {json.dumps({'heartbeat': True})}\n\n"
                     continue
+            
+            # If the loop breaks due to timeout, notify the client
+            if datetime.now(ZoneInfo("Asia/Tokyo")) >= timeout_time:
+                yield f"data: {json.dumps({"error": "Stream timed out due to no activity."})}\n\n"
+
         except Exception as e:
             logger.error(f"Error in SSE stream for job {job_id}: {str(e)}")
         finally:

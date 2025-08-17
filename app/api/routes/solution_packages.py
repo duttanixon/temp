@@ -2,6 +2,7 @@
 from typing import Any, Dict, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, BackgroundTasks, status
 from sqlalchemy.orm import Session
+from app.db.session import SessionLocal
 import uuid
 import os
 from datetime import datetime, timedelta
@@ -770,7 +771,6 @@ async def deploy_solution_package(
     
     # Inner function for the background task
     def create_deployment_jobs_task(
-        db_session: Session,
         package: SolutionPackage,
         target_device_ids: List[uuid.UUID],
         job_doc: Dict[str, Any],
@@ -780,67 +780,75 @@ async def deploy_solution_package(
     ):
         logger.info(f"Background task started: Creating deployment jobs for package {package.package_id} on {len(target_device_ids)} devices.")
         success_count = 0
-        for device_id in target_device_ids:
-            try:
-                db_device = device.get_by_id(db_session, device_id=device_id)
-                if not db_device:
-                    logger.warning(f"Device {device_id} not found. Skipping job creation.")
-                    continue
-                
-                check_device_access(user, db_device, action="deploy packages to")
-                thing_name = validate_device_for_commands(db_device)
+        db_session = SessionLocal()
+        try:
+            for device_id in target_device_ids:
+                try:
+                    db_device = device.get_by_id(db_session, device_id=device_id)
+                    if not db_device:
+                        logger.warning(f"Device {device_id} not found. Skipping job creation.")
+                        continue
+                    
+                    check_device_access(user, db_device, action="deploy packages to")
+                    thing_name = validate_device_for_commands(db_device)
 
-                # Create the IoT Job using the iot_jobs_service
-                aws_job_info = iot_jobs_service.create_package_deployment_job(
-                    job_id_prefix=f"deploy-package-{package.name.replace(' ', '-')}-{package.version.replace('.', '-')}",
-                    targets=[f"arn:aws:iot:{settings.AWS_REGION}:{settings.AWS_ACCOUNT_ID}:thing/{thing_name}"],
-                    document=job_doc,
-                    target_selection='SNAPSHOT',
-                    description=f"Deploy package {package.name} v{package.version} to {thing_name}"
-                )
+                    # Create the IoT Job using the iot_jobs_service
+                    aws_job_info = iot_jobs_service.create_package_deployment_job(
+                        job_id_prefix=f"deploy-package-{package.name.replace(' ', '-')}-{package.version.replace('.', '-')}",
+                        targets=[f"arn:aws:iot:{settings.AWS_REGION}:{settings.AWS_ACCOUNT_ID}:thing/{thing_name}"],
+                        document=job_doc,
+                        target_selection='SNAPSHOT',
+                        description=f"Deploy package {package.name} v{package.version} to {thing_name}"
+                    )
 
-                # Record job in our database
-                job_create_schema = JobCreate(
-                    device_id=device_id,
-                    job_type=JobType.PACKAGE_DEPLOYMENT,
-                    parameters={
-                        "package_id": str(package.package_id),
-                        "package_name": package.name,
-                        "package_version": package.version,
-                        "job_document_steps": job_doc["steps"] # Store the steps for audit
-                    }
-                )
-                db_job = job.create_with_device_update(
-                    db_session, obj_in=job_create_schema, job_id=aws_job_info["job_id"], user_id=user.user_id
-                )
-                db_job.aws_job_arn = aws_job_info.get("job_arn")
-                db_session.add(db_job)
-                db_session.commit()
+                    # Record job in our database
+                    job_create_schema = JobCreate(
+                        device_id=device_id,
+                        job_type=JobType.PACKAGE_DEPLOYMENT,
+                        parameters={
+                            "package_id": str(package.package_id),
+                            "package_name": package.name,
+                            "package_version": package.version,
+                            "job_document_steps": job_doc["steps"] # Store the steps for audit
+                        }
+                    )
+                    db_job = job.create_with_device_update(
+                        db_session, obj_in=job_create_schema, job_id=aws_job_info["job_id"], user_id=user.user_id
+                    )
+                    db_job.aws_job_arn = aws_job_info.get("job_arn")
+                    db_session.add(db_job)
+                    db_session.commit()
 
-                log_action(
-                    db=db_session, user_id=user.user_id, action_type=AuditLogActionType.JOB_CREATE,
-                    resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
-                    details={
-                        "job_id": db_job.job_id,
-                        "job_type": "PACKAGE_DEPLOYMENT",
-                        "device_id": str(device_id),
-                        "device_name": db_device.name,
-                        "package_id": str(package.package_id),
-                        "package_name": package.name,
-                        "package_version": package.version
-                    },
-                    ip_address=ip, user_agent=ua
-                )
-                success_count += 1
-            except Exception as e:
-                logger.error(f"Failed to create deployment job for device {device_id} and package {package.package_id}: {e}")
-                db_session.rollback() # Rollback session on error for this device
+                    log_action(
+                        db=db_session, user_id=user.user_id, action_type=AuditLogActionType.JOB_CREATE,
+                        resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
+                        details={
+                            "job_id": db_job.job_id,
+                            "job_type": "PACKAGE_DEPLOYMENT",
+                            "device_id": str(device_id),
+                            "device_name": db_device.name,
+                            "package_id": str(package.package_id),
+                            "package_name": package.name,
+                            "package_version": package.version
+                        },
+                        ip_address=ip, user_agent=ua
+                    )
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to create deployment job for device {device_id} and package {package.package_id}: {e}")
+                    db_session.rollback() # Rollback session on error for this device
+        except Exception as e:
+            db_session.rollback()
+            logger.error(f"Error in deployment task: {e}")
+            raise
+        finally:
+            # Always close the session
+            db_session.close()
         logger.info(f"Background task finished: Successfully initiated {success_count}/{len(target_device_ids)} deployment jobs.")
 
     # Add the deployment task to background tasks
     background_tasks.add_task(
         create_deployment_jobs_task,
-        db_session=db, # Pass the session to the background task
         package=db_package,
         target_device_ids=deploy_request.device_ids,
         job_doc=job_document,

@@ -37,7 +37,6 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
                 Device,
                 Customer.name.label("customer_name"),
                 Solution.name.label("solution_name"),
-                Solution.version.label("solution_version"),
                 Job.job_type.label("latest_job_type"),
                 Job.status.label("latest_job_status"),
             )
@@ -59,10 +58,9 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         
         processed_devices = []
         for row in results:
-            device, customer_name, solution_name, solution_version, latest_job_type, latest_job_status = row
+            device, customer_name, solution_name, latest_job_type, latest_job_status = row
             setattr(device, "customer_name", customer_name)
             setattr(device, "solution_name", solution_name)
-            setattr(device, "solution_version", solution_version)
             setattr(device, "latest_job_type", latest_job_type)
             setattr(device, "latest_job_status", latest_job_status)
             processed_devices.append(device)
@@ -79,7 +77,6 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
                 Device,
                 Customer.name.label("customer_name"),
                 Solution.name.label("solution_name"),
-                Solution.version.label("solution_version"),
                 Job.job_type.label("latest_job_type"),
                 Job.status.label("latest_job_status"),
             )
@@ -99,10 +96,9 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
 
         processed_devices = []
         for row in results:
-            device, customer_name, solution_name, solution_version, latest_job_type, latest_job_status = row
+            device, customer_name, solution_name, latest_job_type, latest_job_status = row
             setattr(device, "customer_name", customer_name)
             setattr(device, "solution_name", solution_name)
-            setattr(device, "solution_version", solution_version)
             setattr(device, "latest_job_type", latest_job_type)
             setattr(device, "latest_job_status", latest_job_status)
             processed_devices.append(device)

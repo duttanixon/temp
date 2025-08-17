@@ -10,7 +10,7 @@ from app.models import SolutionStatus, DeviceType
 class SolutionBase(BaseModel):
     name: str
     description: Optional[str] = None
-    version: str
+    # version: Optional[str] = None
     compatibility: List[DeviceType]  # List of device types (e.g., ["NVIDIA_JETSON", "RASPBERRY_PI"])
     configuration_template: Optional[Dict[str, Any]] = None
     status: Optional[SolutionStatus] = SolutionStatus.ACTIVE

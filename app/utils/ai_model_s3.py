@@ -9,6 +9,7 @@ from app.utils.logger import get_logger
 import json
 # import redis
 from contextlib import contextmanager
+from zoneinfo import ZoneInfo
 
 logger = get_logger("utils.ai_model_s3")
 
@@ -97,9 +98,10 @@ class AIModelS3Manager:
             accelerator_type=accelerator_type,
             file_extension=file_extension
         )
-        expiration_time = datetime.now() + timedelta(seconds=expires_in)
+        expiration_time = datetime.now(ZoneInfo("Asia/Tokyo")) + timedelta(seconds=expires_in)
         
         try:
+            upload_timestamp = datetime.now(ZoneInfo("Asia/Tokyo")).isoformat()
             # Content type mapping
             content_types = {
                 '.tar.gz': 'application/gzip',
@@ -124,7 +126,9 @@ class AIModelS3Manager:
                 {"x-amz-meta-model-name": model_name},
                 {"x-amz-meta-model-version": version},
                 {"x-amz-meta-uploaded-by": uploaded_by},
-                {"x-amz-server-side-encryption": "AES256"}
+                {"x-amz-server-side-encryption": "AES256"},
+                {"x-amz-meta-upload-timestamp": upload_timestamp},
+                {"Content-Type": content_type}
             ]
             
             # Fields to include in the upload
@@ -134,7 +138,7 @@ class AIModelS3Manager:
                 "x-amz-meta-model-name": model_name,
                 "x-amz-meta-model-version": version,
                 "x-amz-meta-uploaded-by": uploaded_by,
-                "x-amz-meta-upload-timestamp": datetime.now().isoformat(),
+                "x-amz-meta-upload-timestamp": upload_timestamp,
                 "x-amz-server-side-encryption": "AES256"
             }
             

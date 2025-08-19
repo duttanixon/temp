@@ -9,7 +9,6 @@ from app.schemas.device import (
     DeviceCreate,
     DeviceProvisionResponse,
     DeviceUpdate,
-    DeviceAdminView,
     DeviceDetailView,
     DeviceStatusInfo,
     DeviceBatchStatusRequest

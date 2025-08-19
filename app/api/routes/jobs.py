@@ -2,6 +2,7 @@
 from typing import Any, List, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Query
 from sqlalchemy.orm import Session
+from app.db.session import SessionLocal
 from app.api import deps
 from app.crud import job, device
 from app.models import User, Job, JobStatus, JobType
@@ -77,81 +78,89 @@ def sync_job_status(db: Session, job_obj: Job) -> Job:
     return job_obj
 
 def create_restart_jobs_task(
-    db: Session, job_in: RestartApplicationJob, current_user: User, ip_address: str, user_agent: str
+    job_in: RestartApplicationJob, current_user: User, ip_address: str, user_agent: str
 ):
     """Background task to create multiple restart application jobs."""
     logger.info(f"Background task started: Creating restart jobs for {len(job_in.device_ids)} devices.")
     success_count = 0
-    for device_id in job_in.device_ids:
-        try:
-            db_device = device.get_by_id(db, device_id=device_id)
-            check_device_access(current_user, db_device, action="create jobs for")
-            thing_name = validate_device_for_commands(db_device)
-            
-            aws_job_info = iot_jobs_service.create_restart_application_job(
-                thing_name=thing_name, services=job_in.services,
-                path_to_handler=job_in.path_to_handler, run_as_user=job_in.run_as_user
-            )
-            job_create = JobCreate(
-                device_id=device_id, job_type=JobType.RESTART_APPLICATION,
-                parameters={"services": job_in.services, "path_to_handler": job_in.path_to_handler, "run_as_user": job_in.run_as_user}
-            )
-            db_job = job.create_with_device_update(
-                db, obj_in=job_create, job_id=aws_job_info["job_id"], user_id=current_user.user_id
-            )
-            db_job.aws_job_arn = aws_job_info.get("job_arn")
-            db.add(db_job)
-            db.commit()
+    db = SessionLocal()
+    try:
+        for device_id in job_in.device_ids:
+            try:
+                db_device = device.get_by_id(db, device_id=device_id)
+                check_device_access(current_user, db_device, action="create jobs for")
+                thing_name = validate_device_for_commands(db_device)
+                
+                aws_job_info = iot_jobs_service.create_restart_application_job(
+                    thing_name=thing_name, services=job_in.services,
+                    path_to_handler=job_in.path_to_handler, run_as_user=job_in.run_as_user
+                )
+                job_create = JobCreate(
+                    device_id=device_id, job_type=JobType.RESTART_APPLICATION,
+                    parameters={"services": job_in.services, "path_to_handler": job_in.path_to_handler, "run_as_user": job_in.run_as_user}
+                )
+                db_job = job.create_with_device_update(
+                    db, obj_in=job_create, job_id=aws_job_info["job_id"], user_id=current_user.user_id
+                )
+                db_job.aws_job_arn = aws_job_info.get("job_arn")
+                db.add(db_job)
+                db.commit()
 
-            log_action(
-                db=db, user_id=current_user.user_id, action_type=AuditLogActionType.JOB_CREATE,
-                resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
-                details={"job_id": db_job.job_id, "job_type": "RESTART_APPLICATION", "device_id": str(device_id), "device_name": db_device.name},
-                ip_address=ip_address, user_agent=user_agent
-            )
-            success_count += 1
-        except Exception as e:
-            logger.error(f"Failed to create restart job for device {device_id}: {e}")
-            db.rollback() # Rollback session on error for this device
+                log_action(
+                    db=db, user_id=current_user.user_id, action_type=AuditLogActionType.JOB_CREATE,
+                    resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
+                    details={"job_id": db_job.job_id, "job_type": "RESTART_APPLICATION", "device_id": str(device_id), "device_name": db_device.name},
+                    ip_address=ip_address, user_agent=user_agent
+                )
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Failed to create restart job for device {device_id}: {e}")
+                db.rollback() # Rollback session on error for this device
+    finally:
+        db.close()
     logger.info(f"Background task finished: Successfully created {success_count}/{len(job_in.device_ids)} restart jobs.")
 
 
 def create_reboot_jobs_task(
-    db: Session, job_in: RebootDeviceJob, current_user: User, ip_address: str, user_agent: str
+    job_in: RebootDeviceJob, current_user: User, ip_address: str, user_agent: str
 ):
     """Background task to create multiple reboot device jobs."""
     logger.info(f"Background task started: Creating reboot jobs for {len(job_in.device_ids)} devices.")
     success_count = 0
-    for device_id in job_in.device_ids:
-        try:
-            db_device = device.get_by_id(db, device_id=device_id)
-            check_device_access(current_user, db_device, action="create jobs for")
-            thing_name = validate_device_for_commands(db_device)
-            
-            aws_job_info = iot_jobs_service.create_reboot_device_job(
-                thing_name=thing_name, path_to_handler=job_in.path_to_handler, run_as_user=job_in.run_as_user
-            )
-            job_create = JobCreate(
-                device_id=device_id, job_type=JobType.REBOOT_DEVICE,
-                parameters={"path_to_handler": job_in.path_to_handler, "run_as_user": job_in.run_as_user}
-            )
-            db_job = job.create_with_device_update(
-                db, obj_in=job_create, job_id=aws_job_info["job_id"], user_id=current_user.user_id
-            )
-            db_job.aws_job_arn = aws_job_info.get("job_arn")
-            db.add(db_job)
-            db.commit()
+    db = SessionLocal()
+    try:
+        for device_id in job_in.device_ids:
+            try:
+                db_device = device.get_by_id(db, device_id=device_id)
+                check_device_access(current_user, db_device, action="create jobs for")
+                thing_name = validate_device_for_commands(db_device)
+                
+                aws_job_info = iot_jobs_service.create_reboot_device_job(
+                    thing_name=thing_name, path_to_handler=job_in.path_to_handler, run_as_user=job_in.run_as_user
+                )
+                job_create = JobCreate(
+                    device_id=device_id, job_type=JobType.REBOOT_DEVICE,
+                    parameters={"path_to_handler": job_in.path_to_handler, "run_as_user": job_in.run_as_user}
+                )
+                db_job = job.create_with_device_update(
+                    db, obj_in=job_create, job_id=aws_job_info["job_id"], user_id=current_user.user_id
+                )
+                db_job.aws_job_arn = aws_job_info.get("job_arn")
+                db.add(db_job)
+                db.commit()
 
-            log_action(
-                db=db, user_id=current_user.user_id, action_type=AuditLogActionType.JOB_CREATE,
-                resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
-                details={"job_id": db_job.job_id, "job_type": "REBOOT_DEVICE", "device_id": str(device_id), "device_name": db_device.name},
-                ip_address=ip_address, user_agent=user_agent
-            )
-            success_count += 1
-        except Exception as e:
-            logger.error(f"Failed to create reboot job for device {device_id}: {e}")
-            db.rollback() # Rollback session on error for this device
+                log_action(
+                    db=db, user_id=current_user.user_id, action_type=AuditLogActionType.JOB_CREATE,
+                    resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
+                    details={"job_id": db_job.job_id, "job_type": "REBOOT_DEVICE", "device_id": str(device_id), "device_name": db_device.name},
+                    ip_address=ip_address, user_agent=user_agent
+                )
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Failed to create reboot job for device {device_id}: {e}")
+                db.rollback() # Rollback session on error for this device
+    finally:
+        db.close()
     logger.info(f"Background task finished: Successfully created {success_count}/{len(job_in.device_ids)} reboot jobs.")
 
 
@@ -170,7 +179,6 @@ def create_restart_application_job(
     """
     background_tasks.add_task(
         create_restart_jobs_task,
-        db=db,
         job_in=job_in,
         current_user=current_user,
         ip_address=request.client.host,
@@ -197,7 +205,6 @@ def create_reboot_device_job(
     """
     background_tasks.add_task(
         create_reboot_jobs_task,
-        db=db,
         job_in=job_in,
         current_user=current_user,
         ip_address=request.client.host,

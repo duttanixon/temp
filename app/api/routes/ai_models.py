@@ -14,13 +14,11 @@ from app.schemas.ai_model import (
     AIModelCreate,
     AIModelUpdate,
     AIModelListResponse,
-    AIModelBasic,
     UploadInitRequest,
     UploadInitResponse,
     UploadCompleteRequest,
     UploadVerifyRequest,
     UploadVerifyResponse,
-    UploadCancelRequest,
     ModelDownloadUrlResponse
 )
 from app.models.ai_model import AIModelStatus
@@ -368,12 +366,8 @@ def get_model_download_url(
         )
     
     # Generate download URL with custom filename
-    filename = f"{db_model.name}_v{db_model.version}".replace(" ", "_")
-    # Infer extension from S3 key
-    if "." in db_model.s3_key:
-        extension = "." + ".".join(db_model.s3_key.split(".")[1:])
-        filename += extension
-    
+    filename = db_model.s3_key.split('/')[-1]
+
     download_url = ai_model_s3_manager.generate_download_url(
         s3_key=db_model.s3_key,
         expires_in=expires_in,

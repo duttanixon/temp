@@ -53,7 +53,7 @@ class SolutionPackageBasic(BaseModel):
 # Upload schemas
 class PackageUploadInitRequest(BaseModel):
     """Request to initiate package upload"""
-    solution_id: UUID = Field(..., description="Solution ID this package belongs to")
+    solution_name: str = Field(..., description="Solution name this package belongs to")
     name: str = Field(..., min_length=1, max_length=255, description="Package name")
     version: str = Field(..., min_length=1, max_length=50, description="Package version (e.g., 1.0.0)")
     description: Optional[str] = Field(None, max_length=1000, description="Package description")

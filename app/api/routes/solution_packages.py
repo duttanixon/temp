@@ -73,11 +73,11 @@ async def initiate_package_upload(
         )
     
     # Check if solution exists
-    db_solution = solution.get_by_id(db, solution_id=upload_request.solution_id)
+    db_solution = solution.get_by_name(db, name=upload_request.solution_name)
     if not db_solution:
         raise HTTPException(
             status_code=404,
-            detail=f"Solution with ID {upload_request.solution_id} not found"
+            detail=f"Solution with name {upload_request.solution_name} not found"
         )
     
     # Check if package with same name and version already exists for this solution
@@ -85,7 +85,7 @@ async def initiate_package_upload(
         db, 
         name=upload_request.name, 
         version=upload_request.version,
-        solution_id=upload_request.solution_id
+        solution_id=db_solution.solution_id
     )
     if existing_package:
         raise HTTPException(
@@ -96,7 +96,7 @@ async def initiate_package_upload(
     # Generate presigned upload URL
     try:
         upload_info = solution_package_s3_manager.generate_presigned_upload(
-            solution_id=str(upload_request.solution_id),
+            solution_id=str(db_solution.solution_id),
             solution_name=str(db_solution.name),
             package_name=upload_request.name,
             version=upload_request.version,
@@ -116,7 +116,7 @@ async def initiate_package_upload(
             resource_id=upload_info["upload_id"],
             details={
                 "action": "upload_initiated",
-                "solution_id": str(upload_request.solution_id),
+                "solution_name": str(db_solution.name),
                 "package_name": upload_request.name,
                 "version": upload_request.version,
                 "file_size": upload_request.file_size

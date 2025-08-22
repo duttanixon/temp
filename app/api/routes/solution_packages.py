@@ -40,6 +40,34 @@ logger = get_logger("api.solution_packages")
 router = APIRouter()
 
 
+# Helper function to generate package name based on solution name and device type
+def _generate_package_name(solution_name: str, device_type: str) -> str:
+    """Generates a package name in the format solution_name-device_type-package."""
+    clean_solution_name = solution_name.lower().replace(" ", "_").replace("-", "_")
+    clean_device_type = device_type.lower().replace(" ", "_").replace("-", "_")
+    return f"{clean_solution_name}-{clean_device_type}-package"
+
+# Helper function to handle version bumping
+def _bump_version(version: str, major: bool, minor: bool, patch: bool) -> str:
+    """Increments the version based on the specified booleans."""
+    try:
+        parts = version.split('.')
+        current_major, current_minor, current_patch = int(parts[0]), int(parts[1]), int(parts[2])
+    except (ValueError, IndexError):
+        return "1.0.0"
+
+    if major:
+        current_major += 1
+        current_minor = 0
+        current_patch = 0
+    elif minor:
+        current_minor += 1
+        current_patch = 0
+    elif patch:
+        current_patch += 1
+    
+    return f"{current_major}.{current_minor}.{current_patch}"
+
 # ============================================================================
 # DIRECT UPLOAD ENDPOINTS
 # ============================================================================
@@ -80,17 +108,40 @@ async def initiate_package_upload(
             detail=f"Solution with name {upload_request.solution_name} not found"
         )
     
-    # Check if package with same name and version already exists for this solution
+    # Generate package name based on solution name and device type
+    package_name = _generate_package_name(upload_request.solution_name, upload_request.device_type)
+
+    # Get the latest version of the package
+    latest_package = solution_package.get_latest_by_name_and_solution(
+        db, 
+        name=package_name, 
+        solution_id=db_solution.solution_id
+    )
+
+    if latest_package:
+        # Bump the version
+        new_version = _bump_version(
+            latest_package.version,
+            upload_request.major,
+            upload_request.minor,
+            upload_request.patch
+        )
+    else:
+        # First upload, start at 1.0.0
+        new_version = "1.0.0"
+
+
+    # Check for duplicate packages (in case of a race condition)
     existing_package = solution_package.get_by_name_and_version(
         db, 
-        name=upload_request.name, 
-        version=upload_request.version,
+        name=package_name, 
+        version=new_version,
         solution_id=db_solution.solution_id
     )
     if existing_package:
         raise HTTPException(
             status_code=400,
-            detail=f"Package '{upload_request.name}' version '{upload_request.version}' already exists for this solution"
+            detail=f"Package '{package_name}' version '{new_version}' already exists for this solution"
         )
     
     # Generate presigned upload URL
@@ -98,8 +149,8 @@ async def initiate_package_upload(
         upload_info = solution_package_s3_manager.generate_presigned_upload(
             solution_id=str(db_solution.solution_id),
             solution_name=str(db_solution.name),
-            package_name=upload_request.name,
-            version=upload_request.version,
+            package_name=package_name,
+            version=new_version,
             device_type=upload_request.device_type,
             accelarator_type=upload_request.accelarator_type,
             file_extension=upload_request.file_extension,
@@ -117,8 +168,8 @@ async def initiate_package_upload(
             details={
                 "action": "upload_initiated",
                 "solution_name": str(db_solution.name),
-                "package_name": upload_request.name,
-                "version": upload_request.version,
+                "package_name": package_name,
+                "version": new_version,
                 "file_size": upload_request.file_size
             },
             ip_address=request.client.host,
@@ -126,8 +177,7 @@ async def initiate_package_upload(
         )
         
         logger.info(
-            f"CI/CD system initiated package upload for "
-            f"{upload_request.name} v{upload_request.version}"
+            f"CI/CD system initiated package upload for {package_name} v{new_version}"
         )
         
         # Schedule cleanup of expired uploads

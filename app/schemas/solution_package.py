@@ -76,7 +76,7 @@ class PackageUploadInitResponse(BaseModel):
 class PackageUploadCompleteRequest(BaseModel):
     """Request to complete the upload and create package record"""
     upload_id: str = Field(..., description="Upload ID from init response")
-    s3_key: str = Field(..., description="S3 key where file was uploaded")
+    s3_key: str = Field(..., min_length=1, description="S3 key where file was uploaded")
     solution_name: str = Field(..., min_length=1, max_length=255, description="Solution name")
     name: str = Field(..., min_length=1, max_length=255, description="Package name")
     version: str = Field(..., min_length=1, max_length=50, description="Package version")

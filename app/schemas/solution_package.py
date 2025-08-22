@@ -54,21 +54,14 @@ class SolutionPackageBasic(BaseModel):
 class PackageUploadInitRequest(BaseModel):
     """Request to initiate package upload"""
     solution_name: str = Field(..., description="Solution name this package belongs to")
-    name: str = Field(..., min_length=1, max_length=255, description="Package name")
-    version: str = Field(..., min_length=1, max_length=50, description="Package version (e.g., 1.0.0)")
     description: Optional[str] = Field(None, max_length=1000, description="Package description")
     file_extension: str = Field(..., pattern=r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)?$", description="File extension (e.g., .tar.gz, .zip)")
     file_size: int = Field(..., gt=0, le=1*1024*1024*1024, description="File size in bytes (max 1GB)")
     device_type: str = Field(..., description="Target platform (e.g., linux/amd64, linux/arm64), raspberry pi, etc.")
     accelarator_type: str = Field(..., description="Accelerator type (e.g., nvidia, amd)")
-    
-    @field_validator('version')
-    @classmethod
-    def validate_version(cls, v):
-        """Validate semantic versioning format"""
-        if not re.match(r'^\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?$', v):
-            raise ValueError('Version must follow semantic versioning (e.g., 1.0.0, 2.1.3-beta)')
-        return v
+    major: bool = Field(default=False, description="Increment major version")
+    minor: bool = Field(default=False, description="Increment minor version")
+    patch: bool = Field(default=True, description="Increment patch version")
 
 
 class PackageUploadInitResponse(BaseModel):

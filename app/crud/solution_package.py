@@ -26,6 +26,29 @@ class CRUDSolutionPackage(CRUDBase[SolutionPackage, SolutionPackageCreate, Solut
             SolutionPackage.version == version,
             SolutionPackage.solution_id == solution_id
         ).first()
+
+    def get_latest_by_name_and_solution(self, db: Session, *, name: str, solution_id: uuid.UUID) -> Optional[SolutionPackage]:
+        """
+        Get the latest version of a specific package by name and solution ID based on semantic versioning.
+        """
+        packages = db.query(SolutionPackage).filter(
+            SolutionPackage.name == name,
+            SolutionPackage.solution_id == solution_id
+        ).all()
+
+        if not packages:
+            return None
+
+        # Custom logic to find the latest version based on semantic versioning
+        def parse_version(version_str):
+            # Extract major, minor, patch numbers from the version string
+            match = re.match(r'(\d+)\.(\d+)\.(\d+)', version_str)
+            if match:
+                return [int(x) for x in match.groups()]
+            return [0, 0, 0]
+
+        latest_package = max(packages, key=lambda p: parse_version(p.version))
+        return latest_package
     
     def get_by_solution(
         self, db: Session, *, solution_id: uuid.UUID, skip: int = 0, limit: int = 100

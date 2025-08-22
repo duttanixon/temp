@@ -77,7 +77,6 @@ class UploadInitRequest(BaseModel):
     """Request to initiate a model upload"""
     name: str = Field(..., min_length=1, max_length=255, description="Name of the AI model")
     version: str = Field(..., min_length=1, max_length=50, description="Version of the model")
-    description: Optional[str] = Field(None, max_length=1000, description="Description of the model")
     status: Optional[AIModelStatus] = Field(AIModelStatus.IN_TESTING, description="Initial status")
     file_extension: str = Field(..., pattern=r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)?$", description="File extension (e.g., .tar.gz, .h5)")
     file_size: int = Field(..., gt=0, le=1*1024*1024*1024, description="File size in bytes (max 1GB)")

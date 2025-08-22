@@ -7,6 +7,7 @@ from app.models.solution_package import SolutionPackage
 from app.models.solution_package_model import SolutionPackageModel
 from app.schemas.solution_package import SolutionPackageCreate, SolutionPackageUpdate
 import uuid
+import re
 from datetime import datetime
 
 class CRUDSolutionPackage(CRUDBase[SolutionPackage, SolutionPackageCreate, SolutionPackageUpdate]):

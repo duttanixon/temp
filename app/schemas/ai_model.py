@@ -107,19 +107,22 @@ class UploadCompleteRequest(BaseModel):
     file_size: int = Field(..., gt=0, description="Actual file size uploaded")
 
 
-class UploadVerifyRequest(BaseModel):
-    """Request to verify an upload"""
-    upload_id: str = Field(..., description="Upload ID from init response")
-    s3_key: str = Field(..., description="S3 key to verify")
+class BatchUploadVerifyRequest(BaseModel):
+    """Request to verify a batch of uploads"""
+    s3_keys: List[str] = Field(..., description="List of S3 keys to verify")
 
-
-class UploadVerifyResponse(BaseModel):
-    """Response after verifying upload"""
-    upload_id: str
+class ModelVerificationStatus(BaseModel):
+    """Status for a single model verification"""
     s3_key: str
-    file_exists: bool
-    file_size: int
-    last_modified: Optional[datetime]
+    exists: bool
+    size: Optional[int] = None
+    last_modified: Optional[datetime] = None
+
+class BatchUploadVerifyResponse(BaseModel):
+    """Response for a batch upload verification"""
+    overall_status: str = Field(..., description="'SUCCESS' if all models exist, 'FAILED' otherwise")
+    details: List[ModelVerificationStatus]
+
 
 
 class UploadCancelRequest(BaseModel):

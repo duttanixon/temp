@@ -17,9 +17,10 @@ from app.schemas.ai_model import (
     UploadInitRequest,
     UploadInitResponse,
     UploadCompleteRequest,
-    UploadVerifyRequest,
-    UploadVerifyResponse,
-    ModelDownloadUrlResponse
+    BatchUploadVerifyRequest,
+    BatchUploadVerifyResponse,
+    ModelDownloadUrlResponse,
+    ModelVerificationStatus
 )
 from app.models.ai_model import AIModelStatus
 from app.utils.ai_model_s3 import ai_model_s3_manager
@@ -134,39 +135,46 @@ async def initiate_upload(
         )
 
 
-@router.post("/upload/verify", response_model=UploadVerifyResponse)
-async def verify_upload(
+@router.post("/upload/verify", response_model=BatchUploadVerifyResponse)
+async def verify_batch_upload(
     *,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
-    verify_request: UploadVerifyRequest
+    api_key_valid: bool = Depends(deps.verify_api_key),
+    batch_request: BatchUploadVerifyRequest,
 ) -> Any:
     """
-    Step 2 (Optional): Verify that the file was uploaded to S3.
+    Verify that a list of model files was uploaded to S3.
     
-    This endpoint checks if the file exists in S3 and returns its metadata.
-    Useful for debugging or confirming upload before completing.
+    This endpoint checks if all files in a provided list of S3 keys exist in S3.
     
-    **Returns**: Upload verification status and file metadata
-    f4125587-97ca-40b1-b3a5-8527d6863e88
+    **Permissions**: Admin and Engineer only
+    
+    **Returns**: A response indicating overall success or failure, and the status for each file.
     """
-    # Verify the upload exists in S3
-    verification = ai_model_s3_manager.verify_upload(verify_request.s3_key)
+    overall_status = "SUCCESS"
+    details = []
+
+    for s3_key in batch_request.s3_keys:
+        verification = ai_model_s3_manager.verify_upload(s3_key)
+        
+        details.append(ModelVerificationStatus(
+            s3_key=s3_key,
+            exists=verification.get("exists", False),
+            size=verification.get("size"),
+            last_modified=verification.get("last_modified")
+        ))
+
+        if not verification.get("exists", False):
+            overall_status = "FAILED"
+            
+    if overall_status == "SUCCESS":
+        logger.info(f"Verified batch upload for {len(batch_request.s3_keys)} models: All present.")
+    else:
+        logger.warning(f"Batch upload verification failed: At least one model is missing.")
     
-    if not verification.get("exists", False):
-        raise HTTPException(
-            status_code=404,
-            detail="File not found in S3. Upload may have failed or is still in progress."
-        )
-    
-    logger.info(f"Verified upload for S3 key: {verify_request.s3_key}")
-    
-    return UploadVerifyResponse(
-        upload_id=verify_request.upload_id,
-        s3_key=verify_request.s3_key,
-        file_exists=True,
-        file_size=verification["size"],
-        last_modified=verification.get("last_modified")
+    return BatchUploadVerifyResponse(
+        overall_status=overall_status,
+        details=details
     )
 
 

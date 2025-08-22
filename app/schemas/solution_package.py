@@ -1,9 +1,8 @@
 # app/schemas/solution_package.py
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
-import re
 
 
 class SolutionPackageBase(BaseModel):

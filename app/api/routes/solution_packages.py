@@ -844,7 +844,7 @@ async def deploy_solution_package(
 
                     # Create the IoT Job using the iot_jobs_service
                     aws_job_info = iot_jobs_service.create_package_deployment_job(
-                        job_id_prefix=f"deploy-package-{package.name.replace(' ', '-')}-{package.version.replace('.', '-')}",
+                        job_id_prefix=f"deploy-{package.name.replace(' ', '-')[:13]}-{package.version.replace('.', '-')[:13]}",
                         targets=[f"arn:aws:iot:{settings.AWS_REGION}:{settings.AWS_ACCOUNT_ID}:thing/{thing_name}"],
                         document=job_doc,
                         target_selection='SNAPSHOT',

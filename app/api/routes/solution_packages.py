@@ -742,8 +742,10 @@ async def deploy_solution_package(
     
     # 2. Generate Download Links
     job_document_steps = []
+    installation_script_args = []
     # Add step for package file download
     package_filename = f"{db_package.name}_{db_package.version}.zip".replace(" ", "_")
+    package_local_path = f"/tmp/{package_filename}"
     package_download_url = solution_package_s3_manager.generate_download_url(
         s3_key=db_package.s3_key,
         expires_in=3600 * 24, # URL valid for 24 hours for job execution
@@ -758,7 +760,7 @@ async def deploy_solution_package(
                 "handler": "software_dl.sh", 
                 "args": [
                     package_download_url,
-                    f"/tmp/{package_filename}" # Example local destination path
+                    package_local_path
                 ],
                 "path": deploy_request.path_to_handler
             },
@@ -766,12 +768,15 @@ async def deploy_solution_package(
         }
     })
 
+    installation_script_args.append(package_local_path)
+
     # Add steps for associated model downloads
     model_associations = solution_package.get_model_associations(db, package_id=package_id)
     for assoc in model_associations:
         db_model = ai_model.get_by_id(db, model_id=assoc.model_id)
         if db_model:
             model_filename = os.path.basename(db_model.s3_key)
+            model_local_path = f"/tmp/{model_filename}"
 
             model_download_url = ai_model_s3_manager.generate_download_url(
                 s3_key=db_model.s3_key,
@@ -786,13 +791,14 @@ async def deploy_solution_package(
                         "handler": "download_aimodel.sh",
                         "args": [
                             model_download_url,
-                            f"/tmp/{model_filename}"
+                            model_local_path
                         ],
                         "path": deploy_request.path_to_handler
                     },
                     "runAsUser": deploy_request.run_as_user
                 }
             })
+            installation_script_args.append(model_local_path)
         else:
             logger.warning(f"Associated model {assoc.model_id} not found for package {package_id}. Skipping download step.")
 
@@ -803,7 +809,7 @@ async def deploy_solution_package(
             "type": "runHandler",
             "input": {
                 "handler": "install-application.sh", # Assuming this script handles installation
-                "args": deploy_request.install_script_args, # Pass any custom args
+                "args": installation_script_args, # Pass any custom args
                 "path": deploy_request.path_to_handler
             },
             "runAsUser": deploy_request.run_as_user

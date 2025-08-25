@@ -742,7 +742,7 @@ async def deploy_solution_package(
     
     # 2. Generate Download Links
     job_document_steps = []
-    installation_script_args = []
+    installation_script_args = [str(db_package.package_id)]  # Start with package ID as first arg
     # Add step for package file download
     package_filename = f"{db_package.name}_{db_package.version}.zip".replace(" ", "_")
     package_local_path = f"/tmp/{package_filename}"

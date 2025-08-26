@@ -548,15 +548,16 @@ def update_device_online_status_task(device_ids: List[str]):
                 if shadow_document:
                     reported = shadow_document.get("state", {}).get("reported", {})
                     app_status = reported.get("applicationStatus", {})
+                    last_seen = app_status.get("timestamp", None)
                     if app_status.get("status", "").lower() == "online":
                         is_online = True
-                        last_seen = app_status.get("timestamp")
+                        
 
                 # Update the database record in the background thread
                 db_device.is_online = is_online
                 if last_seen:
                     try:
-                        db_device.last_connected = datetime.fromisoformat(last_seen).replace(tzinfo=ZoneInfo("Asia/Tokyo"))
+                        db_device.last_connected = datetime.fromisoformat(last_seen)
                     except ValueError:
                         logger.warning(f"Invalid timestamp format from shadow for device {db_device.name}")
                         

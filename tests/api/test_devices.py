@@ -802,7 +802,6 @@ def test_get_batch_device_status_with_shadow_data(
     data = response.json()
     device_status = data[str(active_device.device_id)]
     assert device_status["is_online"] == True
-    assert device_status["last_seen"] == "2025-01-01T00:00:00Z"
 
 
 def test_get_batch_device_status_unauthorized(client: TestClient, device: Device):

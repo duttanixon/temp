@@ -1,5 +1,5 @@
 from typing import Any, List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud import device, customer, solution, device_solution, customer_solution
@@ -18,6 +18,9 @@ from app.utils.aws_iot import iot_core
 from app.utils.logger import get_logger
 from app.core.config import settings
 from botocore.exceptions import NoCredentialsError, ClientError
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from app.db.session import SessionLocal
 from app.schemas.audit import AuditLogActionType, AuditLogResourceType
 from app.utils.aws_iot_commands import iot_command_service
 import uuid
@@ -525,26 +528,77 @@ def get_device_image(
             detail="Internal error retrieving device image"
         )
 
+
+
+def update_device_online_status_task(device_ids: List[str]):
+    """Background task to update device online status from AWS IoT shadow."""
+    db_session = SessionLocal()
+    try:
+        for device_id_str in device_ids:
+            device_id = uuid.UUID(device_id_str)
+            db_device = device.get_by_id(db_session, device_id=device_id)
+            if not db_device or not db_device.thing_name:
+                continue
+
+            try:
+                shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
+                is_online = False
+                last_seen = None
+
+                if shadow_document:
+                    reported = shadow_document.get("state", {}).get("reported", {})
+                    app_status = reported.get("applicationStatus", {})
+                    if app_status.get("status", "").lower() == "online":
+                        is_online = True
+                        last_seen = app_status.get("timestamp")
+
+                # Update the database record in the background thread
+                db_device.is_online = is_online
+                if last_seen:
+                    try:
+                        db_device.last_connected = datetime.fromisoformat(last_seen).replace(tzinfo=ZoneInfo("Asia/Tokyo"))
+                    except ValueError:
+                        logger.warning(f"Invalid timestamp format from shadow for device {db_device.name}")
+                        
+                db_session.add(db_device)
+                db_session.commit()
+                logger.debug(f"Updated online status for device {db_device.name} to {is_online}")
+
+            except Exception as e:
+                logger.error(f"Failed to update online status for device {db_device.name}: {e}")
+                db_session.rollback()
+
+    finally:
+        db_session.close()
+
 @router.post("/batch-status", response_model=Dict[str, DeviceStatusInfo])
 def get_batch_device_status(
     *,
     db: Session = Depends(deps.get_db),
     batch_request: DeviceBatchStatusRequest,
     current_user: User = Depends(deps.get_current_active_user),
+    background_tasks: BackgroundTasks,
 ) -> Any:
     """
     Get status for multiple devices in a single request.
     Returns a dictionary with device_id as key and status info as value.
+    The is_online status is returned from the local database and updated
+    in the background to prevent request timeouts.
     """
     result = {}
     
-    for device_id in batch_request.device_ids:
+    # List of devices that are authorized and need to be updated
+    devices_to_update = []
+    
+    for device_id_str in batch_request.device_ids:
         try:
-            # Get device from database
-            db_device = device.get_by_id(db, device_id=uuid.UUID(device_id))
+            device_id = uuid.UUID(device_id_str)
+            # Get device from database (this is a fast, local call)
+            db_device = device.get_by_id(db, device_id=device_id)
+            
             if not db_device:
-                result[str(device_id)] = DeviceStatusInfo(
-                    device_id=str(device_id),
+                result[device_id_str] = DeviceStatusInfo(
+                    device_id=device_id_str,
                     device_name="Unknown",
                     is_online=False,
                     error="Device not found"
@@ -554,50 +608,37 @@ def get_batch_device_status(
             # Check access permissions
             if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
                 if db_device.customer_id != current_user.customer_id:
-                    result[str(device_id)] = DeviceStatusInfo(
-                        device_id=str(device_id),
+                    result[device_id_str] = DeviceStatusInfo(
+                        device_id=device_id_str,
                         device_name=db_device.name,
                         is_online=False,
                         error="Not authorized"
                     )
                     continue
-            
-            # Default offline status
-            status_info = DeviceStatusInfo(
-                device_id=str(device_id),
+
+            # Populate the response with the current, locally stored status
+            result[device_id_str] = DeviceStatusInfo(
+                device_id=device_id_str,
                 device_name=db_device.name,
-                is_online=False,
-                last_seen=None
+                is_online=db_device.is_online,
+                last_seen=db_device.last_connected.isoformat() if db_device.last_connected else None,
+                error=None
             )
             
-            # If device is provisioned, check shadow
-            if db_device.thing_name:
-                try:
-                    shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
-                    if shadow_document:
-                        state = shadow_document.get("state", {})
-                        reported = state.get("reported", {})
-                        app_status = reported.get("applicationStatus")
-
-                        if app_status:
-                            # Check if online (status is "running" and within 5 minutes)
-                            try:
-                                status_info.last_seen = app_status.get("timestamp")
-                                if app_status.get("status", "").lower() == "online":
-                                    status_info.is_online = True
-                            except:
-                                pass      
-                except Exception as e:
-                    logger.warning(f"Failed to get shadow for device {device_id}: {str(e)}")
+            # Add the device to the list for the background task
+            devices_to_update.append(device_id_str)
             
-            result[str(device_id)] = status_info
         except Exception as e:
-            logger.error(f"Error processing device {device_id}: {str(e)}")
-            result[str(device_id)] = DeviceStatusInfo(
-                device_id=str(device_id),
+            logger.error(f"Error processing device {device_id_str}: {str(e)}")
+            result[device_id_str] = DeviceStatusInfo(
+                device_id=device_id_str,
                 device_name="Unknown",
                 is_online=False,
                 error=f"Error: {str(e)}"
             )
     
+    # Schedule the background task to update the status from IoT Core
+    if devices_to_update:
+        background_tasks.add_task(update_device_online_status_task, devices_to_update)
+
     return result

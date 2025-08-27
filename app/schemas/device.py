@@ -99,6 +99,7 @@ class DeviceStatusInfo(BaseModel):
     device_id: str
     device_name: str
     is_online: bool
+    deployed_id: Optional[str] = None
     last_seen: Optional[str] = None
     error: Optional[str] = None
 

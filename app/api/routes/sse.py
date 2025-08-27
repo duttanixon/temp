@@ -12,6 +12,7 @@ import json
 import asyncio
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from app.db.session import SessionLocal
 
 logger = get_logger("api.sse")
 
@@ -151,7 +152,6 @@ def notify_command_update(
 @router.get("/jobs/status/{job_id}")
 async def job_status_stream(
     *,
-    db: Session = Depends(deps.get_db),
     job_id: str,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -159,13 +159,17 @@ async def job_status_stream(
     SSE endpoint for real-time job status updates.
     The stream will proactively sync with AWS IoT to ensure status updates.
     """
-    db_job = crud_job.get_by_job_id(db, job_id=job_id)
-    if not db_job:
-        raise HTTPException(status_code=404, detail="Job not found")
+    session = SessionLocal()
+    try:
+        db_job = crud_job.get_by_job_id(session, job_id=job_id)
+        if not db_job:
+            raise HTTPException(status_code=404, detail="Job not found")
 
-    # Check device access for the job's device
-    db_device = crud_device.get_by_id(db, device_id=db_job.device_id)
-    check_device_access(current_user, db_device, action="view jobs for")
+        db_device = crud_device.get_by_id(session, device_id=db_job.device_id)
+        check_device_access(current_user, db_device, action="view jobs for")
+    finally:
+        session.close()
+
 
     # If job is already in a terminal state, send final status and close
     if db_job.status in [JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.TIMED_OUT, JobStatus.CANCELED, JobStatus.ARCHIVED]:
@@ -207,8 +211,12 @@ async def job_status_stream(
                         break
                 
                 except asyncio.TimeoutError:
-                    # Check for updates from AWS in case the queue is empty
-                    synced_job = crud_job.sync_job_status(db, db_job)
+                    session = SessionLocal()
+                    try:
+                        # Check for updates from AWS in case the queue is empty
+                        synced_job = crud_job.sync_job_status(session, db_job)
+                    finally:
+                        session.close()
                     # If status has changed to terminal, send it and break
                     if synced_job.status.value != db_job.status.value and synced_job.status.value in [JobStatus.SUCCEEDED.value, JobStatus.FAILED.value, JobStatus.TIMED_OUT.value, JobStatus.CANCELED.value, JobStatus.ARCHIVED.value]:
                         data = {
@@ -227,7 +235,7 @@ async def job_status_stream(
                             "status_details": synced_job.status_details,
                         }
                         yield f"data: {json.dumps(data)}\n\n"
-                    
+                
                     # Otherwise, just send a heartbeat
                     yield f"data: {json.dumps({'heartbeat': True})}\n\n"
                     continue

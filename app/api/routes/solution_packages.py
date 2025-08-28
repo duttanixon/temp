@@ -515,7 +515,8 @@ def list_packages(
         associations = solution_package.get_model_associations(db, package_id=package.package_id)
         package.model_associations = [
             {
-                "model_id": str(assoc.model_id)
+                "model_id": str(assoc.model_id),
+                "model_name": ai_model.get_by_id(db, model_id=assoc.model_id).s3_key.split('/')[-1] if ai_model.get_by_id(db, model_id=assoc.model_id) else None
             }
             for assoc in associations
         ]

@@ -36,6 +36,7 @@ class SolutionPackage(SolutionPackageBase):
     # Include related data
     solution_name: Optional[str] = None
     model_associations: Optional[List[Dict[str, Any]]] = None
+    deployed_id: Optional[str] = None
 
     class Config:
         from_attributes = True

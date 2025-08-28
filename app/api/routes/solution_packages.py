@@ -26,6 +26,7 @@ from app.schemas.solution_package import (
     DeployPackageRequest
 )
 from app.utils.solution_package_s3 import solution_package_s3_manager
+from app.utils.aws_iot_commands import iot_command_service
 from app.utils.ai_model_s3 import ai_model_s3_manager
 from app.utils.util import check_device_access, validate_device_for_commands
 from app.utils.audit import log_action
@@ -390,15 +391,93 @@ def list_packages(
     name: Optional[str] = Query(None, description="Filter by name (partial match)"),
     version: Optional[str] = Query(None, description="Filter by version"),
     sort_by: str = Query("created_at", description="Field to sort by"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order")
+    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
+    device_id: Optional[str] = Query(None, description="Device ID to check for deployed package")
 ) -> Any:
     """
     List solution packages with optional filtering and sorting.
-    
+    If device_id is provided:
+    1. Checks the AWS IoT Core classic shadow for the device
+    2. Retrieves the deployed_id from the shadow
+    3. Updates the device_solution table with the deployed package_id
+    4. Includes the deployed_id in the response
+        
     **Permissions**: All authenticated users
     """
     solution_id = None
     db_solution = None
+    deployed_id = None
+
+    # Handle device_id parameter if provided
+    if device_id:
+        try:
+            # Convert string device_id to UUID
+            device_uuid = uuid.UUID(device_id)
+            
+            # Get device from database
+            db_device = device.get_by_id(db, device_id=device_uuid)
+            if db_device and db_device.thing_name:
+                logger.info(f"Checking IoT shadow for device: {db_device.name} (thing_name: {db_device.thing_name})")
+                
+                # Get the classic shadow from IoT Core
+                shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
+                
+                if shadow_document:
+                    # Extract deployed_id from the shadow
+                    reported_state = shadow_document.get("state", {}).get("reported", {})
+                    shadow_deployed_id = reported_state.get("deployed_id")
+                    
+                    if shadow_deployed_id:
+                        deployed_id = shadow_deployed_id
+                        logger.info(f"Found deployed_id in shadow: {deployed_id}")
+                        
+                        # Try to parse as UUID to validate format
+                        try:
+                            deployed_package_uuid = uuid.UUID(shadow_deployed_id)
+                            
+                            # Check if this package exists in our database
+                            deployed_package = solution_package.get_by_id(db, package_id=deployed_package_uuid)
+                            
+                            if deployed_package:
+                                # Update the device_solution table with the deployed package_id
+                                device_solutions = device_solution.get_by_device(db, device_id=device_uuid)
+                                
+                                if device_solutions and len(device_solutions) > 0:
+                                    ds = device_solutions[0]
+                                    
+                                    # Update the package_id if it's different
+                                    if str(ds.package_id) != shadow_deployed_id:
+                                        logger.info(f"Updating device_solution package_id from {ds.package_id} to {deployed_package_uuid}")
+                                        
+                                        # Update the package_id in device_solution
+                                        ds.package_id = deployed_package_uuid
+                                        db.commit()
+                                        db.refresh(ds)
+                                        
+                                        logger.info(f"Successfully updated device_solution with deployed package_id: {deployed_package_uuid}")
+                                else:
+                                    logger.warning(f"No device_solution found for device_id: {device_uuid}")
+                            else:
+                                logger.warning(f"Deployed package {deployed_package_uuid} not found in database")
+                                
+                        except ValueError as e:
+                            logger.error(f"Invalid UUID format for deployed_id: {shadow_deployed_id}")
+                    else:
+                        logger.info("No deployed_id found in device shadow")
+                else:
+                    logger.warning(f"Could not retrieve shadow for device: {db_device.thing_name}")
+            else:
+                if not db_device:
+                    logger.warning(f"Device not found: {device_id}")
+                else:
+                    logger.warning(f"Device {device_id} has no thing_name")
+                    
+        except ValueError as e:
+            logger.error(f"Invalid device_id format: {device_id}")
+        except Exception as e:
+            logger.error(f"Error processing device shadow: {str(e)}")
+
+
 
     if solution_name:
         # Remove any surrounding quotes from solution_name
@@ -440,7 +519,12 @@ def list_packages(
             }
             for assoc in associations
         ]
+
+        # Add deployed_id to the package if it matches the current package
+        if deployed_id and str(package.package_id) == deployed_id:
+            package.deployed_id = deployed_id
     
+    # Create response with deployed_id if available
     return SolutionPackageListResponse(
         total=total,
         packages=packages

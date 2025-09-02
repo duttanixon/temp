@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.audit_log import AuditLog
 from app.models.user import User
 from uuid import UUID
@@ -7,8 +7,8 @@ import json
 from app.schemas.audit import AuditLogCreate
 from app.crud.audit_log import audit_log as crud_audit_log
 
-def log_action(
-    db: Session,
+async def log_action(
+    db: AsyncSession,
     *,
     user_id: Optional[UUID],
     action_type: str,
@@ -30,4 +30,4 @@ def log_action(
         ip_address=ip_address,
         user_agent=user_agent,
     )
-    return crud_audit_log.create(db, obj_in=audit_log_in)
+    return await crud_audit_log.create(db, obj_in=audit_log_in)

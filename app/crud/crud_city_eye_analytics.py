@@ -1,8 +1,7 @@
 from typing import List, Optional, Dict, Any
 import uuid
-from sqlalchemy.orm import Session
-from sqlalchemy import func, cast, Integer, Date, Time, case, and_, or_
-from sqlalchemy.dialects.postgresql import INTERVAL, TIME
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, and_, or_, select
 from sqlalchemy.sql.expression import literal_column, ColumnElement
 from app.models.services.city_eye.human_table import CityEyeHumanTable
 from app.models.services.city_eye.traffic_table import CityEyeTrafficTable
@@ -204,16 +203,16 @@ class CRUDCityEyeAnalytics:
         return query
 
 
-    def get_total_count(self, db: Session, *, filters: AnalyticsFilters) -> int:
+    async def get_total_count(self, db: AsyncSession, *, filters: AnalyticsFilters) -> int:
         sum_expr = self._get_people_sum_expression(filters)
-        query = db.query(func.sum(sum_expr).label("total_people"))
+        query = select(func.sum(sum_expr).label("total_people"))
 
         # Apply row-level filters (time, device, polygon, day, hour)
         query = self._apply_filters(query, filters, is_aggregation_query=True)
-        result = query.scalar()
-        return result or 0
+        result = await db.execute(query)
+        return result.scalar() or 0
 
-    def get_age_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
+    async def get_age_distribution(self, db: AsyncSession, *, filters: AnalyticsFilters) -> Dict[str, int]:
         # Get columns map for reuse
         people_columns_map = self._get_people_columns_map()
         
@@ -247,9 +246,10 @@ class CRUDCityEyeAnalytics:
                 "under_18": 0, "age_18_to_29": 0, "age_30_to_49": 0, "age_50_to_64": 0, "over_64": 0
             }
         
-        query = db.query(*sum_expressions.values())
+        query = select(*sum_expressions.values())
         query = self._apply_filters(query, filters)
-        result = query.first()
+        result = await db.execute(query)
+        result = result.first()
         
         # Build result dict with all age groups, defaulting to 0 for excluded ones
         output = {
@@ -262,7 +262,7 @@ class CRUDCityEyeAnalytics:
         
         return output
 
-    def get_gender_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
+    async def get_gender_distribution(self, db: AsyncSession, *, filters: AnalyticsFilters) -> Dict[str, int]:
         # Get columns map for reuse
         people_columns_map = self._get_people_columns_map()
         
@@ -292,9 +292,10 @@ class CRUDCityEyeAnalytics:
             # Return all zeros if no valid columns
             return {"male": 0, "female": 0}
         
-        query = db.query(*sum_expressions.values())
+        query = select(*sum_expressions.values())
         query = self._apply_filters(query, filters)
-        result = query.first()
+        result = await db.execute(query)
+        result = result.first()
         
         # Build result dict with all genders, defaulting to 0 for excluded ones
         output = {"male": 0, "female": 0}
@@ -305,7 +306,7 @@ class CRUDCityEyeAnalytics:
         
         return output
 
-    def get_age_gender_distribution(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, int]:
+    async def get_age_gender_distribution(self, db: AsyncSession, *, filters: AnalyticsFilters) -> Dict[str, int]:
         # Get columns map for reuse
         people_columns_map = self._get_people_columns_map()
         
@@ -344,9 +345,10 @@ class CRUDCityEyeAnalytics:
                 "male_65_plus": 0, "female_65_plus": 0
             }
         
-        query = db.query(*sum_expressions.values())
+        query = select(*sum_expressions.values())
         query = self._apply_filters(query, filters)
-        result = query.first()
+        result = await db.execute(query)
+        result = result.first()
         
         # Build result dict with all combinations, defaulting to 0 for excluded ones
         output = {
@@ -361,10 +363,10 @@ class CRUDCityEyeAnalytics:
         
         return output
 
-    def get_hourly_distribution(self, db: Session, *, filters: AnalyticsFilters) -> List[Dict[str, Any]]:
+    async def get_hourly_distribution(self, db: AsyncSession, *, filters: AnalyticsFilters) -> List[Dict[str, Any]]:
         hour_part = func.extract('hour', CityEyeHumanTable.timestamp).label("hour")
         sum_expr = self._get_people_sum_expression(filters)
-        query = db.query(
+        query = select(
             hour_part,
             func.sum(sum_expr).label("count")
         )
@@ -372,10 +374,11 @@ class CRUDCityEyeAnalytics:
         query = self._apply_filters(query, filters, is_aggregation_query=True)
         query = query.group_by(hour_part).order_by(hour_part)
 
-        results = query.all()
+        results = await db.execute(query)
+        results = results.all()
         return [{"hour": int(r.hour), "count": r.count or 0} for r in results]
 
-    def get_time_series_data(self, db: Session, *, filters: AnalyticsFilters, interval_minutes: int = 60) -> List[Dict[str, Any]]:
+    async def get_time_series_data(self, db: AsyncSession, *, filters: AnalyticsFilters, interval_minutes: int = 60) -> List[Dict[str, Any]]:
         sum_expr = self._get_people_sum_expression(filters)
 
         if db.bind.dialect.name == 'sqlite': # type: ignore
@@ -385,7 +388,7 @@ class CRUDCityEyeAnalytics:
             # This truncates to the hour. For other intervals, this would need to be more complex.
             time_bucket = func.date_trunc('hour', CityEyeHumanTable.timestamp).label("time_bucket")
 
-        query = db.query(
+        query = select(
             time_bucket,
             func.sum(sum_expr).label("count")
         )
@@ -393,7 +396,8 @@ class CRUDCityEyeAnalytics:
         query = self._apply_filters(query, filters, is_aggregation_query=True)
         query = query.group_by(time_bucket).order_by(time_bucket)
 
-        results = query.all()
+        results = await db.execute(query)
+        results = results.all()
         return [{"timestamp": r.time_bucket, "count": r.count or 0} for r in results]
 
     # =============================================================================
@@ -475,16 +479,16 @@ class CRUDCityEyeAnalytics:
 
         return query
 
-    def get_total_traffic_count(self, db: Session, *, filters: TrafficAnalyticsFilters) -> int:
+    async def get_total_traffic_count(self, db: AsyncSession, *, filters: TrafficAnalyticsFilters) -> int:
         sum_expr = self._get_vehicles_sum_expression(filters)
-        query = db.query(func.sum(sum_expr).label("total_vehicles"))
+        query = select(func.sum(sum_expr).label("total_vehicles"))
 
         # Apply row-level filters (time, device, polygon, day, hour)
         query = self._apply_traffic_filters(query, filters, is_aggregation_query=True)
-        result = query.scalar()
-        return result or 0
+        result = await db.execute(query)
+        return result.scalar() or 0
 
-    def get_vehicle_type_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> Dict[str, int]:
+    async def get_vehicle_type_distribution(self, db: AsyncSession, *, filters: TrafficAnalyticsFilters) -> Dict[str, int]:
         # Get vehicle columns map
         vehicle_columns_map = {
             "large": CityEyeTrafficTable.large,
@@ -511,9 +515,10 @@ class CRUDCityEyeAnalytics:
                 "large": 0, "normal": 0, "bicycle": 0, "motorcycle": 0
             }
         
-        query = db.query(*sum_expressions.values())
+        query = select(*sum_expressions.values())
         query = self._apply_traffic_filters(query, filters)
-        result = query.first()
+        result = await db.execute(query)
+        result = result.first()
         
         # Build result dict with all vehicle types, defaulting to 0 for excluded ones
         output = {
@@ -526,10 +531,10 @@ class CRUDCityEyeAnalytics:
         
         return output
 
-    def get_hourly_traffic_distribution(self, db: Session, *, filters: TrafficAnalyticsFilters) -> List[Dict[str, Any]]:
+    async def get_hourly_traffic_distribution(self, db: AsyncSession, *, filters: TrafficAnalyticsFilters) -> List[Dict[str, Any]]:
         hour_part = func.extract('hour', CityEyeTrafficTable.timestamp).label("hour")
         sum_expr = self._get_vehicles_sum_expression(filters)
-        query = db.query(
+        query = select(
             hour_part,
             func.sum(sum_expr).label("count")
         )
@@ -537,10 +542,11 @@ class CRUDCityEyeAnalytics:
         query = self._apply_traffic_filters(query, filters, is_aggregation_query=True)
         query = query.group_by(hour_part).order_by(hour_part)
 
-        results = query.all()
+        results = await db.execute(query)
+        results = results.all()
         return [{"hour": int(r.hour), "count": r.count or 0} for r in results]
     
-    def get_traffic_time_series_data(self, db: Session, *, filters: TrafficAnalyticsFilters, interval_minutes: int = 60) -> List[Dict[str, Any]]:
+    async def get_traffic_time_series_data(self, db: AsyncSession, *, filters: TrafficAnalyticsFilters, interval_minutes: int = 60) -> List[Dict[str, Any]]:
         sum_expr = self._get_vehicles_sum_expression(filters)
 
         if db.bind.dialect.name == 'sqlite': # type: ignore
@@ -550,7 +556,7 @@ class CRUDCityEyeAnalytics:
             # This truncates to the hour. For other intervals, this would need to be more complex.
             time_bucket = func.date_trunc('hour', CityEyeTrafficTable.timestamp).label("time_bucket")
 
-        query = db.query(
+        query = select(
             time_bucket,
             func.sum(sum_expr).label("count")
         )
@@ -558,11 +564,12 @@ class CRUDCityEyeAnalytics:
         query = self._apply_traffic_filters(query, filters, is_aggregation_query=True)
         query = query.group_by(time_bucket).order_by(time_bucket)
 
-        results = query.all()
+        results = await db.execute(query)
+        results = results.all()
         return [{"timestamp": r.time_bucket, "count": r.count or 0} for r in results]
 
 
-    def get_direction_counts(self, db: Session, *, filters: AnalyticsFilters) -> Dict[str, Dict[str, int]]:
+    async def get_direction_counts(self, db: AsyncSession, *, filters: AnalyticsFilters) -> Dict[str, Dict[str, int]]:
         """
         Get in/out counts per polygon, excluding 'loss' counts.
         Returns: Dict with polygon_id as key and {'in_count': x, 'out_count': y} as value
@@ -571,7 +578,7 @@ class CRUDCityEyeAnalytics:
         sum_expr = self._get_people_sum_expression(filters)
         
         # Query for IN counts (when polygon appears in polygon_id_in)
-        in_query = db.query(
+        in_query = select(
             CityEyeHumanTable.polygon_id_in.label("polygon_id"),
             func.sum(sum_expr).label("count")
         ).filter(
@@ -583,7 +590,7 @@ class CRUDCityEyeAnalytics:
         in_query = in_query.group_by(CityEyeHumanTable.polygon_id_in)
         
         # Query for OUT counts (when polygon appears in polygon_id_out)
-        out_query = db.query(
+        out_query = select(
             CityEyeHumanTable.polygon_id_out.label("polygon_id"),
             func.sum(sum_expr).label("count")
         ).filter(
@@ -595,8 +602,10 @@ class CRUDCityEyeAnalytics:
         out_query = out_query.group_by(CityEyeHumanTable.polygon_id_out)
         
         # Execute queries
-        in_results = in_query.all()
-        out_results = out_query.all()
+        in_results = await db.execute(in_query)
+        in_results = in_results.all()
+        out_results = await db.execute(out_query)
+        out_results = out_results.all()
         
         # Build result dictionary
         result = {}
@@ -618,7 +627,7 @@ class CRUDCityEyeAnalytics:
         return result
 
 
-    def get_traffic_direction_counts(self, db: Session, *, filters: TrafficAnalyticsFilters) -> Dict[str, Dict[str, int]]:
+    async def get_traffic_direction_counts(self, db: AsyncSession, *, filters: TrafficAnalyticsFilters) -> Dict[str, Dict[str, int]]:
         """
         Get in/out counts per polygon for traffic, excluding 'loss' counts.
         Returns: Dict with polygon_id as key and {'in_count': x, 'out_count': y} as value
@@ -627,7 +636,7 @@ class CRUDCityEyeAnalytics:
         sum_expr = self._get_vehicles_sum_expression(filters)
         
         # Query for IN counts (when polygon appears in polygon_id_in)
-        in_query = db.query(
+        in_query = select(
             CityEyeTrafficTable.polygon_id_in.label("polygon_id"),
             func.sum(sum_expr).label("count")
         ).filter(
@@ -639,7 +648,7 @@ class CRUDCityEyeAnalytics:
         in_query = in_query.group_by(CityEyeTrafficTable.polygon_id_in)
         
         # Query for OUT counts (when polygon appears in polygon_id_out)
-        out_query = db.query(
+        out_query = select(
             CityEyeTrafficTable.polygon_id_out.label("polygon_id"),
             func.sum(sum_expr).label("count")
         ).filter(
@@ -651,8 +660,10 @@ class CRUDCityEyeAnalytics:
         out_query = out_query.group_by(CityEyeTrafficTable.polygon_id_out)
         
         # Execute queries
-        in_results = in_query.all()
-        out_results = out_query.all()
+        in_results = await db.execute(in_query)
+        in_results = in_results.all()
+        out_results = await db.execute(out_query)
+        out_results = out_results.all()
         
         # Build result dictionary
         result = {}
@@ -673,21 +684,22 @@ class CRUDCityEyeAnalytics:
         
         return result
 
-    def get_by_customer_and_solution(
-        self, db: Session, *, customer_id: uuid.UUID, solution_id: uuid.UUID
+    async def get_by_customer_and_solution(
+        self, db: AsyncSession, *, customer_id: uuid.UUID, solution_id: uuid.UUID
     ) -> Optional[CustomerSolution]:
-        return db.query(CustomerSolution).filter(
+        result = await db.execute(select(CustomerSolution).filter(
             CustomerSolution.customer_id == customer_id,
             CustomerSolution.solution_id == solution_id
-        ).first()
+        ))
+        return result.scalars().first()
 
 
 
-    def get_threshold_config(
-        self, db: Session, *, customer_id: uuid.UUID, solution_id: uuid.UUID
+    async def get_threshold_config(
+        self, db: AsyncSession, *, customer_id: uuid.UUID, solution_id: uuid.UUID
     ) -> Dict[str, List[float]]:
         """Get threshold configuration for a customer-solution pair"""
-        customer_solution = self.get_by_customer_and_solution(
+        customer_solution = await self.get_by_customer_and_solution(
             db, customer_id=customer_id, solution_id=solution_id
         )
         
@@ -706,11 +718,11 @@ class CRUDCityEyeAnalytics:
         
         return thresholds
 
-    def update_threshold_config(
-        self, db: Session, *, customer_id: uuid.UUID, solution_id: uuid.UUID, thresholds: Dict[str, List[float]]
+    async def update_threshold_config(
+        self, db: AsyncSession, *, customer_id: uuid.UUID, solution_id: uuid.UUID, thresholds: Dict[str, List[float]]
     ) -> Optional[CustomerSolution]:
         """Update threshold configuration for a customer-solution pair"""
-        customer_solution = self.get_by_customer_and_solution(
+        customer_solution = await self.get_by_customer_and_solution(
             db, customer_id=customer_id, solution_id=solution_id
         )
     
@@ -739,8 +751,8 @@ class CRUDCityEyeAnalytics:
         # Update the customer solution record
         customer_solution.configuration_template = config_template
         db.add(customer_solution)
-        db.commit()
-        db.refresh(customer_solution)
+        await db.commit()
+        await db.refresh(customer_solution)
         
         return customer_solution
 

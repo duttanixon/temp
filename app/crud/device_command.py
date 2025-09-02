@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.crud.base import CRUDBase
 from app.models.device_command import DeviceCommand, CommandStatus
 from app.schemas.device_command import DeviceCommandCreate, DeviceCommandUpdate
@@ -11,16 +12,16 @@ from zoneinfo import ZoneInfo
 class CRUDDeviceCommand(
     CRUDBase[DeviceCommand, DeviceCommandCreate, DeviceCommandUpdate]
 ):
-    def get_by_message_id(
-        self, db: Session, *, message_id: uuid.UUID
+    async def get_by_message_id(
+        self, db: AsyncSession, *, message_id: uuid.UUID
     ) -> Optional[DeviceCommand]:
-        return (
-            db.query(DeviceCommand)
+        result = await db.execute(
+            select(DeviceCommand)
             .filter(DeviceCommand.message_id == message_id)
-            .first()
         )
+        return result.scalars().first()
 
-    def create(self, db: Session, *, obj_in: DeviceCommandCreate) -> DeviceCommand:
+    async def create(self, db: AsyncSession, *, obj_in: DeviceCommandCreate) -> DeviceCommand:
         db_obj = DeviceCommand(
             device_id=obj_in.device_id,
             user_id=obj_in.user_id,
@@ -30,13 +31,13 @@ class CRUDDeviceCommand(
             sent_at=datetime.now(ZoneInfo("Asia/Tokyo")),
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
-    def update_status(
+    async def update_status(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         message_id: uuid.UUID,
         status: CommandStatus,
@@ -44,7 +45,7 @@ class CRUDDeviceCommand(
         error_message: Optional[str] = None,
     ) -> DeviceCommand:
         """Update command status and response"""
-        command = self.get_by_message_id(db, message_id=message_id)
+        command = await self.get_by_message_id(db, message_id=message_id)
         if not command:
             return None
 
@@ -60,9 +61,8 @@ class CRUDDeviceCommand(
         ]:
             command.completed_at = datetime.now(ZoneInfo("Asia/Tokyo"))
 
-        db.add(command)
-        db.commit()
-        db.refresh(command)
+        await db.commit()
+        await db.refresh(command)
         return command
 
 

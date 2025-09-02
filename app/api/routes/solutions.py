@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Dict, Union
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import solution, customer_solution, device, device_solution, customer
 from app.models import User, UserRole, DeviceType, Solution, SolutionStatus, CustomerSolution, Customer, LicenseStatus
@@ -20,8 +20,8 @@ logger = get_logger("api.solutions")
 router = APIRouter()
 
 @router.get("", response_model=List[SolutionSchema])
-def get_solutions(
-    db: Session = Depends(deps.get_db),
+async def get_solutions(
+    db: AsyncSession = Depends(deps.get_async_db),
     skip: int = 0,
     limit: int = 100,
     device_type: Optional[str] = None,
@@ -39,7 +39,7 @@ def get_solutions(
             try:
                 # Validate device type
                 DeviceType(device_type)
-                solutions_list = solution.get_compatible_with_device_type(
+                solutions_list = await solution.get_compatible_with_device_type(
                     db, device_type=device_type, skip=skip, limit=limit
                 )
             except ValueError:
@@ -48,9 +48,9 @@ def get_solutions(
                     detail=f"Invalid device type: {device_type}"
                 )
         elif active_only:
-            solutions_list = solution.get_active(db, skip=skip, limit=limit)
+            solutions_list = await solution.get_active(db, skip=skip, limit=limit)
         else:
-            solutions_list = solution.get_multi(db, skip=skip, limit=limit)
+            solutions_list = await solution.get_multi(db, skip=skip, limit=limit)
 
     # For Customer roles - return only solutions assigned to their customer
     else:
@@ -58,42 +58,45 @@ def get_solutions(
             # Customer user without a customer_id shouldn't happen, but just in case
             return []
         # Get customer solutions first
-        customer_solutions = customer_solution.get_active_by_customer(
+        customer_solutions_list = await customer_solution.get_active_by_customer(
             db, customer_id=current_user.customer_id
         )
         
         # Extract solution IDs
-        solution_ids = [cs.solution_id for cs in customer_solutions]
+        solution_ids = [cs.solution_id for cs in customer_solutions_list]
         
         if not solution_ids:
             return []
 
         
         # First build the base query for customer solutions
-        base_query = db.query(Solution).filter(Solution.solution_id.in_(solution_ids))
+        base_query_solutions = await solution.get_by_ids(db, ids=solution_ids)
 
-        # Add device type filter if provided        
-        if device_type:
-            try:
-                DeviceType(device_type)
-                base_query = base_query.filter(Solution.compatibility.contains([device_type]))
-            except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid device type: {device_type}"
-                )
-        
-        # Add active status filter if requested
-        if active_only:
-            base_query = base_query.filter(Solution.status == SolutionStatus.ACTIVE)
-        
-        solutions_list = base_query.offset(skip).limit(limit).all()
-
-    return solutions_list
+        solutions_list = []
+        for sol_item in base_query_solutions:
+            # Add device type filter if provided        
+            if device_type:
+                try:
+                    DeviceType(device_type)
+                    if not (sol_item.compatibility and device_type in sol_item.compatibility):
+                        continue
+                except ValueError:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid device type: {device_type}"
+                    )
+            
+            # Add active status filter if requested
+            if active_only and sol_item.status != SolutionStatus.ACTIVE:
+                continue
+            
+            solutions_list.append(sol_item)
+            
+        return solutions_list[:limit]
 
 @router.get("/admin", response_model=List[SolutionAdminView])
-def get_solutions_admin_view(
-    db: Session = Depends(deps.get_db),
+async def get_solutions_admin_view(
+    db: AsyncSession = Depends(deps.get_async_db),
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
@@ -102,20 +105,20 @@ def get_solutions_admin_view(
     Retrieve solutions with additional admin details.
     Admin or Engineer only.
     """
-    solutions_list = solution.get_multi(db, skip=skip, limit=limit)
+    solutions_list = await solution.get_multi(db, skip=skip, limit=limit)
     # Enhance with usage counts
     enhanced_solutions = []
     for sol in solutions_list:
-        enhanced_data = solution.get_with_customer_count(db, solution_id=sol.solution_id)
+        enhanced_data = await solution.get_with_customer_count(db, solution_id=sol.solution_id)
         enhanced_solutions.append(enhanced_data)
 
     return enhanced_solutions
 
 
 @router.post("", response_model=SolutionSchema)
-def create_solution(
+async def create_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_in: SolutionCreate,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -125,7 +128,7 @@ def create_solution(
     Admin only.
     """
     # Check if solution with this name already exists
-    db_solution = solution.get_by_name(db, name=solution_in.name)
+    db_solution = await solution.get_by_name(db, name=solution_in.name)
     if db_solution:
         raise HTTPException(
             status_code=400,
@@ -143,10 +146,10 @@ def create_solution(
             )
     
     # Create the solution
-    new_solution = solution.create(db, obj_in=solution_in)
+    new_solution = await solution.create(db, obj_in=solution_in)
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="SOLUTION_CREATE",
@@ -161,9 +164,9 @@ def create_solution(
 
 
 @router.get("/available-customers", response_model=List[CustomerBasic])
-def get_available_customers(
+async def get_available_customers(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: str,
     current_user: User = Depends(deps.get_current_admin_user),
 ) -> Any:
@@ -181,19 +184,17 @@ def get_available_customers(
             status_code=400,
             detail="Invalid solution ID format"
         )
-    db_solution = solution.get_by_id(db, solution_id=solution_uuid)
+    db_solution = await solution.get_by_id(db, solution_id=solution_uuid)
     if not db_solution:
         raise HTTPException(
             status_code=404,
             detail="Solution not found"
         )
     # Get all customers
-    all_customers = customer.get_multi(db)
+    all_customers = await customer.get_multi(db)
 
     # Get customer IDs that already have this solution
-    assigned_customer_solutions = db.query(CustomerSolution).filter(
-        CustomerSolution.solution_id == solution_uuid
-    ).all()
+    assigned_customer_solutions = await customer_solution.get_by_solution(db, solution_id=solution_uuid)
 
     assigned_customer_ids = set(cs.customer_id for cs in assigned_customer_solutions)
 
@@ -206,9 +207,9 @@ def get_available_customers(
 
 
 @router.get("/assigned-customers", response_model=List[CustomerBasic])
-def get_assigned_customers(
+async def get_assigned_customers(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: str,
     current_user: User = Depends(deps.get_current_admin_user),
 ) -> Any:
@@ -225,7 +226,7 @@ def get_assigned_customers(
             status_code=400,
             detail="Invalid solution ID format"
         )
-    db_solution = solution.get_by_id(db, solution_id=solution_uuid)
+    db_solution = await solution.get_by_id(db, solution_id=solution_uuid)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -234,12 +235,9 @@ def get_assigned_customers(
     
     # Query the customer_solutions table to find all active customer-solution 
     # assignments for this solution
-    customer_solutions = db.query(CustomerSolution).filter(
-        CustomerSolution.solution_id == solution_uuid,
-        CustomerSolution.license_status == LicenseStatus.ACTIVE
-    ).all()
+    customer_solutions_list = await customer_solution.get_by_active_solution(db, solution_id=solution_uuid)
     
-    customer_ids = [cs.customer_id for cs in customer_solutions]
+    customer_ids = [cs.customer_id for cs in customer_solutions_list]
     
     # If there are no assigned customers, return an empty list
     if not customer_ids:
@@ -247,17 +245,15 @@ def get_assigned_customers(
 
     
     # Join with the customers table to get the customer names
-    assigned_customers = db.query(Customer).filter(
-        Customer.customer_id.in_(customer_ids)
-    ).all()
+    assigned_customers = await customer.get_by_ids(db, ids=customer_ids)
     
     return assigned_customers
 
 
 @router.get("/{solution_id}", response_model=Union[SolutionSchema, SolutionAdminView])
-def get_solution(
+async def get_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -267,7 +263,7 @@ def get_solution(
     - Customer users can only access solutions assigned to their customer
     """
     # Get the solution
-    db_solution = solution.get_by_id(db, solution_id=solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=solution_id)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -283,7 +279,7 @@ def get_solution(
             )
         
         # Check if customer has access to the solution
-        has_access = customer_solution.check_customer_has_access(
+        has_access = await customer_solution.check_customer_has_access(
             db, 
             customer_id=current_user.customer_id, 
             solution_id=solution_id
@@ -299,16 +295,16 @@ def get_solution(
     
     # For admins and engineers, include usage counts
     if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
-        return SolutionAdminView.parse_obj(solution.get_with_customer_count(db, solution_id=solution_id))
+        return SolutionAdminView.model_validate(await solution.get_with_customer_count(db, solution_id=solution_id))
 
     # For regular users, return without the counts
-    return SolutionSchema.from_orm(db_solution)
+    return SolutionSchema.model_validate(db_solution)
 
 
 @router.put("/{solution_id}", response_model=SolutionSchema)
-def update_solution(
+async def update_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: uuid.UUID,
     solution_in: SolutionUpdate,
     current_user: User = Depends(deps.get_current_admin_user),
@@ -318,7 +314,7 @@ def update_solution(
     Update a solution.
     Admin only.
     """
-    db_solution = solution.get_by_id(db, solution_id=solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=solution_id)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -340,7 +336,7 @@ def update_solution(
     
     # If updating name, check it doesn't conflict
     if solution_in.name and solution_in.name != db_solution.name:
-        existing_solution = solution.get_by_name(db, name=solution_in.name)
+        existing_solution = await solution.get_by_name(db, name=solution_in.name)
         if existing_solution:
             raise HTTPException(
                 status_code=400,
@@ -349,11 +345,11 @@ def update_solution(
         
     
     # Update the solution
-    updated_solution = solution.update(db, db_obj=db_solution, obj_in=solution_in)
+    updated_solution = await solution.update(db, db_obj=db_solution, obj_in=solution_in)
 
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="SOLUTION_UPDATE",
@@ -367,9 +363,9 @@ def update_solution(
     return updated_solution
 
 @router.post("/{solution_id}/deprecate", response_model=SolutionSchema)
-def deprecate_solution(
+async def deprecate_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -378,17 +374,17 @@ def deprecate_solution(
     Deprecate a solution.
     Admin only.
     """
-    db_solution = solution.get_by_id(db, solution_id=solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=solution_id)
     if not db_solution:
         raise HTTPException(
             status_code=404,
             detail="Solution not found"
         )
     
-    deprecated_solution = solution.deprecate(db, solution_id=solution_id)
+    deprecated_solution = await solution.deprecate(db, solution_id=solution_id)
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="SOLUTION_DEPRECATE",
@@ -401,9 +397,9 @@ def deprecate_solution(
     return deprecated_solution
 
 @router.post("/{solution_id}/activate", response_model=SolutionSchema)
-def activate_solution(
+async def activate_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -412,17 +408,17 @@ def activate_solution(
     Activate a deprecated solution.
     Admin only.
     """
-    db_solution = solution.get_by_id(db, solution_id=solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=solution_id)
     if not db_solution:
         raise HTTPException(
             status_code=404,
             detail="Solution not found"
         )
     
-    activated_solution = solution.activate(db, solution_id=solution_id)
+    activated_solution = await solution.activate(db, solution_id=solution_id)
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="SOLUTION_ACTIVATE",
@@ -435,9 +431,9 @@ def activate_solution(
     return activated_solution
 
 @router.get("/compatibility/device/{device_id}", response_model=List[SolutionSchema])
-def get_compatible_solutions_for_device(
+async def get_compatible_solutions_for_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -446,7 +442,7 @@ def get_compatible_solutions_for_device(
     Note: A device can only have one solution deployed at a time.
     Returns empty list if the device already has a solution deployed.
     """
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(
             status_code=404,
@@ -462,14 +458,14 @@ def get_compatible_solutions_for_device(
             )
 
     # Check if device already has a solution deployed
-    existing_solutions = device_solution.get_by_device(db, device_id=device_id)
+    existing_solutions = await device_solution.get_by_device(db, device_id=device_id)
     if existing_solutions and len(existing_solutions) > 0:
         # If device already has a solution, return empty list
         return []
     
     # For admin/engineer, get all solutions compatible with this device type
     if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
-        return solution.get_compatible_with_device_type(
+        return await solution.get_compatible_with_device_type(
             db, device_type=db_device.device_type.value
         )
 
@@ -477,22 +473,22 @@ def get_compatible_solutions_for_device(
     # 1. Compatible with this device type
     # 2. Available to the customer
     # Get active customer solutions
-    customer_solutions = customer_solution.get_active_by_customer(
+    customer_solutions_list = await customer_solution.get_active_by_customer(
         db, customer_id=current_user.customer_id
     )
 
     # Extract solution IDs
-    solution_ids = [cs.solution_id for cs in customer_solutions]
+    solution_ids = [cs.solution_id for cs in customer_solutions_list]
     
     if not solution_ids:
         return []
 
     # Get compatible solutions
-    compatible_solutions = db.query(Solution).filter(
-        Solution.solution_id.in_(solution_ids),
-        Solution.status == SolutionStatus.ACTIVE,
-        Solution.compatibility.contains([db_device.device_type.value])
-    ).all()
+    compatible_solutions = await solution.get_by_ids(db, ids=solution_ids)
     
-    return compatible_solutions
-
+    compatible_and_active = [
+        sol for sol in compatible_solutions
+        if sol.status == SolutionStatus.ACTIVE and db_device.device_type.value in sol.compatibility
+    ]
+    
+    return compatible_and_active

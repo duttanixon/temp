@@ -1,6 +1,6 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import device_solution, device, solution, customer_solution
 from app.models import User, UserRole, DeviceSolution, Device, Customer
@@ -19,9 +19,9 @@ logger = get_logger("api.device_solutions")
 router = APIRouter()
 
 @router.post("", response_model=DeviceSolutionSchema)
-def deploy_solution_to_device(
+async def deploy_solution_to_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_in: DeviceSolutionCreate,
     current_user: User = Depends(deps.get_current_active_user),
     request: Request,
@@ -30,7 +30,7 @@ def deploy_solution_to_device(
     Deploy a solution to a device.
     """
     # Get the device
-    db_device = device.get_by_id(db, device_id=solution_in.device_id)
+    db_device = await device.get_by_id(db, device_id=solution_in.device_id)
     if not db_device:
         raise HTTPException(
             status_code=404,
@@ -47,7 +47,7 @@ def deploy_solution_to_device(
 
     
     # Get the solution
-    db_solution = solution.get_by_id(db, solution_id=solution_in.solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=solution_in.solution_id)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -56,7 +56,7 @@ def deploy_solution_to_device(
 
     
     # Check if customer has access to this solution
-    if not customer_solution.check_customer_has_access(
+    if not await customer_solution.check_customer_has_access(
         db, customer_id=db_device.customer_id, solution_id=solution_in.solution_id
     ):
         raise HTTPException(
@@ -73,7 +73,7 @@ def deploy_solution_to_device(
         )
 
     # Check if solution is already deployed
-    existing_deployment = device_solution.get_by_device_and_solution(
+    existing_deployment = await device_solution.get_by_device_and_solution(
         db, device_id=db_device.device_id, solution_id=db_solution.solution_id
     )
 
@@ -84,11 +84,11 @@ def deploy_solution_to_device(
         )
 
     # Check if ANY solution is already deployed to this device
-    existing_solutions = device_solution.get_by_device(db, device_id=db_device.device_id)
+    existing_solutions = await device_solution.get_by_device(db, device_id=db_device.device_id)
     if existing_solutions and len(existing_solutions) > 0:
         existing_solution_names = []
         for existing_sol in existing_solutions:
-            sol = solution.get_by_id(db, solution_id=existing_sol.solution_id)
+            sol = await solution.get_by_id(db, solution_id=existing_sol.solution_id)
             existing_solution_names.append(sol.name)
         
         raise HTTPException(
@@ -98,11 +98,11 @@ def deploy_solution_to_device(
 
 
     # Check if customer has reached their license limit
-    current_count = customer_solution.count_deployed_devices(
+    current_count = await customer_solution.count_deployed_devices(
         db, customer_id=db_device.customer_id, solution_id=db_solution.solution_id
     )
 
-    customer_solution_license = customer_solution.get_by_customer_and_solution(
+    customer_solution_license = await customer_solution.get_by_customer_and_solution(
         db, customer_id=db_device.customer_id, solution_id=db_solution.solution_id
     )
 
@@ -113,11 +113,11 @@ def deploy_solution_to_device(
         )
     
     # Create the deployment
-    new_deployment = device_solution.create(db, obj_in=solution_in)
+    new_deployment = await device_solution.create(db, obj_in=solution_in)
 
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="SOLUTION_DEPLOYMENT",
@@ -140,9 +140,9 @@ def deploy_solution_to_device(
 
 
 @router.get("/device/{device_id}", response_model=List[DeviceSolutionDetailView])
-def get_device_solutions(
+async def get_device_solutions(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -151,7 +151,7 @@ def get_device_solutions(
     In practice, a device can only have one solution deployed at a time.
     """
     # Get the device
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(
             status_code=404,
@@ -167,12 +167,12 @@ def get_device_solutions(
             )
     
     # Get the solutions
-    device_solutions = device_solution.get_by_device(db, device_id=device_id)
+    device_solutions = await device_solution.get_by_device(db, device_id=device_id)
 
     # Enhance with solution details
     result = []
     for ds in device_solutions:
-        sol = solution.get_by_id(db, solution_id=ds.solution_id)
+        sol = await solution.get_by_id(db, solution_id=ds.solution_id)
         result.append({
             **ds.__dict__,
             "solution_name": sol.name,
@@ -184,9 +184,9 @@ def get_device_solutions(
 
 
 @router.put("/device/{device_id}", response_model=DeviceSolutionDetailView)
-def update_device_solution_by_device_id(
+async def update_device_solution_by_device_id(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     solution_in: DeviceSolutionUpdate,
     current_user: User = Depends(deps.get_current_active_user),
@@ -196,7 +196,7 @@ def update_device_solution_by_device_id(
     Update a solution deployment by device ID.
     """
     # Get the deployment
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(
             status_code=404,
@@ -213,23 +213,23 @@ def update_device_solution_by_device_id(
 
     
     # Get the solution deployment
-    device_solutions = device_solution.get_by_device(db, device_id=device_id)
+    device_solutions_list = await device_solution.get_by_device(db, device_id=device_id)
 
-    if not device_solutions or len(device_solutions) == 0:
+    if not device_solutions_list or len(device_solutions_list) == 0:
         raise HTTPException(
             status_code=404,
             detail="No solution deployed on this device"
         )
     
     # Get the deployment
-    ds = device_solutions[0]
+    ds = device_solutions_list[0]
 
     # Update the deployment using the original update function logic
-    updated_deployment = device_solution.update(
+    updated_deployment = await device_solution.update(
         db, db_obj=ds, obj_in=solution_in
     )
 
-    sol = solution.get_by_id(db, solution_id=updated_deployment.solution_id)
+    sol = await solution.get_by_id(db, solution_id=updated_deployment.solution_id)
     updated_deployment_dict = {
         **updated_deployment.__dict__,
         "solution_name": sol.name,
@@ -238,7 +238,7 @@ def update_device_solution_by_device_id(
 
 
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="SOLUTION_UPDATE",
@@ -255,9 +255,9 @@ def update_device_solution_by_device_id(
     return updated_deployment_dict
 
 @router.delete("/device/{device_id}", response_model=DeviceSolutionSchema)
-def remove_solution_from_device(
+async def remove_solution_from_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
@@ -267,33 +267,33 @@ def remove_solution_from_device(
     After removal, a different solution can be deployed to the device.
     """
     # Get the device
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(
             status_code=404,
             detail="Device not found"
         )
     # Get the solution deployment
-    device_solutions = device_solution.get_by_device(db, device_id=device_id)
+    device_solutions_list = await device_solution.get_by_device(db, device_id=device_id)
     
-    if not device_solutions or len(device_solutions) == 0:
+    if not device_solutions_list or len(device_solutions_list) == 0:
         raise HTTPException(
             status_code=404,
             detail="No solution deployed on this device"
         )
     # Get the deployment
-    ds = device_solutions[0]
+    ds = device_solutions_list[0]
     
 
     # Get the solution for logging
-    db_solution = solution.get_by_id(db, solution_id=ds.solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=ds.solution_id)
 
     # Remove the deployment
-    removed_deployment = device_solution.remove(db, id=ds.id)
+    removed_deployment = await device_solution.remove(db, id=ds.id)
 
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="SOLUTION_REMOVAL",
@@ -313,9 +313,9 @@ def remove_solution_from_device(
 
 
 @router.get("/solution/{solution_id}", response_model=List[DeviceSolutionDetailView])
-def get_devices_by_solution(
+async def get_devices_by_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -325,7 +325,7 @@ def get_devices_by_solution(
     - Customer users can only see devices from their customer
     """
     # Check if solution exists
-    sol = solution.get_by_id(db, solution_id=solution_id)
+    sol = await solution.get_by_id(db, solution_id=solution_id)
     if not sol:
         raise HTTPException(
             status_code=404,
@@ -333,59 +333,5 @@ def get_devices_by_solution(
         )
     
     # Build an efficient query with joins
-    query = (
-        db.query(
-            DeviceSolution,
-            Device.name.label("device_name"),
-            Device.location.label("device_location"),
-            Device.customer_id,
-            Customer.name.label("customer_name"),
-        )
-        .join(Device, DeviceSolution.device_id == Device.device_id)
-        .join(Customer, Device.customer_id == Customer.customer_id)
-        .filter(DeviceSolution.solution_id == solution_id)
-    )
-    
-    # Filter based on user role
-    if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
-        # Get the user's customer_id
-        if not current_user.customer_id:
-            return []
-        
-        # Add filter for customer
-        query = query.filter(Device.customer_id == current_user.customer_id)
-    
-    # Execute the query
-    results = query.all()
-    
-    # Process results into response objects
-    response_data = []
-    for result in results:
-        ds = result[0]  # DeviceSolution object
-        device_name = result[1]
-        device_location = result[2]
-        customer_id = result[3]
-        customer_name = result[4]
-        
-        detail_view = {
-            "id": ds.id,
-            "device_id": ds.device_id,
-            "device_name": device_name,
-            "device_location": device_location,
-            "customer_id": customer_id,
-            "customer_name": customer_name,
-            "solution_id": ds.solution_id,
-            "status": ds.status,
-            "configuration": ds.configuration,
-            "version_deployed": ds.version_deployed,
-            "last_update": ds.last_update,
-            "created_at": ds.created_at,
-            "updated_at": ds.updated_at,
-            "solution_name": sol.name,
-            "solution_description": sol.description,
-            "metrics": ds.metrics if hasattr(ds, "metrics") else None
-        }
-        
-        response_data.append(detail_view)
-    
-    return response_data
+    query_result = await device_solution.get_devices_by_solution_with_details(db, solution_id=solution_id, current_user=current_user, solution_name=sol.name, solution_description=sol.description)
+    return query_result

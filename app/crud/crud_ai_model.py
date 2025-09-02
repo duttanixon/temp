@@ -1,8 +1,8 @@
 # app/crud/crud_ai_model.py
 from typing import List, Optional, Dict, Any
 import uuid
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, or_, func, select, desc, asc
 from app.crud.base import CRUDBase
 from app.models.ai_model import AIModel, AIModelStatus
 from app.schemas.ai_model import AIModelCreate, AIModelUpdate
@@ -16,26 +16,30 @@ logger = get_logger("crud.ai_model")
 class CRUDAIModel(CRUDBase[AIModel, AIModelCreate, AIModelUpdate]):
     """CRUD operations for AI Model"""
     
-    def get_by_id(
-        self, db: Session, *, model_id: uuid.UUID
+    async def get_by_id(
+        self, db: AsyncSession, *, model_id: uuid.UUID
     ) -> Optional[AIModel]:
         """Get AI model by ID"""
-        return db.query(AIModel).filter(AIModel.model_id == model_id).first()
+        result = await db.execute(select(AIModel).filter(AIModel.model_id == model_id))
+        return result.scalars().first()
 
-    def get_by_name_and_version(
-        self, db: Session, *, name: str, version: str
+    async def get_by_name_and_version(
+        self, db: AsyncSession, *, name: str, version: str
     ) -> Optional[AIModel]:
         """Get AI model by name and version combination"""
-        return db.query(AIModel).filter(
-            and_(
-                AIModel.name == name,
-                AIModel.version == version
+        result = await db.execute(
+            select(AIModel).filter(
+                and_(
+                    AIModel.name == name,
+                    AIModel.version == version
+                )
             )
-        ).first()
+        )
+        return result.scalars().first()
 
-    def get_multi_with_filters(
+    async def get_multi_with_filters(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         skip: int = 0,
         limit: int = 100,
@@ -56,7 +60,7 @@ class CRUDAIModel(CRUDBase[AIModel, AIModelCreate, AIModelUpdate]):
             sort_by: Field to sort by
             sort_order: Sort order (asc/desc)
         """
-        query = db.query(AIModel)
+        query = select(AIModel)
         
         # Apply filters
         if status:
@@ -68,21 +72,22 @@ class CRUDAIModel(CRUDBase[AIModel, AIModelCreate, AIModelUpdate]):
         # Apply sorting
         sort_column = getattr(AIModel, sort_by, AIModel.created_at)
         if sort_order == "desc":
-            query = query.order_by(sort_column.desc())
+            query = query.order_by(desc(sort_column))
         else:
-            query = query.order_by(sort_column.asc())
+            query = query.order_by(asc(sort_column))
         
-        return query.offset(skip).limit(limit).all()
+        result = await db.execute(query.offset(skip).limit(limit))
+        return list(result.scalars().all())
 
-    def count_with_filters(
+    async def count_with_filters(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         status: Optional[AIModelStatus] = None,
         name: Optional[str] = None
     ) -> int:
         """Count models with optional filters"""
-        query = db.query(func.count(AIModel.model_id))
+        query = select(func.count()).select_from(AIModel)
         
         if status:
             query = query.filter(AIModel.status == status)
@@ -90,25 +95,27 @@ class CRUDAIModel(CRUDBase[AIModel, AIModelCreate, AIModelUpdate]):
         if name:
             query = query.filter(AIModel.name.ilike(f"%{name}%"))
         
-        return query.scalar()
+        result = await db.execute(query)
+        return result.scalar()
 
-    def get_active_models(
-        self, db: Session, *, skip: int = 0, limit: int = 100
+    async def get_active_models(
+        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
     ) -> List[AIModel]:
         """Get all active AI models"""
-        return self.get_multi_with_filters(
+        return await self.get_multi_with_filters(
             db, skip=skip, limit=limit, status=AIModelStatus.ACTIVE
         )
 
-    def get_by_s3_key(
-        self, db: Session, *, s3_key: str
+    async def get_by_s3_key(
+        self, db: AsyncSession, *, s3_key: str
     ) -> Optional[AIModel]:
         """Get AI model by S3 key"""
-        return db.query(AIModel).filter(AIModel.s3_key == s3_key).first()
+        result = await db.execute(select(AIModel).filter(AIModel.s3_key == s3_key))
+        return result.scalars().first()
 
-    def create_with_s3_info(
+    async def create_with_s3_info(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         obj_in: AIModelCreate,
         s3_bucket: str,
@@ -134,14 +141,14 @@ class CRUDAIModel(CRUDBase[AIModel, AIModelCreate, AIModelUpdate]):
             updated_at=datetime.now(ZoneInfo("Asia/Tokyo"))
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         logger.info(f"Created AI model: {db_obj.model_id} - {db_obj.name} v{db_obj.version}")
         return db_obj
 
-    def update(
+    async def update(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         db_obj: AIModel,
         obj_in: AIModelUpdate
@@ -154,66 +161,69 @@ class CRUDAIModel(CRUDBase[AIModel, AIModelCreate, AIModelUpdate]):
         
         db_obj.updated_at = datetime.now(ZoneInfo("Asia/Tokyo"))
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         logger.info(f"Updated AI model: {db_obj.model_id}")
         return db_obj
 
-    def update_status(
+    async def update_status(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         model_id: uuid.UUID,
         status: AIModelStatus
     ) -> Optional[AIModel]:
         """Update AI model status"""
-        db_obj = self.get_by_id(db, model_id=model_id)
+        db_obj = await self.get_by_id(db, model_id=model_id)
         if db_obj:
             db_obj.status = status
             db_obj.updated_at = datetime.now(ZoneInfo("Asia/Tokyo"))
             db.add(db_obj)
-            db.commit()
-            db.refresh(db_obj)
+            await db.commit()
+            await db.refresh(db_obj)
             logger.info(f"Updated AI model {model_id} status to {status}")
         return db_obj
 
-    def deprecate_model(
-        self, db: Session, *, model_id: uuid.UUID
+    async def deprecate_model(
+        self, db: AsyncSession, *, model_id: uuid.UUID
     ) -> Optional[AIModel]:
         """Deprecate an AI model"""
-        return self.update_status(db, model_id=model_id, status=AIModelStatus.DEPRECATED)
+        return await self.update_status(db, model_id=model_id, status=AIModelStatus.DEPRECATED)
 
-    def activate_model(
-        self, db: Session, *, model_id: uuid.UUID
+    async def activate_model(
+        self, db: AsyncSession, *, model_id: uuid.UUID
     ) -> Optional[AIModel]:
         """Activate an AI model"""
-        return self.update_status(db, model_id=model_id, status=AIModelStatus.ACTIVE)
+        return await self.update_status(db, model_id=model_id, status=AIModelStatus.ACTIVE)
 
-    def count_by_status(
-        self, db: Session, *, status: AIModelStatus
+    async def count_by_status(
+        self, db: AsyncSession, *, status: AIModelStatus
     ) -> int:
         """Count models by status"""
-        return db.query(AIModel).filter(AIModel.status == status).count()
+        result = await db.execute(select(func.count()).filter(AIModel.status == status))
+        return result.scalar()
 
-    def get_latest_version(
-        self, db: Session, *, name: str
+    async def get_latest_version(
+        self, db: AsyncSession, *, name: str
     ) -> Optional[AIModel]:
         """Get the latest version of a model by name"""
-        return db.query(AIModel).filter(
+        result = await db.execute(select(AIModel).filter(
             AIModel.name == name
-        ).order_by(AIModel.created_at.desc()).first()
+        ).order_by(desc(AIModel.created_at)).limit(1))
+        return result.scalars().first()
 
-    def get_all_versions(
-        self, db: Session, *, name: str
+    async def get_all_versions(
+        self, db: AsyncSession, *, name: str
     ) -> List[AIModel]:
         """Get all versions of a model by name"""
-        return db.query(AIModel).filter(
+        result = await db.execute(select(AIModel).filter(
             AIModel.name == name
-        ).order_by(AIModel.version.desc()).all()
+        ).order_by(desc(AIModel.version)))
+        return list(result.scalars().all())
 
-    def search_models(
+    async def search_models(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         search_term: str,
         skip: int = 0,
@@ -229,41 +239,47 @@ class CRUDAIModel(CRUDBase[AIModel, AIModelCreate, AIModelUpdate]):
             limit: Maximum number of records to return
         """
         search_pattern = f"%{search_term}%"
-        return db.query(AIModel).filter(
-            or_(
-                AIModel.name.ilike(search_pattern),
-                AIModel.description.ilike(search_pattern)
-            )
-        ).offset(skip).limit(limit).all()
+        result = await db.execute(
+            select(AIModel).filter(
+                or_(
+                    AIModel.name.ilike(search_pattern),
+                    AIModel.description.ilike(search_pattern)
+                )
+            ).offset(skip).limit(limit)
+        )
+        return list(result.scalars().all())
 
-    def delete_hard(
-        self, db: Session, *, model_id: uuid.UUID
+    async def delete_hard(
+        self, db: AsyncSession, *, model_id: uuid.UUID
     ) -> Optional[AIModel]:
         """
         Permanently delete an AI model (use with caution)
         This should only be used for cleanup of failed uploads
         """
-        db_obj = self.get_by_id(db, model_id=model_id)
+        db_obj = await self.get_by_id(db, model_id=model_id)
         if db_obj:
-            db.delete(db_obj)
-            db.commit()
+            await db.delete(db_obj)
+            await db.commit()
             logger.warning(f"Hard deleted AI model: {model_id}")
         return db_obj
 
-    def get_models_by_date_range(
+    async def get_models_by_date_range(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         start_date: datetime,
         end_date: datetime
     ) -> List[AIModel]:
         """Get models created within a date range"""
-        return db.query(AIModel).filter(
-            and_(
-                AIModel.created_at >= start_date,
-                AIModel.created_at <= end_date
-            )
-        ).order_by(AIModel.created_at.desc()).all()
+        result = await db.execute(
+            select(AIModel).filter(
+                and_(
+                    AIModel.created_at >= start_date,
+                    AIModel.created_at <= end_date
+                )
+            ).order_by(desc(AIModel.created_at))
+        )
+        return list(result.scalars().all())
 
 
 # Create instance

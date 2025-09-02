@@ -1,4 +1,4 @@
-from app.db.session import Base, jst_now
+from app.db.async_session import Base, jst_now
 import uuid
 from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Integer
 from sqlalchemy.dialects.postgresql import UUID

@@ -31,7 +31,6 @@ class SolutionPackageS3Manager:
 
     def generate_s3_key(
         self,
-        solution_id: str,
         solution_name: str,
         package_name: str,
         version: str,
@@ -41,7 +40,6 @@ class SolutionPackageS3Manager:
     ) -> str:
         """
         Generate S3 key for solution package
-        Format: solutions/{solution_id}/packages/{platform}/{name}_{version}{extension}
         """
         # Clean name and version for S3 key
         solution_name = solution_name.replace(" ", "_").lower()

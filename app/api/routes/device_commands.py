@@ -1,6 +1,6 @@
 from typing import Any, List, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import device, device_solution, device_command
 from app.models import User, CommandType, CommandStatus, UserRole
@@ -17,7 +17,6 @@ import uuid
 from app.utils.audit import log_action
 from app.utils.kvs_manager import kvs_manager
 from app.utils.util import check_device_access, validate_device_for_commands
-
 from app.utils.aws_iot_commands import iot_command_service
 from app.utils.logger import get_logger
 from app.api.routes.sse import notify_command_update
@@ -28,9 +27,9 @@ logger = get_logger("api.device_commands")
 router = APIRouter()
 
 @router.post("/capture-image", response_model=DeviceCommandResponse)
-def send_capture_image_command(
+async def send_capture_image_command(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     command_in: CaptureImageCommand,
     current_user: User = Depends(deps.get_current_active_user),
     background_tasks: BackgroundTasks,
@@ -44,12 +43,12 @@ def send_capture_image_command(
     )
 
     # Get and validate device
-    db_device = device.get_by_id(db, device_id=command_in.device_id)
-    check_device_access(current_user, db_device)
+    db_device = await device.get_by_id(db, device_id=command_in.device_id)
+    await check_device_access(current_user, db_device)
     thing_name = validate_device_for_commands(db_device)
 
     # to do - check if an active solution is running on the device
-    active_solutions = device_solution.get_active_by_device(
+    active_solutions = await device_solution.get_active_by_device(
         db, device_id=command_in.device_id
     )
     # get the solution ID that is running
@@ -70,7 +69,7 @@ def send_capture_image_command(
         solution_id=solution_id,
     )
 
-    db_command = device_command.create(db, obj_in=command_create)
+    db_command = await device_command.create(db, obj_in=command_create)
 
     # Send command to IoT Core
     success = iot_command_service.send_capture_image_command(
@@ -79,7 +78,7 @@ def send_capture_image_command(
 
     if not success:
         # Update command status to failed
-        device_command.update_status(
+        await device_command.update_status(
             db,
             message_id=db_command.message_id,
             status=CommandStatus.FAILED,
@@ -96,7 +95,7 @@ def send_capture_image_command(
         raise HTTPException(status_code=500, detail="Failed to send command to device")
 
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.DEVICE_COMMAND_CAPTURE_IMAGE,
@@ -119,9 +118,9 @@ def send_capture_image_command(
 
 
 @router.put("/internal/{message_id}/status", response_model=dict)
-def update_command_status_internal(
+async def update_command_status_internal(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     message_id: str,
     status_update: DeviceCommandStatusUpdate,
     api_key_valid: bool = Depends(deps.verify_api_key),
@@ -136,12 +135,12 @@ def update_command_status_internal(
         raise HTTPException(status_code=400, detail="Invalid message ID format")
 
     # Get the command
-    db_command = device_command.get_by_message_id(db, message_id=message_uuid)
+    db_command = await device_command.get_by_message_id(db, message_id=message_uuid)
     if not db_command:
         raise HTTPException(status_code=404, detail="Command not found")
 
     # Update the command status
-    updated_command = device_command.update_status(
+    updated_command = await device_command.update_status(
         db,
         message_id=message_uuid,
         status=status_update.status,
@@ -169,9 +168,9 @@ def update_command_status_internal(
 
 
 @router.post("/start-live-stream", response_model=StreamStatusResponse)
-def start_live_stream_command(
+async def start_live_stream_command(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     command_in: StartLiveStreamCommand,
     current_user: User = Depends(deps.get_current_active_user),
     background_tasks: BackgroundTasks,
@@ -193,12 +192,12 @@ def start_live_stream_command(
 
 
     # Get and validate device
-    db_device = device.get_by_id(db, device_id=command_in.device_id)
-    check_device_access(current_user, db_device)
+    db_device = await device.get_by_id(db, device_id=command_in.device_id)
+    await check_device_access(current_user, db_device)
     thing_name = validate_device_for_commands(db_device)
 
     # Check if an active solution is running on the device
-    active_solutions = device_solution.get_active_by_device(
+    active_solutions = await device_solution.get_active_by_device(
         db, device_id=command_in.device_id
     )
     if not active_solutions:
@@ -231,7 +230,7 @@ def start_live_stream_command(
         solution_id=solution_id,
     )
 
-    db_command = device_command.create(db, obj_in=command_create)
+    db_command = await device_command.create(db, obj_in=command_create)
 
     # Send command to IoT Core
     # The device will handle if it's already streaming
@@ -245,7 +244,7 @@ def start_live_stream_command(
 
     if not success:
         # Update command status to failed
-        device_command.update_status(
+        await device_command.update_status(
             db,
             message_id=db_command.message_id,
             status=CommandStatus.FAILED,
@@ -266,7 +265,7 @@ def start_live_stream_command(
     kvs_url = hls_info.get("hls_url") if hls_info else None
 
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.DEVICE_COMMAND_START_LIVE_STREAM,
@@ -296,9 +295,9 @@ def start_live_stream_command(
 
 
 @router.post("/stop-live-stream", response_model=DeviceCommandResponse)
-def stop_live_stream_command(
+async def stop_live_stream_command(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     command_in: StopLiveStreamCommand,
     current_user: User = Depends(deps.get_current_active_user),
     background_tasks: BackgroundTasks,
@@ -312,12 +311,12 @@ def stop_live_stream_command(
     )
 
     # Get and validate device
-    db_device = device.get_by_id(db, device_id=command_in.device_id)
-    check_device_access(current_user, db_device)
+    db_device = await device.get_by_id(db, device_id=command_in.device_id)
+    await check_device_access(current_user, db_device)
     thing_name = validate_device_for_commands(db_device)
 
     # Check if an active solution is running on the device
-    active_solutions = device_solution.get_active_by_device(
+    active_solutions = await device_solution.get_active_by_device(
         db, device_id=command_in.device_id
     )
     if not active_solutions:
@@ -335,7 +334,7 @@ def stop_live_stream_command(
         solution_id=solution_id,
     )
 
-    db_command = device_command.create(db, obj_in=command_create)
+    db_command = await device_command.create(db, obj_in=command_create)
 
     # Send command to IoT Core
     success = iot_command_service.send_stop_live_stream_command(
@@ -345,7 +344,7 @@ def stop_live_stream_command(
 
     if not success:
         # Update command status to failed
-        device_command.update_status(
+        await device_command.update_status(
             db,
             message_id=db_command.message_id,
             status=CommandStatus.FAILED,
@@ -361,7 +360,7 @@ def stop_live_stream_command(
         raise HTTPException(status_code=500, detail="Failed to send command to device")
 
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.DEVICE_COMMAND_STOP_LIVE_STREAM,
@@ -381,9 +380,10 @@ def stop_live_stream_command(
         details="Stop live stream command sent successfully"
     )
 
+
 @router.get("/active-streams", response_model=List[Dict[str, Any]])
-def get_active_streams(
-    db: Session = Depends(deps.get_db),
+async def get_active_streams(
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -412,9 +412,9 @@ def get_active_streams(
     return active_streams
 
 @router.get("/stream-status/{device_id}", response_model=Dict[str, Any])
-def get_device_stream_status(
+async def get_device_stream_status(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -423,8 +423,8 @@ def get_device_stream_status(
     Returns stream name, status, and HLS URL if streaming is active.
     """
     # Get and validate device
-    db_device = device.get_by_id(db, device_id=device_id)
-    check_device_access(current_user, db_device)
+    db_device = await device.get_by_id(db, device_id=device_id)
+    await check_device_access(current_user, db_device)
     
     # Generate expected stream name
     stream_name = kvs_manager.generate_stream_name_for_device(db_device.name)

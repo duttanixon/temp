@@ -1,7 +1,7 @@
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import uuid
 
@@ -23,9 +23,9 @@ router = APIRouter()
 
 
 @router.get("", response_model=AuditLogListResponse)
-def get_audit_logs(
+async def get_audit_logs(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_active_user),
     # Filter parameters
     user_id: Optional[uuid.UUID] = Query(None, description="Filter by user ID"),
@@ -79,7 +79,7 @@ def get_audit_logs(
             logger.info(f"Customer admin {current_user.email} accessing organization audit logs")
     
     # Get logs with filters
-    logs, total_count = audit_log.get_logs_with_filters(db, filters=filters, customer_id=customer_filter_id)
+    logs, total_count = await audit_log.get_logs_with_filters(db, filters=filters, customer_id=customer_filter_id)
     
     return AuditLogListResponse(
         logs=logs,
@@ -90,9 +90,9 @@ def get_audit_logs(
 
 
 @router.get("/statistics", response_model=AuditLogStats)
-def get_audit_log_statistics(
+async def get_audit_log_statistics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     start_date: Optional[datetime] = Query(None, description="Statistics from this date"),
     end_date: Optional[datetime] = Query(None, description="Statistics until this date")
@@ -101,7 +101,7 @@ def get_audit_log_statistics(
     Get audit log statistics.
     Only admins and engineers can access this endpoint.
     """
-    stats = audit_log.get_statistics(
+    stats = await audit_log.get_statistics(
         db,
         start_date=start_date,
         end_date=end_date
@@ -111,9 +111,9 @@ def get_audit_log_statistics(
 
 
 @router.get("/recent-activity")
-def get_recent_activity(
+async def get_recent_activity(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     hours: int = Query(24, ge=1, le=168, description="Number of hours to look back"),
     limit: int = Query(50, ge=1, le=200, description="Maximum number of records")
@@ -122,7 +122,7 @@ def get_recent_activity(
     Get recent activity within the specified number of hours.
     Only admins and engineers can access this endpoint.
     """
-    recent_logs = audit_log.get_recent_activity(
+    recent_logs = await audit_log.get_recent_activity(
         db,
         hours=hours,
         limit=limit
@@ -132,7 +132,7 @@ def get_recent_activity(
 
 
 @router.get("/action-types")
-def get_action_types(
+async def get_action_types(
     current_user: User = Depends(deps.get_current_active_user)
 ) -> Any:
     """
@@ -142,7 +142,7 @@ def get_action_types(
 
 
 @router.get("/resource-types")
-def get_resource_types(
+async def get_resource_types(
     current_user: User = Depends(deps.get_current_active_user)
 ) -> Any:
     """
@@ -151,9 +151,9 @@ def get_resource_types(
     return [resource.value for resource in AuditLogResourceType]
 
 @router.get("/export")
-def export_audit_logs(
+async def export_audit_logs(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_active_user),
     format: str = Query("csv", regex="^(csv|json)$", description="Export format"),
     # Filter parameters (same as get_audit_logs)
@@ -204,7 +204,7 @@ def export_audit_logs(
         )
         
         # Get batch of logs
-        logs, total_count = audit_log.get_logs_with_filters(
+        logs, total_count = await audit_log.get_logs_with_filters(
             db,
             filters=filters,
             customer_id=customer_filter_id # type: ignore

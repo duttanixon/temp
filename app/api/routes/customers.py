@@ -1,7 +1,7 @@
 from typing import Any, List
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import customer, user
 from app.models.user import User, UserRole
@@ -23,8 +23,8 @@ logger = get_logger("api.customers")
 router = APIRouter()
 
 @router.get("", response_model=List[CustomerAdminView])
-def read_customers(
-    db: Session = Depends(deps.get_db),
+async def read_customers(
+    db: AsyncSession = Depends(deps.get_async_db),
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(deps.get_current_admin_user),
@@ -32,7 +32,7 @@ def read_customers(
     """
     Retrieve customers (admin only)
     """
-    customers = customer.get_multi(db, skip=skip, limit=limit)
+    customers = await customer.get_multi(db, skip=skip, limit=limit)
     return customers
 
 
@@ -44,9 +44,9 @@ def read_customers(
             403: {"description": "Forbidden - Not enough privileges"}
         }
 )
-def create_customer(
+async def create_customer(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_in: CustomerCreate,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -55,7 +55,7 @@ def create_customer(
     Create new customer (admin only)
     """
     logger.info(f"Creating new customer: {customer_in.name} by user: {current_user.email} (ID: {current_user.user_id})")
-    existing_customer = customer.get_by_name(db, name=customer_in.name)
+    existing_customer = await customer.get_by_name(db, name=customer_in.name)
     if existing_customer:
         logger.warning(f"Customer creation failed - name already exists: {customer_in.name}")
         raise HTTPException(
@@ -64,7 +64,7 @@ def create_customer(
         )
 
     # Check for duplicate email
-    existing_email = customer.get_by_email(db, contact_email=customer_in.contact_email)
+    existing_email = await customer.get_by_email(db, contact_email=customer_in.contact_email)
     if existing_email:
         logger.warning(f"Customer creation failed - email already exists: {customer_in.contact_email}")
         raise HTTPException(
@@ -72,11 +72,11 @@ def create_customer(
             detail="Customer with this email already exists",
         )
     
-    new_customer = customer.create(db, obj_in=customer_in)
+    new_customer = await customer.create(db, obj_in=customer_in)
     logger.info(f"Customer created successfully: {new_customer.name} (ID: {new_customer.customer_id})")
     
     # Log customer creation
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.CUSTOMER_CREATE,
@@ -89,15 +89,15 @@ def create_customer(
     return new_customer
 
 @router.get("/{customer_id}", response_model=CustomerAdminView)
-def read_customer(
+async def read_customer(
     customer_id: uuid.UUID,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
 ) -> Any:
     """
     Get a specific customer by id (admin or engineer only)
     """
-    db_customer = customer.get_by_id(db, customer_id=customer_id)
+    db_customer = await customer.get_by_id(db, customer_id=customer_id)
     if not db_customer:
         raise HTTPException(
             status_code=404,
@@ -107,9 +107,9 @@ def read_customer(
 
 
 @router.put("/{customer_id}", response_model=CustomerAdminView)
-def update_customer(
+async def update_customer(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     customer_in: CustomerUpdate,
     current_user: User = Depends(deps.get_current_admin_user),
@@ -118,7 +118,7 @@ def update_customer(
     """
     Update a customer (admin only)
     """
-    db_customer = customer.get_by_id(db, customer_id=customer_id)
+    db_customer = await customer.get_by_id(db, customer_id=customer_id)
     if not db_customer:
         raise HTTPException(
             status_code=404,
@@ -136,7 +136,7 @@ def update_customer(
 
         # Check for duplicate name if name is being changed
         if customer_in.name != db_customer.name:
-            existing_customer = customer.get_by_name(db, name=customer_in.name)
+            existing_customer = await customer.get_by_name(db, name=customer_in.name)
             if existing_customer:
                 raise HTTPException(
                     status_code=400,
@@ -154,17 +154,17 @@ def update_customer(
         
         # Check for duplicate email if email is being changed
         if customer_in.contact_email != db_customer.contact_email:
-            existing_customer = customer.get_by_email(db, contact_email=customer_in.contact_email)
+            existing_customer = await customer.get_by_email(db, contact_email=customer_in.contact_email)
             if existing_customer:
                 raise HTTPException(
                     status_code=400,
                     detail="Customer with this email already exists",
                 )
 
-    updated_customer = customer.update(db, db_obj=db_customer, obj_in=customer_in)
+    updated_customer = await customer.update(db, db_obj=db_customer, obj_in=customer_in)
     
     # Log customer update
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.CUSTOMER_UPDATE,
@@ -179,9 +179,9 @@ def update_customer(
 
 
 @router.post("/{customer_id}/suspend", response_model=CustomerAdminView)
-def suspend_customer(
+async def suspend_customer(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -189,17 +189,17 @@ def suspend_customer(
     """
     Suspend a customer (admin only)
     """
-    db_customer = customer.get_by_id(db, customer_id=customer_id)
+    db_customer = await customer.get_by_id(db, customer_id=customer_id)
     if not db_customer:
         raise HTTPException(
             status_code=404,
             detail="Customer not found",
         )
     
-    suspended_customer = customer.suspend(db, customer_id=customer_id)
+    suspended_customer = await customer.suspend(db, customer_id=customer_id)
     
     # Log customer suspension
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.CUSTOMER_SUSPEND,
@@ -213,9 +213,9 @@ def suspend_customer(
 
 
 @router.post("/{customer_id}/activate", response_model=CustomerAdminView)
-def activate_customer(
+async def activate_customer(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -223,17 +223,17 @@ def activate_customer(
     """
     Activate a suspended customer (admin only)
     """
-    db_customer = customer.get_by_id(db, customer_id=customer_id)
+    db_customer = await customer.get_by_id(db, customer_id=customer_id)
     if not db_customer:
         raise HTTPException(
             status_code=404,
             detail="Customer not found",
         )
     
-    activated_customer = customer.activate(db, customer_id=customer_id)
+    activated_customer = await customer.activate(db, customer_id=customer_id)
     
     # Log customer activation
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.CUSTOMER_ACTIVATE,
@@ -246,18 +246,19 @@ def activate_customer(
     return activated_customer
 
 @router.delete("/{customer_id}", response_model=CustomerAdminView)
-def delete_customer(
+async def delete_customer(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
 ) -> Any:
     """
+    バックエンド利用のみ。
     Delete a customer (admin only)
     Note - バックエンド利用のみ。
     """
-    db_customer = customer.get_by_id(db, customer_id=customer_id)
+    db_customer = await customer.get_by_id(db, customer_id=customer_id)
     if not db_customer:
         raise HTTPException(
             status_code=404,
@@ -265,14 +266,14 @@ def delete_customer(
         )
 
     # Check if customer has any users
-    user_list = user.get_by_customer(db, customer_id=customer_id)
+    user_list = await user.get_by_customer(db, customer_id=customer_id)
     if user_list and len(user_list) > 0:
         raise HTTPException(
             status_code=400,
             detail="Cannot delete customer with associated users. Remove all users first.",
         )    
-    deleted_customer = customer.remove(db, customer_id=customer_id)
-    log_action(
+    deleted_customer = await customer.remove(db, customer_id=customer_id)
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.CUSTOMER_DELETE,

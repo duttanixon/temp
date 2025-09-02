@@ -1,39 +1,46 @@
 from typing import Any, Dict, Optional, Union, List
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import desc, and_, select
 from app.crud.base import CRUDBase
 from app.models import Device, DeviceStatus, Customer, DeviceSolution, Solution, Job, DeviceSolutionStatus
 from app.schemas.device import DeviceCreate, DeviceUpdate
 import uuid
 
 class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
-    def get_by_id(self, db: Session, *, device_id: uuid.UUID) -> Optional[Device]:
-        return db.query(Device).filter(Device.device_id == device_id).first()
+    async def get_by_id(self, db: AsyncSession, *, device_id: uuid.UUID) -> Optional[Device]:
+        result = await db.execute(select(Device).filter(Device.device_id == device_id))
+        return result.scalars().first()
     
-    def get_by_mac_address(self, db: Session, *, mac_address: str) -> Optional[Device]:
+    async def get_by_mac_address(self, db: AsyncSession, *, mac_address: str) -> Optional[Device]:
         if not mac_address:
             return None
-        return db.query(Device).filter(Device.mac_address == mac_address).first()
+        result = await db.execute(select(Device).filter(Device.mac_address == mac_address))
+        return result.scalars().first()
     
-    def get_by_thing_name(self, db: Session, *, thing_name: str) -> Optional[Device]:
-        return db.query(Device).filter(Device.thing_name == thing_name).first()
+    async def get_by_thing_name(self, db: AsyncSession, *, thing_name: str) -> Optional[Device]:
+        result = await db.execute(select(Device).filter(Device.thing_name == thing_name))
+        return result.scalars().first()
 
-    def get_by_device_name(self, db: Session, *, device_name: str) -> Optional[Device]:
-        return db.query(Device).filter(Device.name == device_name).first()
+    async def get_by_device_name(self, db: AsyncSession, *, device_name: str) -> Optional[Device]:
+        result = await db.execute(select(Device).filter(Device.name == device_name))
+        return result.scalars().first()
 
-    def get_by_customer(
-        self, db: Session, *, customer_id: uuid.UUID, skip: int = 0, limit: int = 100
+    async def get_by_customer(
+        self, db: AsyncSession, *, customer_id: uuid.UUID, skip: int = 0, limit: int = 100
     ) -> List[Device]:
-        return db.query(Device).filter(
-            Device.customer_id == customer_id
-        ).order_by(desc(Device.created_at)).offset(skip).limit(limit).all()
+        result = await db.execute(
+            select(Device)
+            .filter(Device.customer_id == customer_id)
+            .order_by(desc(Device.created_at)).offset(skip).limit(limit)
+        )
+        return list(result.scalars().all())
 
-    def get_with_customer_name_and_solution_filter(
-        self, db: Session, *, solution_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100
+    async def get_with_customer_name_and_solution_filter(
+        self, db: AsyncSession, *, solution_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100
     ) -> List[Device]:
         """Get all devices with customer name, optionally filtered by solution"""
         query = (
-            db.query(
+            select(
                 Device,
                 Customer.name.label("customer_name"),
                 Solution.name.label("solution_name"),
@@ -54,26 +61,26 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
             desc(Device.created_at)
         ).offset(skip).limit(limit)
         
-        results = query.all()
+        results = (await db.execute(query)).all()
         
         processed_devices = []
         for row in results:
-            device, customer_name, solution_name, latest_job_type, latest_job_status = row
-            setattr(device, "customer_name", customer_name)
-            setattr(device, "solution_name", solution_name)
-            setattr(device, "latest_job_type", latest_job_type)
-            setattr(device, "latest_job_status", latest_job_status)
-            processed_devices.append(device)
+            device_obj, customer_name, solution_name, latest_job_type, latest_job_status = row
+            setattr(device_obj, "customer_name", customer_name)
+            setattr(device_obj, "solution_name", solution_name)
+            setattr(device_obj, "latest_job_type", latest_job_type)
+            setattr(device_obj, "latest_job_status", latest_job_status)
+            processed_devices.append(device_obj)
 
         return processed_devices
 
-    def get_by_customer_with_name_and_solution_filter(
-        self, db: Session, *, customer_id: uuid.UUID, solution_id: Optional[uuid.UUID] = None,
+    async def get_by_customer_with_name_and_solution_filter(
+        self, db: AsyncSession, *, customer_id: uuid.UUID, solution_id: Optional[uuid.UUID] = None,
         skip: int = 0, limit: int = 100
     ) -> List[Device]:
         """Get a customer's devices with solution and latest job info."""
         query = (
-            db.query(
+            select(
                 Device,
                 Customer.name.label("customer_name"),
                 Solution.name.label("solution_name"),
@@ -92,21 +99,21 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
 
         query = query.order_by(desc(Device.created_at)).offset(skip).limit(limit)
 
-        results = query.all()
+        results = (await db.execute(query)).all()
 
         processed_devices = []
         for row in results:
-            device, customer_name, solution_name, latest_job_type, latest_job_status = row
-            setattr(device, "customer_name", customer_name)
-            setattr(device, "solution_name", solution_name)
-            setattr(device, "latest_job_type", latest_job_type)
-            setattr(device, "latest_job_status", latest_job_status)
-            processed_devices.append(device)
+            device_obj, customer_name, solution_name, latest_job_type, latest_job_status = row
+            setattr(device_obj, "customer_name", customer_name)
+            setattr(device_obj, "solution_name", solution_name)
+            setattr(device_obj, "latest_job_type", latest_job_type)
+            setattr(device_obj, "latest_job_status", latest_job_status)
+            processed_devices.append(device_obj)
 
         return processed_devices
 
 
-    def create(self, db: Session, *, obj_in: DeviceCreate, device_name: str) -> Device:
+    async def create(self, db: AsyncSession, *, obj_in: DeviceCreate, device_name: str) -> Device:
         db_obj = Device(
             name=device_name,
             description=obj_in.description,
@@ -122,37 +129,38 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
             longitude=obj_in.longitude
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
 
-    def update_device_status(
-        self, db: Session, *, device_id: uuid.UUID, status: DeviceStatus
+    async def update_device_status(
+        self, db: AsyncSession, *, device_id: uuid.UUID, status: DeviceStatus
     ) -> Device:
-        device = self.get_by_id(db, device_id=device_id)
-        device.status = status
-        db.add(device)
-        db.commit()
-        db.refresh(device)
+        device = await self.get_by_id(db, device_id=device_id)
+        if device:
+            device.status = status
+            db.add(device)
+            await db.commit()
+            await db.refresh(device)
         return device
     
     
-    def decommission(self, db: Session, *, device_id: uuid.UUID) -> Device:
-        return self.update_device_status(
+    async def decommission(self, db: AsyncSession, *, device_id: uuid.UUID) -> Device:
+        return await self.update_device_status(
             db, device_id=device_id, status=DeviceStatus.DECOMMISSIONED
         )
     
     
-    def activate(self, db: Session, *, device_id: uuid.UUID) -> Device:
-        return self.update_device_status(
+    async def activate(self, db: AsyncSession, *, device_id: uuid.UUID) -> Device:
+        return await self.update_device_status(
             db, device_id=device_id, status=DeviceStatus.PROVISIONED
         )
 
     
-    def update_cloud_info(
+    async def update_cloud_info(
         self, 
-        db: Session, 
+        db: AsyncSession, 
         *, 
         device_id: uuid.UUID,
         thing_name: str,
@@ -163,37 +171,39 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         private_key_path: str,
         status: DeviceStatus = DeviceStatus.PROVISIONED
     ) -> Device:
-        device = self.get_by_id(db, device_id=device_id)
-        device.thing_name = thing_name
-        device.thing_arn = thing_arn
-        device.certificate_id = certificate_id
-        device.certificate_arn = certificate_arn
-        device.certificate_path = certificate_path
-        device.private_key_path = private_key_path
-        device.status = status
-        db.add(device)
-        db.commit()
-        db.refresh(device)
+        device = await self.get_by_id(db, device_id=device_id)
+        if device:
+            device.thing_name = thing_name
+            device.thing_arn = thing_arn
+            device.certificate_id = certificate_id
+            device.certificate_arn = certificate_arn
+            device.certificate_path = certificate_path
+            device.private_key_path = private_key_path
+            device.status = status
+            db.add(device)
+            await db.commit()
+            await db.refresh(device)
         return device
 
-    def get_with_customer_name_and_solution(
+    async def get_with_customer_name_and_solution(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         device_id: uuid.UUID
     ) -> Optional[Dict[str, Any]]:
         # Query the device with customer information
-        result = (
-            db.query(Device, Customer.name.label("customer_name"))
+        query = (
+            select(Device, Customer.name.label("customer_name"))
             .join(Customer, Customer.customer_id == Device.customer_id)
             .filter(Device.device_id == device_id)
-            .first()
         )
+        result = await db.execute(query)
+        result_row = result.first()
         
-        if not result:
+        if not result_row:
             return None
             
-        device_obj, customer_name = result
+        device_obj, customer_name = result_row
         
         # Convert to dict and add customer name
         device_dict = {
@@ -202,19 +212,19 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         }
         
         # Get associated solutions
-        solution = (
-            db.query(
+        solution_result = await db.execute(
+            select(
                 DeviceSolution.solution_id,
                 DeviceSolution.status,
                 Solution.name.label("solution_name")
             )
             .join(Solution, Solution.solution_id == DeviceSolution.solution_id)
             .filter(DeviceSolution.device_id == device_id)
-            .first()
         )
+        solution_row = solution_result.first()
         
         # Add solutions information
-        device_dict["solution_name"] = solution.solution_name if solution else None
+        device_dict["solution_name"] = solution_row.solution_name if solution_row else None
         
         return device_dict
 

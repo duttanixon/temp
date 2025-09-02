@@ -1,8 +1,8 @@
 from typing import Any, List, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import user, customer, password_reset_token
 from app.models.user import User, UserRole
@@ -31,8 +31,8 @@ def generate_password() -> str:
 
 
 @router.get("/me", response_model=UserWithCustomerSchema)
-def read_user_me(
-    db: Session = Depends(deps.get_db),
+async def read_user_me(
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -44,15 +44,15 @@ def read_user_me(
         "customer": None
     }
     if current_user.customer_id:
-        customer_obj = customer.get_by_id(db, customer_id=current_user.customer_id)
+        customer_obj = await customer.get_by_id(db, customer_id=current_user.customer_id)
         if customer_obj:
             result["customer"] = jsonable_encoder(customer_obj)
     return result
 
 @router.put("/me", response_model=UserSchema)
-def update_user_me(
+async def update_user_me(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     first_name: Optional[str] = Body(None),
     last_name: Optional[str] = Body(None),
     email: Optional[EmailStr] = Body(None),
@@ -69,10 +69,10 @@ def update_user_me(
         user_in.last_name = last_name
     if email is not None:
         user_in.email = email
-    updated_user = user.update(db, db_obj=current_user, obj_in=user_in)
+    updated_user = await user.update(db, db_obj=current_user, obj_in=user_in)
 
     # Log user update
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.USER_UPDATE,
@@ -84,23 +84,23 @@ def update_user_me(
     return updated_user
 
 @router.post("/password", response_model=UserSchema)
-def change_password(
+async def change_password(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     password_data: UserPasswordChange,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Change user password
     """
-    if not user.authenticate(db, email=current_user.email, password=password_data.current_password):
+    if not await user.authenticate(db, email=current_user.email, password=password_data.current_password):
         raise HTTPException(status_code=400, detail="Incorrect password")
     
     user_in = UserUpdate(password=password_data.new_password)
-    updated_user = user.update(db, db_obj=current_user, obj_in=user_in)
+    updated_user = await user.update(db, db_obj=current_user, obj_in=user_in)
     
     # Log password change
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.PASSWORD_CHANGE,
@@ -113,8 +113,8 @@ def change_password(
 # Admin routes
 
 @router.get("", response_model=List[UserAdminView])
-def read_users(
-    db: Session = Depends(deps.get_db),
+async def read_users(
+    db: AsyncSession = Depends(deps.get_async_db),
     skip: int = 0,
     limit: int = 100,
     customer_id: Optional[uuid.UUID] = None,
@@ -130,15 +130,15 @@ def read_users(
     if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
         if customer_id:
             # Verify the customer exists
-            db_customer = customer.get_by_id(db, customer_id=customer_id)
+            db_customer = await customer.get_by_id(db, customer_id=customer_id)
             if not db_customer:
                 raise HTTPException(
                     status_code=404,
                     detail="Customer not found",
                 )
-            return user.get_by_customer(db, customer_id=customer_id)
+            return await user.get_by_customer(db, customer_id=customer_id)
         else:
-            return user.get_multi(db, skip=skip, limit=limit)
+            return await user.get_multi(db, skip=skip, limit=limit)
         
     # Customer admins can only see users from their customer
     elif current_user.role == UserRole.CUSTOMER_ADMIN:
@@ -148,7 +148,7 @@ def read_users(
                 status_code=403,
                 detail="Not authorized to access users from other customers",
             )
-        return user.get_by_customer(db, customer_id=current_user.customer_id)
+        return await user.get_by_customer(db, customer_id=current_user.customer_id)
 
     # Other users don't have access
     else:
@@ -158,9 +158,9 @@ def read_users(
         )
 
 @router.post("", response_model=UserAdminView)
-def create_user(
+async def create_user(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     user_in: UserCreateWithoutPassword,
     current_user: User = Depends(deps.get_current_active_user),
     request: Request,
@@ -202,7 +202,7 @@ def create_user(
         )
 
     # Check if user already exists
-    existing_user = user.get_by_email(db, email=user_in.email)
+    existing_user = await user.get_by_email(db, email=user_in.email)
     if existing_user:
         raise HTTPException(
             status_code=400,
@@ -212,7 +212,7 @@ def create_user(
     # Set customer ID if provided
     if effective_customer_id:
         # Verify customer exists
-        db_customer = customer.get_by_id(db, customer_id=effective_customer_id)
+        db_customer = await customer.get_by_id(db, customer_id=effective_customer_id)
         if not db_customer:
             raise HTTPException(
                 status_code=404,
@@ -221,10 +221,10 @@ def create_user(
         user_in.customer_id = effective_customer_id
 
     # Create the user without password
-    new_user = user.create_without_password(db, obj_in=user_in)
+    new_user = await user.create_without_password(db, obj_in=user_in)
 
     # Create password reset token
-    reset_token = password_reset_token.create_token(db, user_id=new_user.user_id, expires_in_hours=2)
+    reset_token = await password_reset_token.create_token(db, user_id=new_user.user_id, expires_in_hours=2)
 
     # Send password set email
     send_password_set_email(
@@ -234,7 +234,7 @@ def create_user(
     )
 
     # Log user creation
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.USER_CREATE,
@@ -253,9 +253,9 @@ def create_user(
             403: {"description": "Not enough privileges"},
             404: {"description": "User not found"}
     })
-def read_user_by_id(
+async def read_user_by_id(
     user_id: uuid.UUID,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -264,7 +264,7 @@ def read_user_by_id(
     - For customer admins: Can only access users from their own customer
     - For regular users: Not accessible
     """
-    db_user = user.get_by_id(db, user_id=user_id)
+    db_user = await user.get_by_id(db, user_id=user_id)
     if not db_user:
         raise HTTPException(
             status_code=404,
@@ -290,9 +290,9 @@ def read_user_by_id(
         )
 
 @router.put("/{user_id}", response_model=UserAdminView)
-def update_user(
+async def update_user(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     user_id: uuid.UUID,
     user_in: UserUpdate,
     current_user: User = Depends(deps.get_current_active_user),
@@ -304,7 +304,7 @@ def update_user(
     - For customer admins: Can only update users from their own customer with limited roles
     - For regular users: Not accessible
     """
-    db_user = user.get_by_id(db, user_id=user_id)
+    db_user = await user.get_by_id(db, user_id=user_id)
     if not db_user:
         raise HTTPException(
             status_code=404,
@@ -316,7 +316,7 @@ def update_user(
         # Admins can update any user
         if user_in.customer_id:
             # If customer_id is being changed, verify it exists
-            db_customer = customer.get_by_id(db, customer_id=user_in.customer_id)
+            db_customer = await customer.get_by_id(db, customer_id=user_in.customer_id)
             if not db_customer:
                 raise HTTPException(
                     status_code=404,
@@ -353,10 +353,10 @@ def update_user(
             detail="Not enough privileges",
         )
 
-    updated_user = user.update(db, db_obj=db_user, obj_in=user_in)
+    updated_user = await user.update(db, db_obj=db_user, obj_in=user_in)
     
     # Log user update
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.USER_UPDATE,
@@ -370,9 +370,9 @@ def update_user(
     return updated_user
 
 @router.post("/{user_id}/suspend", response_model=UserAdminView)
-def suspend_user(
+async def suspend_user(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     user_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
     request: Request,
@@ -383,7 +383,7 @@ def suspend_user(
     - For customer admins: Can only suspend users from their own customer
     - For regular users: Not accessible
     """
-    db_user = user.get_by_id(db, user_id=user_id)
+    db_user = await user.get_by_id(db, user_id=user_id)
     if not db_user:
         raise HTTPException(
             status_code=404,
@@ -417,10 +417,10 @@ def suspend_user(
         )
 
 
-    suspended_user = user.suspend(db, user_id=user_id)
+    suspended_user = await user.suspend(db, user_id=user_id)
     
     # Log user suspension
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.USER_SUSPEND,
@@ -434,9 +434,9 @@ def suspend_user(
 
 
 @router.post("/{user_id}/activate", response_model=UserAdminView)
-def activate_user(
+async def activate_user(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     user_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
     request: Request,
@@ -447,7 +447,7 @@ def activate_user(
     - For customer admins: Can only activate users from their own customer
     - For regular users: Not accessible
     """
-    db_user = user.get_by_id(db, user_id=user_id)
+    db_user = await user.get_by_id(db, user_id=user_id)
     if not db_user:
         raise HTTPException(
             status_code=404,
@@ -474,10 +474,10 @@ def activate_user(
             detail="Not enough privileges",
         )
 
-    activated_user = user.activate(db, user_id=user_id)
+    activated_user = await user.activate(db, user_id=user_id)
     
     # Log user activation
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.USER_ACTIVATE,

@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional, Tuple
-from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, asc, or_, and_, cast, String, Date
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, desc, asc, cast, Date, select
 from datetime import datetime, timedelta
 from app.crud.base import CRUDBase
 from app.models.audit_log import AuditLog
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
     """CRUD operations for audit logs - read-only with filtering"""
     
-    def create(self, db: Session, *, obj_in: AuditLogCreate) -> AuditLog:
+    async def create(self, db: AsyncSession, *, obj_in: AuditLogCreate) -> AuditLog:
         """Create a new audit log entry"""
         db_obj = AuditLog(
             user_id=obj_in.user_id,
@@ -28,13 +28,13 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
             user_agent=obj_in.user_agent
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
     
-    def get_logs_with_filters(
+    async def get_logs_with_filters(
         self, 
-        db: Session, 
+        db: AsyncSession, 
         *, 
         filters: AuditLogFilter,
         customer_id: Optional[uuid.UUID] = None
@@ -45,7 +45,7 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
         """
         # Start with base query joining with User and Customer tables
         query = (
-            db.query(
+            select(
                 AuditLog,
                 User.email.label("user_email"),
                 User.first_name.label("user_first_name"),
@@ -84,7 +84,8 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
             query = query.filter(AuditLog.ip_address.ilike(f"%{filters.ip_address}%"))
         
         # Get total count before pagination
-        total_count = query.count()
+        count_query = select(func.count()).select_from(query)
+        total_count = (await db.execute(count_query)).scalar()
         
         # Apply sorting
         sort_column = {
@@ -103,57 +104,58 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
         query = query.offset(filters.skip).limit(filters.limit)
         
         # Execute query and format results
-        results = query.all()
+        results = (await db.execute(query)).all()
         
         logs = []
         for result in results:
-            audit_log = result[0]
+            audit_log_obj = result[0]
             log_dict = {
-                "log_id": audit_log.log_id,
-                "user_id": audit_log.user_id,
+                "log_id": audit_log_obj.log_id,
+                "user_id": audit_log_obj.user_id,
                 "user_email": result.user_email,
                 "user_name": f"{result.user_first_name or ''} {result.user_last_name or ''}".strip() or None,
                 "user_role": result.user_role,
                 "customer_name": result.customer_name,
-                "action_type": audit_log.action_type,
-                "resource_type": audit_log.resource_type,
-                "resource_id": audit_log.resource_id,
-                "details": audit_log.details,
-                "ip_address": audit_log.ip_address,
-                "user_agent": audit_log.user_agent,
-                "timestamp": audit_log.timestamp
+                "action_type": audit_log_obj.action_type,
+                "resource_type": audit_log_obj.resource_type,
+                "resource_id": audit_log_obj.resource_id,
+                "details": audit_log_obj.details,
+                "ip_address": audit_log_obj.ip_address,
+                "user_agent": audit_log_obj.user_agent,
+                "timestamp": audit_log_obj.timestamp
             }
             logs.append(log_dict)
         
         return logs, total_count
     
-    def get_logs_by_user(
+    async def get_logs_by_user(
         self, 
-        db: Session, 
+        db: AsyncSession, 
         *, 
         user_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100
     ) -> List[AuditLog]:
         """Get audit logs for a specific user"""
-        return (
-            db.query(AuditLog)
+        query = (
+            select(AuditLog)
             .filter(AuditLog.user_id == user_id)
             .order_by(desc(AuditLog.timestamp))
             .offset(skip)
             .limit(limit)
-            .all()
         )
+        result = await db.execute(query)
+        return result.scalars().all()
     
-    def get_statistics(
+    async def get_statistics(
         self, 
-        db: Session,
+        db: AsyncSession,
         *,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """Get audit log statistics"""
-        query = db.query(AuditLog)
+        query = select(AuditLog)
         
         if start_date:
             query = query.filter(AuditLog.timestamp >= start_date)
@@ -161,46 +163,47 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
             query = query.filter(AuditLog.timestamp <= end_date)
         
         # Total logs
-        total_logs = query.count()
+        total_logs_query = select(func.count()).select_from(query)
+        total_logs = (await db.execute(total_logs_query)).scalar_one()
         
         # Logs by action type
-        logs_by_action = (
+        logs_by_action_query = (
             query
             .with_entities(
                 AuditLog.action_type,
                 func.count(AuditLog.log_id).label("count")
             )
             .group_by(AuditLog.action_type)
-            .all()
         )
+        logs_by_action = (await db.execute(logs_by_action_query)).all()
         
         # Logs by resource type
-        logs_by_resource = (
+        logs_by_resource_query = (
             query
             .with_entities(
                 AuditLog.resource_type,
                 func.count(AuditLog.log_id).label("count")
             )
             .group_by(AuditLog.resource_type)
-            .all()
         )
+        logs_by_resource = (await db.execute(logs_by_resource_query)).all()
         
         # Logs by date (last 30 days)
         thirty_days_ago = datetime.now() - timedelta(days=30)
-        logs_by_date = (
-            db.query(
+        logs_by_date_query = (
+            select(
                 cast(AuditLog.timestamp, Date).label("date"),
                 func.count(AuditLog.log_id).label("count")
             )
             .filter(AuditLog.timestamp >= thirty_days_ago)
             .group_by(cast(AuditLog.timestamp, Date))
             .order_by(cast(AuditLog.timestamp, Date))
-            .all()
         )
+        logs_by_date = (await db.execute(logs_by_date_query)).all()
         
         # Most active users
-        most_active_users = (
-            db.query(
+        most_active_users_query = (
+            select(
                 User.user_id,
                 User.email,
                 User.first_name,
@@ -211,8 +214,8 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
             .group_by(User.user_id, User.email, User.first_name, User.last_name)
             .order_by(desc("count"))
             .limit(10)
-            .all()
         )
+        most_active_users = (await db.execute(most_active_users_query)).all()
         
         return {
             "total_logs": total_logs,
@@ -237,9 +240,9 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
             ]
         }
     
-    def get_recent_activity(
+    async def get_recent_activity(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         hours: int = 24,
         limit: int = 50
@@ -247,8 +250,8 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
         """Get recent activity within specified hours"""
         cutoff_time = datetime.now() - timedelta(hours=hours)
         
-        results = (
-            db.query(
+        query = (
+            select(
                 AuditLog,
                 User.email.label("user_email"),
                 User.first_name.label("user_first_name"),
@@ -258,36 +261,37 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
             .filter(AuditLog.timestamp >= cutoff_time)
             .order_by(desc(AuditLog.timestamp))
             .limit(limit)
-            .all()
         )
+        
+        results = (await db.execute(query)).all()
         
         logs = []
         for result in results:
-            audit_log = result[0]
+            audit_log_obj = result[0]
             log_dict = {
-                "log_id": audit_log.log_id,
-                "user_id": audit_log.user_id,
+                "log_id": audit_log_obj.log_id,
+                "user_id": audit_log_obj.user_id,
                 "user_email": result.user_email,
                 "user_name": f"{result.user_first_name or ''} {result.user_last_name or ''}".strip() or None,
-                "action_type": audit_log.action_type,
-                "resource_type": audit_log.resource_type,
-                "resource_id": audit_log.resource_id,
-                "timestamp": audit_log.timestamp,
-                "ip_address": audit_log.ip_address
+                "action_type": audit_log_obj.action_type,
+                "resource_type": audit_log_obj.resource_type,
+                "resource_id": audit_log_obj.resource_id,
+                "timestamp": audit_log_obj.timestamp,
+                "ip_address": audit_log_obj.ip_address
             }
             logs.append(log_dict)
         
         return logs
     
-    def export_logs(
+    async def export_logs(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         filters: AuditLogFilter,
         format: str = "csv"
     ) -> str:
         """Export audit logs in specified format"""
-        logs, _ = self.get_logs_with_filters(db, filters=filters)
+        logs, _ = await self.get_logs_with_filters(db, filters=filters)
         
         if format == "csv":
             import csv

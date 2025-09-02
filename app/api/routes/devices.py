@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import device, customer, solution, device_solution, customer_solution
 from app.models import User, UserRole, DeviceStatus, Device as DeviceModel
@@ -20,7 +20,7 @@ from app.core.config import settings
 from botocore.exceptions import NoCredentialsError, ClientError
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from app.db.session import SessionLocal
+from app.db.async_session import AsyncSessionLocal
 from app.schemas.audit import AuditLogActionType, AuditLogResourceType
 from app.utils.aws_iot_commands import iot_command_service
 import uuid
@@ -33,16 +33,16 @@ logger = get_logger("api.devices")
 router = APIRouter()
 
 # Dependency to get device and check access
-def get_device_and_check_access(
+async def get_device_and_check_access(
     device_id: uuid.UUID,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> DeviceModel:
     """
     Dependency that gets a device by ID and verifies user access.
     Raises 404 if not found, 403 if not authorized.
     """
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(status_code=404, detail="Device not found")
 
@@ -54,8 +54,8 @@ def get_device_and_check_access(
 
 
 @router.get("", response_model=List[DeviceDetailView])
-def get_devices(
-    db: Session = Depends(deps.get_db),
+async def get_devices(
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: Optional[uuid.UUID] = None,
     solution_id: Optional[uuid.UUID] = None,
     skip: int = 0,
@@ -69,17 +69,17 @@ def get_devices(
     """
     # Validate solution_id if provided
     if solution_id:
-        if not solution.get_by_id(db, solution_id=solution_id):
+        if not await solution.get_by_id(db, solution_id=solution_id):
             raise HTTPException(status_code=404, detail="Solution not found")
 
     if current_user.role in [UserRole.ADMIN, UserRole.ENGINEER]:
         # Admins/Engineers can see all or filter by any customer/solution
         if customer_id:
-            return device.get_by_customer_with_name_and_solution_filter(
+            return await device.get_by_customer_with_name_and_solution_filter(
                 db, customer_id=customer_id, solution_id=solution_id, skip=skip, limit=limit
             )
         else:
-            return device.get_with_customer_name_and_solution_filter(
+            return await device.get_with_customer_name_and_solution_filter(
                 db, solution_id=solution_id, skip=skip, limit=limit
             )
 
@@ -92,19 +92,19 @@ def get_devices(
             raise HTTPException(status_code=403, detail="Not authorized")
         
         # Verify customer has access to the solution if filtering by it
-        if solution_id and not customer_solution.check_customer_has_access(
+        if solution_id and not await customer_solution.check_customer_has_access(
             db, customer_id=current_user.customer_id, solution_id=solution_id
         ):
             raise HTTPException(status_code=403, detail="Not authorized to filter by this solution")
         
-        return device.get_by_customer_with_name_and_solution_filter(
+        return await device.get_by_customer_with_name_and_solution_filter(
             db, customer_id=current_user.customer_id, solution_id=solution_id, skip=skip, limit=limit
         )
 
 @router.post("", response_model=DeviceSchema)
-def create_device(
+async def create_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_in: DeviceCreate,
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
@@ -112,18 +112,18 @@ def create_device(
     """
     Create a new device entry in the database (Admin or Engineer only).
     """
-    if device_in.mac_address and device.get_by_mac_address(db, mac_address=device_in.mac_address):
+    if device_in.mac_address and await device.get_by_mac_address(db, mac_address=device_in.mac_address):
         raise HTTPException(status_code=400, detail="A device with this MAC address already exists")
 
-    if not customer.get_by_id(db, customer_id=device_in.customer_id):
+    if not await customer.get_by_id(db, customer_id=device_in.customer_id):
         raise HTTPException(status_code=404, detail="Customer not found")
 
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     device_name = f"D-{random_chars}"
 
-    new_device = device.create(db, obj_in=device_in, device_name=device_name)
+    new_device = await device.create(db, obj_in=device_in, device_name=device_name)
 
-    log_action(
+    await log_action(
         db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_CREATE,
         resource_type=AuditLogResourceType.DEVICE, resource_id=str(new_device.device_id),
         details={"customer_id": str(new_device.customer_id), "device_type": new_device.device_type.value},
@@ -134,9 +134,9 @@ def create_device(
 
 
 @router.post("/{device_id}/provision", response_model=DeviceProvisionResponse)
-def provision_device(
+async def provision_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
@@ -147,7 +147,7 @@ def provision_device(
     if db_device.thing_name:
         raise HTTPException(status_code=400, detail="Device is already provisioned")
 
-    db_customer = customer.get_by_id(db, customer_id=db_device.customer_id)
+    db_customer = await customer.get_by_id(db, customer_id=db_device.customer_id)
     if not db_customer or not db_customer.iot_thing_group_name:
         raise HTTPException(status_code=400, detail="Customer does not have a valid IoT Thing Group")
 
@@ -158,11 +158,11 @@ def provision_device(
             customer_group_name=db_customer.iot_thing_group_name
         )
 
-        updated_device = device.update_cloud_info(
+        updated_device = await device.update_cloud_info(
             db, device_id=db_device.device_id, **provision_info, status=DeviceStatus.PROVISIONED
         )
 
-        log_action(
+        await log_action(
             db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_PROVISION,
             resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
             details={"thing_name": provision_info["thing_name"], "certificate_id": provision_info["certificate_id"]},
@@ -183,16 +183,16 @@ def provision_device(
 
 
 @router.get("/{device_id}", response_model=DeviceDetailView)
-def get_device(
+async def get_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     db_device: DeviceModel = Depends(get_device_and_check_access)
 ) -> Any:
     """
     Get a specific device by ID. Access is handled by the dependency.
     Returns the device with customer name and solution info in the same format as get_devices.
     """
-    result = device.get_with_customer_name_and_solution(db, device_id=db_device.device_id)
+    result = await device.get_with_customer_name_and_solution(db, device_id=db_device.device_id)
     if not result:
         raise HTTPException(
             status_code=404,
@@ -202,9 +202,9 @@ def get_device(
 
 
 @router.put("/{device_id}", response_model=DeviceSchema)
-def update_device(
+async def update_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     device_in: DeviceUpdate,
     current_user: User = Depends(deps.get_current_active_user),
@@ -216,7 +216,7 @@ def update_device(
     - Customer admins can update only their customer's devices with limited fields
     - Customer users cannot update devices
     """
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(
             status_code=404,
@@ -269,10 +269,10 @@ def update_device(
     safe_update_obj = DeviceUpdate(**restricted_update)
 
     # Update device in database with restricted fields
-    updated_device = device.update(db, db_obj=db_device, obj_in=safe_update_obj)
+    updated_device = await device.update(db, db_obj=db_device, obj_in=safe_update_obj)
 
     # Log device update
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.DEVICE_UPDATE,
@@ -287,9 +287,9 @@ def update_device(
 
 
 @router.delete("/{device_id}", response_model=DeviceSchema)
-def delete_device(
+async def delete_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
@@ -307,9 +307,9 @@ def delete_device(
             logger.error(f"Error removing device {db_device.device_id} from AWS IoT: {str(e)}")
             # Continue with DB deletion even if cloud cleanup fails
 
-    deleted_device = device.remove(db, id=db_device.device_id)
+    deleted_device = await device.remove(db, id=db_device.device_id)
     
-    log_action(
+    await log_action(
         db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_DELETE,
         resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
         details={"device_name": db_device.name, "customer_id": str(db_device.customer_id)},
@@ -320,9 +320,9 @@ def delete_device(
 
 
 @router.post("/{device_id}/decommission", response_model=DeviceSchema)
-def decommission_device(
+async def decommission_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
@@ -333,9 +333,9 @@ def decommission_device(
     if db_device.status == DeviceStatus.CREATED:
         raise HTTPException(status_code=400, detail="Device is not provisioned yet")
     
-    decommissioned_device = device.decommission(db, device_id=db_device.device_id)
+    decommissioned_device = await device.decommission(db, device_id=db_device.device_id)
     
-    log_action(
+    await log_action(
         db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_DECOMMISSION,
         resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
         ip_address=request.client.host, user_agent=request.headers.get("user-agent")
@@ -345,9 +345,9 @@ def decommission_device(
 
 
 @router.post("/{device_id}/activate", response_model=DeviceSchema)
-def activate_device(
+async def activate_device(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     db_device: DeviceModel = Depends(get_device_and_check_access),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
@@ -355,9 +355,9 @@ def activate_device(
     """
     Activate a provisioned or inactive device (Admin or Engineer only).
     """
-    activated_device = device.activate(db, device_id=db_device.device_id)
+    activated_device = await device.activate(db, device_id=db_device.device_id)
     
-    log_action(
+    await log_action(
         db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_ACTIVATE,
         resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
         ip_address=request.client.host, user_agent=request.headers.get("user-agent")
@@ -367,9 +367,9 @@ def activate_device(
 
 
 @router.get("/compatible/solution/{solution_id}/customer/{customer_id}", response_model=List[DeviceSchema])
-def get_compatible_devices_for_solution_by_customer(
+async def get_compatible_devices_for_solution_by_customer(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     solution_id: uuid.UUID,
     customer_id: uuid.UUID,
     available_only: bool = False,
@@ -382,7 +382,7 @@ def get_compatible_devices_for_solution_by_customer(
     - If available_only is True, only returns devices that don't have a solution already deployed
     """
     # Get the solution
-    db_solution = solution.get_by_id(db, solution_id=solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=solution_id)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -390,7 +390,7 @@ def get_compatible_devices_for_solution_by_customer(
         )
     
     # Check if customer exists
-    db_customer = customer.get_by_id(db, customer_id=customer_id)
+    db_customer = await customer.get_by_id(db, customer_id=customer_id)
     if not db_customer:
         raise HTTPException(
             status_code=404,
@@ -406,7 +406,7 @@ def get_compatible_devices_for_solution_by_customer(
             )
     
     # Get all devices for the customer
-    customer_devices = device.get_by_customer(db, customer_id=customer_id)
+    customer_devices = await device.get_by_customer(db, customer_id=customer_id)
     
     # Filter devices by compatibility with the solution
     compatible_devices = []
@@ -415,7 +415,7 @@ def get_compatible_devices_for_solution_by_customer(
         if dev.device_type.value in db_solution.compatibility:
             # If available_only is True, check if device already has a solution deployed
             if available_only:
-                existing_solutions = device_solution.get_by_device(db, device_id=dev.device_id)
+                existing_solutions = await device_solution.get_by_device(db, device_id=dev.device_id)
                 if existing_solutions and len(existing_solutions) > 0:
                     continue  # Skip this device as it has a solution deployed
             compatible_devices.append(dev)
@@ -424,9 +424,9 @@ def get_compatible_devices_for_solution_by_customer(
 
 
 @router.get("/{device_id}/image")
-def get_device_image(
+async def get_device_image(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     solution: str,
     current_user: User = Depends(deps.get_current_active_user),
@@ -440,7 +440,7 @@ def get_device_image(
     - Images are stored in S3 and served directly
     """
     # Get and validate device
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(
             status_code=404,
@@ -530,52 +530,52 @@ def get_device_image(
 
 
 
-def update_device_online_status_task(device_ids: List[str]):
+async def update_device_online_status_task(device_ids: List[str]):
     """Background task to update device online status from AWS IoT shadow."""
-    db_session = SessionLocal()
-    try:
-        for device_id_str in device_ids:
-            device_id = uuid.UUID(device_id_str)
-            db_device = device.get_by_id(db_session, device_id=device_id)
-            if not db_device or not db_device.thing_name:
-                continue
+    async with AsyncSessionLocal() as db_session:
+        try:
+            for device_id_str in device_ids:
+                device_id = uuid.UUID(device_id_str)
+                db_device = await device.get_by_id(db_session, device_id=device_id)
+                if not db_device or not db_device.thing_name:
+                    continue
 
-            try:
-                shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
-                is_online = False
-                last_seen = None
+                try:
+                    shadow_document = iot_command_service.get_device_shadow(db_device.thing_name)
+                    is_online = False
+                    last_seen = None
 
-                if shadow_document:
-                    reported = shadow_document.get("state", {}).get("reported", {})
-                    app_status = reported.get("applicationStatus", {})
-                    last_seen = app_status.get("timestamp", None)
-                    if app_status.get("status", "").lower() == "online":
-                        is_online = True
-                        
+                    if shadow_document:
+                        reported = shadow_document.get("state", {}).get("reported", {})
+                        app_status = reported.get("applicationStatus", {})
+                        last_seen = app_status.get("timestamp", None)
+                        if app_status.get("status", "").lower() == "online":
+                            is_online = True
+                            
 
-                # Update the database record in the background thread
-                db_device.is_online = is_online
-                if last_seen:
-                    try:
-                        db_device.last_connected = datetime.fromisoformat(last_seen)
-                    except ValueError:
-                        logger.warning(f"Invalid timestamp format from shadow for device {db_device.name}")
-                        
-                db_session.add(db_device)
-                db_session.commit()
-                logger.debug(f"Updated online status for device {db_device.name} to {is_online}")
+                    # Update the database record in the background thread
+                    db_device.is_online = is_online
+                    if last_seen:
+                        try:
+                            db_device.last_connected = datetime.fromisoformat(last_seen)
+                        except ValueError:
+                            logger.warning(f"Invalid timestamp format from shadow for device {db_device.name}")
+                            
+                    db_session.add(db_device)
+                    await db_session.commit()
+                    logger.debug(f"Updated online status for device {db_device.name} to {is_online}")
 
-            except Exception as e:
-                logger.error(f"Failed to update online status for device {db_device.name}: {e}")
-                db_session.rollback()
+                except Exception as e:
+                    logger.error(f"Failed to update online status for device {db_device.name}: {e}")
+                    await db_session.rollback()
 
-    finally:
-        db_session.close()
+        finally:
+            await db_session.close()
 
 @router.post("/batch-status", response_model=Dict[str, DeviceStatusInfo])
-def get_batch_device_status(
+async def get_batch_device_status(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     batch_request: DeviceBatchStatusRequest,
     current_user: User = Depends(deps.get_current_active_user),
     background_tasks: BackgroundTasks,
@@ -595,7 +595,7 @@ def get_batch_device_status(
         try:
             device_id = uuid.UUID(device_id_str)
             # Get device from database (this is a fast, local call)
-            db_device = device.get_by_id(db, device_id=device_id)
+            db_device = await device.get_by_id(db, device_id=device_id)
             
             if not db_device:
                 result[device_id_str] = DeviceStatusInfo(

@@ -1,9 +1,9 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import customer_solution, customer, solution
-from app.models import User, UserRole, CustomerSolution
+from app.models import User, UserRole
 from app.schemas.customer_solution import (
     CustomerSolution as CustomerSolutionSchema,
     CustomerSolutionCreate,
@@ -21,8 +21,8 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[CustomerSolutionAdminView])
-def get_customer_solutions(
-    db: Session = Depends(deps.get_db),
+async def get_customer_solutions(
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: Optional[uuid.UUID] = None,
     solution_id: Optional[uuid.UUID] = None,
     skip: int = 0,
@@ -35,7 +35,7 @@ def get_customer_solutions(
     """
     # If customer_id is provided, check if customer exists
     if customer_id:
-        customer_obj = customer.get_by_id(db, customer_id=customer_id)
+        customer_obj = await customer.get_by_id(db, customer_id=customer_id)
         if not customer_obj:
             raise HTTPException(
                 status_code=404,
@@ -44,7 +44,7 @@ def get_customer_solutions(
     
     # If solution_id is provided, check if solution exists
     if solution_id:
-        solution_obj = solution.get_by_id(db, solution_id=solution_id)
+        solution_obj = await solution.get_by_id(db, solution_id=solution_id)
         if not solution_obj:
             raise HTTPException(
                 status_code=404,
@@ -52,7 +52,7 @@ def get_customer_solutions(
             )
     
     # Use the new efficient function to get results with a single query
-    results = customer_solution.get_customer_solutions_with_details(
+    results = await customer_solution.get_customer_solutions_with_details(
         db, 
         customer_id=customer_id,
         solution_id=solution_id,
@@ -64,9 +64,9 @@ def get_customer_solutions(
 
 
 @router.post("", response_model=CustomerSolutionSchema)
-def add_solution_to_customer(
+async def add_solution_to_customer(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_solution_in: CustomerSolutionCreate,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -75,7 +75,7 @@ def add_solution_to_customer(
     Add a solution to a customer (admin only).
     """
     # Check if customer exists
-    customer_obj = customer.get_by_id(db, customer_id=customer_solution_in.customer_id)
+    customer_obj = await customer.get_by_id(db, customer_id=customer_solution_in.customer_id)
     if not customer_obj:
         raise HTTPException(
             status_code=404,
@@ -84,7 +84,7 @@ def add_solution_to_customer(
     
     
     # Check if solution exists
-    solution_obj = solution.get_by_id(db, solution_id=customer_solution_in.solution_id)
+    solution_obj = await solution.get_by_id(db, solution_id=customer_solution_in.solution_id)
     if not solution_obj:
         raise HTTPException(
             status_code=404,
@@ -93,7 +93,7 @@ def add_solution_to_customer(
     
     
     # Check if customer already has this solution
-    existing = customer_solution.get_by_customer_and_solution(
+    existing = await customer_solution.get_by_customer_and_solution(
         db, 
         customer_id=customer_solution_in.customer_id, 
         solution_id=customer_solution_in.solution_id
@@ -106,11 +106,11 @@ def add_solution_to_customer(
         )
     
     # Add the solution to the customer
-    new_customer_solution = customer_solution.create(db, obj_in=customer_solution_in)
+    new_customer_solution = await customer_solution.create(db, obj_in=customer_solution_in)
 
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="CUSTOMER_SOLUTION_ADD",
@@ -131,9 +131,9 @@ def add_solution_to_customer(
 
 
 @router.get("/customer/{customer_id}/solution/{solution_id}", response_model=CustomerSolutionSchema)
-def get_specific_customer_solution(
+async def get_specific_customer_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
@@ -152,7 +152,7 @@ def get_specific_customer_solution(
             )
     
     # Get the specific customer solution
-    cs = customer_solution.get_by_customer_and_solution_enhanced(
+    cs = await customer_solution.get_by_customer_and_solution_enhanced(
         db, customer_id=customer_id, solution_id=solution_id
     )
     
@@ -166,9 +166,9 @@ def get_specific_customer_solution(
 
 
 @router.put("/customer/{customer_id}/solution/{solution_id}", response_model=CustomerSolutionSchema)
-def update_specific_customer_solution(
+async def update_specific_customer_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     solution_id: uuid.UUID,
     customer_solution_in: CustomerSolutionUpdate,
@@ -179,7 +179,7 @@ def update_specific_customer_solution(
     Update a customer's solution access.
     """
     # Get the customer solution
-    cs = customer_solution.get_by_customer_and_solution(
+    cs = await customer_solution.get_by_customer_and_solution(
         db, customer_id=customer_id, solution_id=solution_id
     )
     
@@ -190,12 +190,12 @@ def update_specific_customer_solution(
         )
     
     # Update the customer solution
-    updated_cs = customer_solution.update(
+    updated_cs = await customer_solution.update(
         db, db_obj=cs, obj_in=customer_solution_in
     )
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="CUSTOMER_SOLUTION_UPDATE",
@@ -210,9 +210,9 @@ def update_specific_customer_solution(
 
 
 @router.post("/customer/{customer_id}/solution/{solution_id}/suspend", response_model=CustomerSolutionSchema)
-def suspend_specific_customer_solution(
+async def suspend_specific_customer_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
@@ -222,7 +222,7 @@ def suspend_specific_customer_solution(
     Suspend a customer's access to a solution.
     """
     # Get the customer solution
-    cs = customer_solution.get_by_customer_and_solution(
+    cs = await customer_solution.get_by_customer_and_solution(
         db, customer_id=customer_id, solution_id=solution_id
     )
     
@@ -233,10 +233,10 @@ def suspend_specific_customer_solution(
         )
     
     # Suspend the customer solution
-    suspended_cs = customer_solution.suspend(db, id=cs.id)
+    suspended_cs = await customer_solution.suspend(db, id=cs.id)
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="CUSTOMER_SOLUTION_SUSPEND",
@@ -249,9 +249,9 @@ def suspend_specific_customer_solution(
     return suspended_cs
 
 @router.post("/customer/{customer_id}/solution/{solution_id}/activate", response_model=CustomerSolutionSchema)
-def activate_specific_customer_solution(
+async def activate_specific_customer_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
@@ -261,7 +261,7 @@ def activate_specific_customer_solution(
     Activate a customer's access to a solution.
     """
     # Get the customer solution
-    cs = customer_solution.get_by_customer_and_solution(
+    cs = await customer_solution.get_by_customer_and_solution(
         db, customer_id=customer_id, solution_id=solution_id
     )
     
@@ -272,10 +272,10 @@ def activate_specific_customer_solution(
         )
     
     # Activate the customer solution
-    activated_cs = customer_solution.activate(db, id=cs.id)
+    activated_cs = await customer_solution.activate(db, id=cs.id)
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="CUSTOMER_SOLUTION_ACTIVATE",
@@ -289,9 +289,9 @@ def activate_specific_customer_solution(
 
 
 @router.delete("/customer/{customer_id}/solution/{solution_id}", response_model=CustomerSolutionSchema)
-def remove_specific_customer_solution(
+async def remove_specific_customer_solution(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
@@ -303,7 +303,7 @@ def remove_specific_customer_solution(
     This will also check if the solution is deployed to any of the customer's devices.
     """
     # Get the customer solution
-    cs = customer_solution.get_by_customer_and_solution(
+    cs = await customer_solution.get_by_customer_and_solution(
         db, customer_id=customer_id, solution_id=solution_id
     )
     
@@ -317,10 +317,10 @@ def remove_specific_customer_solution(
     # (same code as before to check deployments)
     
     # Remove the customer solution
-    removed_cs = customer_solution.remove(db, id=cs.id)
+    removed_cs = await customer_solution.remove(db, id=cs.id)
     
     # Log action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="CUSTOMER_SOLUTION_REMOVE",

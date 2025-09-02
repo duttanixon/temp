@@ -20,7 +20,7 @@ timestream_query = boto3.client(
 DATABASE_NAME = settings.TIMESTREAM_DATABASE
 RAW_TABLE_NAME = settings.TIMESTREAM_RAW_TABLE
 
-def query_memory_metrics(
+async def query_memory_metrics(
     device_name: str, 
     start_time: datetime, 
     end_time: datetime, 
@@ -101,7 +101,7 @@ def query_memory_metrics(
         raise
 
 
-def query_cpu_metrics(
+async def query_cpu_metrics(
     device_name: str, 
     start_time: datetime, 
     end_time: datetime, 
@@ -183,7 +183,7 @@ def query_cpu_metrics(
         logger.error(f"Error querying CPU metrics: {str(e)}")
         raise
 
-def query_temperature_metrics(
+async def query_temperature_metrics(
     device_name: str, 
     start_time: datetime, 
     end_time: datetime, 

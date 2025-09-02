@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import device_command, job as crud_job, device as crud_device
 from app.models import User, JobStatus
@@ -12,7 +12,7 @@ import json
 import asyncio
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from app.db.session import SessionLocal
+from app.db.async_session import AsyncSessionLocal
 
 logger = get_logger("api.sse")
 
@@ -26,7 +26,7 @@ active_job_connections = {}
 @router.get("/commands/status/{message_id}")
 async def command_status_stream(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     message_id: str,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -40,7 +40,7 @@ async def command_status_stream(
         raise HTTPException(status_code=400, detail="Invalid message ID format")
 
     # Get the command and verify user access
-    db_command = device_command.get_by_message_id(db, message_id=message_uuid)
+    db_command = await device_command.get_by_message_id(db, message_id=message_uuid)
     if not db_command:
         raise HTTPException(status_code=404, detail="Command not found")
 
@@ -159,16 +159,16 @@ async def job_status_stream(
     SSE endpoint for real-time job status updates.
     The stream will proactively sync with AWS IoT to ensure status updates.
     """
-    session = SessionLocal()
-    try:
-        db_job = crud_job.get_by_job_id(session, job_id=job_id)
-        if not db_job:
-            raise HTTPException(status_code=404, detail="Job not found")
+    async with AsyncSessionLocal() as session:
+        try:
+            db_job = await crud_job.get_by_job_id(session, job_id=job_id)
+            if not db_job:
+                raise HTTPException(status_code=404, detail="Job not found")
 
-        db_device = crud_device.get_by_id(session, device_id=db_job.device_id)
-        check_device_access(current_user, db_device, action="view jobs for")
-    finally:
-        session.close()
+            db_device = await crud_device.get_by_id(session, device_id=db_job.device_id)
+            await check_device_access(current_user, db_device, action="view jobs for")
+        finally:
+            await session.close()
 
 
     # If job is already in a terminal state, send final status and close
@@ -211,12 +211,12 @@ async def job_status_stream(
                         break
                 
                 except asyncio.TimeoutError:
-                    session = SessionLocal()
-                    try:
-                        # Check for updates from AWS in case the queue is empty
-                        synced_job = crud_job.sync_job_status(session, db_job)
-                    finally:
-                        session.close()
+                    async with AsyncSessionLocal() as session:
+                        try:
+                            # Check for updates from AWS in case the queue is empty
+                            synced_job = await crud_job.sync_job_status(session, db_job)
+                        finally:
+                            await session.close()
                     # If status has changed to terminal, send it and break
                     if synced_job.status.value != db_job.status.value and synced_job.status.value in [JobStatus.SUCCEEDED.value, JobStatus.FAILED.value, JobStatus.TIMED_OUT.value, JobStatus.CANCELED.value, JobStatus.ARCHIVED.value]:
                         data = {

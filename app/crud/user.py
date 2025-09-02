@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Union, List
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase
 from app.models.user import User, UserStatus
@@ -8,16 +9,19 @@ import uuid
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
-    def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
-        return db.query(User).filter(User.email == email).first()
+    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[User]:
+        result = await db.execute(select(User).filter(User.email == email))
+        return result.scalars().first()
     
-    def get_by_id(self, db: Session, *, user_id: uuid.UUID) -> Optional[User]:
-        return db.query(User).filter(User.user_id == user_id).first()
+    async def get_by_id(self, db: AsyncSession, *, user_id: uuid.UUID) -> Optional[User]:
+        result = await db.execute(select(User).filter(User.user_id == user_id))
+        return result.scalars().first()
     
-    def get_by_customer(self, db: Session, *, customer_id: uuid.UUID) -> List[User]:
-        return db.query(User).filter(User.customer_id == customer_id).all()
+    async def get_by_customer(self, db: AsyncSession, *, customer_id: uuid.UUID) -> List[User]:
+        result = await db.execute(select(User).filter(User.customer_id == customer_id))
+        return list(result.scalars().all())
     
-    def create(self, db: Session, *, obj_in: UserCreate) -> User:
+    async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
         db_obj = User(
             email=obj_in.email,
             password_hash=get_password_hash(obj_in.password),
@@ -27,12 +31,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             customer_id=obj_in.customer_id
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self, db: Session, *, db_obj: User, obj_in: Union[UserUpdate, Dict[str, Any]]
+    async def update(
+        self, db: AsyncSession, *, db_obj: User, obj_in: Union[UserUpdate, Dict[str, Any]]
     ) -> User:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -42,10 +46,10 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             hashed_password = get_password_hash(update_data["password"])
             del update_data["password"]
             update_data["password_hash"] = hashed_password
-        return super().update(db, db_obj=db_obj, obj_in=update_data)
+        return await super().update(db, db_obj=db_obj, obj_in=update_data)
 
-    def authenticate(self, db: Session, *, email: str, password: str) -> Optional[User]:
-        user = self.get_by_email(db, email=email)
+    async def authenticate(self, db: AsyncSession, *, email: str, password: str) -> Optional[User]:
+        user = await self.get_by_email(db, email=email)
         if not user:
             return None
         if not verify_password(password, user.password_hash):
@@ -58,23 +62,23 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def is_admin(self, user: User) -> bool:
         return user.role == "admin"
     
-    def suspend(self, db: Session, *, user_id: uuid.UUID) -> User:
-        user = self.get_by_id(db, user_id=user_id)
+    async def suspend(self, db: AsyncSession, *, user_id: uuid.UUID) -> User:
+        user = await self.get_by_id(db, user_id=user_id)
         user.status = UserStatus.SUSPENDED
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
         return user
     
-    def activate(self, db: Session, *, user_id: uuid.UUID) -> User:
-        user = self.get_by_id(db, user_id=user_id)
+    async def activate(self, db: AsyncSession, *, user_id: uuid.UUID) -> User:
+        user = await self.get_by_id(db, user_id=user_id)
         user.status = UserStatus.ACTIVE
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
         return user
 
-    def create_without_password(self, db: Session, *, obj_in: UserCreateWithoutPassword) -> User:
+    async def create_without_password(self, db: AsyncSession, *, obj_in: UserCreateWithoutPassword) -> User:
         """Create a user without setting a password (they will set it via email link)"""
         # Generate a temporary random password that will never be used
         temp_password = str(uuid.uuid4())
@@ -90,8 +94,8 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             status=UserStatus.ACTIVE
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
 

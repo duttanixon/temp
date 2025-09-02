@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Database
-    DATABASE_URL: str
+    ASYNC_DATABASE_URL: str
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]

@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Dict, Callable, Union
 from fastapi import Depends, HTTPException, Query, APIRouter, Request, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 import uuid
 import json
@@ -49,8 +49,8 @@ logger = get_logger("api.city_eye_analytics")
 router = APIRouter()
 
 
-def _validate_devices_for_analytics(
-    db: Session, current_user: User, device_ids: List[uuid.UUID], solution_name: str = "City Eye"
+async def _validate_devices_for_analytics(
+    db: AsyncSession, current_user: User, device_ids: List[uuid.UUID], solution_name: str = "City Eye"
 ) -> tuple[list[uuid.UUID], dict[uuid.UUID, dict[str, Any]]]:
     """
     Validates and authorizes devices for analytics endpoints.
@@ -58,7 +58,7 @@ def _validate_devices_for_analytics(
     if not device_ids:
         raise HTTPException(status_code=400, detail="Please specify at least one device_id.")
 
-    city_eye_solution_model = crud_solution.get_by_name(db, name=solution_name)
+    city_eye_solution_model = await crud_solution.get_by_name(db, name=solution_name)
     if not city_eye_solution_model:
         logger.error(f"{solution_name} solution not found in database")
         raise HTTPException(status_code=404, detail=f"{solution_name} solution not configured")
@@ -71,7 +71,7 @@ def _validate_devices_for_analytics(
         if not current_user.customer_id:
             raise HTTPException(status_code=403, detail="User is not associated with any customer")
 
-        if not crud_customer_solution.check_customer_has_access(
+        if not await crud_customer_solution.check_customer_has_access(
             db, customer_id=current_user.customer_id, solution_id=city_eye_solution_model.solution_id
         ):
             raise HTTPException(status_code=403, detail=f"Your organization does not have access to {solution_name} analytics")
@@ -79,7 +79,7 @@ def _validate_devices_for_analytics(
     for device_id_str in device_ids:
         try:
             device_uuid = uuid.UUID(str(device_id_str))
-            db_device = crud_device.get_by_id(db, device_id=device_uuid)
+            db_device = await crud_device.get_by_id(db, device_id=device_uuid)
 
             if not db_device:
                 logger.warning(f"Device {device_id_str} not found.")
@@ -91,7 +91,7 @@ def _validate_devices_for_analytics(
                     logger.warning(f"User {current_user.email} denied access to device {device_id_str}")
                     continue
                 
-                device_solutions = crud_device_solution.get_active_by_device(db, device_id=device_uuid)
+                device_solutions = await crud_device_solution.get_active_by_device(db, device_id=device_uuid)
                 if not any(ds.solution_id == city_eye_solution_model.solution_id for ds in device_solutions):
                     logger.warning(f"{solution_name} solution not active on device {device_id_str}")
                     continue
@@ -115,9 +115,9 @@ def _validate_devices_for_analytics(
 
 
 @router.post("/human-flow", response_model=CityEyeAnalyticsPerDeviceResponse)
-def get_human_flow_analytics(
+async def get_human_flow_analytics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     filters: AnalyticsFilters,
     current_user: User = Depends(deps.get_current_active_user),
     include_total_count: bool = Query(True),
@@ -130,7 +130,7 @@ def get_human_flow_analytics(
     """
     Retrieve aggregated human flow analytics data, per device, based on filters.
     """
-    final_device_ids, processed_device_details = _validate_devices_for_analytics(
+    final_device_ids, processed_device_details = await _validate_devices_for_analytics(
         db, current_user, filters.device_ids
     )
 
@@ -161,7 +161,7 @@ def get_human_flow_analytics(
         try:
             for key, (include, func, schema, wrapper_key) in analytics_map.items():
                 if include:
-                    result = func(db, filters=single_device_filters)
+                    result = await func(db, filters=single_device_filters)
                     if wrapper_key:
                         setattr(per_device_data_obj, key, schema(**{wrapper_key: result}))
                     elif isinstance(result, list):
@@ -191,9 +191,9 @@ def get_human_flow_analytics(
 
 
 @router.post("/traffic-flow", response_model=CityEyeTrafficAnalyticsPerDeviceResponse)
-def get_traffic_flow_analytics(
+async def get_traffic_flow_analytics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     filters: TrafficAnalyticsFilters,
     current_user: User = Depends(deps.get_current_active_user),
     include_total_count: bool = Query(True),
@@ -204,7 +204,7 @@ def get_traffic_flow_analytics(
     """
     Retrieve aggregated traffic flow analytics data, per device, based on filters.
     """
-    final_device_ids, processed_device_details = _validate_devices_for_analytics(
+    final_device_ids, processed_device_details = await _validate_devices_for_analytics(
         db, current_user, filters.device_ids
     )
 
@@ -233,7 +233,7 @@ def get_traffic_flow_analytics(
         try:
             for key, (include, func, schema, wrapper_key) in analytics_map.items():
                 if include:
-                    result = func(db, filters=single_device_filters)
+                    result = await func(db, filters=single_device_filters)
                     if wrapper_key:
                         setattr(per_device_data_obj, key, schema(**{wrapper_key: result}))
                     elif isinstance(result, list):
@@ -261,13 +261,13 @@ def get_traffic_flow_analytics(
     )
     return analytics_results
 
-def _build_direction_analytics_response(
-    db: Session, thing_name: Optional[str], filters: Union[DirectionAnalyticsFilters, TrafficDirectionAnalyticsFilters], direction_counts_func: Callable
+async def _build_direction_analytics_response(
+    db: AsyncSession, thing_name: Optional[str], filters: Union[DirectionAnalyticsFilters, TrafficDirectionAnalyticsFilters], direction_counts_func: Callable
 ) -> List[Dict]:
     """
     Builds the direction analytics response by fetching counts and shadow config.
     """
-    direction_counts = direction_counts_func(db, filters=filters)
+    direction_counts = await direction_counts_func(db, filters=filters)
     xlines_config = []
 
     if thing_name:
@@ -346,9 +346,9 @@ def _build_direction_analytics_response(
 
 
 @router.post("/human-direction", response_model=CityEyeDirectionPerDeviceResponse)
-def get_human_direction_analytics(
+async def get_human_direction_analytics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     filters: DirectionAnalyticsFilters,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -369,7 +369,7 @@ def get_human_direction_analytics(
             - genders: Optional gender filters
             - age_groups: Optional age group filters
     """
-    final_device_ids, processed_device_details = _validate_devices_for_analytics(
+    final_device_ids, processed_device_details = await _validate_devices_for_analytics(
         db, current_user, filters.device_ids
     )
 
@@ -389,7 +389,7 @@ def get_human_direction_analytics(
         error_message_for_device: Optional[str] = None
 
         try:
-            detection_zones = _build_direction_analytics_response(
+            detection_zones = await _build_direction_analytics_response(
                 db, device_details.get("thing_name"), single_device_filters, crud_city_eye_analytics.get_direction_counts
             )
         except Exception as e:
@@ -412,16 +412,16 @@ def get_human_direction_analytics(
 
 
 @router.post("/traffic-direction", response_model=CityEyeDirectionPerDeviceResponse)
-def get_traffic_direction_analytics(
+async def get_traffic_direction_analytics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     filters: TrafficDirectionAnalyticsFilters,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Retrieve per-polygon in/out counts for traffic flow analytics, per device.
     """
-    final_device_ids, processed_device_details = _validate_devices_for_analytics(
+    final_device_ids, processed_device_details = await _validate_devices_for_analytics(
         db, current_user, filters.device_ids
     )
 
@@ -441,7 +441,7 @@ def get_traffic_direction_analytics(
         error_message_for_device: Optional[str] = None
 
         try:
-            detection_zones = _build_direction_analytics_response(
+            detection_zones = await _build_direction_analytics_response(
                 db, device_details.get("thing_name"), single_device_filters, crud_city_eye_analytics.get_traffic_direction_counts
             )
         except Exception as e:
@@ -464,9 +464,9 @@ def get_traffic_direction_analytics(
 
 
 @router.post("/polygon-xlines-config", response_model=DeviceCommandResponse)
-def polygon_xlines_config(
+async def polygon_xlines_config(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     command_in: XLinesConfigPayload,
     current_user: User = Depends(deps.get_current_active_user),
     background_tasks: BackgroundTasks,
@@ -486,17 +486,17 @@ def polygon_xlines_config(
 
     # Step 1: Get and validate the target device
     # This ensures the device exists and the user has permission to modify it
-    db_device = device.get_by_id(db, device_id=uuid.UUID(command_in.device_id))
+    db_device = await device.get_by_id(db, device_id=uuid.UUID(command_in.device_id))
     if not db_device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    check_device_access(current_user, db_device, action="update configuration for")
+    await check_device_access(current_user, db_device, action="update configuration for")
     thing_name = validate_device_for_commands(db_device)
 
     # Step 2: Verify that an active solution is running on the device
     # We only allow configuration updates for devices that have active solutions deployed
     # This ensures that there's actually software running on the device that can process the config
-    active_solutions = device_solution.get_active_by_device(
+    active_solutions = await device_solution.get_active_by_device(
         db, device_id=uuid.UUID(command_in.device_id)
     )
 
@@ -524,7 +524,7 @@ def polygon_xlines_config(
         solution_id=solution_id,
     )
 
-    db_command = device_command.create(db, obj_in=command_create)
+    db_command = await device_command.create(db, obj_in=command_create)
 
     # Step 5: Send the configuration update to the device via AWS IoT Device Shadow
     # This is the actual communication with AWS IoT Core to update the device's shadow
@@ -538,7 +538,7 @@ def polygon_xlines_config(
     if not success:
         # If the shadow update failed, we need to update our command record to reflect this failure
         # This ensures our audit trail accurately reflects what actually happened
-        device_command.update_status(
+        await device_command.update_status(
             db,
             message_id=db_command.message_id,
             status=CommandStatus.FAILED,
@@ -559,7 +559,7 @@ def polygon_xlines_config(
 
     # Step 7: Log this action for audit and compliance purposes
     # Enterprise applications need comprehensive audit trails for security and compliance
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.DEVICE_COMMAND_UPDATE_POLYGON,
@@ -587,9 +587,9 @@ def polygon_xlines_config(
 
 
 @router.get("/polygon-xlines-config/{device_id}", response_model=XLinesConfigPayload)
-def get_polygon_xlines_config(
+async def get_polygon_xlines_config(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -610,12 +610,12 @@ def get_polygon_xlines_config(
     )
     
     # Get and validate the device
-    db_device = device.get_by_id(db, device_id=device_id)
+    db_device = await device.get_by_id(db, device_id=device_id)
     if not db_device:
         raise HTTPException(status_code=404, detail="Device not found")
     
     # Check access permissions
-    check_device_access(current_user, db_device, action="retrieve configuration from")
+    await check_device_access(current_user, db_device, action="retrieve configuration from")
     
     # Validate device has a thing_name for AWS IoT
     if not db_device.thing_name:
@@ -710,9 +710,9 @@ def get_polygon_xlines_config(
 
 
 @router.get("/thresholds/{customer_id}/{solution_id}", response_model=ThresholdConfigResponse)
-def get_threshold_config(
+async def get_threshold_config(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     customer_id: uuid.UUID,
     solution_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
@@ -720,11 +720,11 @@ def get_threshold_config(
     """
     Get threshold configuration for a specific customer-solution pair.
     """
-    customer_obj = crud_customer.get_by_id(db, customer_id=customer_id)
+    customer_obj = await crud_customer.get_by_id(db, customer_id=customer_id)
     if not customer_obj:
         raise HTTPException(status_code=404, detail="Customer not found")
     
-    solution_obj = crud_solution.get_by_id(db, solution_id=solution_id)
+    solution_obj = await crud_solution.get_by_id(db, solution_id=solution_id)
     if not solution_obj:
         raise HTTPException(status_code=404, detail="Solution not found")
     
@@ -735,7 +735,7 @@ def get_threshold_config(
                 detail="Not authorized to access this customer's threshold configuration"
             )
     
-    threshold_config = crud_city_eye_analytics.get_threshold_config(
+    threshold_config = await crud_city_eye_analytics.get_threshold_config(
         db, customer_id=customer_id, solution_id=solution_id
     )
     
@@ -759,9 +759,9 @@ def get_threshold_config(
 
 
 @router.put("/thresholds", response_model=ThresholdConfigResponse)
-def update_threshold_config(
+async def update_threshold_config(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     threshold_config_in: ThresholdConfigRequest,
     current_user: User = Depends(deps.get_current_active_user),
     request: Request,
@@ -770,7 +770,7 @@ def update_threshold_config(
     Update threshold configuration for a customer-solution pair.
     """
     # Check if customer exists
-    customer_obj = crud_customer.get_by_id(db, customer_id=threshold_config_in.customer_id)
+    customer_obj = await crud_customer.get_by_id(db, customer_id=threshold_config_in.customer_id)
     if not customer_obj:
         raise HTTPException(
             status_code=404,
@@ -778,7 +778,7 @@ def update_threshold_config(
         )
     
     # Check if solution exists
-    solution_obj = crud_solution.get_by_id(db, solution_id=threshold_config_in.solution_id)
+    solution_obj = await crud_solution.get_by_id(db, solution_id=threshold_config_in.solution_id)
     if not solution_obj:
         raise HTTPException(
             status_code=404,
@@ -794,7 +794,7 @@ def update_threshold_config(
             )
         
     # Check if customer-solution relationship exists
-    customer_solution_obj = crud_customer_solution.get_by_customer_and_solution(
+    customer_solution_obj = await crud_customer_solution.get_by_customer_and_solution(
         db, customer_id=threshold_config_in.customer_id, solution_id=threshold_config_in.solution_id
     )
     if not customer_solution_obj:
@@ -805,7 +805,7 @@ def update_threshold_config(
         )
     
     # Create/update threshold configuration
-    updated_cs = crud_city_eye_analytics.update_threshold_config(
+    updated_cs = await crud_city_eye_analytics.update_threshold_config(
         db,
         customer_id=threshold_config_in.customer_id,
         solution_id=threshold_config_in.solution_id,
@@ -819,7 +819,7 @@ def update_threshold_config(
         )
     
     # Get the updated configuration for response
-    updated_config = crud_city_eye_analytics.get_threshold_config(
+    updated_config = await crud_city_eye_analytics.get_threshold_config(
         db, customer_id=threshold_config_in.customer_id, solution_id=threshold_config_in.solution_id
     )
     
@@ -837,7 +837,7 @@ def update_threshold_config(
     if threshold_config_in.thresholds.human_count_thresholds is not None:
         update_details["updated_fields"]["human_count_thresholds"] = threshold_config_in.thresholds.human_count_thresholds
     
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.THRESHOLD_CONFIG_CREATE,

@@ -1,14 +1,14 @@
 # app/api/routes/ai_models.py
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app.api import deps
 from app.crud import ai_model
-from app.models import User, UserRole
+from app.models import User
 from app.schemas.ai_model import (
     AIModel as AIModelSchema,
     AIModelCreate,
@@ -40,7 +40,7 @@ router = APIRouter()
 @router.post("/upload/init", response_model=UploadInitResponse)
 async def initiate_upload(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
     upload_request: UploadInitRequest,
@@ -67,7 +67,7 @@ async def initiate_upload(
         )
     
     # Check if model with same name and version already exists
-    existing_model = ai_model.get_by_name_and_version(
+    existing_model = await ai_model.get_by_name_and_version(
         db, name=upload_request.name, version=upload_request.version
     )
     if existing_model:
@@ -89,7 +89,7 @@ async def initiate_upload(
         )
         
         # Log the initiation
-        log_action(
+        await log_action(
             db=db,
             user_id=current_user.user_id,
             action_type=AuditLogActionType.AI_MODEL_CREATE,
@@ -138,7 +138,7 @@ async def initiate_upload(
 @router.post("/upload/verify", response_model=BatchUploadVerifyResponse)
 async def verify_batch_upload(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     api_key_valid: bool = Depends(deps.verify_api_key),
     batch_request: BatchUploadVerifyRequest,
 ) -> Any:
@@ -181,7 +181,7 @@ async def verify_batch_upload(
 @router.post("/upload/complete", response_model=AIModelSchema)
 async def complete_upload(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     request: Request,
     complete_request: UploadCompleteRequest
@@ -219,7 +219,7 @@ async def complete_upload(
         )
     
     # Check again for duplicate (in case of race condition)
-    existing_model = ai_model.get_by_name_and_version(
+    existing_model = await ai_model.get_by_name_and_version(
         db, name=complete_request.name, version=complete_request.version
     )
     if existing_model:
@@ -239,7 +239,7 @@ async def complete_upload(
             status=complete_request.status or AIModelStatus.ACTIVE
         )
         
-        db_model = ai_model.create_with_s3_info(
+        db_model = await ai_model.create_with_s3_info(
             db,
             obj_in=model_in,
             s3_bucket=ai_model_s3_manager.bucket_name,
@@ -250,7 +250,7 @@ async def complete_upload(
         ai_model_s3_manager.mark_upload_complete(complete_request.upload_id)
         
         # Log the action
-        log_action(
+        await log_action(
             db=db,
             user_id=current_user.user_id,
             action_type=AuditLogActionType.AI_MODEL_CREATE,
@@ -289,9 +289,9 @@ async def complete_upload(
 # ============================================================================
 
 @router.get("", response_model=AIModelListResponse)
-def list_ai_models(
+async def list_ai_models(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
@@ -307,7 +307,7 @@ def list_ai_models(
     
     **Returns**: Paginated list of AI models
     """
-    models = ai_model.get_multi_with_filters(
+    models = await ai_model.get_multi_with_filters(
         db,
         skip=skip,
         limit=limit,
@@ -318,7 +318,7 @@ def list_ai_models(
     )
     
     # Get total count
-    total = ai_model.count_with_filters(db, status=status, name=name)
+    total = await ai_model.count_with_filters(db, status=status, name=name)
     
     return AIModelListResponse(
         models=models,
@@ -329,9 +329,9 @@ def list_ai_models(
 
 
 @router.get("/{model_id}", response_model=AIModelSchema)
-def get_ai_model(
+async def get_ai_model(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     model_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user)
 ) -> Any:
@@ -342,7 +342,7 @@ def get_ai_model(
     
     **Returns**: AI model details
     """
-    db_model = ai_model.get_by_id(db, model_id=model_id)
+    db_model = await ai_model.get_by_id(db, model_id=model_id)
     if not db_model:
         raise HTTPException(
             status_code=404,
@@ -352,9 +352,9 @@ def get_ai_model(
 
 
 @router.get("/{model_id}/download-url", response_model=ModelDownloadUrlResponse)
-def get_model_download_url(
+async def get_model_download_url(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     model_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
     expires_in: int = Query(3600, ge=60, le=86400, description="URL expiration time in seconds")
@@ -366,7 +366,7 @@ def get_model_download_url(
     
     **Returns**: Time-limited download URL
     """
-    db_model = ai_model.get_by_id(db, model_id=model_id)
+    db_model = await ai_model.get_by_id(db, model_id=model_id)
     if not db_model:
         raise HTTPException(
             status_code=404,
@@ -393,9 +393,9 @@ def get_model_download_url(
 
 
 @router.patch("/{model_id}", response_model=AIModelSchema)
-def update_ai_model(
+async def update_ai_model(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     model_id: uuid.UUID,
     model_in: AIModelUpdate,
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
@@ -408,7 +408,7 @@ def update_ai_model(
     
     **Returns**: Updated AI model
     """
-    db_model = ai_model.get_by_id(db, model_id=model_id)
+    db_model = await ai_model.get_by_id(db, model_id=model_id)
     if not db_model:
         raise HTTPException(
             status_code=404,
@@ -420,7 +420,7 @@ def update_ai_model(
         check_name = model_in.name if model_in.name else db_model.name
         check_version = model_in.version if model_in.version else db_model.version
         
-        existing = ai_model.get_by_name_and_version(
+        existing = await ai_model.get_by_name_and_version(
             db, name=check_name, version=check_version
         )
         if existing and existing.model_id != model_id:
@@ -429,10 +429,10 @@ def update_ai_model(
                 detail=f"Model with name '{check_name}' and version '{check_version}' already exists"
             )
     
-    updated_model = ai_model.update(db, db_obj=db_model, obj_in=model_in)
+    updated_model = await ai_model.update(db, db_obj=db_model, obj_in=model_in)
     
     # Log the action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.AI_MODEL_UPDATE,

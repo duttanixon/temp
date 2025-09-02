@@ -2,9 +2,9 @@
 
 from datetime import timedelta
 from typing import Any, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.core.config import settings
 from app.core.security import create_access_token, verify_token, refresh_token, is_token_expired
@@ -21,9 +21,9 @@ router = APIRouter()
 logger = get_logger("auth")
 
 @router.post("/login", response_model=Token)
-def login_access_token(
+async def login_access_token(
     request: Request,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     """
@@ -34,10 +34,10 @@ def login_access_token(
     
     logger.info(f"Login attempt for user: {form_data.username} from IP: {client_ip}")
 
-    user_auth = user.authenticate(db, email=form_data.username, password=form_data.password)
+    user_auth = await user.authenticate(db, email=form_data.username, password=form_data.password)
     if not user_auth:
         logger.warning(f"Failed login attempt for user: {form_data.username} from IP: {client_ip}")
-        log_action(
+        await log_action(
             db=db,
             user_id=None,
             action_type=AuditLogActionType.LOGIN_FAILED,
@@ -48,7 +48,7 @@ def login_access_token(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active(user_auth):
         logger.warning(f"Inactive user login attempt: {form_data.username} from IP: {client_ip}")
-        log_action(
+        await log_action(
             db=db,
             user_id=user_auth.user_id,
             action_type=AuditLogActionType.LOGIN_FAILED,
@@ -66,7 +66,7 @@ def login_access_token(
     
     # Log successful login
     logger.info(f"Successful login for user: {form_data.username} (ID: {user_auth.user_id}) from IP: {client_ip}")
-    log_action(
+    await log_action(
         db=db,
         user_id=user_auth.user_id,
         action_type=AuditLogActionType.LOGIN,
@@ -79,7 +79,7 @@ def login_access_token(
     return {"access_token": token, "token_type": "bearer"}
 
 @router.post("/test-token", response_model=UserSchema)
-def test_token(request: Request, current_user: User = Depends(deps.get_current_user)) -> Any:
+async def test_token(request: Request, current_user: User = Depends(deps.get_current_user)) -> Any:
     """
     Test access token
     """
@@ -88,9 +88,9 @@ def test_token(request: Request, current_user: User = Depends(deps.get_current_u
     return current_user
 
 @router.post("/refresh-token", response_model=Token)
-def refresh_access_token(
+async def refresh_access_token(
     request: Request,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     authorization: Optional[str] = Header(None)
 ) -> Any:
     """
@@ -147,16 +147,16 @@ def refresh_access_token(
 
 
 @router.post("/set-password")
-def set_password(
+async def set_password(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     password_data: PasswordSet,
 ) -> Any:
     """
     Set password using reset token
     """
     # Get token
-    token_obj = password_reset_token.get_by_token(db, token=password_data.token)
+    token_obj = await password_reset_token.get_by_token(db, token=password_data.token)
     if not token_obj:
         raise HTTPException(
             status_code=400,
@@ -164,7 +164,7 @@ def set_password(
         )
     
     # Get user
-    user_obj = user.get_by_id(db, user_id=token_obj.user_id)
+    user_obj = await user.get_by_id(db, user_id=token_obj.user_id)
     if not user_obj:
         raise HTTPException(
             status_code=404,
@@ -173,13 +173,13 @@ def set_password(
     
     # Update password
     user_in = UserUpdate(password=password_data.new_password)
-    updated_user = user.update(db, db_obj=user_obj, obj_in=user_in)
+    updated_user = await user.update(db, db_obj=user_obj, obj_in=user_in)
     
     # Mark token as used
-    password_reset_token.mark_as_used(db, db_obj=token_obj)
+    await password_reset_token.mark_as_used(db, db_obj=token_obj)
     
     # Log password set action
-    log_action(
+    await log_action(
         db=db,
         user_id=user_obj.user_id,
         action_type=AuditLogActionType.PASSWORD_CHANGE,
@@ -193,19 +193,19 @@ def set_password(
 
 
 @router.get("/verify-token/{token}", response_model=TokenVerificationResponse)
-def verify_reset_token(
+async def verify_reset_token(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     token: str,
 ) -> Any:
     """
     Verify if a password reset token is valid
     """
-    token_obj = password_reset_token.get_by_token(db, token=token)
+    token_obj = await password_reset_token.get_by_token(db, token=token)
     if not token_obj:
         return TokenVerificationResponse(valid=False)
     
-    user_obj = user.get_by_id(db, user_id=token_obj.user_id)
+    user_obj = await user.get_by_id(db, user_id=token_obj.user_id)
     if not user_obj:
         return TokenVerificationResponse(valid=False)
     
@@ -216,9 +216,9 @@ def verify_reset_token(
     )
 
 @router.post("/reset-password")
-def forgot_password(
+async def forgot_password(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     request_data: ForgotPasswordRequest,
     request: Request,
 ) -> Any:
@@ -231,13 +231,13 @@ def forgot_password(
     logger.info(f"Password reset request for email: {request_data.email} from IP: {client_ip}")
     
     # Get user by email
-    user_obj = user.get_by_email(db, email=request_data.email)
+    user_obj = await user.get_by_email(db, email=request_data.email)
     
     # Always return success to prevent email enumeration
     # But only send email if user exists and is active
     if user_obj and user.is_active(user_obj):
         # Create password reset token
-        reset_token = password_reset_token.create_token(db, user_id=user_obj.user_id)
+        reset_token = await password_reset_token.create_token(db, user_id=user_obj.user_id)
         
         # Send password reset email
         email_sent = send_password_reset_email(
@@ -248,7 +248,7 @@ def forgot_password(
         if email_sent:
             logger.info(f"Password reset email sent to user: {user_obj.email}")
             # Log the password reset request
-            log_action(
+            await log_action(
                 db=db,
                 user_id=user_obj.user_id,
                 action_type=AuditLogActionType.PASSWORD_RESET_REQUEST,

@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime
-from app.db.session import Base, jst_now
+from app.db.async_session import Base, jst_now
 
 class LicenseStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"

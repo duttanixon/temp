@@ -1,14 +1,14 @@
 # app/api/routes/solution_packages.py
 from typing import Any, Dict, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, BackgroundTasks, status
-from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.async_session import AsyncSessionLocal
 import uuid
 import os
 from datetime import datetime, timedelta
 
 from app.api import deps
-from app.crud import solution_package, solution, ai_model, device, job
+from app.crud import solution_package, solution, ai_model, device, job, device_solution
 from app.models.solution_package import SolutionPackage
 from app.models import User, JobType
 from app.schemas.solution_package import (
@@ -76,7 +76,7 @@ def _bump_version(version: str, major: bool, minor: bool, patch: bool) -> str:
 @router.post("/upload/init", response_model=PackageUploadInitResponse)
 async def initiate_package_upload(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     request: Request,
     upload_request: PackageUploadInitRequest,
     background_tasks: BackgroundTasks,
@@ -102,7 +102,7 @@ async def initiate_package_upload(
         )
     
     # Check if solution exists
-    db_solution = solution.get_by_name(db, name=upload_request.solution_name)
+    db_solution = await solution.get_by_name(db, name=upload_request.solution_name)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -113,7 +113,7 @@ async def initiate_package_upload(
     package_name = _generate_package_name(upload_request.solution_name, upload_request.device_type)
 
     # Get the latest version of the package
-    latest_package = solution_package.get_latest_by_name_and_solution(
+    latest_package = await solution_package.get_latest_by_name_and_solution(
         db, 
         name=package_name, 
         solution_id=db_solution.solution_id
@@ -133,7 +133,7 @@ async def initiate_package_upload(
 
 
     # Check for duplicate packages (in case of a race condition)
-    existing_package = solution_package.get_by_name_and_version(
+    existing_package = await solution_package.get_by_name_and_version(
         db, 
         name=package_name, 
         version=new_version,
@@ -160,7 +160,7 @@ async def initiate_package_upload(
         )
         
         # Log the initiation
-        log_action(
+        await log_action(
             db=db,
             user_id=None,
             action_type=AuditLogActionType.PACKAGE_UPLOAD_INIT,
@@ -209,7 +209,6 @@ async def initiate_package_upload(
 @router.post("/upload/verify", response_model=PackageUploadVerifyResponse)
 async def verify_package_upload(
     *,
-    db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
     verify_request: PackageUploadVerifyRequest
 ) -> Any:
@@ -244,7 +243,7 @@ async def verify_package_upload(
 @router.post("/upload/complete", response_model=SolutionPackageSchema)
 async def complete_package_upload(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     api_key_valid: bool = Depends(deps.verify_api_key),
     request: Request,
     complete_request: PackageUploadCompleteRequest
@@ -271,7 +270,7 @@ async def complete_package_upload(
         )
     
     # Get solution by name
-    db_solution = solution.get_by_name(db, name=complete_request.solution_name)
+    db_solution = await solution.get_by_name(db, name=complete_request.solution_name)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -287,7 +286,7 @@ async def complete_package_upload(
         )
     
     # Check again for duplicate (in case of race condition)
-    existing_package = solution_package.get_by_name_and_version(
+    existing_package = await solution_package.get_by_name_and_version(
         db, 
         name=complete_request.name, 
         version=complete_request.version,
@@ -312,7 +311,7 @@ async def complete_package_upload(
             s3_key=complete_request.s3_key
         )
         
-        db_package = solution_package.create_with_s3_info(
+        db_package = await solution_package.create_with_s3_info(
             db,
             obj_in=package_in,
             s3_bucket=solution_package_s3_manager.bucket_name,
@@ -323,9 +322,9 @@ async def complete_package_upload(
         if complete_request.model_associations:
             for model_s3_key in complete_request.model_associations:
                 # Verify model exists by s3_key
-                db_model = ai_model.get_by_s3_key(db, s3_key=model_s3_key)
+                db_model = await ai_model.get_by_s3_key(db, s3_key=model_s3_key)
                 if db_model:
-                    solution_package.associate_with_model(
+                    await solution_package.associate_with_model(
                         db,
                         package_id=db_package.package_id,
                         model_id=db_model.model_id,
@@ -337,7 +336,7 @@ async def complete_package_upload(
         solution_package_s3_manager.mark_upload_complete(complete_request.upload_id)
         
         # Log the action
-        log_action(
+        await log_action(
             db=db,
             user_id=None,
             action_type=AuditLogActionType.PACKAGE_UPLOAD_COMPLETE,
@@ -363,7 +362,7 @@ async def complete_package_upload(
         )
         
         # Get solution name for response
-        db_solution = solution.get_by_id(db, solution_id=db_package.solution_id)
+        db_solution = await solution.get_by_id(db, solution_id=db_package.solution_id)
         db_package.solution_name = db_solution.name if db_solution else None
         
         return db_package
@@ -381,9 +380,9 @@ async def complete_package_upload(
 # ============================================================================
 
 @router.get("", response_model=SolutionPackageListResponse)
-def list_packages(
+async def list_packages(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     current_user: User = Depends(deps.get_current_active_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
@@ -415,7 +414,7 @@ def list_packages(
             device_uuid = uuid.UUID(device_id)
             
             # Get device from database
-            db_device = device.get_by_id(db, device_id=device_uuid)
+            db_device = await device.get_by_id(db, device_id=device_uuid)
             if db_device and db_device.thing_name:
                 logger.info(f"Checking IoT shadow for device: {db_device.name} (thing_name: {db_device.thing_name})")
                 
@@ -436,11 +435,11 @@ def list_packages(
                             deployed_package_uuid = uuid.UUID(shadow_deployed_id)
                             
                             # Check if this package exists in our database
-                            deployed_package = solution_package.get_by_id(db, package_id=deployed_package_uuid)
+                            deployed_package = await solution_package.get_by_id(db, package_id=deployed_package_uuid)
                             
                             if deployed_package:
                                 # Update the device_solution table with the deployed package_id
-                                device_solutions = device_solution.get_by_device(db, device_id=device_uuid)
+                                device_solutions = await device_solution.get_by_device(db, device_id=device_uuid)
                                 
                                 if device_solutions and len(device_solutions) > 0:
                                     ds = device_solutions[0]
@@ -451,8 +450,8 @@ def list_packages(
                                         
                                         # Update the package_id in device_solution
                                         ds.package_id = deployed_package_uuid
-                                        db.commit()
-                                        db.refresh(ds)
+                                        await db.commit()
+                                        await db.refresh(ds)
                                         
                                         logger.info(f"Successfully updated device_solution with deployed package_id: {deployed_package_uuid}")
                                 else:
@@ -483,7 +482,7 @@ def list_packages(
         # Remove any surrounding quotes from solution_name
         print(f"Filtering by solution name: {solution_name}")
         cleaned_solution_name = solution_name.strip('"\'')
-        db_solution = solution.get_by_name(db, name=cleaned_solution_name)
+        db_solution = await solution.get_by_name(db, name=cleaned_solution_name)
         if not db_solution:
             raise HTTPException(
                 status_code=404,
@@ -491,7 +490,7 @@ def list_packages(
             )
         solution_id = db_solution.solution_id
 
-    packages, total = solution_package.get_multi_with_filters(
+    packages, total = await solution_package.get_multi_with_filters(
         db,
         skip=skip,
         limit=limit,
@@ -506,20 +505,23 @@ def list_packages(
     for package in packages:
         # Get solution name if not already loaded
         if not db_solution or package.solution_id != db_solution.solution_id:
-            pkg_solution = solution.get_by_id(db, solution_id=package.solution_id)
+            pkg_solution = await solution.get_by_id(db, solution_id=package.solution_id)
             package.solution_name = pkg_solution.name if pkg_solution else None
         else:
             package.solution_name = db_solution.name
         
         # Get model associations
-        associations = solution_package.get_model_associations(db, package_id=package.package_id)
-        package.model_associations = [
-            {
+        associations = await solution_package.get_model_associations(db, package_id=package.package_id)
+        
+        model_associations_list = []
+        for assoc in associations:
+            model_obj = await ai_model.get_by_id(db, model_id=assoc.model_id)
+            model_associations_list.append({
                 "model_id": str(assoc.model_id),
-                "model_name": ai_model.get_by_id(db, model_id=assoc.model_id).s3_key.split('/')[-1] if ai_model.get_by_id(db, model_id=assoc.model_id) else None
-            }
-            for assoc in associations
-        ]
+                "model_name": model_obj.s3_key.split('/')[-1] if model_obj else None
+            })
+        package.model_associations = model_associations_list
+
 
         # Add deployed_id to the package if it matches the current package
         if deployed_id and str(package.package_id) == deployed_id:
@@ -533,9 +535,9 @@ def list_packages(
 
 
 @router.get("/{package_id}", response_model=SolutionPackageSchema)
-def get_package(
+async def get_package(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     package_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user)
 ) -> Any:
@@ -544,7 +546,7 @@ def get_package(
     
     **Permissions**: All authenticated users
     """
-    db_package = solution_package.get_by_id(db, package_id=package_id)
+    db_package = await solution_package.get_by_id(db, package_id=package_id)
     if not db_package:
         raise HTTPException(
             status_code=404,
@@ -552,11 +554,11 @@ def get_package(
         )
     
     # Get solution name
-    db_solution = solution.get_by_id(db, solution_id=db_package.solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=db_package.solution_id)
     db_package.solution_name = db_solution.name if db_solution else None
     
     # Get model associations
-    associations = solution_package.get_model_associations(db, package_id=package_id)
+    associations = await solution_package.get_model_associations(db, package_id=package_id)
     db_package.model_associations = [
         {
             "model_id": str(assoc.model_id)
@@ -568,9 +570,9 @@ def get_package(
 
 
 @router.put("/{package_id}", response_model=SolutionPackageSchema)
-def update_package(
+async def update_package(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     package_id: uuid.UUID,
     package_in: SolutionPackageUpdate,
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
@@ -581,7 +583,7 @@ def update_package(
     
     **Permissions**: Admin and Engineer only
     """
-    db_package = solution_package.get_by_id(db, package_id=package_id)
+    db_package = await solution_package.get_by_id(db, package_id=package_id)
     if not db_package:
         raise HTTPException(
             status_code=404,
@@ -589,10 +591,10 @@ def update_package(
         )
     
     # Update the package
-    db_package = solution_package.update(db, db_obj=db_package, obj_in=package_in)
+    db_package = await solution_package.update(db, db_obj=db_package, obj_in=package_in)
     
     # Log the update
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.PACKAGE_UPDATE,
@@ -609,9 +611,9 @@ def update_package(
 
 
 @router.delete("/{package_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_package(
+async def delete_package(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     package_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_user),
     request: Request,
@@ -623,7 +625,7 @@ def delete_package(
     **Permissions**: Admin only
     **Note**: This will also remove all model associations
     """
-    db_package = solution_package.get_by_id(db, package_id=package_id)
+    db_package = await solution_package.get_by_id(db, package_id=package_id)
     if not db_package:
         raise HTTPException(
             status_code=404,
@@ -635,10 +637,10 @@ def delete_package(
         solution_package_s3_manager.delete_package_file(db_package.s3_key)
     
     # Delete the package (this also deletes associations)
-    solution_package.delete_package(db, package_id=package_id)
+    await solution_package.delete_package(db, package_id=package_id)
     
     # Log the deletion
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type=AuditLogActionType.PACKAGE_DELETE,
@@ -657,9 +659,9 @@ def delete_package(
 
 
 @router.get("/{package_id}/download-url", response_model=PackageDownloadUrlResponse)
-def get_package_download_url(
+async def get_package_download_url(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     package_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_active_user),
     expires_in: int = Query(3600, ge=60, le=86400, description="URL expiration in seconds")
@@ -670,7 +672,7 @@ def get_package_download_url(
     **Permissions**: All authenticated users
     **Returns**: Presigned URL valid for the specified duration
     """
-    db_package = solution_package.get_by_id(db, package_id=package_id)
+    db_package = await solution_package.get_by_id(db, package_id=package_id)
     if not db_package:
         raise HTTPException(
             status_code=404,
@@ -695,9 +697,9 @@ def get_package_download_url(
 
 
 @router.post("/{package_id}/associate-model", response_model=dict)
-def associate_package_with_model(
+async def associate_package_with_model(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     package_id: uuid.UUID,
     association: PackageModelAssociationCreate,
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
@@ -709,7 +711,7 @@ def associate_package_with_model(
     **Permissions**: Admin and Engineer only
     """
     # Verify package exists
-    db_package = solution_package.get_by_id(db, package_id=package_id)
+    db_package = await solution_package.get_by_id(db, package_id=package_id)
     if not db_package:
         raise HTTPException(
             status_code=404,
@@ -717,7 +719,7 @@ def associate_package_with_model(
         )
     
     # Verify model exists
-    db_model = ai_model.get_by_id(db, model_id=association.model_id)
+    db_model = await ai_model.get_by_id(db, model_id=association.model_id)
     if not db_model:
         raise HTTPException(
             status_code=404,
@@ -725,14 +727,14 @@ def associate_package_with_model(
         )
     
     # Create association
-    result = solution_package.associate_with_model(
+    result = await solution_package.associate_with_model(
         db,
         package_id=package_id,
         model_id=association.model_id
     )
     
     # Log the action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="PACKAGE_MODEL_ASSOCIATE",
@@ -749,9 +751,9 @@ def associate_package_with_model(
 
 
 @router.delete("/{package_id}/dissociate-model/{model_id}", status_code=status.HTTP_204_NO_CONTENT)
-def dissociate_package_from_model(
+async def dissociate_package_from_model(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     package_id: uuid.UUID,
     model_id: uuid.UUID,
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
@@ -762,7 +764,7 @@ def dissociate_package_from_model(
     
     **Permissions**: Admin and Engineer only
     """
-    success = solution_package.remove_model_association(
+    success = await solution_package.remove_model_association(
         db,
         package_id=package_id,
         model_id=model_id
@@ -775,7 +777,7 @@ def dissociate_package_from_model(
         )
     
     # Log the action
-    log_action(
+    await log_action(
         db=db,
         user_id=current_user.user_id,
         action_type="PACKAGE_MODEL_DISSOCIATE", 
@@ -792,7 +794,7 @@ def dissociate_package_from_model(
 @router.post("/{package_id}/deploy", response_model=Dict[str, Any], status_code=status.HTTP_202_ACCEPTED)
 async def deploy_solution_package(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     package_id: uuid.UUID, # Get package_id from path parameter
     deploy_request: DeployPackageRequest, # Use the new request schema
     current_user: User = Depends(deps.get_current_admin_or_engineer_user),
@@ -810,7 +812,7 @@ async def deploy_solution_package(
     logger.info(f"Deployment request for package {package_id} to devices: {deploy_request.device_ids}")
 
     # 1. Validate Package ID and retrieve metadata
-    db_package = solution_package.get_by_id(db, package_id=package_id)
+    db_package = await solution_package.get_by_id(db, package_id=package_id)
     if not db_package:
         raise HTTPException(
             status_code=404,
@@ -818,7 +820,7 @@ async def deploy_solution_package(
         )
     
     # Get associated solution name for logging/S3 key generation if needed
-    db_solution = solution.get_by_id(db, solution_id=db_package.solution_id)
+    db_solution = await solution.get_by_id(db, solution_id=db_package.solution_id)
     if not db_solution:
         raise HTTPException(
             status_code=404,
@@ -856,9 +858,9 @@ async def deploy_solution_package(
     installation_script_args.append(package_local_path)
 
     # Add steps for associated model downloads
-    model_associations = solution_package.get_model_associations(db, package_id=package_id)
+    model_associations = await solution_package.get_model_associations(db, package_id=package_id)
     for assoc in model_associations:
-        db_model = ai_model.get_by_id(db, model_id=assoc.model_id)
+        db_model = await ai_model.get_by_id(db, model_id=assoc.model_id)
         if db_model:
             model_filename = os.path.basename(db_model.s3_key)
             model_local_path = f"/tmp/{model_filename}"
@@ -911,7 +913,7 @@ async def deploy_solution_package(
     # 3. AWS IoT Core Job Creation (as a background task for multiple devices)
     
     # Inner function for the background task
-    def create_deployment_jobs_task(
+    async def create_deployment_jobs_task(
         package: SolutionPackage,
         target_device_ids: List[uuid.UUID],
         job_doc: Dict[str, Any],
@@ -921,70 +923,70 @@ async def deploy_solution_package(
     ):
         logger.info(f"Background task started: Creating deployment jobs for package {package.package_id} on {len(target_device_ids)} devices.")
         success_count = 0
-        db_session = SessionLocal()
-        try:
-            for device_id in target_device_ids:
-                try:
-                    db_device = device.get_by_id(db_session, device_id=device_id)
-                    if not db_device:
-                        logger.warning(f"Device {device_id} not found. Skipping job creation.")
-                        continue
-                    
-                    check_device_access(user, db_device, action="deploy packages to")
-                    thing_name = validate_device_for_commands(db_device)
+        async with AsyncSessionLocal() as db_session:
+            try:
+                for device_id in target_device_ids:
+                    try:
+                        db_device = await device.get_by_id(db_session, device_id=device_id)
+                        if not db_device:
+                            logger.warning(f"Device {device_id} not found. Skipping job creation.")
+                            continue
+                        
+                        await check_device_access(user, db_device, action="deploy packages to")
+                        thing_name = validate_device_for_commands(db_device)
 
-                    # Create the IoT Job using the iot_jobs_service
-                    aws_job_info = iot_jobs_service.create_package_deployment_job(
-                        job_id_prefix=f"deploy-{package.name.replace(' ', '-')[:13]}-{package.version.replace('.', '-')[:13]}",
-                        targets=[f"arn:aws:iot:{settings.AWS_REGION}:{settings.AWS_ACCOUNT_ID}:thing/{thing_name}"],
-                        document=job_doc,
-                        target_selection='SNAPSHOT',
-                        description=f"Deploy package {package.name} v{package.version} to {thing_name}"
-                    )
+                        # Create the IoT Job using the iot_jobs_service
+                        aws_job_info = iot_jobs_service.create_package_deployment_job(
+                            job_id_prefix=f"deploy-{package.name.replace(' ', '-')[:13]}-{package.version.replace('.', '-')[:13]}",
+                            targets=[f"arn:aws:iot:{settings.AWS_REGION}:{settings.AWS_ACCOUNT_ID}:thing/{thing_name}"],
+                            document=job_doc,
+                            target_selection='SNAPSHOT',
+                            description=f"Deploy package {package.name} v{package.version} to {thing_name}"
+                        )
 
-                    # Record job in our database
-                    job_create_schema = JobCreate(
-                        device_id=device_id,
-                        job_type=JobType.PACKAGE_DEPLOYMENT,
-                        parameters={
-                            "package_id": str(package.package_id),
-                            "package_name": package.name,
-                            "package_version": package.version,
-                            "job_document_steps": job_doc["steps"] # Store the steps for audit
-                        }
-                    )
-                    db_job = job.create_with_device_update(
-                        db_session, obj_in=job_create_schema, job_id=aws_job_info["job_id"], user_id=user.user_id
-                    )
-                    db_job.aws_job_arn = aws_job_info.get("job_arn")
-                    db_session.add(db_job)
-                    db_session.commit()
+                        # Record job in our database
+                        job_create_schema = JobCreate(
+                            device_id=device_id,
+                            job_type=JobType.PACKAGE_DEPLOYMENT,
+                            parameters={
+                                "package_id": str(package.package_id),
+                                "package_name": package.name,
+                                "package_version": package.version,
+                                "job_document_steps": job_doc["steps"] # Store the steps for audit
+                            }
+                        )
+                        db_job = await job.create_with_device_update(
+                            db_session, obj_in=job_create_schema, job_id=aws_job_info["job_id"], user_id=user.user_id
+                        )
+                        db_job.aws_job_arn = aws_job_info.get("job_arn")
+                        db_session.add(db_job)
+                        await db_session.commit()
 
-                    log_action(
-                        db=db_session, user_id=user.user_id, action_type=AuditLogActionType.JOB_CREATE,
-                        resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
-                        details={
-                            "job_id": db_job.job_id,
-                            "job_type": "PACKAGE_DEPLOYMENT",
-                            "device_id": str(device_id),
-                            "device_name": db_device.name,
-                            "package_id": str(package.package_id),
-                            "package_name": package.name,
-                            "package_version": package.version
-                        },
-                        ip_address=ip, user_agent=ua
-                    )
-                    success_count += 1
-                except Exception as e:
-                    logger.error(f"Failed to create deployment job for device {device_id} and package {package.package_id}: {e}")
-                    db_session.rollback() # Rollback session on error for this device
-        except Exception as e:
-            db_session.rollback()
-            logger.error(f"Error in deployment task: {e}")
-            raise
-        finally:
-            # Always close the session
-            db_session.close()
+                        await log_action(
+                            db=db_session, user_id=user.user_id, action_type=AuditLogActionType.JOB_CREATE,
+                            resource_type=AuditLogResourceType.JOB, resource_id=str(db_job.id),
+                            details={
+                                "job_id": db_job.job_id,
+                                "job_type": "PACKAGE_DEPLOYMENT",
+                                "device_id": str(device_id),
+                                "device_name": db_device.name,
+                                "package_id": str(package.package_id),
+                                "package_name": package.name,
+                                "package_version": package.version
+                            },
+                            ip_address=ip, user_agent=ua
+                        )
+                        success_count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to create deployment job for device {device_id} and package {package.package_id}: {e}")
+                        await db_session.rollback() # Rollback session on error for this device
+            except Exception as e:
+                await db_session.rollback()
+                logger.error(f"Error in deployment task: {e}")
+                raise
+            finally:
+                # Always close the session
+                await db_session.close()
         logger.info(f"Background task finished: Successfully initiated {success_count}/{len(target_device_ids)} deployment jobs.")
 
     # Add the deployment task to background tasks
@@ -1003,4 +1005,3 @@ async def deploy_solution_package(
         "package_id": str(package_id),
         "devices_count": len(deploy_request.device_ids)
     }
-

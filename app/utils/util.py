@@ -3,8 +3,9 @@ from app.models import User, UserRole, DeviceStatus
 import math
 from fastapi import HTTPException
 from app.schemas.services.city_eye_settings import XLinesConfigPayload
+from app.crud.device import device
 
-def check_device_access(
+async def check_device_access(
     current_user: User, db_device, action: str = "send commands to"
 ):
     """Helper function to check if user has access to device"""

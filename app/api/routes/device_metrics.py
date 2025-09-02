@@ -11,7 +11,7 @@ from app.utils.timestream import (
     query_cpu_metrics,
     query_temperature_metrics,
 )
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from zoneinfo import ZoneInfo
 
 logger = get_logger("api.device_metrics")
@@ -20,9 +20,9 @@ router = APIRouter()
 
 
 @router.get("/memory", response_model=MetricsResponse)
-def get_memory_metrics(
+async def get_memory_metrics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_name: str,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
@@ -33,7 +33,7 @@ def get_memory_metrics(
     Get memory metrics for a specific device
     """
     # Check if device exists
-    db_device = device.get_by_device_name(db, device_name=device_name)
+    db_device = await device.get_by_device_name(db, device_name=device_name)
     if not db_device:
         raise HTTPException(status_code=404, detail="Device not found")
 
@@ -58,7 +58,7 @@ def get_memory_metrics(
 
     # Query the metrics
     try:
-        metrics = query_memory_metrics(str(device_name), start_time, end_time, interval)
+        metrics = await query_memory_metrics(str(device_name), start_time, end_time, interval)
         return metrics
     except Exception as e:
         logger.error(f"Error querying memory metrics: {str(e)}")
@@ -68,9 +68,9 @@ def get_memory_metrics(
 
 
 @router.get("/cpu", response_model=MetricsResponse)
-def get_cpu_metrics(
+async def get_cpu_metrics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_name: str,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
@@ -81,7 +81,7 @@ def get_cpu_metrics(
     Get CPU metrics for a specific device
     """
     # Check if device exists
-    db_device = device.get_by_device_name(db, device_name=device_name)
+    db_device = await device.get_by_device_name(db, device_name=device_name)
     if not db_device:
         raise HTTPException(status_code=404, detail="Device not found")
 
@@ -99,7 +99,7 @@ def get_cpu_metrics(
         start_time = end_time - timedelta(hours=1)
     # Query the metrics
     try:
-        metrics = query_cpu_metrics(str(device_name), start_time, end_time, interval)
+        metrics = await query_cpu_metrics(str(device_name), start_time, end_time, interval)
         return metrics
     except Exception as e:
         logger.error(f"Error querying CPU metrics: {str(e)}")
@@ -109,9 +109,9 @@ def get_cpu_metrics(
 
 
 @router.get("/temperature", response_model=MetricsResponse)
-def get_temperature_metrics(
+async def get_temperature_metrics(
     *,
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_async_db),
     device_name: str,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
@@ -122,7 +122,7 @@ def get_temperature_metrics(
     Get temperature metrics for a specific device
     """
     # Check if device exists
-    db_device = device.get_by_device_name(db, device_name=device_name)
+    db_device = await device.get_by_device_name(db, device_name=device_name)
     if not db_device:
         raise HTTPException(status_code=404, detail="Device not found")
 
@@ -147,7 +147,7 @@ def get_temperature_metrics(
 
     # Query the metrics
     try:
-        metrics = query_temperature_metrics(str(device_name), start_time, end_time, interval)
+        metrics = await query_temperature_metrics(str(device_name), start_time, end_time, interval)
         return metrics
     except Exception as e:
         logger.error(f"Error querying temperature metrics: {str(e)}")

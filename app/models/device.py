@@ -3,9 +3,7 @@ from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Boolean, Floa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import enum
-
-
-from app.db.session import Base, jst_now
+from app.db.async_session import Base, jst_now
 
 class DeviceStatus(str, enum.Enum):
     CREATED = "CREATED"

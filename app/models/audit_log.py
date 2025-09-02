@@ -5,10 +5,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.db.session import Base
-
-def jst_now():
-    return datetime.now(ZoneInfo("Asia/Tokyo"))
+from app.db.async_session import Base, jst_now
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"

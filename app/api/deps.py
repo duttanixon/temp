@@ -1,23 +1,24 @@
 # Dependency injection for the API
 
-from typing import Generator, Optional
+from typing import Optional
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
-from app.db.session import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.async_session import get_async_db
 from app.models.user import User, UserRole
 from app.schemas.token import TokenPayload
 from app.core.config import settings
+from app.crud.user import user as crud_user
 import uuid
 from zoneinfo import ZoneInfo
 from datetime import datetime
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
-def get_current_user(
-        db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+async def get_current_user(
+        db: AsyncSession = Depends(get_async_db), token: str = Depends(oauth2_scheme)
 ) -> User:
     try:
         payload = jwt.decode(
@@ -51,8 +52,8 @@ def get_current_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid user ID format"
         )
-
-    user = db.query(User).filter(User.user_id == uuid_obj).first()
+    
+    user = await crud_user.get_by_id(db, user_id=uuid_obj)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -84,14 +85,14 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)):
     
     return True
     
-def get_current_active_user(
+async def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if current_user.status != "ACTIVE":
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-def get_current_admin_user(
+async def get_current_admin_user(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
     if current_user.role != UserRole.ADMIN:
@@ -101,7 +102,7 @@ def get_current_admin_user(
         )
     return current_user
 
-def get_current_admin_or_engineer_user(
+async def get_current_admin_or_engineer_user(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
     if current_user.role not in [UserRole.ADMIN, UserRole.ENGINEER]:
@@ -111,7 +112,7 @@ def get_current_admin_or_engineer_user(
         )
     return current_user
 
-def get_current_customer_admin_user(
+async def get_current_customer_admin_user(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
     if current_user.role != UserRole.CUSTOMER_ADMIN and current_user.role != UserRole.ADMIN:

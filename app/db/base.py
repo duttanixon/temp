@@ -1,2 +1,2 @@
-from app.db.session import Base
+from app.db.async_session import Base
 

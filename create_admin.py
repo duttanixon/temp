@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Load environment variables
 load_dotenv()
 
-from app.db.session import SessionLocal
+from app.db.async_session import AsyncSessionLocal as SessionLocal
 from app.models.user import User, UserRole, UserStatus
 from app.core.security import get_password_hash
 

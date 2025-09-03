@@ -6,7 +6,8 @@ import pytest
 import uuid
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.models import User, Device, Job, JobStatus, JobType
@@ -14,8 +15,8 @@ from app.crud import job as crud_job
 from typing import Dict, Any
 
 
-
-def test_create_restart_job_admin_success(client: TestClient, db: Session, admin_token: str, mocker):
+@pytest.mark.asyncio
+async def test_create_restart_job_admin_success(client: TestClient, db: AsyncSession, admin_token: str, mocker):
     """
     Test successful creation of a restart application job by an admin user.
     The endpoint should accept the request and start a background task.
@@ -47,7 +48,8 @@ def test_create_restart_job_admin_success(client: TestClient, db: Session, admin
 
 
 
-def test_create_job_unauthorized_customer(client: TestClient, db: Session, customer_admin_token3: str, mocker):
+@pytest.mark.asyncio
+async def test_create_job_unauthorized_customer(client: TestClient, db: AsyncSession, customer_admin_token3: str, mocker):
     """
     Test that the API accepts a job creation request from a customer admin.
     The background task will handle the authorization for each device asynchronously.
@@ -78,7 +80,8 @@ def test_create_job_unauthorized_customer(client: TestClient, db: Session, custo
     mock_bg_task.assert_called_once()
 
 
-def test_create_job_device_not_provisioned(client: TestClient, db: Session, admin_token: str, mocker):
+@pytest.mark.asyncio
+async def test_create_job_device_not_provisioned(client: TestClient, db: AsyncSession, admin_token: str, mocker):
     """
     Test job creation for a device that is not provisioned.
     The API should accept the request, and the failure will occur in the background task.
@@ -109,7 +112,8 @@ def test_create_job_device_not_provisioned(client: TestClient, db: Session, admi
     mock_bg_task.assert_called_once()
 
 
-def test_create_reboot_job_aws_failure(client: TestClient, db: Session, admin_token: str, mocker):
+@pytest.mark.asyncio
+async def test_create_reboot_job_aws_failure(client: TestClient, db: AsyncSession, admin_token: str, mocker):
     """
     Test the API response when the AWS IoT job creation fails.
     The API should still return 202, as the failure happens in the background.
@@ -141,8 +145,9 @@ def test_create_reboot_job_aws_failure(client: TestClient, db: Session, admin_to
     mock_bg_task.assert_called_once()
 
 # Test cases for retrieving jobs
+@pytest.mark.asyncio
 @patch('app.api.routes.jobs.sync_job_status')
-def test_get_device_jobs_success(
+async def test_get_device_jobs_success(
     mock_sync: MagicMock,
     client: TestClient,
     admin_token: str,
@@ -165,7 +170,8 @@ def test_get_device_jobs_success(
     assert data[0]["device_id"] == str(active_device.device_id)
     mock_sync.assert_called()
 
-def test_get_device_jobs_unauthorized(
+@pytest.mark.asyncio
+async def test_get_device_jobs_unauthorized(
     client: TestClient,
     customer_admin_token3: str, # Belongs to a different customer
     active_device: Device
@@ -177,8 +183,9 @@ def test_get_device_jobs_unauthorized(
     )
     assert response.status_code == 403
 
+@pytest.mark.asyncio
 @patch('app.api.routes.jobs.sync_job_status')
-def test_get_latest_job_success(
+async def test_get_latest_job_success(
     mock_sync: MagicMock,
     client: TestClient,
     admin_token: str,
@@ -196,8 +203,9 @@ def test_get_latest_job_success(
     assert data["job_id"] == test_job.job_id
 
 # Test cases for job status and cancellation
+@pytest.mark.asyncio
 @patch('app.api.routes.jobs.sync_job_status')
-def test_get_job_status_success(
+async def test_get_job_status_success(
     mock_sync: MagicMock,
     client: TestClient,
     admin_token: str,
@@ -219,11 +227,12 @@ def test_get_job_status_success(
     assert data["status"] == "IN_PROGRESS"
     assert data["progress_percentage"] == 50
 
+@pytest.mark.asyncio
 @patch('app.utils.aws_iot_jobs.iot_jobs_service.cancel_job')
-def test_cancel_job_success(
+async def test_cancel_job_success(
     mock_cancel_aws_job: MagicMock,
     client: TestClient,
-    db: Session,
+    db: AsyncSession,
     admin_token: str,
     test_job: Job
 ):
@@ -242,9 +251,10 @@ def test_cancel_job_success(
     db.refresh(test_job)
     assert test_job.status == JobStatus.CANCELED
 
-def test_cancel_job_in_terminal_state(
+@pytest.mark.asyncio
+async def test_cancel_job_in_terminal_state(
     client: TestClient,
-    db: Session,
+    db: AsyncSession,
     admin_token: str,
     test_job: Job
 ):
@@ -262,13 +272,20 @@ def test_cancel_job_in_terminal_state(
     assert "Cannot cancel job" in response.json()["detail"]
 
 # Test case for cleanup endpoint
+@pytest.mark.asyncio
 @patch('app.api.routes.jobs.BackgroundTasks.add_task') # Corrected: 'BackgroundTasks' instead of 'background_tasks'
-def test_cleanup_old_jobs(
+@patch('app.api.routes.jobs.log_action') # Add mock for log_action to prevent database insertion
+async def test_cleanup_old_jobs(
+    mock_log_action: MagicMock,
     mock_add_task: MagicMock,
     client: TestClient,
-    admin_token: str
+    admin_token: str,
+    admin_user: User
 ):
     """Test the cleanup endpoint to ensure it starts the background task."""
+    # Setup the mock for log_action to return a value and avoid DB insertion
+    mock_log_action.return_value = None
+    
     response = client.post(
         f"{settings.API_V1_STR}/jobs/cleanup?keep_latest=5",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -279,3 +296,5 @@ def test_cleanup_old_jobs(
     assert "keep the latest 5" in data["details"]
     # Verify that the background task was added
     mock_add_task.assert_called_once()
+    # Verify log_action was called
+    mock_log_action.assert_called_once()

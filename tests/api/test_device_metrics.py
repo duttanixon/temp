@@ -7,13 +7,15 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.models import Device, User, AuditLog, Customer
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_metrics.query_memory_metrics')
-def test_get_memory_metrics_admin(mock_query_memory, client: TestClient, admin_token: str, device: Device):
+async def test_get_memory_metrics_admin(mock_query_memory, client: TestClient, admin_token: str, device: Device):
     """Test admin getting memory metrics for a device"""
     # Mock the timestream query function with fixed test data
     mock_data = {
@@ -63,8 +65,9 @@ def test_get_memory_metrics_admin(mock_query_memory, client: TestClient, admin_t
     assert data["interval"] == "5m"
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_metrics.query_memory_metrics')
-def test_get_memory_metrics_engineer(mock_query_memory, client: TestClient, engineer_token: str, device: Device):
+async def test_get_memory_metrics_engineer(mock_query_memory, client: TestClient, engineer_token: str, device: Device):
     """Test engineer getting memory metrics for a device"""
     # Mock the timestream query function
     mock_query_memory.return_value = {
@@ -89,8 +92,9 @@ def test_get_memory_metrics_engineer(mock_query_memory, client: TestClient, engi
     assert len(data["series"]) == 2
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_metrics.query_memory_metrics')
-def test_get_memory_metrics_customer_user_own_device(
+async def test_get_memory_metrics_customer_user_own_device(
     mock_query_memory, client: TestClient, customer_admin_token: str, device: Device
 ):
     """Test customer user getting memory metrics for their own device"""
@@ -116,7 +120,8 @@ def test_get_memory_metrics_customer_user_own_device(
     data = response.json()
     assert len(data["series"]) == 2
 
-def test_get_memory_metrics_customer_user_different_customer(
+@pytest.mark.asyncio
+async def test_get_memory_metrics_customer_user_different_customer(
     client: TestClient, customer_admin_token: str, suspended_customer: Customer, admin_token: str
 ):
     """Test customer user attempting to get metrics for device from different customer"""
@@ -154,7 +159,8 @@ def test_get_memory_metrics_customer_user_different_customer(
     assert "detail" in data
     assert "Not authorized" in data["detail"]
 
-def test_get_memory_metrics_nonexistent_device(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_memory_metrics_nonexistent_device(client: TestClient, admin_token: str):
     """Test getting metrics for a non-existent device"""
     nonexistent_name = "NonExistentDevice-123"
     response = client.get(
@@ -169,8 +175,9 @@ def test_get_memory_metrics_nonexistent_device(client: TestClient, admin_token: 
     assert "not found" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_metrics.query_memory_metrics')
-def test_get_memory_metrics_error(mock_query_memory, client: TestClient, admin_token: str, device: Device):
+async def test_get_memory_metrics_error(mock_query_memory, client: TestClient, admin_token: str, device: Device):
     """Test error handling when timestream query fails"""
     # Mock the timestream query function to raise an exception
     mock_query_memory.side_effect = Exception("Timestream query error")
@@ -188,8 +195,9 @@ def test_get_memory_metrics_error(mock_query_memory, client: TestClient, admin_t
 
 
 # Test cases for CPU metrics endpoint (GET /device-metrics/cpu)
+@pytest.mark.asyncio
 @patch('app.api.routes.device_metrics.query_cpu_metrics')
-def test_get_cpu_metrics_admin(mock_query_cpu, client: TestClient, admin_token: str, device: Device):
+async def test_get_cpu_metrics_admin(mock_query_cpu, client: TestClient, admin_token: str, device: Device):
     """Test admin getting CPU metrics for a device"""
     # Mock the timestream query function
     mock_query_cpu.return_value = {
@@ -240,8 +248,9 @@ def test_get_cpu_metrics_admin(mock_query_cpu, client: TestClient, admin_token: 
 
 
 # Test cases for temperatue metrics endpoint (GET /device-metrics/temperatue)
+@pytest.mark.asyncio
 @patch('app.api.routes.device_metrics.query_temperature_metrics')
-def test_get_temperature_metrics_admin(mock_query_temperature, client: TestClient, admin_token: str, device: Device):
+async def test_get_temperature_metrics_admin(mock_query_temperature, client: TestClient, admin_token: str, device: Device):
     """Test admin getting temperature metrics for a device"""
     # Mock the timestream query function
     mock_query_temperature.return_value = {
@@ -288,8 +297,9 @@ def test_get_temperature_metrics_admin(mock_query_temperature, client: TestClien
     assert call_args[3] == 5  # interval
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_metrics.query_temperature_metrics')
-def test_get_temperature_metrics_default_parameters(
+async def test_get_temperature_metrics_default_parameters(
     mock_query_temperature, client: TestClient, admin_token: str, device: Device
 ):
     """Test getting temperature metrics with default parameters"""

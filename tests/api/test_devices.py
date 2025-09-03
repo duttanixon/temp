@@ -5,7 +5,8 @@ import pytest
 import uuid
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models.audit_log import AuditLog
 from app.models import Device, DeviceStatus, DeviceType,  Customer, User, Solution, DeviceSolution
@@ -16,7 +17,8 @@ from app.schemas.device import DeviceBatchStatusRequest
 
 
 # Test cases for device listing (GET /devices)
-def test_get_all_devices_admin(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_all_devices_admin(client: TestClient, admin_token: str):
     """Test admin getting all devices"""
     response = client.get(
         f"{settings.API_V1_STR}/devices",
@@ -30,7 +32,8 @@ def test_get_all_devices_admin(client: TestClient, admin_token: str):
     assert len(data) >= 1
     
 
-def test_get_devices_by_customer_admin(client: TestClient, customer_admin_token: str, customer: Customer, device: Device):
+@pytest.mark.asyncio
+async def test_get_devices_by_customer_admin(client: TestClient, customer_admin_token: str, customer: Customer, device: Device):
     """Test getting devices filtered by customer_id"""
     response = client.get(
         f"{settings.API_V1_STR}/devices?customer_id={customer.customer_id}",
@@ -46,7 +49,8 @@ def test_get_devices_by_customer_admin(client: TestClient, customer_admin_token:
         assert str(device_item["customer_id"]) == str(customer.customer_id)
 
 
-def test_get_devices_customer_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer):
+@pytest.mark.asyncio
+async def test_get_devices_customer_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer):
     """Test customer admin attempting to get devices from a different customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices?customer_id={suspended_customer.customer_id}",
@@ -61,7 +65,8 @@ def test_get_devices_customer_user_different_customer(client: TestClient, custom
 
 
 # Test cases for device creation (POST /devices)
-def test_create_device_admin(client: TestClient, db: Session, admin_token: str, customer: Customer):
+@pytest.mark.asyncio
+async def test_create_device_admin(client: TestClient, db: AsyncSession, admin_token: str, customer: Customer):
     """Test admin creating a new device"""
     device_data = {
         "description": "A test device",
@@ -90,19 +95,22 @@ def test_create_device_admin(client: TestClient, db: Session, admin_token: str, 
     assert str(data["customer_id"]) == device_data["customer_id"]
     
     # Verify device was created in database
-    db.expire_all()
-    created_device = db.query(Device).filter(Device.device_id == uuid.UUID(data["device_id"])).first()
+    await db.commit()
+    result = await db.execute(select(Device).filter(Device.device_id == uuid.UUID(data["device_id"])))
+    created_device = result.scalars().first()
     assert created_device is not None
     assert created_device.mac_address == device_data["mac_address"]
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "DEVICE_CREATE",
         AuditLog.resource_id == str(created_device.device_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
-def test_create_device_engineer(client: TestClient, engineer_token: str, customer: Customer):
+@pytest.mark.asyncio
+async def test_create_device_engineer(client: TestClient, engineer_token: str, customer: Customer):
     """Test engineer creating a new device"""
     device_data = {
         "description": "A test device created by engineer",
@@ -128,7 +136,8 @@ def test_create_device_engineer(client: TestClient, engineer_token: str, custome
     assert data["mac_address"] == device_data["mac_address"]
 
 
-def test_create_device_customer_user(client: TestClient, customer_admin_token: str, customer: Customer):
+@pytest.mark.asyncio
+async def test_create_device_customer_user(client: TestClient, customer_admin_token: str, customer: Customer):
     """Test customer user attempting to create a device"""
     device_data = {
         "description": "A test device created by customer user",
@@ -153,7 +162,8 @@ def test_create_device_customer_user(client: TestClient, customer_admin_token: s
     assert "detail" in data
     assert "enough privileges" in data["detail"]
 
-def test_create_device_duplicate_mac(client: TestClient, db: Session, admin_token: str, customer: Customer, device: Device):
+@pytest.mark.asyncio
+async def test_create_device_duplicate_mac(client: TestClient, db: AsyncSession, admin_token: str, customer: Customer, device: Device):
     """Test creating a device with duplicate MAC address"""
     # Try to create another device with the same MAC address as an existing device
     duplicate_data = {
@@ -179,7 +189,8 @@ def test_create_device_duplicate_mac(client: TestClient, db: Session, admin_toke
     assert "detail" in data
     assert "already exists" in data["detail"]
 
-def test_create_device_nonexistent_customer(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_create_device_nonexistent_customer(client: TestClient, admin_token: str):
     """Test creating a device with non-existent customer"""
     nonexistent_id = uuid.uuid4()
     device_data = {
@@ -206,7 +217,8 @@ def test_create_device_nonexistent_customer(client: TestClient, admin_token: str
     assert "Customer not found" in data["detail"]
 
 # Test cases for getting a specific device (GET /devices/{device_id})
-def test_get_device_by_id_admin(client: TestClient, admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_get_device_by_id_admin(client: TestClient, admin_token: str, device: Device):
     """Test admin getting a device by ID"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/{device.device_id}",
@@ -221,7 +233,8 @@ def test_get_device_by_id_admin(client: TestClient, admin_token: str, device: De
     assert data["mac_address"] == device.mac_address
 
 
-def test_get_device_by_id_customer_user_own_customer(client: TestClient, customer_admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_get_device_by_id_customer_user_own_customer(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user getting a device from their customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/{device.device_id}",
@@ -233,7 +246,8 @@ def test_get_device_by_id_customer_user_own_customer(client: TestClient, custome
     data = response.json()
     assert str(data["device_id"]) == str(device.device_id)
 
-def test_get_device_by_id_customer_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_device_by_id_customer_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: Customer, admin_token: str):
     """Test customer user attempting to get a device from a different customer"""
     # First create a device for the suspended customer
     device_data = {
@@ -268,7 +282,8 @@ def test_get_device_by_id_customer_user_different_customer(client: TestClient, c
     assert "detail" in data
     assert "Not authorized" in data["detail"]
 
-def test_get_nonexistent_device(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_nonexistent_device(client: TestClient, admin_token: str):
     """Test getting a non-existent device"""
     nonexistent_id = uuid.uuid4()
     response = client.get(
@@ -283,7 +298,8 @@ def test_get_nonexistent_device(client: TestClient, admin_token: str):
     assert "not found" in data["detail"]
 
 # Test cases for updating a device (PUT /devices/{device_id})
-def test_update_device_admin(client: TestClient, db: Session, admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_update_device_admin(client: TestClient, db: AsyncSession, admin_token: str, device: Device):
     """Test admin updating a device"""
     update_data = {
         "description": "Updated Description",
@@ -306,19 +322,22 @@ def test_update_device_admin(client: TestClient, db: Session, admin_token: str, 
     assert data["location"] == update_data["location"]
     
     # Verify database updates
-    db.expire_all()
-    updated_device = db.query(Device).filter(Device.device_id == device.device_id).first()
+    await db.commit()
+    result = await db.execute(select(Device).filter(Device.device_id == device.device_id))
+    updated_device = result.scalars().first()
     assert updated_device.description == update_data["description"]
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "DEVICE_UPDATE",
         AuditLog.resource_id == str(device.device_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
 
-def test_update_device_customer_admin(client: TestClient, customer_admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_update_device_customer_admin(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer admin updating a device from their customer"""
     update_data = {
         "description": "Customer Admin Updated",
@@ -340,11 +359,12 @@ def test_update_device_customer_admin(client: TestClient, customer_admin_token: 
     assert data["location"] == update_data["location"]
 
 # Test cases for provisioning a device (POST /devices/{device_id}/provision)
+@pytest.mark.asyncio
 @patch('app.utils.aws_iot.iot_core.provision_device')
 @patch('app.crud.device.device.update_cloud_info')
 @patch('app.crud.customer.customer.get_by_id')
-def test_provision_device(mock_get_customer, mock_update_cloud_info, mock_provision, 
-                          client: TestClient, db: Session, admin_token: str, device: Device):
+async def test_provision_device(mock_get_customer, mock_update_cloud_info, mock_provision, 
+                          client: TestClient, db: AsyncSession, admin_token: str, device: Device):
     """Test provisioning a device"""
     # Configure mocks
     customer_mock = MagicMock()
@@ -393,7 +413,8 @@ def test_provision_device(mock_get_customer, mock_update_cloud_info, mock_provis
     mock_provision.assert_called_once()
     mock_update_cloud_info.assert_called_once()
 
-def test_provision_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_provision_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to provision a device (no permission)"""
     response = client.post(
         f"{settings.API_V1_STR}/devices/{device.device_id}/provision",
@@ -407,8 +428,9 @@ def test_provision_device_no_permission(client: TestClient, customer_admin_token
     assert "enough privileges" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_provision_already_provisioned_device(mock_get_by_id, client: TestClient, admin_token: str, active_device: Device):
+async def test_provision_already_provisioned_device(mock_get_by_id, client: TestClient, admin_token: str, active_device: Device):
     """Test provisioning an already provisioned device"""
     # Active device already has thing_name
     mock_get_by_id.return_value = active_device
@@ -425,8 +447,9 @@ def test_provision_already_provisioned_device(mock_get_by_id, client: TestClient
     assert "already provisioned" in data["detail"]
 
 # Test cases for decommissioning a device (POST /devices/{device_id}/decommission)
+@pytest.mark.asyncio
 @patch('app.crud.device.device.decommission')
-def test_decommission_device(mock_decommission, client: TestClient, db: Session, admin_token: str, active_device: Device):
+async def test_decommission_device(mock_decommission, client: TestClient, db: AsyncSession, admin_token: str, active_device: Device):
     """Test decommissioning a device"""
     # Mock the database operation for decommissioning
     mock_decommission.return_value = Device(
@@ -454,7 +477,8 @@ def test_decommission_device(mock_decommission, client: TestClient, db: Session,
     mock_decommission.assert_called_once()
 
 
-def test_decommission_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_decommission_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to decommission a device (no permission)"""
     response = client.post(
         f"{settings.API_V1_STR}/devices/{device.device_id}/decommission",
@@ -469,8 +493,9 @@ def test_decommission_device_no_permission(client: TestClient, customer_admin_to
 
 
 # Test cases for activating a device (POST /devices/{device_id}/activate)
+@pytest.mark.asyncio
 @patch('app.crud.device.device.activate')
-def test_activate_device(mock_activate, client: TestClient, db: Session, admin_token: str, device: Device):
+async def test_activate_device(mock_activate, client: TestClient, db: AsyncSession, admin_token: str, device: Device):
     """Test activating a device"""
     # Mock the database operation for activation
     mock_activate.return_value = Device(
@@ -497,7 +522,8 @@ def test_activate_device(mock_activate, client: TestClient, db: Session, admin_t
     # Verify function was called
     mock_activate.assert_called_once()
 
-def test_activate_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_activate_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to activate a device (no permission)"""
     response = client.post(
         f"{settings.API_V1_STR}/devices/{device.device_id}/activate",
@@ -512,9 +538,10 @@ def test_activate_device_no_permission(client: TestClient, customer_admin_token:
 
 
 # Test delete device endpoint (DELETE /devices/{device_id})
+@pytest.mark.asyncio
 @patch('app.utils.aws_iot.iot_core.delete_thing_certificate')
 @patch('app.crud.device.device.remove')
-def test_delete_device(mock_remove, mock_delete_thing, client: TestClient, db: Session, admin_token: str, active_device: Device):
+async def test_delete_device(mock_remove, mock_delete_thing, client: TestClient, db: AsyncSession, admin_token: str, active_device: Device):
     """Test deleting a device"""
     # Configure mocks
     mock_delete_thing.return_value = True
@@ -540,7 +567,8 @@ def test_delete_device(mock_remove, mock_delete_thing, client: TestClient, db: S
     # Verify functions were called
     mock_remove.assert_called_once()
 
-def test_delete_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_delete_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to delete a device (no permission)"""
     response = client.delete(
         f"{settings.API_V1_STR}/devices/{device.device_id}",
@@ -553,7 +581,8 @@ def test_delete_device_no_permission(client: TestClient, customer_admin_token: s
     assert "detail" in data
     assert "enough privileges" in data["detail"]
 
-def test_delete_nonexistent_device(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_delete_nonexistent_device(client: TestClient, admin_token: str):
     """Test deleting a non-existent device"""
     nonexistent_id = uuid.uuid4()
     response = client.delete(
@@ -567,7 +596,8 @@ def test_delete_nonexistent_device(client: TestClient, admin_token: str):
     assert "detail" in data
     assert "not found" in data["detail"]
 
-def test_get_compatible_devices_for_solution_by_customer_all(client: TestClient, admin_token: str, customer: Customer, solution: Solution):
+@pytest.mark.asyncio
+async def test_get_compatible_devices_for_solution_by_customer_all(client: TestClient, admin_token: str, customer: Customer, solution: Solution):
     """Test getting all devices compatible with a solution for a customer"""
     # First, get a solution from the database
     response = client.get(
@@ -586,7 +616,8 @@ def test_get_compatible_devices_for_solution_by_customer_all(client: TestClient,
         # Verify device type is in solution's compatibility list
         assert device_item["device_type"] in solution.compatibility
 
-def test_get_compatible_devices_for_solution_by_customer_available_only(client: TestClient, admin_token: str, customer: Customer, solution: Solution):
+@pytest.mark.asyncio
+async def test_get_compatible_devices_for_solution_by_customer_available_only(client: TestClient, admin_token: str, customer: Customer, solution: Solution):
     """Test getting only available devices compatible with a solution for a customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{customer.customer_id}?available_only=true",
@@ -610,7 +641,8 @@ def test_get_compatible_devices_for_solution_by_customer_available_only(client: 
         device_solutions = device_solutions_response.json()
         assert len(device_solutions) == 0
     
-def test_get_compatible_devices_for_solution_by_customer_as_customer_admin(client: TestClient, customer_admin_token: str, customer_admin_user: User, solution: Solution):
+@pytest.mark.asyncio
+async def test_get_compatible_devices_for_solution_by_customer_as_customer_admin(client: TestClient, customer_admin_token: str, customer_admin_user: User, solution: Solution):
     """Test customer user getting devices compatible with a solution for their customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{customer_admin_user.customer_id}",
@@ -627,7 +659,8 @@ def test_get_compatible_devices_for_solution_by_customer_as_customer_admin(clien
         assert str(device_item["customer_id"]) == str(customer_admin_user.customer_id)
 
 
-def test_get_compatible_devices_for_solution_by_customer_unauthorized(client: TestClient, customer_admin_token: str, suspended_customer: Customer, solution: Solution):
+@pytest.mark.asyncio
+async def test_get_compatible_devices_for_solution_by_customer_unauthorized(client: TestClient, customer_admin_token: str, suspended_customer: Customer, solution: Solution):
     """Test customer user attempting to get devices for a different customer"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/compatible/solution/{solution.solution_id}/customer/{suspended_customer.customer_id}",
@@ -640,7 +673,8 @@ def test_get_compatible_devices_for_solution_by_customer_unauthorized(client: Te
     assert "detail" in data
     assert "Not authorized" in data["detail"]
 
-def test_get_compatible_devices_nonexistent_solution(client: TestClient, admin_token: str, customer: Customer):
+@pytest.mark.asyncio
+async def test_get_compatible_devices_nonexistent_solution(client: TestClient, admin_token: str, customer: Customer):
     """Test getting devices with non-existent solution"""
     nonexistent_id = uuid.uuid4()
     response = client.get(
@@ -654,7 +688,8 @@ def test_get_compatible_devices_nonexistent_solution(client: TestClient, admin_t
     assert "detail" in data
     assert "Solution not found" in data["detail"]
 
-def test_get_compatible_devices_nonexistent_customer(client: TestClient, admin_token: str, solution: Solution):
+@pytest.mark.asyncio
+async def test_get_compatible_devices_nonexistent_customer(client: TestClient, admin_token: str, solution: Solution):
     """Test getting devices with non-existent customer"""
     nonexistent_id = uuid.uuid4()
     response = client.get(
@@ -672,8 +707,12 @@ def test_get_compatible_devices_nonexistent_customer(client: TestClient, admin_t
 # Test cases for batch device status (POST /devices/batch-status)
 # =============================================================================
 
-def test_get_batch_device_status_admin(client: TestClient, admin_token: str, device: Device, active_device: Device):
+@pytest.mark.asyncio
+async def test_get_batch_device_status_admin(client: TestClient, admin_token: str, device: Device, active_device: Device, db: AsyncSession):
     """Test admin getting batch device status"""
+    # Ensure we have a fresh database state
+    await db.commit()
+    
     batch_request = {
         "device_ids": [str(device.device_id), str(active_device.device_id)]
     }
@@ -699,7 +738,9 @@ def test_get_batch_device_status_admin(client: TestClient, admin_token: str, dev
     assert device_status["device_name"] == device.name
 
 
-def test_get_batch_device_status_customer_admin_own_devices(client: TestClient, customer_admin_token: str, device: Device):
+
+@pytest.mark.asyncio
+async def test_get_batch_device_status_customer_admin_own_devices(client: TestClient, customer_admin_token: str, device: Device, db: AsyncSession):
     """Test customer admin getting status for their own devices"""
     batch_request = {
         "device_ids": [str(device.device_id)]
@@ -720,7 +761,9 @@ def test_get_batch_device_status_customer_admin_own_devices(client: TestClient, 
     assert "is_online" in device_status
 
 
-def test_get_batch_device_status_mixed_valid_invalid_devices(client: TestClient, admin_token: str, device: Device):
+
+@pytest.mark.asyncio
+async def test_get_batch_device_status_mixed_valid_invalid_devices(client: TestClient, admin_token: str, device: Device, db: AsyncSession):
     """Test batch status with mix of valid and invalid device IDs"""
     invalid_device_id = str(uuid.uuid4())
     
@@ -751,7 +794,9 @@ def test_get_batch_device_status_mixed_valid_invalid_devices(client: TestClient,
     assert invalid_status["device_name"] == "Unknown"
 
 
-def test_get_batch_device_status_empty_device_list(client: TestClient, admin_token: str):
+
+@pytest.mark.asyncio
+async def test_get_batch_device_status_empty_device_list(client: TestClient, admin_token: str, db: AsyncSession):
     """Test batch status with empty device list"""
     batch_request = {
         "device_ids": []
@@ -770,9 +815,11 @@ def test_get_batch_device_status_empty_device_list(client: TestClient, admin_tok
     assert len(data) == 0
 
 
+
+@pytest.mark.asyncio
 @patch('app.api.routes.devices.iot_command_service.get_device_shadow')
-def test_get_batch_device_status_with_shadow_data(
-    mock_get_shadow, client: TestClient, admin_token: str, active_device: Device
+async def test_get_batch_device_status_with_shadow_data(
+    mock_get_shadow, client: TestClient, admin_token: str, active_device: Device, db: AsyncSession
 ):
     """Test batch status with AWS IoT shadow data"""
     # Mock shadow response for online device
@@ -804,7 +851,9 @@ def test_get_batch_device_status_with_shadow_data(
     assert device_status["is_online"] == True
 
 
-def test_get_batch_device_status_unauthorized(client: TestClient, device: Device):
+
+@pytest.mark.asyncio
+async def test_get_batch_device_status_unauthorized(client: TestClient, device: Device, db: AsyncSession):
     """Test batch status without authentication"""
     batch_request = {
         "device_ids": [str(device.device_id)]
@@ -823,8 +872,9 @@ def test_get_batch_device_status_unauthorized(client: TestClient, device: Device
 # Test cases for device image retrieval (GET /devices/{device_id}/image)
 # =============================================================================
 
+@pytest.mark.asyncio
 @patch('app.api.routes.devices.boto3.client')
-def test_get_device_image_admin(mock_boto_client, client: TestClient, admin_token: str, active_device: Device):
+async def test_get_device_image_admin(mock_boto_client, client: TestClient, admin_token: str, active_device: Device):
     """Test admin getting device image"""
     # Mock S3 client and response
     mock_s3 = MagicMock()
@@ -856,8 +906,9 @@ def test_get_device_image_admin(mock_boto_client, client: TestClient, admin_toke
     )
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.devices.boto3.client')
-def test_get_device_image_customer_admin_own_device(
+async def test_get_device_image_customer_admin_own_device(
     mock_boto_client, client: TestClient, customer_admin_token: str, active_device: Device
 ):
     """Test customer admin getting image for their own device"""
@@ -882,7 +933,8 @@ def test_get_device_image_customer_admin_own_device(
     assert response.content == b'customer_device_image'
 
 
-def test_get_device_image_customer_admin_unauthorized(
+@pytest.mark.asyncio
+async def test_get_device_image_customer_admin_unauthorized(
     client: TestClient, customer_admin_token: str, suspended_customer: Customer, admin_token: str
 ):
     """Test customer admin attempting to get image for device from different customer"""
@@ -915,7 +967,8 @@ def test_get_device_image_customer_admin_unauthorized(
     assert "Not authorized" in data["detail"]
 
 
-def test_get_device_image_device_not_found(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_device_image_device_not_found(client: TestClient, admin_token: str):
     """Test getting image for non-existent device"""
     nonexistent_id = uuid.uuid4()
     
@@ -931,8 +984,9 @@ def test_get_device_image_device_not_found(client: TestClient, admin_token: str)
     assert "Device not found" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_get_device_image_device_inactive_mocked(mock_get_device, client: TestClient, admin_token: str, device: Device):
+async def test_get_device_image_device_inactive_mocked(mock_get_device, client: TestClient, admin_token: str, device: Device):
     """Test getting image for inactive device using mocked device status"""
     # Create a mock device with inactive status
     mock_inactive_device = MagicMock()
@@ -955,8 +1009,9 @@ def test_get_device_image_device_inactive_mocked(mock_get_device, client: TestCl
     assert "not active" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.devices.boto3.client')
-def test_get_device_image_aws_credentials_error(mock_boto_client, client: TestClient, admin_token: str, active_device: Device):
+async def test_get_device_image_aws_credentials_error(mock_boto_client, client: TestClient, admin_token: str, active_device: Device):
     """Test getting image when AWS credentials are not configured"""
     # Mock S3 client to raise NoCredentialsError
     mock_boto_client.side_effect = NoCredentialsError()
@@ -973,7 +1028,8 @@ def test_get_device_image_aws_credentials_error(mock_boto_client, client: TestCl
     assert "credentials not configured" in data["detail"]
 
 
-def test_get_device_image_unauthorized(client: TestClient, active_device: Device):
+@pytest.mark.asyncio
+async def test_get_device_image_unauthorized(client: TestClient, active_device: Device):
     """Test getting device image without authentication"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/{active_device.device_id}/image?solution=City Eye"
@@ -983,7 +1039,8 @@ def test_get_device_image_unauthorized(client: TestClient, active_device: Device
     assert response.status_code == 401
 
 
-def test_get_device_image_missing_solution_parameter(client: TestClient, admin_token: str, active_device: Device):
+@pytest.mark.asyncio
+async def test_get_device_image_missing_solution_parameter(client: TestClient, admin_token: str, active_device: Device):
     """Test getting device image without solution parameter"""
     response = client.get(
         f"{settings.API_V1_STR}/devices/{active_device.device_id}/image",

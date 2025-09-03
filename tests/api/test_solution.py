@@ -1,16 +1,19 @@
 """
 Test cases for solution management routes.
 """
+import pytest
 import uuid
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models import DeviceType, AuditLog, Solution, SolutionStatus, User, Device, Customer, CustomerSolution
 from app.core.config import settings
 
 # Test cases for solution listing (GET /solutions)
-def test_get_all_solutions_admin(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_all_solutions_admin(client: TestClient, admin_token: str):
     """Test admin getting all solutions"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions",
@@ -29,7 +32,8 @@ def test_get_all_solutions_admin(client: TestClient, admin_token: str):
     assert "name" in solution
     assert "compatibility" in solution
 
-def test_get_all_solutions_engineer(client: TestClient, engineer_token: str):
+@pytest.mark.asyncio
+async def test_get_all_solutions_engineer(client: TestClient, engineer_token: str):
     """Test engineer getting all solutions"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions",
@@ -43,7 +47,8 @@ def test_get_all_solutions_engineer(client: TestClient, engineer_token: str):
     assert len(data) >= 2
 
 
-def test_get_solutions_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User):
+@pytest.mark.asyncio
+async def test_get_solutions_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User):
     """Test customer user getting solutions assigned to their customer"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions",
@@ -57,7 +62,8 @@ def test_get_solutions_customer_user(client: TestClient, customer_admin_token: s
     # Should at least get the Test Solution which is assigned to the active customer
     assert len(data) >= 1
 
-def test_get_solutions_filter_by_device_type(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_solutions_filter_by_device_type(client: TestClient, admin_token: str):
     """Test getting solutions filtered by device type"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions?device_type=NVIDIA_JETSON",
@@ -71,10 +77,11 @@ def test_get_solutions_filter_by_device_type(client: TestClient, admin_token: st
     
     # Verify all returned solutions are compatible with the device type
     for solution in data:
-        assert DeviceType.NVIDIA_JETSON in solution["compatibility"]
+        assert "NVIDIA_JETSON" in solution["compatibility"]
 
 
-def test_get_solutions_filter_active_only(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_solutions_filter_active_only(client: TestClient, admin_token: str):
     """Test getting only active solutions"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions?active_only=true",
@@ -90,7 +97,8 @@ def test_get_solutions_filter_active_only(client: TestClient, admin_token: str):
     for solution in data:
         assert solution["status"] == "ACTIVE"
 
-def test_get_solutions_invalid_device_type(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_solutions_invalid_device_type(client: TestClient, admin_token: str):
     """Test filtering with invalid device type"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions?device_type=INVALID_TYPE",
@@ -105,7 +113,8 @@ def test_get_solutions_invalid_device_type(client: TestClient, admin_token: str)
 
 
 # Test cases for admin view solutions listing (GET /solutions/admin)
-def test_get_solutions_admin_view(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_solutions_admin_view(client: TestClient, admin_token: str):
     """Test getting solutions with admin view (includes customer counts)"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions/admin",
@@ -123,7 +132,8 @@ def test_get_solutions_admin_view(client: TestClient, admin_token: str):
     assert "name" in solution
     assert "customers_count" in solution
 
-def test_get_solutions_admin_view_no_permission(client: TestClient, customer_admin_token: str):
+@pytest.mark.asyncio
+async def test_get_solutions_admin_view_no_permission(client: TestClient, customer_admin_token: str):
     """Test customer user attempting to access admin view"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions/admin",
@@ -138,7 +148,8 @@ def test_get_solutions_admin_view_no_permission(client: TestClient, customer_adm
 
 
 # Test cases for solution creation (POST /solutions)
-def test_create_solution_admin(client: TestClient, db: Session, admin_token: str):
+@pytest.mark.asyncio
+async def test_create_solution_admin(client: TestClient, db: AsyncSession, admin_token: str):
     """Test admin creating a new solution"""
     solution_data = {
         "name": "New Test Solution",
@@ -161,21 +172,25 @@ def test_create_solution_admin(client: TestClient, db: Session, admin_token: str
     assert "solution_id" in data
     
     # Verify solution was created in database
-    db.expire_all()
-    created_solution = db.query(Solution).filter(Solution.name == solution_data["name"]).first()
+    await db.commit()
+    result = await db.execute(select(Solution).filter(Solution.name == solution_data["name"]))
+    created_solution = result.scalars().first()
     assert created_solution is not None
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "SOLUTION_CREATE",
         AuditLog.resource_id == str(created_solution.solution_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
-def test_create_solution_existing_name(client: TestClient, admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_create_solution_existing_name(client: TestClient, admin_token: str, db: AsyncSession):
     """Test creating solution with existing name"""
     # Get existing solution
-    existing_solution = db.query(Solution).first()
+    result = await db.execute(select(Solution).limit(1))
+    existing_solution = result.scalars().first()
     
     solution_data = {
         "name": existing_solution.name,  # Already exists
@@ -198,7 +213,8 @@ def test_create_solution_existing_name(client: TestClient, admin_token: str, db:
 
 
 
-def test_create_solution_invalid_device_type(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_create_solution_invalid_device_type(client: TestClient, admin_token: str):
     """Test creating solution with invalid device type"""
     solution_data = {
         "name": "Invalid Device Type Solution",
@@ -222,7 +238,8 @@ def test_create_solution_invalid_device_type(client: TestClient, admin_token: st
     validation_errors = data["detail"]
     assert any("compatibility" in str(error).lower() for error in validation_errors)
 
-def test_create_solution_non_admin(client: TestClient, customer_admin_token: str):
+@pytest.mark.asyncio
+async def test_create_solution_non_admin(client: TestClient, customer_admin_token: str):
     """Test non-admin attempting to create solution"""
     solution_data = {
         "name": "Unauthorized Solution",
@@ -244,10 +261,12 @@ def test_create_solution_non_admin(client: TestClient, customer_admin_token: str
     assert "enough privileges" in data["detail"]
 
 # Test cases for getting solution by ID (GET /solutions/{solution_id})
-def test_get_solution_by_id_admin(client: TestClient, admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_get_solution_by_id_admin(client: TestClient, admin_token: str, db: AsyncSession):
     """Test admin getting a specific solution by ID"""
     # Get a solution ID from database
-    solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution = result.scalars().first()
     
     response = client.get(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
@@ -261,10 +280,12 @@ def test_get_solution_by_id_admin(client: TestClient, admin_token: str, db: Sess
     assert data["name"] == solution.name
     assert "customers_count" in data  # Admin gets count info
 
-def test_get_solution_by_id_customer_user_with_access(client: TestClient, customer_admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_get_solution_by_id_customer_user_with_access(client: TestClient, customer_admin_token: str, db: AsyncSession):
     """Test customer user getting a solution assigned to their customer"""
     # Get a solution ID from database that is assigned to the customer
-    solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution = result.scalars().first()
     
     response = client.get(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
@@ -279,10 +300,12 @@ def test_get_solution_by_id_customer_user_with_access(client: TestClient, custom
     assert "customers_count" not in data  # Regular users don't get admin info
 
 
-def test_get_solution_by_id_customer_user_no_access(client: TestClient, customer_admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_get_solution_by_id_customer_user_no_access(client: TestClient, customer_admin_token: str, db: AsyncSession):
     """Test customer user attempting to get a solution not assigned to their customer"""
     # Get a solution ID from database that is not assigned to the customer
-    solution = db.query(Solution).filter(Solution.name == "Beta Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Beta Solution"))
+    solution = result.scalars().first()
     
     response = client.get(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
@@ -295,7 +318,8 @@ def test_get_solution_by_id_customer_user_no_access(client: TestClient, customer
     assert "detail" in data
     assert "Not authorized" in data["detail"]
 
-def test_get_solution_nonexistent_id(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_solution_nonexistent_id(client: TestClient, admin_token: str):
     """Test getting solution with non-existent ID"""
     nonexistent_id = uuid.uuid4()
     response = client.get(
@@ -310,10 +334,12 @@ def test_get_solution_nonexistent_id(client: TestClient, admin_token: str):
     assert "not found" in data["detail"]
 
 # Test cases for updating solution (PUT /solutions/{solution_id})
-def test_update_solution_admin(client: TestClient, db: Session, admin_token: str):
+@pytest.mark.asyncio
+async def test_update_solution_admin(client: TestClient, db: AsyncSession, admin_token: str):
     """Test admin updating a solution"""
     # Get a solution ID from database
-    solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution = result.scalars().first()
     
     update_data = {
         "name": "Updated Test Solution",
@@ -332,21 +358,25 @@ def test_update_solution_admin(client: TestClient, db: Session, admin_token: str
     assert data["name"] == update_data["name"]
     
     # Verify database updates
-    db.expire_all()
-    updated_solution = db.query(Solution).filter(Solution.solution_id == solution.solution_id).first()
+    await db.commit()
+    result = await db.execute(select(Solution).filter(Solution.solution_id == solution.solution_id))
+    updated_solution = result.scalars().first()
     assert updated_solution.name == update_data["name"]
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "SOLUTION_UPDATE",
         AuditLog.resource_id == str(solution.solution_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
-def test_update_solution_compatibility(client: TestClient, db: Session, admin_token: str):
+@pytest.mark.asyncio
+async def test_update_solution_compatibility(client: TestClient, db: AsyncSession, admin_token: str):
     """Test updating solution compatibility"""
     # Get a solution ID from database
-    solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution = result.scalars().first()
     
     update_data = {
         "compatibility": ["NVIDIA_JETSON"]  # Change to only support Jetson
@@ -365,16 +395,19 @@ def test_update_solution_compatibility(client: TestClient, db: Session, admin_to
     assert "NVIDIA_JETSON" in data["compatibility"]
     
     # Verify database updates
-    db.expire_all()
-    updated_solution = db.query(Solution).filter(Solution.solution_id == solution.solution_id).first()
+    await db.commit()
+    result = await db.execute(select(Solution).filter(Solution.solution_id == solution.solution_id))
+    updated_solution = result.scalars().first()
     assert len(updated_solution.compatibility) == 1
     assert "NVIDIA_JETSON" in updated_solution.compatibility
 
 
-def test_update_solution_invalid_compatibility(client: TestClient, admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_update_solution_invalid_compatibility(client: TestClient, admin_token: str, db: AsyncSession):
     """Test updating solution with invalid device compatibility"""
     # Get a solution ID from database
-    solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution = result.scalars().first()
     
     update_data = {
         "compatibility": ["INVALID_DEVICE"]
@@ -393,11 +426,15 @@ def test_update_solution_invalid_compatibility(client: TestClient, admin_token: 
     assert "Invalid device type" in data["detail"]
 
 
-def test_update_solution_new_name_conflict(client: TestClient, admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_update_solution_new_name_conflict(client: TestClient, admin_token: str, db: AsyncSession):
     """Test updating solution with a name that already exists for another solution"""
     # Get two different solutions
-    solution1 = db.query(Solution).filter(Solution.name == "Test Solution").first()
-    solution2 = db.query(Solution).filter(Solution.name == "Beta Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution1 = result.scalars().first()
+    
+    result = await db.execute(select(Solution).filter(Solution.name == "Beta Solution"))
+    solution2 = result.scalars().first()
     
     update_data = {
         "name": solution2.name  # Try to use the name of solution2
@@ -416,10 +453,12 @@ def test_update_solution_new_name_conflict(client: TestClient, admin_token: str,
     assert "already exists" in data["detail"]
 
 
-def test_update_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_update_solution_non_admin(client: TestClient, customer_admin_token: str, db: AsyncSession):
     """Test non-admin attempting to update solution"""
     # Get a solution ID from database
-    solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution = result.scalars().first()
     
     update_data = {
         "description": "Unauthorized update"
@@ -439,10 +478,12 @@ def test_update_solution_non_admin(client: TestClient, customer_admin_token: str
 
 
 # Test cases for deprecating solution (POST /solutions/{solution_id}/deprecate)
-def test_deprecate_solution(client: TestClient, db: Session, admin_token: str):
+@pytest.mark.asyncio
+async def test_deprecate_solution(client: TestClient, db: AsyncSession, admin_token: str):
     """Test deprecating a solution"""
     # Get an active solution
-    solution = db.query(Solution).filter(Solution.status == SolutionStatus.ACTIVE).first()
+    result = await db.execute(select(Solution).filter(Solution.status == SolutionStatus.ACTIVE))
+    solution = result.scalars().first()
     
     response = client.post(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}/deprecate",
@@ -455,22 +496,26 @@ def test_deprecate_solution(client: TestClient, db: Session, admin_token: str):
     assert data["status"] == "DEPRECATED"
     
     # Verify database update
-    db.expire_all()
-    deprecated_solution = db.query(Solution).filter(Solution.solution_id == solution.solution_id).first()
+    await db.commit()
+    result = await db.execute(select(Solution).filter(Solution.solution_id == solution.solution_id))
+    deprecated_solution = result.scalars().first()
     assert deprecated_solution.status == SolutionStatus.DEPRECATED
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "SOLUTION_DEPRECATE",
         AuditLog.resource_id == str(solution.solution_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
 
-def test_deprecate_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_deprecate_solution_non_admin(client: TestClient, customer_admin_token: str, db: AsyncSession):
     """Test non-admin attempting to deprecate a solution"""
     # Get a solution ID from database
-    solution = db.query(Solution).filter(Solution.name == "Test Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
+    solution = result.scalars().first()
     
     response = client.post(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}/deprecate",
@@ -484,10 +529,12 @@ def test_deprecate_solution_non_admin(client: TestClient, customer_admin_token: 
     assert "enough privileges" in data["detail"]
 
 # Test cases for activating solution (POST /solutions/{solution_id}/activate)
-def test_activate_solution(client: TestClient, db: Session, admin_token: str):
+@pytest.mark.asyncio
+async def test_activate_solution(client: TestClient, db: AsyncSession, admin_token: str):
     """Test activating a deprecated solution"""
     # First deprecate a solution
-    solution = db.query(Solution).filter(Solution.status == SolutionStatus.ACTIVE).first()
+    result = await db.execute(select(Solution).filter(Solution.status == SolutionStatus.ACTIVE))
+    solution = result.scalars().first()
     
     # Use the API to deprecate it
     response = client.post(
@@ -508,22 +555,26 @@ def test_activate_solution(client: TestClient, db: Session, admin_token: str):
     assert data["status"] == "ACTIVE"
     
     # Verify database update
-    db.expire_all()
-    activated_solution = db.query(Solution).filter(Solution.solution_id == solution.solution_id).first()
+    await db.commit()
+    result = await db.execute(select(Solution).filter(Solution.solution_id == solution.solution_id))
+    activated_solution = result.scalars().first()
     assert activated_solution.status == SolutionStatus.ACTIVE
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "SOLUTION_ACTIVATE",
         AuditLog.resource_id == str(solution.solution_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
 
-def test_activate_solution_non_admin(client: TestClient, customer_admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_activate_solution_non_admin(client: TestClient, customer_admin_token: str, db: AsyncSession):
     """Test non-admin attempting to activate a solution"""
     # Get a solution ID from database
-    solution = db.query(Solution).filter(Solution.name == "Beta Solution").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "Beta Solution"))
+    solution = result.scalars().first()
     
     response = client.post(
         f"{settings.API_V1_STR}/solutions/{solution.solution_id}/activate",
@@ -537,7 +588,8 @@ def test_activate_solution_non_admin(client: TestClient, customer_admin_token: s
     assert "enough privileges" in data["detail"]
 
 # Test cases for compatible solutions for device (GET /solutions/compatibility/device/{device_id})
-def test_get_compatible_solutions_for_device_admin(client: TestClient, admin_token: str, device: Device):
+@pytest.mark.asyncio
+async def test_get_compatible_solutions_for_device_admin(client: TestClient, admin_token: str, device: Device):
     """Test admin getting compatible solutions for a device"""
     response = client.get(
         f"{settings.API_V1_STR}/solutions/compatibility/device/{device.device_id}",
@@ -554,8 +606,9 @@ def test_get_compatible_solutions_for_device_admin(client: TestClient, admin_tok
         assert device.device_type.value in solution["compatibility"]
 
 
-def test_get_compatible_solutions_for_device_customer_user(client: TestClient, customer_admin_token: str, 
-                                                          device: Device, db: Session):
+@pytest.mark.asyncio
+async def test_get_compatible_solutions_for_device_customer_user(client: TestClient, customer_admin_token: str, 
+                                                          device: Device, db: AsyncSession):
     """Test customer user getting compatible solutions for their device"""
 
     ## todo - Should customer user be able to go through this endpoint??
@@ -574,7 +627,8 @@ def test_get_compatible_solutions_for_device_customer_user(client: TestClient, c
         assert device.device_type.value in solution["compatibility"]
         assert solution["status"] == "ACTIVE"
 
-def test_get_compatible_solutions_for_nonexistent_device(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_compatible_solutions_for_nonexistent_device(client: TestClient, admin_token: str):
     """Test getting compatible solutions for a non-existent device"""
     nonexistent_id = uuid.uuid4()
     response = client.get(
@@ -588,9 +642,10 @@ def test_get_compatible_solutions_for_nonexistent_device(client: TestClient, adm
     assert "detail" in data
     assert "not found" in data["detail"]
 
-def test_get_compatible_solutions_for_device_different_customer(client: TestClient, customer_admin_token: str,
+@pytest.mark.asyncio
+async def test_get_compatible_solutions_for_device_different_customer(client: TestClient, customer_admin_token: str,
                                                                suspended_customer: Customer, admin_token: str,
-                                                               db: Session):
+                                                               db: AsyncSession):
     """Test customer user attempting to get compatible solutions for a device of different customer"""
     # Create a device for the suspended customer
     device_data = {
@@ -621,7 +676,8 @@ def test_get_compatible_solutions_for_device_different_customer(client: TestClie
     assert "detail" in data
     assert "Not authorized" in data["detail"]
 
-def test_get_available_customers(client: TestClient, admin_token: str, customer: Customer, test_customer_solution: CustomerSolution):
+@pytest.mark.asyncio
+async def test_get_available_customers(client: TestClient, admin_token: str, customer: Customer, test_customer_solution: CustomerSolution):
     """Test getting customers available for solution assignment"""
     # Create a new solution that isn't assigned to any customer
     new_solution_data = {
@@ -670,7 +726,8 @@ def test_get_available_customers(client: TestClient, admin_token: str, customer:
         assert c["customer_id"] not in assigned_customer_ids
 
 
-def test_get_available_customers_non_admin(client: TestClient, customer_admin_token: str, customer: Customer):
+@pytest.mark.asyncio
+async def test_get_available_customers_non_admin(client: TestClient, customer_admin_token: str, customer: Customer):
     """Test non-admin attempting to get available customers"""
     # Create a random solution ID
     nonexistent_id = uuid.uuid4()
@@ -686,7 +743,8 @@ def test_get_available_customers_non_admin(client: TestClient, customer_admin_to
     assert "detail" in data
     assert "enough privileges" in data["detail"]
 
-def test_get_assigned_customers(client: TestClient, admin_token: str, customer: Customer, test_customer_solution: CustomerSolution):
+@pytest.mark.asyncio
+async def test_get_assigned_customers(client: TestClient, admin_token: str, customer: Customer, test_customer_solution: CustomerSolution):
     """Test getting customers assigned to a solution"""
     # Test getting assigned customers for the solution that is assigned to a customer
     response = client.get(
@@ -730,7 +788,8 @@ def test_get_assigned_customers(client: TestClient, admin_token: str, customer: 
     assert isinstance(data, list)
     assert len(data) == 0  # Should be empty
 
-def test_get_assigned_customers_non_admin(client: TestClient, customer_admin_token: str):
+@pytest.mark.asyncio
+async def test_get_assigned_customers_non_admin(client: TestClient, customer_admin_token: str):
     """Test non-admin attempting to get assigned customers"""
     # Create a random solution ID
     nonexistent_id = uuid.uuid4()
@@ -746,7 +805,8 @@ def test_get_assigned_customers_non_admin(client: TestClient, customer_admin_tok
     assert "detail" in data
     assert "enough privileges" in data["detail"]
 
-def test_get_invalid_solution_id(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_invalid_solution_id(client: TestClient, admin_token: str):
     """Test getting customers for invalid solution ID"""
     # Create a random solution ID
     nonexistent_id = uuid.uuid4()

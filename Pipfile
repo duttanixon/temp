@@ -23,6 +23,8 @@ pytest = "*"
 pytest-cov = "*"
 ruff = "*"
 pytest-mock = "*"
+pytest-asyncio = "*"
+aiosqlite = "*"
 
 [requires]
 python_version = "3.12.2"

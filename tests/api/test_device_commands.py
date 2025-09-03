@@ -5,7 +5,8 @@ import pytest
 import uuid
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.models import User, Device, DeviceSolution, DeviceCommand, CommandType, CommandStatus
@@ -14,11 +15,12 @@ from app.schemas.device_command import DeviceCommandCreate
 from app.models.customer import Customer
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_commands.iot_command_service.send_capture_image_command')
-def test_capture_image_command_success(
+async def test_capture_image_command_success(
     mock_send_command,
     client: TestClient,
-    db: Session,
+    db: AsyncSession,
     admin_token: str,
     active_device: Device,
     city_eye_device_solution: DeviceSolution
@@ -51,7 +53,8 @@ def test_capture_image_command_success(
     mock_send_command.assert_called_once()
 
 
-def test_capture_image_command_device_not_found(
+@pytest.mark.asyncio
+async def test_capture_image_command_device_not_found(
     client: TestClient,
     admin_token: str
 ):
@@ -70,7 +73,8 @@ def test_capture_image_command_device_not_found(
     assert "Device not found" in response.json()["detail"]
 
 
-def test_capture_image_command_unauthorized(
+@pytest.mark.asyncio
+async def test_capture_image_command_unauthorized(
     client: TestClient,
     customer_admin_token: str,
     suspended_customer: Customer,
@@ -111,8 +115,9 @@ def test_capture_image_command_unauthorized(
     assert "Not authorized" in response.json()["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_commands.device_solution.get_active_by_device')
-def test_capture_image_command_no_active_solution(
+async def test_capture_image_command_no_active_solution(
     mock_get_active,
     client: TestClient,
     admin_token: str,
@@ -136,7 +141,8 @@ def test_capture_image_command_no_active_solution(
     assert "No active solution" in response.json()["detail"]
 
 
-def test_capture_image_command_device_not_provisioned(
+@pytest.mark.asyncio
+async def test_capture_image_command_device_not_provisioned(
     client: TestClient,
     admin_token: str,
     device: Device  # This is a created but not provisioned device
@@ -156,9 +162,10 @@ def test_capture_image_command_device_not_provisioned(
     assert "not provisioned" in response.json()["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_commands.iot_command_service.send_capture_image_command')
 @patch('app.api.routes.device_commands.device_command.update_status')
-def test_capture_image_command_iot_failure(
+async def test_capture_image_command_iot_failure(
     mock_update_status,
     mock_send_command,
     client: TestClient,
@@ -189,9 +196,10 @@ def test_capture_image_command_iot_failure(
     assert call_args[1]["status"] == CommandStatus.FAILED
 
 
-def test_update_command_status_internal_success(
+@pytest.mark.asyncio
+async def test_update_command_status_internal_success(
     client: TestClient,
-    db: Session,
+    db: AsyncSession,
     active_device: Device,
     city_eye_device_solution: DeviceSolution,
     admin_user: User
@@ -205,7 +213,7 @@ def test_update_command_status_internal_success(
         user_id=admin_user.user_id,
         solution_id=city_eye_device_solution.solution_id
     )
-    db_command = device_command.create(db, obj_in=command_create)
+    db_command = await device_command.create(db, obj_in=command_create)
 
     # Update status via internal endpoint
     status_update = {
@@ -226,7 +234,8 @@ def test_update_command_status_internal_success(
     assert data["message_id"] == str(db_command.message_id)
 
 
-def test_update_command_status_internal_invalid_api_key(
+@pytest.mark.asyncio
+async def test_update_command_status_internal_invalid_api_key(
     client: TestClient
 ):
     """Test internal endpoint with invalid API key"""
@@ -245,7 +254,8 @@ def test_update_command_status_internal_invalid_api_key(
     assert response.status_code == 401
 
 
-# def test_update_command_status_internal_not_found(
+# @pytest.mark.asyncio
+# async def test_update_command_status_internal_not_found(
 #     client: TestClient
 # ):
 #     """Test internal endpoint with non-existent command"""
@@ -264,10 +274,11 @@ def test_update_command_status_internal_invalid_api_key(
 #     assert response.status_code == 404
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_commands.kvs_manager.create_stream_if_not_exists')
 @patch('app.api.routes.device_commands.kvs_manager.get_hls_streaming_url')
 @patch('app.api.routes.device_commands.iot_command_service.send_start_live_stream_command')
-def test_start_live_stream_success(
+async def test_start_live_stream_success(
     mock_send_command,
     mock_get_hls_url,
     mock_create_stream,
@@ -305,8 +316,9 @@ def test_start_live_stream_success(
     assert data["kvs_url"] == "https://kvs.example.com/stream.m3u8"
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_commands.kvs_manager.create_stream_if_not_exists')
-def test_start_live_stream_kvs_failure(
+async def test_start_live_stream_kvs_failure(
     mock_create_stream,
     client: TestClient,
     admin_token: str,
@@ -333,8 +345,9 @@ def test_start_live_stream_kvs_failure(
     assert "Failed to create or access KVS stream" in response.json()["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_commands.iot_command_service.send_stop_live_stream_command')
-def test_stop_live_stream_success(
+async def test_stop_live_stream_success(
     mock_send_command,
     client: TestClient,
     admin_token: str,
@@ -361,8 +374,9 @@ def test_stop_live_stream_success(
     assert "successfully" in data["details"]
 
 
+@pytest.mark.asyncio
 @patch('app.api.routes.device_commands.iot_command_service.send_capture_image_command')
-def test_customer_admin_can_send_commands(
+async def test_customer_admin_can_send_commands(
     mock_send,
     client: TestClient,
     customer_admin_token: str,
@@ -387,7 +401,8 @@ def test_customer_admin_can_send_commands(
     assert "message_id" in data
 
 
-def test_stream_quality_validation(
+@pytest.mark.asyncio
+async def test_stream_quality_validation(
     client: TestClient,
     admin_token: str,
     active_device: Device

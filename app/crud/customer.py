@@ -98,5 +98,10 @@ class CRUDCustomer(CRUDBase[Customer, CustomerCreate, CustomerUpdate]):
         await db.delete(customer_obj)
         await db.commit()
         return customer_obj
+    
+    async def get_by_ids(self, db: AsyncSession, *, ids: List[uuid.UUID]) -> List[Customer]:
+        """Get multiple customers by their IDs"""
+        result = await db.execute(select(Customer).filter(Customer.customer_id.in_(ids)))
+        return list(result.scalars().all())
 
 customer = CRUDCustomer(Customer)

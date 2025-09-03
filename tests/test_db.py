@@ -5,24 +5,23 @@ This script can be run independently to create or rest the test database
 
 import os
 import sys
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import uuid
 
 from app.core.security import get_password_hash
-from app.db.session import Base
+from app.db.async_session import Base
 from app.models.user import User, UserRole, UserStatus
 from app.models.customer import Customer, CustomerStatus
-from app.models.audit_log import AuditLog
 
 # Test database URL
-TEST_DATABASE_URL = "sqlite:///./test.db"
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
-# Creat test engine and session
-engine = create_engine(
+# Create test engine and session
+engine = create_async_engine(
     TEST_DATABASE_URL, connect_args={"check_same_thread": False}
 )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 def setup_test_db():
     """Create tables and seed test data"""
@@ -125,7 +124,6 @@ def seed_test_data(db):
     print(f"  Admin: {admin_user.email}")
     print(f"  Engineer: {engineer_user.email}")
     print(f"  Customer Admin: {customer_admin_user.email}")
-    print(f"  Customer User: {customer_user.email}")
     print(f"  Suspended User: {suspended_user.email}")
 
 if __name__ == "__main__":

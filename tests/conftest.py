@@ -5,44 +5,38 @@ It handles database setup, test clients and authentication helpers.
 import os
 import pytest
 import uuid
-from typing import Dict, Generator, List
+from typing import Dict, Generator, List, AsyncGenerator
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, JSON
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import JSON, select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 # Add these imports for JSONB support in SQLite
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.compiler import compiles
+import asyncio
+import pytest_asyncio
+from typing import AsyncGenerator
 
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
-from app.db.session import Base, get_db
+from app.db.async_session import Base, get_async_db
 from app.main import app
 from app.models import (
-    User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus, 
-    DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, 
+    User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus,
+    DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus,
     LicenseStatus, SolutionStatus, SolutionPackage, CityEyeHumanTable, CityEyeTrafficTable, Job, JobType, JobStatus
 )
 
-# Test database URL - use SQLite for tests 
-TEST_DATABASE_URL = f"sqlite:///./test.db"
+# Test database URL - use SQLite for tests
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
 # Create test engine and session
-engine = create_engine(
+engine = create_async_engine(
     TEST_DATABASE_URL, connect_args={"check_same_thread": False}
 )
 
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Override database dependency
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 # Add this to make JSONB work with SQLite
 @compiles(JSONB, 'sqlite')
@@ -50,98 +44,116 @@ def compile_jsonb_sqlite(element, compiler, **kw):
     # Use JSON type for SQLite instead of JSONB
     return compiler.visit_JSON(element, **kw)
 
-@pytest.fixture(scope="function")
-def db() -> Generator:
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for each test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+@pytest_asyncio.fixture(scope="function")
+async def db() -> AsyncGenerator[AsyncSession, None]:
     """
     Create a fresh database for each test and yield a session.
     After the test completes, rollback any changes and drop all tables.
     """
 
     # Create the database tables
-    Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     # Create a db session
-    session = TestingSessionLocal()
-
-    # Create a db session
-    session = TestingSessionLocal()
-
-    # Create test data
-    seed_test_data(session)
-
-    yield session
+    async with TestingSessionLocal() as session:
+        # Create test data
+        await seed_test_data(session)
+        yield session
 
     # Teardown
-    session.close()
-    Base.metadata.drop_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
-@pytest.fixture(scope="function")
-def client() -> Generator:
+@pytest_asyncio.fixture(scope="function")
+async def client(db: AsyncSession) -> AsyncGenerator[TestClient, None]:
     """
-    Create a FastAPI TestClient for making test requests.
+    Create a FastAPI TestClient that uses the test database.
     """
+    async def override_get_db():
+        yield db
+
+    app.dependency_overrides[get_async_db] = override_get_db
     with TestClient(app) as c:
         yield c
+    app.dependency_overrides.clear()
 
 # Helper fixtures for creating test tokens and users
 
-@pytest.fixture
-def admin_user(db: Session) -> User:
+@pytest_asyncio.fixture
+async def admin_user(db: AsyncSession) -> User:
     """Get the admin user created by the seed function"""
-    return db.query(User).filter(User.role == UserRole.ADMIN).first()
+    result = await db.execute(select(User).filter(User.role == UserRole.ADMIN))
+    return result.scalars().first()
 
-@pytest.fixture
-def engineer_user(db: Session) -> User:
+@pytest_asyncio.fixture
+async def engineer_user(db: AsyncSession) -> User:
     """Get the engineer user created by the seed function"""
-    return db.query(User).filter(User.role == UserRole.ENGINEER).first()
+    result = await db.execute(select(User).filter(User.role == UserRole.ENGINEER))
+    return result.scalars().first()
 
-@pytest.fixture
-def customer_admin_user(db: Session) -> User:
+@pytest_asyncio.fixture
+async def customer_admin_user(db: AsyncSession) -> User:
     """Get the customer admin user created by the seed function"""
-    return db.query(User).filter(User.role == UserRole.CUSTOMER_ADMIN).first()
+    result = await db.execute(select(User).filter(User.role == UserRole.CUSTOMER_ADMIN).filter(User.email == "customeradmin@example.com"))
+    return result.scalars().first()
 
-@pytest.fixture
-def customer_admin_user2(db: Session) -> User:
+@pytest_asyncio.fixture
+async def customer_admin_user2(db: AsyncSession) -> User:
     """Get the customer admin user created by the seed function"""
-    return db.query(User).filter(User.role == UserRole.CUSTOMER_ADMIN, User.email == "customeradmin@example2.com").first()
+    result = await db.execute(select(User).filter(User.role == UserRole.CUSTOMER_ADMIN, User.email == "customeradmin@example2.com"))
+    return result.scalars().first()
 
-@pytest.fixture
-def customer_admin_user3(db: Session) -> User:
+@pytest_asyncio.fixture
+async def customer_admin_user3(db: AsyncSession) -> User:
     """Get the customer admin user created by the seed function"""
-    return db.query(User).filter(User.role == UserRole.CUSTOMER_ADMIN, User.email == "customeradmin@example3.com").first()
+    result = await db.execute(select(User).filter(User.role == UserRole.CUSTOMER_ADMIN, User.email == "customeradmin@example3.com"))
+    return result.scalars().first()
 
 
-@pytest.fixture
-def suspended_user(db: Session) -> User:
+@pytest_asyncio.fixture
+async def suspended_user(db: AsyncSession) -> User:
     """Get the suspended user created by the seed function"""
-    return db.query(User).filter(User.status == UserStatus.SUSPENDED).first()
+    result = await db.execute(select(User).filter(User.status == UserStatus.SUSPENDED))
+    return result.scalars().first()
 
-@pytest.fixture
-def customer(db: Session) -> Customer:
+@pytest_asyncio.fixture
+async def customer(db: AsyncSession) -> Customer:
     """Get the customer created by the seed function"""
-    return db.query(Customer).filter(Customer.status == CustomerStatus.ACTIVE).first()
+    result = await db.execute(select(Customer).filter(Customer.status == CustomerStatus.ACTIVE))
+    return result.scalars().first()
 
-@pytest.fixture
-def solution(db: Session) -> Solution:
+@pytest_asyncio.fixture
+async def solution(db: AsyncSession) -> Solution:
     """Get a solution created by the seed function"""
-    return db.query(Solution).filter(Solution.status == SolutionStatus.ACTIVE).first()
+    result = await db.execute(select(Solution).filter(Solution.status == SolutionStatus.ACTIVE))
+    return result.scalars().first()
 
-@pytest.fixture
-def beta_solution(db: Session) -> Solution:
+@pytest_asyncio.fixture
+async def beta_solution(db: AsyncSession) -> Solution:
     """Get a beta solution created by the seed function"""
-    return db.query(Solution).filter(Solution.status == SolutionStatus.BETA).first()
+    result = await db.execute(select(Solution).filter(Solution.status == SolutionStatus.BETA))
+    return result.scalars().first()
 
-@pytest.fixture
-def suspended_customer(db: Session) -> Customer:
+@pytest_asyncio.fixture
+async def suspended_customer(db: AsyncSession) -> Customer:
     """Get the suspended customer created by the seed function"""
-    return db.query(Customer).filter(Customer.status == CustomerStatus.SUSPENDED).first()
+    result = await db.execute(select(Customer).filter(Customer.status == CustomerStatus.SUSPENDED))
+    return result.scalars().first()
 
 
 # Token fixtures
 
-@pytest.fixture
-def admin_token(admin_user: User) -> str:
+@pytest_asyncio.fixture
+async def admin_token(admin_user: User) -> str:
     """Generate an admin token for tests"""
     return create_access_token(
         subject=str(admin_user.user_id),
@@ -149,97 +161,104 @@ def admin_token(admin_user: User) -> str:
         role=UserRole.ADMIN.value
     )
 
-@pytest.fixture
-def engineer_token(engineer_user: User) -> str:
+@pytest_asyncio.fixture
+async def engineer_token(engineer_user: User) -> str:
     """Generate an engineer token for tests"""
     return create_access_token(
         subject=str(engineer_user.user_id),
         expires_delta=timedelta(minutes=30)
     )
 
-@pytest.fixture
-def customer_admin_token(customer_admin_user: User) -> str:
+@pytest_asyncio.fixture
+async def customer_admin_token(customer_admin_user: User) -> str:
     """Generate a customer admin token for tests"""
     return create_access_token(
         subject=str(customer_admin_user.user_id),
         expires_delta=timedelta(minutes=30)
     )
 
-@pytest.fixture
-def customer_admin_token2(customer_admin_user2: User) -> str:
+@pytest_asyncio.fixture
+async def customer_admin_token2(customer_admin_user2: User) -> str:
     """Generate a customer admin token for tests"""
     return create_access_token(
         subject=str(customer_admin_user2.user_id),
         expires_delta=timedelta(minutes=30)
     )
 
-@pytest.fixture
-def customer_admin_token3(customer_admin_user3: User) -> str:
+@pytest_asyncio.fixture
+async def customer_admin_token3(customer_admin_user3: User) -> str:
     """Generate a customer admin token for tests"""
     return create_access_token(
         subject=str(customer_admin_user3.user_id),
         expires_delta=timedelta(minutes=30)
     )
 
-@pytest.fixture
-def suspended_user_token(suspended_user: User) -> str:
+@pytest_asyncio.fixture
+async def suspended_user_token(suspended_user: User) -> str:
     """Generate a suspended user token for tests"""
     return create_access_token(
         subject=str(suspended_user.user_id),
         expires_delta=timedelta(minutes=30)
     )
 
-@pytest.fixture
-def expired_token(admin_user: User) -> str:
+@pytest_asyncio.fixture
+async def expired_token(admin_user: User) -> str:
     """Generate an expired token for tests"""
     return create_access_token(
         subject=str(admin_user.user_id),
         expires_delta=timedelta(minutes=-30)  # Negative minutes = expired
     )
 
-@pytest.fixture
-def device(db: Session, customer: Customer) -> Device:
+@pytest_asyncio.fixture
+async def device(db: AsyncSession, customer: Customer) -> Device:
     """Get a basic test device created by the seed function"""
-    return db.query(Device).filter(Device.device_type == DeviceType.NVIDIA_JETSON).first()
+    result = await db.execute(select(Device).filter(Device.device_type == DeviceType.NVIDIA_JETSON))
+    return result.scalars().first()
 
-@pytest.fixture
-def raspberry_device(db: Session, customer: Customer) -> Device:
+@pytest_asyncio.fixture
+async def raspberry_device(db: AsyncSession, customer: Customer) -> Device:
     """Get a Raspberry Pi test device created by the seed function"""
-    return db.query(Device).filter(Device.device_type == DeviceType.RASPBERRY_PI).first()
+    result = await db.execute(select(Device).filter(Device.device_type == DeviceType.RASPBERRY_PI))
+    return result.scalars().first()
 
-@pytest.fixture
-def provisioned_device(db: Session, customer: Customer) -> Device:
+@pytest_asyncio.fixture
+async def provisioned_device(db: AsyncSession, customer: Customer) -> Device:
     """Get a provisioned device created by the seed function"""
-    return db.query(Device).filter(Device.status == DeviceStatus.PROVISIONED).first()
+    result = await db.execute(select(Device).filter(Device.status == DeviceStatus.PROVISIONED))
+    return result.scalars().first()
 
-@pytest.fixture
-def active_device(db: Session, customer: Customer) -> Device:
+@pytest_asyncio.fixture
+async def active_device(db: AsyncSession, customer: Customer) -> Device:
     """Get an active device created by the seed function"""
-    return db.query(Device).filter(Device.status == DeviceStatus.ACTIVE).first()
+    result = await db.execute(select(Device).filter(Device.status == DeviceStatus.ACTIVE))
+    return result.scalars().first()
 
 
-@pytest.fixture
-def test_customer_solution(db: Session, customer: Customer) -> CustomerSolution:
+@pytest_asyncio.fixture
+async def test_customer_solution(db: AsyncSession, customer: Customer) -> CustomerSolution:
     """Get a customer solution created by the seed function"""
-    return db.query(CustomerSolution).filter(
+    result = await db.execute(select(CustomerSolution).filter(
         CustomerSolution.customer_id == customer.customer_id
-    ).first()
+    ))
+    return result.scalars().first()
 
-@pytest.fixture
-def suspended_customer_solution(db: Session, suspended_customer: Customer, admin_token: str, 
+@pytest_asyncio.fixture
+async def suspended_customer_solution(db: AsyncSession, suspended_customer: Customer, admin_token: str,
                                client: TestClient) -> CustomerSolution:
     """Create a customer solution for the suspended customer"""
     # First check if one already exists
-    existing = db.query(CustomerSolution).filter(
+    result = await db.execute(select(CustomerSolution).filter(
         CustomerSolution.customer_id == suspended_customer.customer_id
-    ).first()
-    
+    ))
+    existing = result.scalars().first()
+
     if existing:
         return existing
-    
+
     # Create a new one if it doesn't exist
-    solution_obj = db.query(Solution).first()
-    
+    result = await db.execute(select(Solution))
+    solution_obj = result.scalars().first()
+
     new_cs = CustomerSolution(
         id=uuid.uuid4(),
         customer_id=suspended_customer.customer_id,
@@ -248,16 +267,17 @@ def suspended_customer_solution(db: Session, suspended_customer: Customer, admin
         max_devices=5
     )
     db.add(new_cs)
-    db.commit()
-    db.refresh(new_cs)
-    
+    await db.commit()
+    await db.refresh(new_cs)
+
     return new_cs
 
 # City Eye specific fixtures
-@pytest.fixture
-def city_eye_solution(db: Session) -> Solution:
+@pytest_asyncio.fixture
+async def city_eye_solution(db: AsyncSession) -> Solution:
     """Get or create City Eye solution for testing"""
-    city_eye = db.query(Solution).filter(Solution.name == "City Eye").first()
+    result = await db.execute(select(Solution).filter(Solution.name == "City Eye"))
+    city_eye = result.scalars().first()
     if not city_eye:
         city_eye = Solution(
             solution_id=uuid.uuid4(),
@@ -268,21 +288,22 @@ def city_eye_solution(db: Session) -> Solution:
             status=SolutionStatus.ACTIVE
         )
         db.add(city_eye)
-        db.commit()
-        db.refresh(city_eye)
+        await db.commit()
+        await db.refresh(city_eye)
     return city_eye
 
-@pytest.fixture
-def city_eye_customer_solution(db: Session, customer: Customer, city_eye_solution: Solution) -> CustomerSolution:
+@pytest_asyncio.fixture
+async def city_eye_customer_solution(db: AsyncSession, customer: Customer, city_eye_solution: Solution) -> CustomerSolution:
     """Create customer solution access for City Eye"""
-    existing = db.query(CustomerSolution).filter(
+    result = await db.execute(select(CustomerSolution).filter(
         CustomerSolution.customer_id == customer.customer_id,
         CustomerSolution.solution_id == city_eye_solution.solution_id
-    ).first()
-    
+    ))
+    existing = result.scalars().first()
+
     if existing:
         return existing
-    
+
     customer_solution = CustomerSolution(
         id=uuid.uuid4(),
         customer_id=customer.customer_id,
@@ -291,25 +312,28 @@ def city_eye_customer_solution(db: Session, customer: Customer, city_eye_solutio
         max_devices=10
     )
     db.add(customer_solution)
-    db.commit()
-    db.refresh(customer_solution)
+    await db.commit()
+    await db.refresh(customer_solution)
     return customer_solution
 
 
-@pytest.fixture
-def city_eye_device_solution(db: Session, device: Device, city_eye_solution: Solution) -> DeviceSolution:
+@pytest_asyncio.fixture
+async def city_eye_device_solution(db: AsyncSession, device: Device, city_eye_solution: Solution) -> DeviceSolution:
     """Create device solution deployment for City Eye"""
-    existing = db.query(DeviceSolution).filter(
+    result = await db.execute(select(DeviceSolution).filter(
         DeviceSolution.device_id == device.device_id,
         DeviceSolution.solution_id == city_eye_solution.solution_id
-    ).first()
-    
+    ))
+    existing = result.scalars().first()
+
     if existing:
         return existing
 
-    solution_package = db.query(SolutionPackage).filter(
+    result = await db.execute(select(SolutionPackage).filter(
         SolutionPackage.solution_id == city_eye_solution.solution_id
-    ).first()
+    ))
+    solution_package = result.scalars().first()
+
     if not solution_package:
         solution_package = SolutionPackage(
             package_id=uuid.uuid4(),
@@ -320,29 +344,29 @@ def city_eye_device_solution(db: Session, device: Device, city_eye_solution: Sol
             s3_key=f"solutions/{city_eye_solution.name}/package.zip",
         )
         db.add(solution_package)
-        db.commit()
-        db.refresh(solution_package)
+        await db.commit()
+        await db.refresh(solution_package)
 
 
     device_solution = DeviceSolution(
         id=uuid.uuid4(),
         device_id=device.device_id,
         solution_id=city_eye_solution.solution_id,
-        package_id=solution_package.package_id,  # FIX: Add the required package_id
+        package_id=solution_package.package_id,
         status=DeviceSolutionStatus.ACTIVE,
         version_deployed="1.0.0",
         configuration={"param1": "value1"}
     )
     db.add(device_solution)
-    db.commit()
-    db.refresh(device_solution)
+    await db.commit()
+    await db.refresh(device_solution)
     return device_solution
 
-@pytest.fixture
-def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+@pytest_asyncio.fixture
+async def city_eye_analytics_data(db: AsyncSession, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
     """Create test analytics data for City Eye"""
     base_time = datetime.now()
-    
+
     # Create sample human flow data
     test_data = [
         CityEyeHumanTable(
@@ -382,18 +406,17 @@ def city_eye_analytics_data(db: Session, device: Device, city_eye_solution: Solu
             female_65_plus=5
         )
     ]
-    
-    for data in test_data:
-        db.add(data)
-    db.commit()
-    
+
+    db.add_all(test_data)
+    await db.commit()
+
     return test_data
 
-@pytest.fixture
-def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+@pytest_asyncio.fixture
+async def city_eye_traffic_data(db: AsyncSession, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
     """Create test traffic analytics data for City Eye"""
     base_time = datetime.now()
-    
+
     # Create sample traffic flow data
     test_data = [
         CityEyeTrafficTable(
@@ -421,15 +444,14 @@ def city_eye_traffic_data(db: Session, device: Device, city_eye_solution: Soluti
             motorcycle=5
         )
     ]
-    
-    for data in test_data:
-        db.add(data)
-    db.commit()
-    
+
+    db.add_all(test_data)
+    await db.commit()
+
     return test_data
 
-@pytest.fixture(scope="function")
-def city_eye_human_direction_analytics_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+@pytest_asyncio.fixture(scope="function")
+async def city_eye_human_direction_analytics_data(db: AsyncSession, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
     """Fixture to create human direction analytics data for testing."""
     data = [
         CityEyeHumanTable(
@@ -453,12 +475,12 @@ def city_eye_human_direction_analytics_data(db: Session, device: Device, city_ey
         ),
     ]
     db.add_all(data)
-    db.commit()
+    await db.commit()
     return data
 
 
-@pytest.fixture(scope="function")
-def city_eye_traffic_direction_analytics_data(db: Session, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
+@pytest_asyncio.fixture(scope="function")
+async def city_eye_traffic_direction_analytics_data(db: AsyncSession, device: Device, city_eye_solution: Solution, city_eye_device_solution: DeviceSolution):
     """Fixture to create traffic direction analytics data for testing."""
     data = [
         CityEyeTrafficTable(
@@ -484,11 +506,11 @@ def city_eye_traffic_direction_analytics_data(db: Session, device: Device, city_
         ),
     ]
     db.add_all(data)
-    db.commit()
+    await db.commit()
     return data
 
-@pytest.fixture
-def test_job(db: Session, active_device: Device, admin_user: User) -> Job:
+@pytest_asyncio.fixture
+async def test_job(db: AsyncSession, active_device: Device, admin_user: User) -> Job:
     """Fixture to create a test job in the database."""
     job_obj = Job(
         job_id=f"test-job-{uuid.uuid4().hex[:8]}",
@@ -499,12 +521,12 @@ def test_job(db: Session, active_device: Device, admin_user: User) -> Job:
         parameters={"services": "test.service"}
     )
     db.add(job_obj)
-    db.commit()
-    db.refresh(job_obj)
+    await db.commit()
+    await db.refresh(job_obj)
     return job_obj
 
 
-def seed_test_data(db: Session) -> None:
+async def seed_test_data(db: AsyncSession) -> None:
     """
     Populate the test database with sample data for testing
     """
@@ -523,7 +545,7 @@ def seed_test_data(db: Session) -> None:
         address="123 Test Street, Testville",
         status=CustomerStatus.ACTIVE
     )
-    
+
     suspended_customer = Customer(
         customer_id=uuid.uuid4(),
         name="Suspended Customer",
@@ -531,12 +553,12 @@ def seed_test_data(db: Session) -> None:
         address="456 Suspended Street, Testville",
         status=CustomerStatus.SUSPENDED
     )
-    
+
     db.add(active_customer)
     db.add(semi_active_customer)
     db.add(suspended_customer)
-    db.commit()
-    
+    await db.commit()
+
     # Create test users with different roles
     admin_user = User(
         user_id=uuid.uuid4(),
@@ -547,7 +569,7 @@ def seed_test_data(db: Session) -> None:
         role=UserRole.ADMIN,
         status=UserStatus.ACTIVE
     )
-    
+
     engineer_user = User(
         user_id=uuid.uuid4(),
         email="engineer@example.com",
@@ -557,7 +579,7 @@ def seed_test_data(db: Session) -> None:
         role=UserRole.ENGINEER,
         status=UserStatus.ACTIVE
     )
-    
+
     customer_admin_user = User(
         user_id=uuid.uuid4(),
         email="customeradmin@example.com",
@@ -590,7 +612,7 @@ def seed_test_data(db: Session) -> None:
         customer_id=semi_active_customer.customer_id,
         status=UserStatus.ACTIVE
     )
-    
+
     suspended_user = User(
         user_id=uuid.uuid4(),
         email="suspended@example.com",
@@ -616,7 +638,7 @@ def seed_test_data(db: Session) -> None:
         status=DeviceStatus.PROVISIONED,
         is_online=False
     )
-    
+
     raspberry_device = Device(
         device_id=uuid.uuid4(),
         name="Raspberry Pi Device",
@@ -631,7 +653,7 @@ def seed_test_data(db: Session) -> None:
         status=DeviceStatus.DECOMMISSIONED,
         is_online=False
     )
-    
+
     active_device = Device(
         device_id=uuid.uuid4(),
         name="Active Device",
@@ -650,7 +672,7 @@ def seed_test_data(db: Session) -> None:
         certificate_id="cert123",
         certificate_arn="arn:aws:iot:region:account:cert/cert123"
     )
-    
+
     suspended_device = Device(
         device_id=uuid.uuid4(),
         name="Suspended Customer Device",
@@ -675,7 +697,7 @@ def seed_test_data(db: Session) -> None:
         compatibility=["NVIDIA_JETSON", "RASPBERRY_PI"],
         status=SolutionStatus.ACTIVE
     )
-    
+
     beta_solution = Solution(
         solution_id=uuid.uuid4(),
         name="Beta Solution",
@@ -689,7 +711,7 @@ def seed_test_data(db: Session) -> None:
     # IMPORTANT: Add solution packages for each solution
     # These are required because DeviceSolution now has a NOT NULL constraint on package_id
     from app.models.solution_package import SolutionPackage
-    
+
     test_solution_package = SolutionPackage(
         package_id=uuid.uuid4(),
         solution_id=test_solution.solution_id,
@@ -699,7 +721,7 @@ def seed_test_data(db: Session) -> None:
         s3_key="test-solution-package.tar.gz",
         description="Test package for test solution"
     )
-    
+
     beta_solution_package = SolutionPackage(
         package_id=uuid.uuid4(),
         solution_id=beta_solution.solution_id,
@@ -718,7 +740,7 @@ def seed_test_data(db: Session) -> None:
         license_status=LicenseStatus.ACTIVE,
         max_devices=10
     )
-    
+
     # Create device-solution deployment
     test_device_solution = DeviceSolution(
         id=uuid.uuid4(),
@@ -729,21 +751,23 @@ def seed_test_data(db: Session) -> None:
         version_deployed=test_solution.version,
         configuration={"param1": "value1", "param2": "value2"}
     )
-    
-    db.add(admin_user)
-    db.add(engineer_user)
-    db.add(customer_admin_user)
-    db.add(customer_admin_user2)
-    db.add(customer_admin_user3)
-    db.add(suspended_user)
-    db.add(basic_device)
-    db.add(raspberry_device)
-    db.add(active_device)
-    db.add(suspended_device)
-    db.add(test_solution)
-    db.add(beta_solution)
-    db.add(test_solution_package)  # Add the solution packages
-    db.add(beta_solution_package)
-    db.add(test_customer_solution)
-    db.add(test_device_solution)
-    db.commit()
+
+    db.add_all([
+        admin_user,
+        engineer_user,
+        customer_admin_user,
+        customer_admin_user2,
+        customer_admin_user3,
+        suspended_user,
+        basic_device,
+        raspberry_device,
+        active_device,
+        suspended_device,
+        test_solution,
+        beta_solution,
+        test_solution_package,
+        beta_solution_package,
+        test_customer_solution,
+        test_device_solution
+    ])
+    await db.commit()

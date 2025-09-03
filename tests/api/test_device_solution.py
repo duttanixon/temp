@@ -5,7 +5,8 @@ import pytest
 import uuid
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models.audit_log import AuditLog
 from app.models.device_solution import DeviceSolution, DeviceSolutionStatus
@@ -16,8 +17,9 @@ from app.models.user import User
 from app.core.config import settings
 from datetime import datetime
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_deploy_solution_to_nonexistent_device(
+async def test_deploy_solution_to_nonexistent_device(
     mock_get_device, client: TestClient, admin_token: str
 ):
     """Test deploying a solution to a non-existent device"""
@@ -44,9 +46,10 @@ def test_deploy_solution_to_nonexistent_device(
     assert "not found" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.solution.solution.get_by_id')
-def test_deploy_solution_to_device_no_access(
+async def test_deploy_solution_to_device_no_access(
     mock_get_solution, mock_get_device,
     client: TestClient, customer_admin_token: str,
     device: Device
@@ -85,10 +88,11 @@ def test_deploy_solution_to_device_no_access(
     assert "Not authorized" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.solution.solution.get_by_id')
 @patch('app.crud.customer_solution.customer_solution.check_customer_has_access')
-def test_deploy_solution_customer_no_access(
+async def test_deploy_solution_customer_no_access(
     mock_check_access, mock_get_solution, mock_get_device,
     client: TestClient, admin_token: str, device: Device
 ):
@@ -129,10 +133,11 @@ def test_deploy_solution_customer_no_access(
     assert "does not have access" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.solution.solution.get_by_id')
 @patch('app.crud.customer_solution.customer_solution.check_customer_has_access')
-def test_deploy_incompatible_solution(
+async def test_deploy_incompatible_solution(
     mock_check_access, mock_get_solution, mock_get_device,
     client: TestClient, admin_token: str, device: Device
 ):
@@ -174,11 +179,12 @@ def test_deploy_incompatible_solution(
     assert "not compatible" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.solution.solution.get_by_id')
 @patch('app.crud.customer_solution.customer_solution.check_customer_has_access')
 @patch('app.crud.device_solution.device_solution.get_by_device_and_solution')
-def test_deploy_already_deployed_solution(
+async def test_deploy_already_deployed_solution(
     mock_get_by_device_and_solution, mock_check_access, 
     mock_get_solution, mock_get_device,
     client: TestClient, admin_token: str, device: Device
@@ -290,6 +296,7 @@ def test_deploy_another_solution_already_deployed(
         assert "already has solution" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.solution.solution.get_by_id')
 @patch('app.crud.customer_solution.customer_solution.check_customer_has_access')
@@ -297,7 +304,7 @@ def test_deploy_another_solution_already_deployed(
 @patch('app.crud.device_solution.device_solution.get_by_device')
 @patch('app.crud.customer_solution.customer_solution.count_deployed_devices')
 @patch('app.crud.customer_solution.customer_solution.get_by_customer_and_solution')
-def test_deploy_solution_license_limit_reached(
+async def test_deploy_solution_license_limit_reached(
     mock_get_customer_solution, mock_count_deployed_devices,
     mock_get_by_device, mock_get_by_device_and_solution,
     mock_check_access, mock_get_solution, mock_get_device,
@@ -353,10 +360,11 @@ def test_deploy_solution_license_limit_reached(
     assert "reached maximum" in data["detail"]
 
 # Test getting device solutions (GET /device-solutions/device/{device_id})
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.device_solution.device_solution.get_by_device')
 @patch('app.crud.solution.solution.get_by_id')
-def test_get_device_solutions(
+async def test_get_device_solutions(
     mock_get_solution, mock_get_by_device, mock_get_device,
     client: TestClient, admin_token: str, device: Device
 ):
@@ -431,8 +439,9 @@ def test_get_device_solutions(
 
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_get_device_solutions_nonexistent_device(
+async def test_get_device_solutions_nonexistent_device(
     mock_get_device, client: TestClient, admin_token: str
 ):
     """Test getting solutions for a non-existent device"""
@@ -452,8 +461,9 @@ def test_get_device_solutions_nonexistent_device(
     assert "not found" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_get_device_solutions_no_authorization(
+async def test_get_device_solutions_no_authorization(
     mock_get_device, client: TestClient, customer_admin_token: str, device: Device
 ):
     """Test customer admin getting solutions for a device they don't own"""
@@ -475,8 +485,9 @@ def test_get_device_solutions_no_authorization(
     assert "Not authorized" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_update_device_solution_nonexistent_device(
+async def test_update_device_solution_nonexistent_device(
     mock_get_device, client: TestClient, admin_token: str
 ):
     """Test updating a solution for a non-existent device"""
@@ -502,8 +513,9 @@ def test_update_device_solution_nonexistent_device(
     assert "not found" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_update_device_solution_no_authorization(
+async def test_update_device_solution_no_authorization(
     mock_get_device, client: TestClient, customer_admin_token: str, device: Device
 ):
     """Test customer user updating a solution for a device they don't own"""
@@ -531,9 +543,10 @@ def test_update_device_solution_no_authorization(
     assert "Not authorized" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.device_solution.device_solution.get_by_device')
-def test_update_device_solution_no_solution_deployed(
+async def test_update_device_solution_no_solution_deployed(
     mock_get_by_device, mock_get_device,
     client: TestClient, admin_token: str, device: Device
 ):
@@ -566,8 +579,9 @@ def test_update_device_solution_no_solution_deployed(
 
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
-def test_remove_solution_nonexistent_device(
+async def test_remove_solution_nonexistent_device(
     mock_get_device, client: TestClient, admin_token: str
 ):
     """Test removing a solution from a non-existent device"""
@@ -587,9 +601,10 @@ def test_remove_solution_nonexistent_device(
     assert "not found" in data["detail"]
 
 
+@pytest.mark.asyncio
 @patch('app.crud.device.device.get_by_id')
 @patch('app.crud.device_solution.device_solution.get_by_device')
-def test_remove_solution_no_solution_deployed(
+async def test_remove_solution_no_solution_deployed(
     mock_get_by_device, mock_get_device,
     client: TestClient, admin_token: str, device: Device
 ):
@@ -615,7 +630,8 @@ def test_remove_solution_no_solution_deployed(
     assert "No solution deployed" in data["detail"]
 
 
-def test_remove_solution_customer_user(
+@pytest.mark.asyncio
+async def test_remove_solution_customer_user(
     client: TestClient, customer_admin_token: str, device: Device
 ):
     """Test customer admin attempting to remove a solution (no permission)"""
@@ -631,10 +647,12 @@ def test_remove_solution_customer_user(
     assert "enough privileges" in data["detail"]
 
 
-def test_get_devices_by_solution_admin(client: TestClient, admin_token: str, db: Session):
+@pytest.mark.asyncio
+async def test_get_devices_by_solution_admin(client: TestClient, admin_token: str, db: AsyncSession):
     """Test admin getting all devices using a specific solution"""
     # Get a solution from the database
-    solution_obj = db.query(Solution).first()
+    result = await db.execute(select(Solution))
+    solution_obj = result.scalars().first()
     assert solution_obj is not None
     
     response = client.get(
@@ -656,10 +674,12 @@ def test_get_devices_by_solution_admin(client: TestClient, admin_token: str, db:
         assert item["solution_name"] == solution_obj.name
 
 
-def test_get_devices_by_solution_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User, db: Session):
+@pytest.mark.asyncio
+async def test_get_devices_by_solution_customer_user(client: TestClient, customer_admin_token: str, customer_admin_user2: User, db: AsyncSession):
     """Test customer user getting devices using a specific solution (only from their customer)"""
     # Get a solution from the database
-    solution_obj = db.query(Solution).first()
+    result = await db.execute(select(Solution))
+    solution_obj = result.scalars().first()
     assert solution_obj is not None
     
     response = client.get(
@@ -681,7 +701,8 @@ def test_get_devices_by_solution_customer_user(client: TestClient, customer_admi
         assert item["solution_name"] == solution_obj.name
 
 
-def test_get_devices_by_nonexistent_solution(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_devices_by_nonexistent_solution(client: TestClient, admin_token: str):
     """Test getting devices for a non-existent solution"""
     nonexistent_id = uuid.uuid4()
     response = client.get(

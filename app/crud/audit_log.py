@@ -168,22 +168,22 @@ class CRUDAuditLog(CRUDBase[AuditLog, AuditLogCreate, None]):
         
         # Logs by action type
         logs_by_action_query = (
-            query
-            .with_entities(
+            select(
                 AuditLog.action_type,
                 func.count(AuditLog.log_id).label("count")
             )
+            .select_from(query.subquery())
             .group_by(AuditLog.action_type)
         )
         logs_by_action = (await db.execute(logs_by_action_query)).all()
         
         # Logs by resource type
         logs_by_resource_query = (
-            query
-            .with_entities(
+            select(
                 AuditLog.resource_type,
                 func.count(AuditLog.log_id).label("count")
             )
+            .select_from(query.subquery())
             .group_by(AuditLog.resource_type)
         )
         logs_by_resource = (await db.execute(logs_by_resource_query)).all()

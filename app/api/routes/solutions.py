@@ -51,6 +51,8 @@ async def get_solutions(
             solutions_list = await solution.get_active(db, skip=skip, limit=limit)
         else:
             solutions_list = await solution.get_multi(db, skip=skip, limit=limit)
+        
+        return solutions_list
 
     # For Customer roles - return only solutions assigned to their customer
     else:

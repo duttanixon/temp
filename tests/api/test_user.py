@@ -6,7 +6,8 @@ import json
 import uuid
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models.audit_log import AuditLog
 from app.models import User, UserRole, UserStatus, Customer
@@ -14,7 +15,8 @@ from app.core.config import settings
 from app.crud.user import user as user_crud
 
 # Test cases for current user endpoint (GET /users/me)
-def test_read_user_me(client: TestClient, customer_admin_token: str, customer_admin_user: User, customer: Customer):
+@pytest.mark.asyncio
+async def test_read_user_me(client: TestClient, customer_admin_token: str, customer_admin_user: User, customer: Customer):
     """Test getting current user information including customer details"""
     response = client.get(
         f"{settings.API_V1_STR}/users/me",
@@ -35,7 +37,8 @@ def test_read_user_me(client: TestClient, customer_admin_token: str, customer_ad
     assert str(data["customer"]["customer_id"]) == str(customer.customer_id)
     assert data["customer"]["name"] == customer.name
 
-def test_read_user_me_no_token(client: TestClient):
+@pytest.mark.asyncio
+async def test_read_user_me_no_token(client: TestClient):
     """Test getting current user without authentication"""
     response = client.get(
         f"{settings.API_V1_STR}/users/me"
@@ -45,7 +48,8 @@ def test_read_user_me_no_token(client: TestClient):
     assert response.status_code == 401
 
 
-def test_read_user_me_without_customer(client: TestClient, admin_token: str, admin_user: User):
+@pytest.mark.asyncio
+async def test_read_user_me_without_customer(client: TestClient, admin_token: str, admin_user: User):
     """Test getting admin user info who doesn't belong to a customer"""
     response = client.get(
         f"{settings.API_V1_STR}/users/me",
@@ -64,7 +68,8 @@ def test_read_user_me_without_customer(client: TestClient, admin_token: str, adm
     assert data["customer"] is None
 
 # Test cases for update current user endpoint (PUT /users/me)
-def test_update_user_me(client: TestClient, db: Session, customer_admin_token: str, customer_admin_user: User):
+@pytest.mark.asyncio
+async def test_update_user_me(client: TestClient, db: AsyncSession, customer_admin_token: str, customer_admin_user: User):
     """Test updating current user information"""
     update_data = {
         "first_name": "Updated",
@@ -85,18 +90,21 @@ def test_update_user_me(client: TestClient, db: Session, customer_admin_token: s
     assert data["email"] == customer_admin_user.email
     
     # Check database record was updated
-    db.expire_all()
-    updated_user = db.query(User).filter(User.user_id == customer_admin_user.user_id).first()
+    await db.commit()
+    result = await db.execute(select(User).filter(User.user_id == customer_admin_user.user_id))
+    updated_user = result.scalars().first()
     assert updated_user.first_name == update_data["first_name"]
     
     # Check audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "USER_UPDATE",
         AuditLog.user_id == customer_admin_user.user_id
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
-def test_update_user_me_email(client: TestClient, db: Session, customer_admin_token: str, customer_admin_user: User):
+@pytest.mark.asyncio
+async def test_update_user_me_email(client: TestClient, db: AsyncSession, customer_admin_token: str, customer_admin_user: User):
     """Test updating user email"""
     update_data = {
         "email": "newemail@example.com"
@@ -114,11 +122,13 @@ def test_update_user_me_email(client: TestClient, db: Session, customer_admin_to
     assert data["email"] == update_data["email"]
     
     # Check database record was updated
-    db.expire_all()
-    updated_user = db.query(User).filter(User.user_id == customer_admin_user.user_id).first()
+    await db.commit()
+    result = await db.execute(select(User).filter(User.user_id == customer_admin_user.user_id))
+    updated_user = result.scalars().first()
     assert updated_user.email == update_data["email"]
 
-def test_update_user_me_invalid_email(client: TestClient, customer_admin_token: str):
+@pytest.mark.asyncio
+async def test_update_user_me_invalid_email(client: TestClient, customer_admin_token: str):
     """Test updating user with invalid email format"""
     update_data = {
         "email": "invalid.com"
@@ -136,7 +146,8 @@ def test_update_user_me_invalid_email(client: TestClient, customer_admin_token: 
     assert "detail" in data
 
 # Test cases for change password endpoint (POST /users/password)
-def test_change_password(client: TestClient, db: Session, customer_admin_token: str, customer_admin_user: User):
+@pytest.mark.asyncio
+async def test_change_password(client: TestClient, db: AsyncSession, customer_admin_token: str, customer_admin_user: User):
     """Test changing user password"""
     password_data = {
         "current_password": "customeradminpassword",
@@ -153,8 +164,8 @@ def test_change_password(client: TestClient, db: Session, customer_admin_token: 
     assert response.status_code == 200
     
     # Verify new password works by trying to authenticate
-    db.expire_all()
-    authenticated_user = user_crud.authenticate(
+    await db.commit()
+    authenticated_user = await user_crud.authenticate(
         db, 
         email=customer_admin_user.email, 
         password=password_data["new_password"]
@@ -163,13 +174,15 @@ def test_change_password(client: TestClient, db: Session, customer_admin_token: 
     assert authenticated_user.user_id == customer_admin_user.user_id
     
     # Check audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "PASSWORD_CHANGE",
         AuditLog.user_id == customer_admin_user.user_id
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
-def test_change_password_incorrect_current(client: TestClient, customer_admin_token: str):
+@pytest.mark.asyncio
+async def test_change_password_incorrect_current(client: TestClient, customer_admin_token: str):
     """Test changing password with incorrect current password"""
     password_data = {
         "current_password": "wrongpassword",
@@ -189,7 +202,8 @@ def test_change_password_incorrect_current(client: TestClient, customer_admin_to
     assert data["detail"] == "Incorrect password"
 
 # Test unified user listing endpoint
-def test_get_all_users_admin(client: TestClient, admin_token: str):
+@pytest.mark.asyncio
+async def test_get_all_users_admin(client: TestClient, admin_token: str):
     """Test admin getting all users"""
     response = client.get(
         f"{settings.API_V1_STR}/users",
@@ -202,7 +216,8 @@ def test_get_all_users_admin(client: TestClient, admin_token: str):
     assert isinstance(data, list)
     assert len(data) >= 5  # We created 5 test users in our seed data
 
-def test_get_customer_users_as_customer_admin(client: TestClient, customer_admin_token: str, customer_admin_user: User):
+@pytest.mark.asyncio
+async def test_get_customer_users_as_customer_admin(client: TestClient, customer_admin_token: str, customer_admin_user: User):
     """Test customer admin getting users for their customer"""
     response = client.get(
         f"{settings.API_V1_STR}/users",
@@ -219,7 +234,8 @@ def test_get_customer_users_as_customer_admin(client: TestClient, customer_admin
         assert str(user_item["customer_id"]) == str(customer_admin_user.customer_id)
 
 
-def test_get_other_customer_users_as_customer_admin(client: TestClient, customer_admin_token: str, suspended_customer: User):
+@pytest.mark.asyncio
+async def test_get_other_customer_users_as_customer_admin(client: TestClient, customer_admin_token: str, suspended_customer: User):
     """Test customer admin attempting to get users from a different customer"""
     response = client.get(
         f"{settings.API_V1_STR}/users?customer_id={suspended_customer.customer_id}",
@@ -232,7 +248,8 @@ def test_get_other_customer_users_as_customer_admin(client: TestClient, customer
     assert "detail" in data
     assert "other customers" in data["detail"]
 
-def test_create_user_admin(client: TestClient, db: Session, admin_token: str, customer: User):
+@pytest.mark.asyncio
+async def test_create_user_admin(client: TestClient, db: AsyncSession, admin_token: str, customer: User):
     """Test admin creating a new user"""
     # Mock the email sending function
     with patch('app.utils.email.send_welcome_email') as mock_send_email:
@@ -261,22 +278,25 @@ def test_create_user_admin(client: TestClient, db: Session, admin_token: str, cu
         assert "user_id" in data
         
         # Verify user was created in the database
-        db.expire_all()
-        created_user = db.query(User).filter(User.email == user_data["email"]).first()
+        await db.commit()
+        result = await db.execute(select(User).filter(User.email == user_data["email"]))
+        created_user = result.scalars().first()
         assert created_user is not None
         
         # Verify audit log
-        audit_log = db.query(AuditLog).filter(
+        result = await db.execute(select(AuditLog).filter(
             AuditLog.action_type == "USER_CREATE",
             AuditLog.resource_type == "USER",
             AuditLog.resource_id == str(created_user.user_id)
-        ).first()
+        ))
+        audit_log = result.scalars().first()
         assert audit_log is not None
         
         # Password shouldn't be in the response
         assert "password" not in data
 
-def test_create_user_customer_admin(client: TestClient, db: Session, customer_admin_token: str, customer_admin_user: User):
+@pytest.mark.asyncio
+async def test_create_user_customer_admin(client: TestClient, db: AsyncSession, customer_admin_token: str, customer_admin_user: User):
     """Test customer admin creating a user for their customer"""
     with patch('app.utils.email.send_welcome_email') as mock_send_email:
         mock_send_email.return_value = True
@@ -303,13 +323,15 @@ def test_create_user_customer_admin(client: TestClient, db: Session, customer_ad
         assert str(data["customer_id"]) == str(customer_admin_user.customer_id)
         
         # Verify user was created in database
-        db.expire_all()
-        created_user = db.query(User).filter(User.email == user_data["email"]).first()
+        await db.commit()
+        result = await db.execute(select(User).filter(User.email == user_data["email"]))
+        created_user = result.scalars().first()
         assert created_user is not None
         assert created_user.customer_id == customer_admin_user.customer_id
 
 
-def test_create_user_with_customer_id_param(client: TestClient, db: Session, admin_token: str, customer: User):
+@pytest.mark.asyncio
+async def test_create_user_with_customer_id_param(client: TestClient, db: AsyncSession, admin_token: str, customer: User):
     """Test creating user with customer_id as a query parameter"""
     with patch('app.utils.email.send_welcome_email') as mock_send_email:
         mock_send_email.return_value = True
@@ -335,7 +357,8 @@ def test_create_user_with_customer_id_param(client: TestClient, db: Session, adm
         assert str(data["customer_id"]) == str(customer.customer_id)
 
 
-def test_create_admin_role_as_customer_admin(client: TestClient, customer_admin_token: str):
+@pytest.mark.asyncio
+async def test_create_admin_role_as_customer_admin(client: TestClient, customer_admin_token: str):
     """Test customer admin attempting to create a system admin"""
     user_data = {
         "email": "newsystemadmin@example.com",
@@ -358,7 +381,8 @@ def test_create_admin_role_as_customer_admin(client: TestClient, customer_admin_
     assert "Customer admins can only create other customer admin" in data["detail"]
 
 
-def test_create_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: User):
+@pytest.mark.asyncio
+async def test_create_user_different_customer(client: TestClient, customer_admin_token: str, suspended_customer: User):
     """Test customer admin attempting to create user for different customer"""
     user_data = {
         "email": "differentcustomer@example.com",
@@ -382,7 +406,8 @@ def test_create_user_different_customer(client: TestClient, customer_admin_token
     assert "other customers" in data["detail"]
 
 
-def test_create_user_existing_email(client: TestClient, admin_token: str, customer_admin_user: User):
+@pytest.mark.asyncio
+async def test_create_user_existing_email(client: TestClient, admin_token: str, customer_admin_user: User):
     """Test creating user with existing email"""
     user_data = {
         "email": customer_admin_user.email,  # Already exists
@@ -405,7 +430,8 @@ def test_create_user_existing_email(client: TestClient, admin_token: str, custom
     assert "already exists" in data["detail"]
 
 # Test get user by ID
-def test_get_user_by_id_admin(client: TestClient, admin_token: str, customer_admin_user2: User):
+@pytest.mark.asyncio
+async def test_get_user_by_id_admin(client: TestClient, admin_token: str, customer_admin_user2: User):
     """Test admin getting a specific user by ID"""
     response = client.get(
         f"{settings.API_V1_STR}/users/{customer_admin_user2.user_id}",
@@ -418,7 +444,8 @@ def test_get_user_by_id_admin(client: TestClient, admin_token: str, customer_adm
     assert str(data["user_id"]) == str(customer_admin_user2.user_id)
     assert data["email"] == customer_admin_user2.email
 
-def test_get_user_by_id_customer_admin_same_customer(client: TestClient, customer_admin_token: str, customer_admin_user2: User):
+@pytest.mark.asyncio
+async def test_get_user_by_id_customer_admin_same_customer(client: TestClient, customer_admin_token: str, customer_admin_user2: User):
     """Test customer admin getting a user from their customer"""
     response = client.get(
         f"{settings.API_V1_STR}/users/{customer_admin_user2.user_id}",
@@ -430,7 +457,8 @@ def test_get_user_by_id_customer_admin_same_customer(client: TestClient, custome
     data = response.json()
     assert str(data["user_id"]) == str(customer_admin_user2.user_id)
 
-def test_get_user_by_id_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
+@pytest.mark.asyncio
+async def test_get_user_by_id_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
     """Test customer admin attempting to get user from different customer"""
     response = client.get(
         f"{settings.API_V1_STR}/users/{admin_user.user_id}",
@@ -442,7 +470,8 @@ def test_get_user_by_id_customer_admin_different_customer(client: TestClient, cu
     data = response.json()
     assert "detail" in data
 
-def test_get_user_by_id_regular_user(client: TestClient, customer_admin_token: str, admin_user: User):
+@pytest.mark.asyncio
+async def test_get_user_by_id_regular_user(client: TestClient, customer_admin_token: str, admin_user: User):
     """Test regular user attempting to get user by ID"""
     response = client.get(
         f"{settings.API_V1_STR}/users/{admin_user.user_id}",
@@ -455,7 +484,8 @@ def test_get_user_by_id_regular_user(client: TestClient, customer_admin_token: s
     assert "detail" in data
 
 
-def test_get_user_by_id_non_admin(client: TestClient, customer_admin_token: str, admin_user: User):
+@pytest.mark.asyncio
+async def test_get_user_by_id_non_admin(client: TestClient, customer_admin_token: str, admin_user: User):
     """Test non-admin attempting to get user by ID"""
     response = client.get(
         f"{settings.API_V1_STR}/users/{admin_user.user_id}",
@@ -466,7 +496,8 @@ def test_get_user_by_id_non_admin(client: TestClient, customer_admin_token: str,
     assert response.status_code == 403
 
 
-def test_update_user_admin(client: TestClient, db: Session, admin_token: str, customer_admin_user2: User):
+@pytest.mark.asyncio
+async def test_update_user_admin(client: TestClient, db: AsyncSession, admin_token: str, customer_admin_user2: User):
     """Test admin updating a user"""
     update_data = {
         "first_name": "Admin",
@@ -487,18 +518,21 @@ def test_update_user_admin(client: TestClient, db: Session, admin_token: str, cu
     assert data["role"] == update_data["role"]
     
     # Verify database updates
-    db.expire_all()
-    updated_user = db.query(User).filter(User.user_id == customer_admin_user2.user_id).first()
+    await db.commit()
+    result = await db.execute(select(User).filter(User.user_id == customer_admin_user2.user_id))
+    updated_user = result.scalars().first()
     assert updated_user.role == UserRole.CUSTOMER_ADMIN
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "USER_UPDATE",
         AuditLog.resource_id == str(customer_admin_user2.user_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
-def test_update_user_customer_admin_same_customer(client: TestClient, db: Session, customer_admin_token: str, customer_admin_user2: User):
+@pytest.mark.asyncio
+async def test_update_user_customer_admin_same_customer(client: TestClient, db: AsyncSession, customer_admin_token: str, customer_admin_user2: User):
     """Test customer admin updating a user from their customer"""
     update_data = {
         "first_name": "Customer Admin",
@@ -517,7 +551,8 @@ def test_update_user_customer_admin_same_customer(client: TestClient, db: Sessio
     assert data["first_name"] == update_data["first_name"]
     assert data["last_name"] == update_data["last_name"]
 
-def test_update_user_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
+@pytest.mark.asyncio
+async def test_update_user_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
     """Test customer admin attempting to update user from different customer"""
     update_data = {
         "first_name": "Unauthorized",
@@ -537,7 +572,8 @@ def test_update_user_customer_admin_different_customer(client: TestClient, custo
     assert "other customers" in data["detail"]
 
 # Test suspend user endpoint
-def test_suspend_user_admin(client: TestClient, db: Session, admin_token: str, customer_admin_user2: User):
+@pytest.mark.asyncio
+async def test_suspend_user_admin(client: TestClient, db: AsyncSession, admin_token: str, customer_admin_user2: User):
     """Test admin suspending a user"""
     response = client.post(
         f"{settings.API_V1_STR}/users/{customer_admin_user2.user_id}/suspend",
@@ -550,18 +586,21 @@ def test_suspend_user_admin(client: TestClient, db: Session, admin_token: str, c
     assert data["status"] == "SUSPENDED"
     
     # Verify database update
-    db.expire_all()
-    suspended_user = db.query(User).filter(User.user_id == customer_admin_user2.user_id).first()
+    await db.commit()
+    result = await db.execute(select(User).filter(User.user_id == customer_admin_user2.user_id))
+    suspended_user = result.scalars().first()
     assert suspended_user.status == UserStatus.SUSPENDED
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "USER_SUSPEND",
         AuditLog.resource_id == str(customer_admin_user2.user_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
-def test_suspend_user_customer_admin_same_customer(client: TestClient, db: Session, customer_admin_token: str, customer_admin_user2: User):
+@pytest.mark.asyncio
+async def test_suspend_user_customer_admin_same_customer(client: TestClient, db: AsyncSession, customer_admin_token: str, customer_admin_user2: User):
     """Test customer admin suspending a user from their customer"""
     response = client.post(
         f"{settings.API_V1_STR}/users/{customer_admin_user2.user_id}/suspend",
@@ -573,7 +612,8 @@ def test_suspend_user_customer_admin_same_customer(client: TestClient, db: Sessi
     data = response.json()
     assert data["status"] == "SUSPENDED"
 
-def test_suspend_user_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
+@pytest.mark.asyncio
+async def test_suspend_user_customer_admin_different_customer(client: TestClient, customer_admin_token: str, admin_user: User):
     """Test customer admin attempting to suspend user from different customer"""
     response = client.post(
         f"{settings.API_V1_STR}/users/{admin_user.user_id}/suspend",
@@ -586,7 +626,8 @@ def test_suspend_user_customer_admin_different_customer(client: TestClient, cust
     assert "detail" in data
     assert "other customers" in data["detail"]
 
-def test_suspend_self(client: TestClient, admin_token: str, admin_user: User):
+@pytest.mark.asyncio
+async def test_suspend_self(client: TestClient, admin_token: str, admin_user: User):
     """Test attempting to suspend own account"""
     response = client.post(
         f"{settings.API_V1_STR}/users/{admin_user.user_id}/suspend",
@@ -600,7 +641,8 @@ def test_suspend_self(client: TestClient, admin_token: str, admin_user: User):
     assert "Cannot suspend yourself" in data["detail"]
 
 
-def test_activate_user(client: TestClient, db: Session, admin_token: str, suspended_user: User):
+@pytest.mark.asyncio
+async def test_activate_user(client: TestClient, db: AsyncSession, admin_token: str, suspended_user: User):
     """Test activating a suspended user"""
     response = client.post(
         f"{settings.API_V1_STR}/users/{suspended_user.user_id}/activate",
@@ -613,15 +655,17 @@ def test_activate_user(client: TestClient, db: Session, admin_token: str, suspen
     assert data["status"] == "ACTIVE"
     
     # Verify database update
-    db.expire_all()
-    activated_user = db.query(User).filter(User.user_id == suspended_user.user_id).first()
+    await db.commit()
+    result = await db.execute(select(User).filter(User.user_id == suspended_user.user_id))
+    activated_user = result.scalars().first()
     assert activated_user.status == UserStatus.ACTIVE
     
     # Verify audit log
-    audit_log = db.query(AuditLog).filter(
+    result = await db.execute(select(AuditLog).filter(
         AuditLog.action_type == "USER_ACTIVATE",
         AuditLog.resource_id == str(suspended_user.user_id)
-    ).first()
+    ))
+    audit_log = result.scalars().first()
     assert audit_log is not None
 
     

@@ -119,6 +119,8 @@ class SolutionPackageListResponse(BaseModel):
     """Response for listing packages"""
     total: int
     packages: List[SolutionPackage]
+    skip: Optional[int] = None
+    limit: Optional[int] = None
 
 
 class PackageModelAssociation(BaseModel):

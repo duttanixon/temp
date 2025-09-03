@@ -81,7 +81,6 @@ class SolutionPackageS3Manager:
         """
         upload_id = str(uuid.uuid4())
         s3_key = self.generate_s3_key(
-            solution_id=str(solution_id),
             solution_name=solution_name,
             package_name=package_name,
             version=version,

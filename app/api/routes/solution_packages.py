@@ -530,7 +530,9 @@ async def list_packages(
     # Create response with deployed_id if available
     return SolutionPackageListResponse(
         total=total,
-        packages=packages
+        packages=packages,
+        skip=skip,
+        limit=limit
     )
 
 

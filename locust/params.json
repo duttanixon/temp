@@ -1,0 +1,10 @@
+{
+  "customer_id": ["58339fd3-3ad1-4f4b-b4e8-eb04ffdd05e4", "1fd72291-71e4-4126-b60d-6d3c9d117381"],
+  "device_id": ["cd5dc262-dc9e-41dc-8a82-4f5c11c57292"],
+  "device_ids": ["cd5dc262-dc9e-41dc-8a82-4f5c11c57292", "3ca77483-3bf2-4418-85af-53a3d3936bbb"],
+  "solution_id": ["7a4e2acc-6b3a-4e51-a191-43190c82d119"],
+  "message_id": ["3120521e-176b-488d-8796-39f0922cef36"],
+  "job_id": ["deploy-package-Upload_Trial-1-0-0-20250816-105434-6bf89544"],
+  "model_id": ["d6d3d0e1-f2f7-47ae-9a8c-139e7e4a4564"],
+  "package_id": ["fc45ce38-684d-46c8-bc61-5ebe12240e42"]
+}

@@ -1,0 +1,9 @@
+# One path per line. Relative paths; Locust --host provides the base URL.
+# Include /api/v1 prefix for protected routes.
+/api/v1/users/me
+/api/v1/devices?limit=20
+/api/v1/solutions?limit=20
+/api/v1/customers?limit=20
+/api/v1/jobs?limit=20
+/api/v1/ai-models?limit=20
+/api/v1/audit-logs?limit=50

@@ -25,6 +25,7 @@ ruff = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
 aiosqlite = "*"
+locust = "*"
 
 [requires]
 python_version = "3.12.2"

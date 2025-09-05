@@ -6,5 +6,6 @@
   "message_id": ["3120521e-176b-488d-8796-39f0922cef36"],
   "job_id": ["deploy-package-Upload_Trial-1-0-0-20250816-105434-6bf89544"],
   "model_id": ["d6d3d0e1-f2f7-47ae-9a8c-139e7e4a4564"],
-  "package_id": ["fc45ce38-684d-46c8-bc61-5ebe12240e42"]
+  "package_id": ["fc45ce38-684d-46c8-bc61-5ebe12240e42"],
+  "device_name": ["D-IWKC73","D-T6DSPR"]
 }

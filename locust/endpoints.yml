@@ -1,0 +1,211 @@
+# YAML endpoint definitions for Locust
+# Fields:
+# - name: unique identifier (also used as a tag)
+# - method: GET | POST | PUT | DELETE | PATCH (default GET)
+# - path: URL path (can include query string). Placeholders in {braces}.
+# - needs_api_key: true/false (default false)
+# - weight: relative selection weight (default 1)
+# - body: (optional) JSON body for POST/PUT/PATCH. Placeholders allowed.
+# Placeholders supported:
+#   From params.json keys (e.g. {device_id}, {device_ids}, {model_id}, ...)
+#   Dynamic time placeholders:
+#       {today_date} -> YYYY-MM-DD (UTC)
+#       {yesterday_date} -> YYYY-MM-DD (UTC)
+#       {now_iso} -> current UTC timestamp (ISO 8601, Z)
+#       {three_weeks_ago_iso} -> UTC timestamp 21 days ago @00:00:00 (ISO, Z)
+# Rule: If placeholder key ends with 's' (e.g. device_ids) its list value is inserted (not a single random choice) in request bodies.
+
+- name: root
+  method: GET
+  path: /
+  weight: 1
+
+- name: health
+  method: GET
+  path: /health
+  weight: 1
+
+- name: get_customers
+  path: /api/v1/customers
+  weight: 2
+
+- name: get_customer_1
+  path: /api/v1/customers/{customer_id}
+  weight: 2
+
+- name: get_devices
+  path: /api/v1/devices
+  weight: 3
+
+- name: get_device
+  path: /api/v1/devices/{device_id}
+  weight: 3
+
+- name: compatible_devices_customer
+  path: /api/v1/devices/compatible/solution/{solution_id}/customer/{customer_id}
+  weight: 1
+
+- name: solutions
+  path: /api/v1/solutions
+  weight: 2
+
+- name: solutions_admin
+  path: /api/v1/solutions/admin
+  weight: 1
+
+- name: solution
+  path: /api/v1/solutions/{solution_id}
+  weight: 1
+
+- name: solutions_compatibility_device
+  path: /api/v1/solutions/compatibility/device/{device_id}
+  weight: 1
+
+- name: device_solutions_device
+  path: /api/v1/device-solutions/device/{device_id}
+  weight: 1
+
+- name: device_solutions_solution
+  path: /api/v1/device-solutions/solution/{solution_id}
+  weight: 1
+
+- name: customer_solutions
+  path: /api/v1/customer-solutions
+  weight: 1
+
+- name: customer_solution_pair
+  path: /api/v1/customer-solutions/customer/{customer_id}/solution/{solution_id}
+  weight: 1
+
+- name: device_metrics_mem
+  path: /api/v1/device-metrics/memory?device_name={device_name}&start_time={yesterday_date}T00:00:00&end_time={today_date}T23:00:00
+  weight: 2
+
+- name: device_metrics_cpu
+  path: /api/v1/device-metrics/cpu?device_name={device_name}&start_time={yesterday_date}T00:00:00&end_time={today_date}T23:00:00
+  weight: 2
+
+- name: device_metrics_temp
+  path: /api/v1/device-metrics/temperature?device_name={device_name}&start_time={yesterday_date}T00:00:00&end_time={today_date}T23:00:00
+  weight: 2
+
+- name: polygon_xlines_config
+  path: /api/v1/analytics/city-eye/polygon-xlines-config/{device_id}
+  weight: 1
+
+- name: thresholds
+  path: /api/v1/analytics/city-eye/thresholds/{customer_id}/{solution_id}
+  weight: 1
+
+# Analytics POST (flow)
+- name: human_flow
+  method: POST
+  path: /api/v1/analytics/city-eye/human-flow
+  weight: 3
+  body:
+    device_ids: "{device_ids}"
+    start_time: "{three_weeks_ago_iso}"
+    end_time: "{now_iso}"
+
+- name: traffic_flow
+  method: POST
+  path: /api/v1/analytics/city-eye/traffic-flow
+  weight: 3
+  body:
+    device_ids: "{device_ids}"
+    start_time: "{three_weeks_ago_iso}"
+    end_time: "{now_iso}"
+
+# Direction analytics (dates array sample)
+- name: human_direction
+  method: POST
+  path: /api/v1/analytics/city-eye/human-direction
+  weight: 2
+  body:
+    dates: ["2025-09-03", "2024-09-02"]
+    device_ids: "{device_ids}"
+
+- name: traffic_direction
+  method: POST
+  path: /api/v1/analytics/city-eye/traffic-direction
+  weight: 2
+  body:
+    dates: ["2025-09-03", "2024-09-02"]
+    device_ids: "{device_ids}"
+
+# Device commands & jobs
+- name: device_commands_active_streams
+  path: /api/v1/device-commands/active-streams
+  needs_api_key: true
+  weight: 1
+
+- name: device_commands_stream_status
+  path: /api/v1/device-commands/stream-status/{device_id}
+  weight: 1
+
+- name: batch_status
+  method: POST
+  path: /api/v1/devices/batch-status
+  weight: 2
+  body:
+    device_ids: "{device_ids}"
+
+- name: capture_image
+  method: POST
+  path: /api/v1/device-commands/capture-image
+  weight: 1
+  body:
+    device_id: "{device_id}"
+
+- name: sse_job_status
+  path: /api/v1/sse/jobs/status/{job_id}
+  weight: 1
+
+# Jobs
+- name: jobs_by_device
+  path: /api/v1/jobs/device/{device_id}
+  weight: 2
+
+- name: jobs_latest
+  path: /api/v1/jobs/device/{device_id}/latest
+  weight: 1
+
+- name: jobs_latest_deployment
+  path: /api/v1/jobs/device/{device_id}/latest-deployment-job
+  weight: 1
+
+- name: job_status
+  path: /api/v1/jobs/{job_id}/status
+  weight: 1
+
+# AI models & packages
+- name: ai_models
+  path: /api/v1/ai-models
+  weight: 2
+
+- name: ai_model
+  path: /api/v1/ai-models/{model_id}
+  weight: 2
+
+- name: ai_model_download
+  path: /api/v1/ai-models/{model_id}/download-url
+  needs_api_key: true
+  weight: 1
+
+- name: solution_packages
+  path: /api/v1/solution-packages
+  weight: 2
+
+- name: solution_package
+  path: /api/v1/solution-packages/{package_id}
+  weight: 1
+
+- name: solution_package_download
+  path: /api/v1/solution-packages/{package_id}/download-url
+  needs_api_key: true
+  weight: 1
+
+# Audit logs
+- name: audit_logs
+  path: /api/v1/audit-logs?skip=0&limit=50
+  weight: 1

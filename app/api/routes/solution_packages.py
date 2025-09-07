@@ -477,7 +477,6 @@ async def list_packages(
             logger.error(f"Error processing device shadow: {str(e)}")
 
 
-
     if solution_name:
         # Remove any surrounding quotes from solution_name
         print(f"Filtering by solution name: {solution_name}")
@@ -490,7 +489,7 @@ async def list_packages(
             )
         solution_id = db_solution.solution_id
 
-    packages, total = await solution_package.get_multi_with_filters(
+    packages, total = await solution_package.get_multi_with_details(
         db,
         skip=skip,
         limit=limit,
@@ -504,24 +503,19 @@ async def list_packages(
     # Enhance with solution names and model associations
     for package in packages:
         # Get solution name if not already loaded
-        if not db_solution or package.solution_id != db_solution.solution_id:
-            pkg_solution = await solution.get_by_id(db, solution_id=package.solution_id)
-            package.solution_name = pkg_solution.name if pkg_solution else None
-        else:
-            package.solution_name = db_solution.name
+        if package.solution:
+            package.solution_name = package.solution.name
         
-        # Get model associations
-        associations = await solution_package.get_model_associations(db, package_id=package.package_id)
-        
+        # Get model associations from the eagerly loaded relationship
         model_associations_list = []
-        for assoc in associations:
-            model_obj = await ai_model.get_by_id(db, model_id=assoc.model_id)
-            model_associations_list.append({
-                "model_id": str(assoc.model_id),
-                "model_name": model_obj.s3_key.split('/')[-1] if model_obj else None
-            })
+        if package.package_associations:
+            for assoc in package.package_associations:
+                if assoc.ai_model:
+                    model_associations_list.append({
+                        "model_id": str(assoc.ai_model.model_id),
+                        "model_name": assoc.ai_model.s3_key.split('/')[-1]
+                    })
         package.model_associations = model_associations_list
-
 
         # Add deployed_id to the package if it matches the current package
         if deployed_id and str(package.package_id) == deployed_id:

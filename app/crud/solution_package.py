@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, select, func, delete
+from sqlalchemy.orm import joinedload, selectinload
 from app.crud.base import CRUDBase
 from app.models.solution_package import SolutionPackage
 from app.models.solution_package_model import SolutionPackageModel
@@ -95,8 +96,8 @@ class CRUDSolutionPackage(CRUDBase[SolutionPackage, SolutionPackageCreate, Solut
         await db.commit()
         await db.refresh(db_obj)
         return db_obj
-    
-    async def get_multi_with_filters(
+
+    async def get_multi_with_details(
         self,
         db: AsyncSession,
         *,
@@ -108,8 +109,14 @@ class CRUDSolutionPackage(CRUDBase[SolutionPackage, SolutionPackageCreate, Solut
         sort_by: str = "created_at",
         sort_order: str = "desc"
     ) -> tuple[List[SolutionPackage], int]:
-        """Get packages with filters"""
-        query = select(SolutionPackage)
+        """
+        Get packages with filters and eager-loaded relationships.
+        This function solves the N+1 query problem by joining necessary tables upfront.
+        """
+        query = select(SolutionPackage).options(
+            joinedload(SolutionPackage.solution),
+            selectinload(SolutionPackage.package_associations).joinedload(SolutionPackageModel.ai_model)
+        )
         
         # Apply filters
         if solution_id:

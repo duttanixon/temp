@@ -1,6 +1,7 @@
 from typing import Any, List, Dict
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.async_session import AsyncSessionLocal
 from app.api import deps
 from app.crud import device, device_solution, device_command
 from app.models import User, CommandType, CommandStatus, UserRole
@@ -26,7 +27,76 @@ logger = get_logger("api.device_commands")
 
 router = APIRouter()
 
-@router.post("/capture-image", response_model=DeviceCommandResponse)
+async def _send_command_in_background(
+    db: AsyncSession,
+    thing_name: str,
+    message_id: uuid.UUID,
+    payload: Dict[str, Any],
+    user_id: uuid.UUID,
+    device_name: str,
+    ip_address: str,
+    user_agent: str
+):
+    """
+    Background task to send the IoT command and handle the result.
+    This runs asynchronously and does not block the main request thread.
+    """
+    try:
+        success = iot_command_service.send_capture_image_command(
+            thing_name=thing_name, message_id=message_id, payload=payload
+        )
+
+        if not success:
+            logger.error(f"Failed to send capture image command to IoT Core for device {thing_name}. Message ID: {message_id}")
+            await device_command.update_status(
+                db,
+                message_id=message_id,
+                status=CommandStatus.FAILED,
+                error_message="Failed to send command to IoT Core",
+            )
+            notify_command_update(
+                message_id=str(message_id),
+                status=CommandStatus.FAILED.value,
+                error_message="Failed to publish command to AWS IoT Core",
+            )
+        else:
+            logger.info(f"Successfully published capture image command to IoT Core for device {thing_name}. Message ID: {message_id}")
+            # The command status is now SENT. It will be updated to SUCCESS or FAILED by the internal endpoint.
+
+        # Log action regardless of success or failure of the IoT publish.
+        await log_action(
+            db=db,
+            user_id=user_id,
+            action_type=AuditLogActionType.DEVICE_COMMAND_CAPTURE_IMAGE,
+            resource_type=AuditLogResourceType.DEVICE_COMMAND,
+            resource_id=str(message_id),
+            details={
+                "device_name": device_name,
+                "command_type": "CAPTURE_IMAGE",
+                "iot_publish_success": success
+            },
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in background task for command {message_id}: {e}")
+        # Ensure status is updated on unexpected errors too
+        await device_command.update_status(
+            db,
+            message_id=message_id,
+            status=CommandStatus.FAILED,
+            error_message=f"Internal server error during command sending: {str(e)}",
+        )
+        notify_command_update(
+            message_id=str(message_id),
+            status=CommandStatus.FAILED.value,
+            error_message=f"Internal server error during command sending: {str(e)}",
+        )
+    finally:
+        await db.close()
+
+
+@router.post("/capture-image", response_model=DeviceCommandResponse, status_code=status.HTTP_202_ACCEPTED)
 async def send_capture_image_command(
     *,
     db: AsyncSession = Depends(deps.get_async_db),
@@ -36,10 +106,11 @@ async def send_capture_image_command(
     request: Request,
 ) -> Any:
     """
-    Send capture image command to device.
+    Send capture image command to device. The request will return immediately.
+    The actual command sending is handled in a background task.
     """
     logger.info(
-        f"Capture image command requested for device {command_in.device_id} by user {current_user.email}"
+        f"Capture image command request received for device {command_in.device_id} by user {current_user.email}"
     )
 
     # Get and validate device
@@ -47,11 +118,10 @@ async def send_capture_image_command(
     await check_device_access(current_user, db_device)
     thing_name = validate_device_for_commands(db_device)
 
-    # to do - check if an active solution is running on the device
+    # Check if an active solution is running on the device
     active_solutions = await device_solution.get_active_by_device(
         db, device_id=command_in.device_id
     )
-    # get the solution ID that is running
     if not active_solutions:
         raise HTTPException(
             status_code=400, detail="No active solution is running on this device"
@@ -60,7 +130,7 @@ async def send_capture_image_command(
 
     payload = {}
 
-    # Create command record in database
+    # Create command record in the database
     command_create = DeviceCommandCreate(
         device_id=command_in.device_id,
         command_type=CommandType.CAPTURE_IMAGE,
@@ -71,49 +141,24 @@ async def send_capture_image_command(
 
     db_command = await device_command.create(db, obj_in=command_create)
 
-    # Send command to IoT Core
-    success = iot_command_service.send_capture_image_command(
-        thing_name=thing_name, message_id=db_command.message_id, payload=payload
-    )
-
-    if not success:
-        # Update command status to failed
-        await device_command.update_status(
-            db,
-            message_id=db_command.message_id,
-            status=CommandStatus.FAILED,
-            error_message="Failed to send command to IoT Core",
-        )
-
-        # Also notify any SSE connections waiting for updates about this command
-        notify_command_update(
-            message_id=str(db_command.message_id),
-            status=CommandStatus.FAILED.value,
-            error_message="Failed to publish command to AWS IoT Core",
-        )
-
-        raise HTTPException(status_code=500, detail="Failed to send command to device")
-
-    # Log action
-    await log_action(
-        db=db,
+    # Add the command sending task to the background
+    background_tasks.add_task(
+        _send_command_in_background,
+        db=AsyncSessionLocal(),  # Pass a new session for the background task
+        thing_name=thing_name,
+        message_id=db_command.message_id,
+        payload=payload,
         user_id=current_user.user_id,
-        action_type=AuditLogActionType.DEVICE_COMMAND_CAPTURE_IMAGE,
-        resource_type=AuditLogResourceType.DEVICE_COMMAND,
-        resource_id=str(db_command.message_id),
-        details={
-            "device_id": str(command_in.device_id),
-            "device_name": db_device.name,
-            "command_type": "CAPTURE_IMAGE",
-        },
+        device_name=db_device.name,
         ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent"),
+        user_agent=request.headers.get("user-agent")
     )
-
+    
+    # Return immediate response
     return DeviceCommandResponse(
         device_name=db_device.name,
         message_id=db_command.message_id,
-        detail="Capture image command sent successfully",
+        detail="Capture image command has been queued and is being sent to the device."
     )
 
 

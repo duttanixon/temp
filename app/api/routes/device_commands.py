@@ -1,5 +1,5 @@
 from typing import Any, List, Dict
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, status
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.async_session import AsyncSessionLocal
 from app.api import deps
@@ -104,6 +104,8 @@ async def send_capture_image_command(
     current_user: User = Depends(deps.get_current_active_user),
     background_tasks: BackgroundTasks,
     request: Request,
+    x_test_mode: bool = Header(False, include_in_schema=False)
+
 ) -> Any:
     """
     Send capture image command to device. The request will return immediately.
@@ -141,18 +143,31 @@ async def send_capture_image_command(
 
     db_command = await device_command.create(db, obj_in=command_create)
 
-    # Add the command sending task to the background
-    background_tasks.add_task(
-        _send_command_in_background,
-        db=AsyncSessionLocal(),  # Pass a new session for the background task
-        thing_name=thing_name,
-        message_id=db_command.message_id,
-        payload=payload,
-        user_id=current_user.user_id,
-        device_name=db_device.name,
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
-    )
+    if x_test_mode:
+        # Run synchronously for tests
+        await _send_command_in_background(
+            db=db,
+            thing_name=thing_name,
+            message_id=db_command.message_id,
+            payload=payload,
+            user_id=current_user.user_id,
+            device_name=db_device.name,
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent")
+        )
+    else:
+        background_tasks.add_task(
+            _send_command_in_background,
+            db=AsyncSessionLocal(),
+            thing_name=thing_name,
+            message_id=db_command.message_id,
+            payload=payload,
+            user_id=current_user.user_id,
+            device_name=db_device.name,
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent")
+        )
+
     
     # Return immediate response
     return DeviceCommandResponse(

@@ -26,9 +26,9 @@ from app.utils.logger import get_logger
 logger = get_logger("app")
 
 app = FastAPI(
-    title="Edge Device Management API",
+    title="Cybercore Platform Management API",
     description="API for managing IoT edge devices and AI solutions",
-    version="0.1.0",
+    version="2.0.0",
 )
 
 # Set up CORS

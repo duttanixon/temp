@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   pull_request:
     types: [closed]
-    branches: [main]
+    branches: [/api/v2]
 
 
 jobs:
@@ -27,12 +27,12 @@ jobs:
     
     - name: Create application directory
       run: |
-        ssh ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/application"
+        ssh ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/apiv2"
     
     - name : Create .env file
       run: |
-        ssh ubuntu@${{ secrets.EC2_HOST }} "cat > ~/application/.env << 'EOL'
-        API_V1_STR=/api/v1
+        ssh ubuntu@${{ secrets.EC2_HOST }} "cat > ~/apiv2/.env << 'EOL'
+        API_V1_STR=/api/v2
         ALGORITHM=HS256
         ACCESS_TOKEN_EXPIRE_MINUTES=30
         DATABASE_URL=${{ secrets.DATABASE_URL }}
@@ -64,25 +64,24 @@ jobs:
     - name: Deploy to EC2
       run: |
         # Copy project files to server
-        scp -r ./* ubuntu@${{ secrets.EC2_HOST }}:~/application
+        scp -r ./* ubuntu@${{ secrets.EC2_HOST }}:~/apiv2
 
         # Connect to server and run deployment script
         ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-          cd application
+          cd apiv2
           # Build and start Docker container
-          docker build -t platform-backend:latest .
+          docker build -t platform-backend-apiv2:latest .
           # stop any running container
-          docker stop platform-backend-container || true
-          docker rm platform-backend-container || true
+          docker stop platform-backend-apiv2-container || true
+          docker rm platform-backend-apiv2-container || true
 
           # Run the new container
-          
-          docker run -d --name platform-backend-container \
-            -p 8000:80 \
-            -v /opt/data/app_docker:/data \
-            -v /home/ubuntu/application/.env:/code/.env \
+          docker run -d --name platform-backend-apiv2-container \
+            -p 8001:80 \
+            -v /opt/data/app_docker_apiv2:/data \
+            -v /home/ubuntu/apiv2/.env:/code/.env \
             --user app_docker \
-            platform-backend:latest
+            platform-backend-apiv2:latest
           echo "Deployment completed successfully!"
         EOF
     

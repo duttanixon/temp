@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   pull_request:
     types: [closed]
-    branches: [/api/v2]
+    branches: [api/v2]
 
 
 jobs:

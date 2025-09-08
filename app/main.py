@@ -21,6 +21,7 @@ from app.core.config import settings
 from app.api import deps
 from app.api.middleware import RequestLoggingMiddleware
 from app.utils.logger import get_logger
+from app.middleware.throttling import GlobalThrottlingMiddleware
 
 # Initialize logger
 logger = get_logger("app")
@@ -43,6 +44,13 @@ if settings.BACKEND_CORS_ORIGINS:
 
 # Add request logging middleware
 app.add_middleware(RequestLoggingMiddleware)
+
+# Add global throttling middleware (after logging so waits are logged separately)
+app.add_middleware(
+    GlobalThrottlingMiddleware,
+    max_concurrent_requests=settings.THROTTLE_MAX_CONCURRENT_REQUESTS,
+    acquire_timeout_seconds=settings.THROTTLE_ACQUIRE_TIMEOUT_SECONDS,
+)
 
 # Include API routes
 app.include_router(

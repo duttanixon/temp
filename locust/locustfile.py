@@ -22,8 +22,8 @@ USERNAME = os.getenv("LOCUST_USERNAME")
 PASSWORD = os.getenv("LOCUST_PASSWORD")
 API_KEY = os.getenv("API_KEY")
 
-WAIT_MIN = float(os.getenv("LOCUST_WAIT_MIN", 0.1))
-WAIT_MAX = float(os.getenv("LOCUST_WAIT_MAX", 0.5))
+WAIT_MIN = float(os.getenv("LOCUST_WAIT_MIN", 1.0))
+WAIT_MAX = float(os.getenv("LOCUST_WAIT_MAX", 5.0))
 
 PARAMS_FILE = os.getenv("PARAMS_FILE", "params.json")
 ENDPOINTS_FILE = os.getenv("ENDPOINTS_FILE", "endpoints.yml")
@@ -69,8 +69,8 @@ def dynamic_values() -> Dict[str, str]:
     return {
         "today_date": now_dt.strftime('%Y-%m-%d'),
         "yesterday_date": (now_dt - timedelta(days=1)).strftime('%Y-%m-%d'),
-        "now_iso": now_dt.isoformat().replace('+00:00', 'Z'),
-        "three_weeks_ago_iso": (now_dt - timedelta(days=21)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat().replace('+00:00', 'Z'),
+        "now_iso": now_dt.isoformat().replace('+00:00', ''),
+        "three_weeks_ago_iso": (now_dt - timedelta(days=21)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat().replace('+00:00', ''),
     }
 
 def substitute_scalar(value: str, params: Dict[str, List[str]], dyn: Dict[str, str]):

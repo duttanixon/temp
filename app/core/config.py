@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     RESTART_APP_TEMPLATE_ARN: Optional[str] = None
     REBOOT_TEMPLATE_ARN: Optional[str] = None
 
+    # Global request throttling / concurrency limiting
+    THROTTLE_MAX_CONCURRENT_REQUESTS: int = 50  # Adjust as needed
+    THROTTLE_ACQUIRE_TIMEOUT_SECONDS: int = 10  # How long a request waits for a slot
 
     class Config:
         env_file = ".env"
@@ -54,5 +57,5 @@ class Settings(BaseSettings):
     
 settings = Settings()
 
-    
+
 

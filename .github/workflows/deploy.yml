@@ -35,7 +35,6 @@ jobs:
         API_V1_STR=/api/v2
         ALGORITHM=HS256
         ACCESS_TOKEN_EXPIRE_MINUTES=30
-        DATABASE_URL=${{ secrets.DATABASE_URL }}
         ASYNC_DATABASE_URL=${{ secrets.ASYNC_DATABASE_URL }}
         AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}

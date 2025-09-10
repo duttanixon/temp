@@ -46,8 +46,6 @@ jobs:
         IOT_DEVICE_POLICY_ARN=${{ secrets.IOT_DEVICE_POLICY_ARN }}
         S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
         S3_CERTIFICATES_PATH=${{ vars.S3_CERTIFICATES_PATH }}
-        TIMESTREAM_RAW_TABLE=${{ secrets.TIMESTREAM_RAW_TABLE }}
-        TIMESTREAM_DATABASE=${{ secrets.TIMESTREAM_DATABASE }}
         INTERNAL_API_KEY=${{ secrets.INTERNAL_API_KEY }}
         SMTP_SERVER=${{ secrets.SMTP_SERVER }}
         SMTP_PORT=${{ secrets.SMTP_PORT }}
@@ -59,6 +57,10 @@ jobs:
         REBOOT_TEMPLATE_ARN=${{ secrets.REBOOT_TEMPLATE_ARN }}
         AI_MODEL_BUCKET_NAME=${{ secrets.AI_MODEL_BUCKET_NAME }}
         S3_SOLUTION_PACKAGE_BUCKET=${{ secrets.S3_SOLUTION_PACKAGE_BUCKET }}
+        INFLUXDB_HOST=${{ secrets.INFLUXDB_HOST }}
+        INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+        INFLUXDB_DATABASE=${{ secrets.INFLUXDB_DATABASE }}
+
         EOL"
 
     - name: Deploy to EC2

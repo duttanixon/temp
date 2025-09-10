@@ -35,8 +35,6 @@ class Settings(BaseSettings):
     # S3 Settings
     S3_BUCKET_NAME: Optional[str] = None
     S3_CERTIFICATES_PATH: Optional[str] = None
-    TIMESTREAM_DATABASE: Optional[str] = None
-    TIMESTREAM_RAW_TABLE: Optional[str] = None
     AI_MODEL_BUCKET_NAME: Optional[str] = None
     S3_SOLUTION_PACKAGE_BUCKET: Optional[str] = None
 
@@ -49,6 +47,11 @@ class Settings(BaseSettings):
     # Global request throttling / concurrency limiting
     THROTTLE_MAX_CONCURRENT_REQUESTS: int = 50  # Adjust as needed
     THROTTLE_ACQUIRE_TIMEOUT_SECONDS: int = 10  # How long a request waits for a slot
+
+    # InfluxDB Settings
+    INFLUXDB_HOST: Optional[str] = None
+    INFLUXDB_TOKEN: Optional[str] = None
+    INFLUXDB_DATABASE: Optional[str] = None
 
     class Config:
         env_file = ".env"

@@ -6,7 +6,8 @@ from app.models import User, UserRole
 from app.crud import device
 from app.schemas import MetricsResponse
 from app.utils.logger import get_logger
-from app.utils.timestream import (
+# Import from the new influxdb module instead of timestream
+from app.utils.influxdb import (
     query_memory_metrics,
     query_cpu_metrics,
     query_temperature_metrics,
@@ -56,7 +57,7 @@ async def get_memory_metrics(
     if start_time.tzinfo is None:
         start_time = start_time.replace(tzinfo=ZoneInfo("Asia/Tokyo"))
 
-    # Query the metrics
+    # Query the metrics from InfluxDB
     try:
         metrics = await query_memory_metrics(str(device_name), start_time, end_time, interval)
         return metrics
@@ -97,7 +98,7 @@ async def get_cpu_metrics(
         end_time = datetime.now(ZoneInfo("Asia/Tokyo"))
     if not start_time:
         start_time = end_time - timedelta(hours=1)
-    # Query the metrics
+    # Query the metrics from InfluxDB
     try:
         metrics = await query_cpu_metrics(str(device_name), start_time, end_time, interval)
         return metrics
@@ -145,7 +146,7 @@ async def get_temperature_metrics(
     if start_time.tzinfo is None:
         start_time = start_time.replace(tzinfo=ZoneInfo("Asia/Tokyo"))
 
-    # Query the metrics
+    # Query the metrics from InfluxDB
     try:
         metrics = await query_temperature_metrics(str(device_name), start_time, end_time, interval)
         return metrics

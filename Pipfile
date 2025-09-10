@@ -17,6 +17,7 @@ alembic = "*"
 boto3 = "*"
 asyncpg = "==0.30.0"
 greenlet = "==3.2.4"
+influxdb3-python = "==0.15.0"
 
 [dev-packages]
 pytest = "*"

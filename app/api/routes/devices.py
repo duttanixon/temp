@@ -101,8 +101,8 @@ async def get_devices(
             db, customer_id=current_user.customer_id, solution_id=solution_id, skip=skip, limit=limit
         )
 
-@router.post("", response_model=DeviceSchema)
-async def create_device(
+@router.post("", response_model=DeviceProvisionResponse)
+async def create_and_provision_device(
     *,
     db: AsyncSession = Depends(deps.get_async_db),
     device_in: DeviceCreate,
@@ -110,76 +110,74 @@ async def create_device(
     request: Request,
 ) -> Any:
     """
-    Create a new device entry in the database (Admin or Engineer only).
+    Create a new device and provision it in AWS IoT in one operation (Admin or Engineer only).
+    Device will be created with PROVISIONED status.
     """
+    # Validate MAC address uniqueness
     if device_in.mac_address and await device.get_by_mac_address(db, mac_address=device_in.mac_address):
         raise HTTPException(status_code=400, detail="A device with this MAC address already exists")
 
-    if not await customer.get_by_id(db, customer_id=device_in.customer_id):
+    # Validate customer exists and has IoT Thing Group
+    db_customer = await customer.get_by_id(db, customer_id=device_in.customer_id)
+    if not db_customer:
         raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if not db_customer.iot_thing_group_name:
+        raise HTTPException(status_code=400, detail="Customer does not have a valid IoT Thing Group")
 
+    # Generate device name
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     device_name = f"D-{random_chars}"
 
-    new_device = await device.create(db, obj_in=device_in, device_name=device_name)
-
-    await log_action(
-        db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_CREATE,
-        resource_type=AuditLogResourceType.DEVICE, resource_id=str(new_device.device_id),
-        details={"customer_id": str(new_device.customer_id), "device_type": new_device.device_type.value},
-        ip_address=request.client.host, user_agent=request.headers.get("user-agent")
-    )
-    
-    return new_device
-
-
-@router.post("/{device_id}/provision", response_model=DeviceProvisionResponse)
-async def provision_device(
-    *,
-    db: AsyncSession = Depends(deps.get_async_db),
-    db_device: DeviceModel = Depends(get_device_and_check_access),
-    current_user: User = Depends(deps.get_current_admin_or_engineer_user),
-    request: Request,
-) -> Any:
-    """
-    Provision a device in AWS IoT (Admin or Engineer only).
-    """
-    if db_device.thing_name:
-        raise HTTPException(status_code=400, detail="Device is already provisioned")
-
-    db_customer = await customer.get_by_id(db, customer_id=db_device.customer_id)
-    if not db_customer or not db_customer.iot_thing_group_name:
-        raise HTTPException(status_code=400, detail="Customer does not have a valid IoT Thing Group")
-
     try:
+        # Provision device in AWS IoT first (fail fast if AWS provisioning fails)
         provision_info = iot_core.provision_device(
-            device_id=db_device.device_id, thing_name=db_device.name,
-            device_type=db_device.device_type.value, mac_address=db_device.mac_address,
+            thing_name=device_name,
+            device_type=device_in.device_type.value, mac_address=device_in.mac_address,
             customer_group_name=db_customer.iot_thing_group_name
         )
 
-        updated_device = await device.update_cloud_info(
-            db, device_id=db_device.device_id, **provision_info, status=DeviceStatus.PROVISIONED
-        )
+        # Only create device in database after successful AWS provisioning
+        # Include cloud info and set status to PROVISIONED directly
+        device_create_data = device_in.dict()
+        device_create_data.update({
+            'thing_name': provision_info['thing_name'],
+            'thing_arn': provision_info['thing_arn'],
+            'certificate_id': provision_info['certificate_id'],
+            'certificate_arn': provision_info['certificate_arn'],
+            'certificate_url': provision_info['certificate_url'],
+            'private_key_url': provision_info['private_key_url'],
+            'status': DeviceStatus.PROVISIONED
+        })
+        
+        new_device = await device.create_with_cloud_info(db, obj_in=device_create_data, device_name=device_name)
 
+        # Log device creation and provisioning as a single action
         await log_action(
-            db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_PROVISION,
-            resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
-            details={"thing_name": provision_info["thing_name"], "certificate_id": provision_info["certificate_id"]},
+            db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_CREATE,
+            resource_type=AuditLogResourceType.DEVICE, resource_id=str(new_device.device_id),
+            details={
+                "customer_id": str(new_device.customer_id), 
+                "device_type": new_device.device_type.value,
+                "thing_name": provision_info["thing_name"], 
+                "certificate_id": provision_info["certificate_id"],
+                "provisioned": True
+            },
             ip_address=request.client.host, user_agent=request.headers.get("user-agent")
         )
 
         return DeviceProvisionResponse(
-            device_id=str(db_device.device_id),
+            device_id=str(new_device.device_id),
             thing_name=provision_info["thing_name"],
             certificate_url=provision_info["certificate_url"],
             private_key_url=provision_info["private_key_url"],
-            status=updated_device.status
+            status=new_device.status
         )
 
     except Exception as e:
-        logger.error(f"Error provisioning device {db_device.device_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error provisioning device: {str(e)}")
+        # If AWS provisioning fails, no database record is created (consistent state)
+        logger.error(f"Error creating and provisioning device: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating and provisioning device: {str(e)}")
 
 
 @router.get("/{device_id}", response_model=DeviceDetailView)
@@ -295,28 +293,47 @@ async def delete_device(
     request: Request,
 ) -> Any:
     """
-    バックエンド用
-    Delete a device and remove from AWS IoT (Admin or Engineer only).
+    Delete a device and all related data, then remove from AWS IoT (Admin or Engineer only).
+    This will cascade delete all related records including jobs, commands, and analytics data.
     """
-    if db_device.thing_name and db_device.certificate_arn:
-        try:
-            iot_core.delete_thing_certificate(
-                thing_name=db_device.thing_name, certificate_arn=db_device.certificate_arn
-            )
-        except Exception as e:
-            logger.error(f"Error removing device {db_device.device_id} from AWS IoT: {str(e)}")
-            # Continue with DB deletion even if cloud cleanup fails
+    try:
+        # First, check what related data would be deleted (for logging purposes)
+        related_counts = await device.safe_delete_check(db, device_id=db_device.device_id)
+        
+        # Clean up AWS IoT resources first
+        if db_device.thing_name and db_device.certificate_arn:
+            try:
+                iot_core.delete_thing_certificate(
+                    thing_name=db_device.thing_name, certificate_arn=db_device.certificate_arn
+                )
+                logger.info(f"Successfully removed device {db_device.device_id} from AWS IoT")
+            except Exception as e:
+                logger.error(f"Error removing device {db_device.device_id} from AWS IoT: {str(e)}")
+                # Continue with DB deletion even if cloud cleanup fails
 
-    deleted_device = await device.remove(db, id=db_device.device_id)
-    
-    await log_action(
-        db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_DELETE,
-        resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
-        details={"device_name": db_device.name, "customer_id": str(db_device.customer_id)},
-        ip_address=request.client.host, user_agent=request.headers.get("user-agent")
-    )
-    
-    return deleted_device
+        # Perform cascade delete from database
+        deleted_device = await device.cascade_delete(db, device_id=db_device.device_id)
+        
+        # Log the deletion with information about related data that was also deleted
+        await log_action(
+            db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_DELETE,
+            resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
+            details={
+                "device_name": db_device.name, 
+                "customer_id": str(db_device.customer_id),
+                "related_data_deleted": related_counts
+            },
+            ip_address=request.client.host, user_agent=request.headers.get("user-agent")
+        )
+        
+        return deleted_device
+        
+    except Exception as e:
+        logger.error(f"Error deleting device {db_device.device_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to delete device. This may be due to related data constraints: {str(e)}"
+        )
 
 
 @router.post("/{device_id}/decommission", response_model=DeviceSchema)
@@ -330,9 +347,15 @@ async def decommission_device(
     """
     Decommission a device (Admin or Engineer only).
     """
-    if db_device.status == DeviceStatus.CREATED:
-        raise HTTPException(status_code=400, detail="Device is not provisioned yet")
-    
+    if db_device.thing_name and db_device.certificate_arn:
+        try:
+            iot_core.delete_thing_certificate(
+                thing_name=db_device.thing_name, certificate_arn=db_device.certificate_arn
+            )
+        except Exception as e:
+            logger.error(f"Error removing device {db_device.device_id} from AWS IoT: {str(e)}")
+            raise HTTPException(status_code=500, detail="Error decommissioning device in cloud")
+         
     decommissioned_device = await device.decommission(db, device_id=db_device.device_id)
     
     await log_action(
@@ -643,3 +666,17 @@ async def get_batch_device_status(
         background_tasks.add_task(update_device_online_status_task, devices_to_update)
 
     return result
+
+@router.get("/{device_id}/delete-preview", response_model=Dict[str, int])
+async def preview_device_deletion(
+    *,
+    db: AsyncSession = Depends(deps.get_async_db),
+    db_device: DeviceModel = Depends(get_device_and_check_access),
+    current_user: User = Depends(deps.get_current_admin_or_engineer_user),
+) -> Any:
+    """
+    Preview what related data would be deleted when deleting this device (Admin or Engineer only).
+    Returns counts of related records that would be cascade deleted.
+    """
+    related_counts = await device.safe_delete_check(db, device_id=db_device.device_id)
+    return related_counts

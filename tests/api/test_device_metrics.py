@@ -121,10 +121,36 @@ async def test_get_memory_metrics_customer_user_own_device(
     assert len(data["series"]) == 2
 
 @pytest.mark.asyncio
+@patch('app.crud.customer.customer.get_by_id')
+@patch('app.utils.aws_iot.iot_core.provision_device')
 async def test_get_memory_metrics_customer_user_different_customer(
+    mock_provision,
+    mock_get_customer,
     client: TestClient, customer_admin_token: str, suspended_customer: Customer, admin_token: str
 ):
     """Test customer user attempting to get metrics for device from different customer"""
+    # Mock customer with IoT Thing Group for suspended customer
+    from unittest.mock import MagicMock
+    customer_with_iot = MagicMock()
+    customer_with_iot.customer_id = suspended_customer.customer_id
+    customer_with_iot.iot_thing_group_name = "test-metrics-customer-group"
+    mock_get_customer.return_value = customer_with_iot
+    
+    # Mock AWS IoT provisioning response to return the same thing_name as device_name
+    def mock_provision_func(thing_name, device_type, mac_address, customer_group_name):
+        return {
+            "thing_name": thing_name,  # Return the same thing_name passed in
+            "thing_arn": f"arn:aws:iot:region:account:thing/{thing_name}",
+            "certificate_id": "test-metrics-cert-id",
+            "certificate_arn": "arn:aws:iot:region:account:cert/test-metrics-cert-id",
+            "certificate_path": "s3://bucket/certs/test-metrics-cert-id.pem",
+            "private_key_path": "s3://bucket/keys/test-metrics-cert-id.key",
+            "certificate_url": "https://s3.amazonaws.com/bucket/certs/test-metrics-cert-id.pem",
+            "private_key_url": "https://s3.amazonaws.com/bucket/keys/test-metrics-cert-id.key"
+        }
+    
+    mock_provision.side_effect = mock_provision_func
+    
     # First create a device for the suspended customer
     device_data = {
         "description": "A test device for a different customer",
@@ -145,7 +171,7 @@ async def test_get_memory_metrics_customer_user_different_customer(
     
     assert response.status_code == 200
     created_device = response.json()
-    device_name = created_device["name"]
+    device_name = created_device["thing_name"]  # thing_name should match the generated device name
     
     # Now try to get metrics as customer user
     response = client.get(

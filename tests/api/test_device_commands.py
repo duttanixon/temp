@@ -73,13 +73,36 @@ async def test_capture_image_command_device_not_found(
 
 
 @pytest.mark.asyncio
+@patch('app.crud.customer.customer.get_by_id')
+@patch('app.utils.aws_iot.iot_core.provision_device')
 async def test_capture_image_command_unauthorized(
+    mock_provision,
+    mock_get_customer,
     client: TestClient,
     customer_admin_token: str,
     suspended_customer: Customer,
     admin_token: str
 ):
     """Test capture image command on device from different customer"""
+    # Mock customer with IoT Thing Group for suspended customer
+    from unittest.mock import MagicMock
+    customer_with_iot = MagicMock()
+    customer_with_iot.customer_id = suspended_customer.customer_id
+    customer_with_iot.iot_thing_group_name = "test-commands-customer-group"
+    mock_get_customer.return_value = customer_with_iot
+    
+    # Mock AWS IoT provisioning response
+    mock_provision.return_value = {
+        "thing_name": "D-COMMANDS789",
+        "thing_arn": "arn:aws:iot:region:account:thing/D-COMMANDS789",
+        "certificate_id": "test-commands-cert-id",
+        "certificate_arn": "arn:aws:iot:region:account:cert/test-commands-cert-id",
+        "certificate_path": "s3://bucket/certs/test-commands-cert-id.pem",
+        "private_key_path": "s3://bucket/keys/test-commands-cert-id.key",
+        "certificate_url": "https://s3.amazonaws.com/bucket/certs/test-commands-cert-id.pem",
+        "private_key_url": "https://s3.amazonaws.com/bucket/keys/test-commands-cert-id.key"
+    }
+    
     # Create device for different customer
     device_data = {
         "description": "Test device for different customer",
@@ -97,6 +120,7 @@ async def test_capture_image_command_unauthorized(
         headers={"Authorization": f"Bearer {admin_token}"},
         json=device_data
     )
+    assert device_response.status_code == 200
     created_device = device_response.json()
 
     # Try to send command as different customer

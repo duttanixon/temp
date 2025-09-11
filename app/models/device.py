@@ -6,10 +6,8 @@ import enum
 from app.db.async_session import Base, jst_now
 
 class DeviceStatus(str, enum.Enum):
-    CREATED = "CREATED"
     PROVISIONED = "PROVISIONED"
     ACTIVE = "ACTIVE"
-    MAINTENANCE = "MAINTENANCE"
     DECOMMISSIONED = "DECOMMISSIONED"
 
 class DeviceType(str, enum.Enum):
@@ -43,7 +41,7 @@ class Device(Base):
     firmware_version = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
     location = Column(String, nullable=True)
-    status = Column(Enum(DeviceStatus, name='device_status'), nullable=False, default=DeviceStatus.CREATED)
+    status = Column(Enum(DeviceStatus, name='device_status'), nullable=False, default=DeviceStatus.PROVISIONED)
     last_connected = Column(DateTime(timezone=True), nullable=True)
     is_online = Column(Boolean, default=False)
     configuration = Column(JSONB, nullable=True)

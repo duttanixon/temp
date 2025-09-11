@@ -242,7 +242,7 @@ class IoTCore:
             raise
 
 
-    def provision_device(self, device_id, thing_name, device_type,mac_address, customer_group_name):
+    def provision_device(self, thing_name, device_type,mac_address, customer_group_name):
         """
         Provision a new device in AWS IoT:
         1. Create a Thing
@@ -264,7 +264,6 @@ class IoTCore:
             thing_response = self.create_thing(
                 thing_name=thing_name,
                 attributes={
-                    'device_id': str(device_id),
                     'device_type': device_type,
                     'certificate_id': str(certificate_id),
                 }
@@ -361,7 +360,7 @@ class IoTCore:
             # Delete certificate files from S3
             try:
                 # Define the S3 paths for certificate and key
-                cert_path = f"certificates/{certificate_id}/{certificate_id}.pem"
+                cert_path = f"certificates/{certificate_id}/{certificate_id}_{thing_name}.pem"
                 key_path = f"certificates/{certificate_id}/{certificate_id}.key"
                 
                 # Delete certificate file

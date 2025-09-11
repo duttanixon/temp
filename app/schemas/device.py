@@ -20,6 +20,7 @@ class DeviceBase(BaseModel):
 # Properties to receive on device creation
 class DeviceCreate(DeviceBase):
     customer_id: UUID
+    mac_address: str
     ip_address: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
 

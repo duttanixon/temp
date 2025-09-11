@@ -299,7 +299,11 @@ async def test_get_human_flow_analytics_customer_no_solution_access(
     assert "does not have access" in data["detail"]
 
 @pytest.mark.asyncio
+@patch('app.crud.customer.customer.get_by_id')
+@patch('app.utils.aws_iot.iot_core.provision_device')
 async def test_get_human_flow_analytics_customer_different_device(
+    mock_provision,
+    mock_get_customer,
     client: TestClient,
     customer_admin_token: str,
     suspended_customer,
@@ -309,6 +313,25 @@ async def test_get_human_flow_analytics_customer_different_device(
     db: AsyncSession
 ):
     """Test customer user accessing device from different customer"""
+    # Mock customer with IoT Thing Group for suspended customer
+    from unittest.mock import MagicMock
+    customer_with_iot = MagicMock()
+    customer_with_iot.customer_id = suspended_customer.customer_id
+    customer_with_iot.iot_thing_group_name = "test-analytics-customer-group"
+    mock_get_customer.return_value = customer_with_iot
+    
+    # Mock AWS IoT provisioning response
+    mock_provision.return_value = {
+        "thing_name": "D-ANALYTICS123",
+        "thing_arn": "arn:aws:iot:region:account:thing/D-ANALYTICS123",
+        "certificate_id": "test-analytics-cert-id",
+        "certificate_arn": "arn:aws:iot:region:account:cert/test-analytics-cert-id",
+        "certificate_path": "s3://bucket/certs/test-analytics-cert-id.pem",
+        "private_key_path": "s3://bucket/keys/test-analytics-cert-id.key",
+        "certificate_url": "https://s3.amazonaws.com/bucket/certs/test-analytics-cert-id.pem",
+        "private_key_url": "https://s3.amazonaws.com/bucket/keys/test-analytics-cert-id.key"
+    }
+    
     # Create device for suspended customer
     device_data = {
         "description": "Device for different customer",
@@ -323,6 +346,7 @@ async def test_get_human_flow_analytics_customer_different_device(
         headers={"Authorization": f"Bearer {admin_token}"},
         json=device_data
     )
+    assert create_response.status_code == 200
     created_device = create_response.json()
     
     filters = {
@@ -907,7 +931,11 @@ async def test_get_traffic_flow_analytics_customer_no_solution_access(
     assert "does not have access" in data["detail"]
 
 @pytest.mark.asyncio
+@patch('app.crud.customer.customer.get_by_id')
+@patch('app.utils.aws_iot.iot_core.provision_device')
 async def test_get_traffic_flow_analytics_customer_different_device(
+    mock_provision,
+    mock_get_customer,
     client: TestClient,
     customer_admin_token: str,
     suspended_customer,
@@ -917,6 +945,25 @@ async def test_get_traffic_flow_analytics_customer_different_device(
     db: AsyncSession
 ):
     """Test customer user accessing device from different customer"""
+    # Mock customer with IoT Thing Group for suspended customer
+    from unittest.mock import MagicMock
+    customer_with_iot = MagicMock()
+    customer_with_iot.customer_id = suspended_customer.customer_id
+    customer_with_iot.iot_thing_group_name = "test-traffic-analytics-customer-group"
+    mock_get_customer.return_value = customer_with_iot
+    
+    # Mock AWS IoT provisioning response
+    mock_provision.return_value = {
+        "thing_name": "D-TRAFFIC456",
+        "thing_arn": "arn:aws:iot:region:account:thing/D-TRAFFIC456",
+        "certificate_id": "test-traffic-cert-id",
+        "certificate_arn": "arn:aws:iot:region:account:cert/test-traffic-cert-id",
+        "certificate_path": "s3://bucket/certs/test-traffic-cert-id.pem",
+        "private_key_path": "s3://bucket/keys/test-traffic-cert-id.key",
+        "certificate_url": "https://s3.amazonaws.com/bucket/certs/test-traffic-cert-id.pem",
+        "private_key_url": "https://s3.amazonaws.com/bucket/keys/test-traffic-cert-id.key"
+    }
+    
     # Create device for suspended customer
     device_data = {
         "description": "Device for different customer",
@@ -931,6 +978,7 @@ async def test_get_traffic_flow_analytics_customer_different_device(
         headers={"Authorization": f"Bearer {admin_token}"},
         json=device_data
     )
+    assert create_response.status_code == 200
     created_device = create_response.json()
     
     filters = {

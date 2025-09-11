@@ -643,10 +643,32 @@ async def test_get_compatible_solutions_for_nonexistent_device(client: TestClien
     assert "not found" in data["detail"]
 
 @pytest.mark.asyncio
-async def test_get_compatible_solutions_for_device_different_customer(client: TestClient, customer_admin_token: str,
+@patch('app.crud.customer.customer.get_by_id')
+@patch('app.utils.aws_iot.iot_core.provision_device')
+async def test_get_compatible_solutions_for_device_different_customer(mock_provision, mock_get_customer,
+                                                               client: TestClient, customer_admin_token: str,
                                                                suspended_customer: Customer, admin_token: str,
                                                                db: AsyncSession):
     """Test customer user attempting to get compatible solutions for a device of different customer"""
+    # Mock customer with IoT Thing Group for suspended customer
+    from unittest.mock import MagicMock
+    customer_with_iot = MagicMock()
+    customer_with_iot.customer_id = suspended_customer.customer_id
+    customer_with_iot.iot_thing_group_name = "test-solution-customer-group"
+    mock_get_customer.return_value = customer_with_iot
+    
+    # Mock AWS IoT provisioning response
+    mock_provision.return_value = {
+        "thing_name": "D-SOLUTION202",
+        "thing_arn": "arn:aws:iot:region:account:thing/D-SOLUTION202",
+        "certificate_id": "test-solution-cert-id",
+        "certificate_arn": "arn:aws:iot:region:account:cert/test-solution-cert-id",
+        "certificate_path": "s3://bucket/certs/test-solution-cert-id.pem",
+        "private_key_path": "s3://bucket/keys/test-solution-cert-id.key",
+        "certificate_url": "https://s3.amazonaws.com/bucket/certs/test-solution-cert-id.pem",
+        "private_key_url": "https://s3.amazonaws.com/bucket/keys/test-solution-cert-id.key"
+    }
+    
     # Create a device for the suspended customer
     device_data = {
         "description": "A device for different customer",
@@ -661,7 +683,7 @@ async def test_get_compatible_solutions_for_device_different_customer(client: Te
         headers={"Authorization": f"Bearer {admin_token}"},
         json=device_data
     )
-    
+    assert create_response.status_code == 200
     created_device = create_response.json()
     
     # Try to get compatible solutions as customer user

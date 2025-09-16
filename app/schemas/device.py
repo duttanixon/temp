@@ -107,3 +107,13 @@ class DeviceStatusInfo(BaseModel):
 
 class DeviceBatchStatusRequest(BaseModel):
     device_ids: List[str]
+
+
+class DeviceCertificateDownloadResponse(BaseModel):
+    """Response with device certificate download URLs"""
+    device_id: UUID
+    mac_address: Optional[str] = None
+    certificate_url: str
+    private_key_url: str
+    expires_in: int
+    expires_at: datetime

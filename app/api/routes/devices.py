@@ -11,14 +11,16 @@ from app.schemas.device import (
     DeviceUpdate,
     DeviceDetailView,
     DeviceStatusInfo,
-    DeviceBatchStatusRequest
+    DeviceBatchStatusRequest,
+    DeviceCertificateDownloadResponse
 )
 from app.utils.audit import log_action
 from app.utils.aws_iot import iot_core
 from app.utils.logger import get_logger
 from app.core.config import settings
 from botocore.exceptions import NoCredentialsError, ClientError
-from datetime import datetime
+from datetime import datetime, timedelta
+from app.utils.aws_iot import iot_core
 from zoneinfo import ZoneInfo
 from app.db.async_session import AsyncSessionLocal
 from app.schemas.audit import AuditLogActionType, AuditLogResourceType
@@ -113,8 +115,12 @@ async def create_and_provision_device(
     Create a new device and provision it in AWS IoT in one operation (Admin or Engineer only).
     Device will be created with PROVISIONED status.
     """
+    # Validate MAC address is provided (required field)
+    if not device_in.mac_address:
+        raise HTTPException(status_code=400, detail="MAC address is required")
+    
     # Validate MAC address uniqueness
-    if device_in.mac_address and await device.get_by_mac_address(db, mac_address=device_in.mac_address):
+    if await device.get_by_mac_address(db, mac_address=device_in.mac_address):
         raise HTTPException(status_code=400, detail="A device with this MAC address already exists")
 
     # Validate customer exists and has IoT Thing Group
@@ -178,6 +184,194 @@ async def create_and_provision_device(
         # If AWS provisioning fails, no database record is created (consistent state)
         logger.error(f"Error creating and provisioning device: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error creating and provisioning device: {str(e)}")
+
+
+@router.get("/certificates-for-user", response_model=DeviceCertificateDownloadResponse)
+async def download_device_certificates(
+    *,
+    db: AsyncSession = Depends(deps.get_async_db),
+    device_identifier: str,
+    current_user: User = Depends(deps.get_current_admin_or_engineer_user),
+    request: Request,
+) -> Any:
+    """
+    Download device certificates or Device ID.
+    
+    **Authentication**: Requires either:
+    - Admin user authentication (Bearer token)
+    
+    **Parameters**:
+    - `device_identifier`: Device UUID (query parameter)
+    
+    **Returns**: Download URLs for certificate and private key files
+    """
+    db_device = None
+    
+
+    try:
+        device_uuid = uuid.UUID(device_identifier)
+        db_device = await device.get_by_id(db, device_id=device_uuid)
+    except ValueError:
+        # Invalid UUID format, device not found
+        pass
+    
+    if not db_device:
+        raise HTTPException(
+            status_code=404,
+            detail="Device not found with the provided device ID"
+        )
+    
+    # Check if device has certificate information
+    if not db_device.certificate_path or not db_device.private_key_path:
+        raise HTTPException(
+            status_code=404,
+            detail="Certificate files not found for this device"
+        )
+    
+    try:
+        # Generate presigned URLs for certificate and private key
+        # Generate presigned URLs (valid for 1 hour)
+        expiration_seconds = 3600
+        
+        certificate_url = iot_core.s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': settings.S3_BUCKET_NAME, 'Key': db_device.certificate_path},
+            ExpiresIn=expiration_seconds
+        )
+        
+        private_key_url = iot_core.s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': settings.S3_BUCKET_NAME, 'Key': db_device.private_key_path},
+            ExpiresIn=expiration_seconds
+        )
+
+        expires_at = datetime.now(ZoneInfo("Asia/Tokyo")) + timedelta(seconds=expiration_seconds)
+
+        # Log the certificate download action
+        user_id = current_user.user_id if current_user else None
+        details = {
+            "device_identifier": device_identifier,
+            "mac_address": db_device.mac_address,
+            "authentication_method": "admin_token",
+            "device_name": db_device.name
+        }
+        
+        await log_action(
+            db=db,
+            user_id=user_id,
+            action_type=AuditLogActionType.DOWNLOAD_CERTIFICATE,
+            resource_type=AuditLogResourceType.DEVICE,
+            resource_id=str(db_device.device_id),
+            details=details,
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent")
+        )
+        
+        return DeviceCertificateDownloadResponse(
+            device_id=db_device.device_id,
+            mac_address=db_device.mac_address,
+            certificate_url=certificate_url,
+            private_key_url=private_key_url,
+            expires_in=expiration_seconds,
+            expires_at=expires_at
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating certificate download URLs for device {device_identifier}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating certificate download URLs: {str(e)}"
+        )
+
+@router.get("/certificates-for-devices", response_model=DeviceCertificateDownloadResponse)
+async def download_device_certificates_for_edge_use(
+    *,
+    db: AsyncSession = Depends(deps.get_async_db),
+    device_identifier: str,
+    access_verified: bool = Depends(deps.verify_api_key),
+    request: Request,
+) -> Any:
+    """
+    Download device certificates by MAC address
+    
+    **Authentication**: Requires either:
+    - Admin user authentication (Bearer token)
+    
+    **Parameters**:
+    - `device_identifier`: Device MAC address
+    
+    **Returns**: Download URLs for certificate and private key files
+    """
+    db_device = None
+    
+    # Try to find device by MAC address first, then by device ID
+    db_device = await device.get_by_mac_address(db, mac_address=device_identifier)
+    
+    if not db_device:
+        raise HTTPException(
+            status_code=404,
+            detail="Device not found with the provided MAC address"
+        )
+    
+    # Check if device has certificate information
+    if not db_device.certificate_path or not db_device.private_key_path:
+        raise HTTPException(
+            status_code=404,
+            detail="Certificate files not found for this device"
+        )
+    
+    try:
+        # Generate presigned URLs for certificate and private key
+        # Generate presigned URLs (valid for 1 hour)
+        expiration_seconds = 3600
+        
+        certificate_url = iot_core.s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': settings.S3_BUCKET_NAME, 'Key': db_device.certificate_path},
+            ExpiresIn=expiration_seconds
+        )
+        
+        private_key_url = iot_core.s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': settings.S3_BUCKET_NAME, 'Key': db_device.private_key_path},
+            ExpiresIn=expiration_seconds
+        )
+
+        expires_at = datetime.now(ZoneInfo("Asia/Tokyo")) + timedelta(seconds=expiration_seconds)
+
+        # Log the certificate download action
+        details = {
+            "device_identifier": device_identifier,
+            "mac_address": db_device.mac_address,
+            "authentication_method": "api_key"
+        }
+        
+        await log_action(
+            db=db,
+            user_id=None,
+            action_type=AuditLogActionType.DOWNLOAD_CERTIFICATE,
+            resource_type=AuditLogResourceType.DEVICE,
+            resource_id=str(db_device.device_id),
+            details=details,
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent")
+        )
+        
+        return DeviceCertificateDownloadResponse(
+            device_id=db_device.device_id,
+            mac_address=db_device.mac_address,
+            certificate_url=certificate_url,
+            private_key_url=private_key_url,
+            expires_in=expiration_seconds,
+            expires_at=expires_at
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating certificate download URLs for device {device_identifier}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating certificate download URLs: {str(e)}"
+        )
 
 
 @router.get("/{device_id}", response_model=DeviceDetailView)

@@ -7,7 +7,7 @@ from typing import Dict
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.models.audit_log import AuditLog
 from app.models import Device, DeviceStatus, DeviceType,  Customer, User, Solution, DeviceSolution
@@ -1118,3 +1118,431 @@ async def test_preview_device_deletion_no_permission(client: TestClient, custome
     data = response.json()
     assert "detail" in data
     assert "enough privileges" in data["detail"]
+
+# Test cases for device certificate download (GET /devices/{device_identifier}/certificates)
+@pytest.mark.asyncio
+async def test_download_device_certificates_by_device_id_admin(client: TestClient, admin_token: str, db: AsyncSession, customer: Customer):
+    """Test admin downloading device certificates by device ID"""
+    # Create a test device with certificate information
+    test_device = Device(
+        name="Test Device 2",
+        mac_address="12:22:33:44:55:66",
+        device_type=DeviceType.RASPBERRY_PI,
+        status=DeviceStatus.ACTIVE,
+        customer_id=customer.customer_id,
+        thing_name="test-thing-2",
+        certificate_id="test-cert-id-2",
+        certificate_arn="arn:aws:iot:region:account:cert/test-cert-id-2",
+        certificate_path="certificates/test-cert-id-2.pem",
+        private_key_path="private-keys/test-cert-id-2.key"
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    # Mock the S3 client
+    with patch('app.utils.aws_iot.iot_core.s3_client') as mock_s3_client:
+        mock_s3_client.generate_presigned_url.return_value = "https://s3.amazonaws.com/test-bucket/test-path-2"
+        
+        response = client.get(
+            f"{settings.API_V1_STR}/devices/certificates-for-user",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            params={"device_identifier": str(test_device.device_id)}
+        )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Verify response values
+    assert str(data["device_id"]) == str(test_device.device_id)
+    assert data["mac_address"] == test_device.mac_address
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_device_not_found_by_id(client: TestClient, admin_token: str):
+    """Test downloading certificates for non-existent device by device ID"""
+    fake_device_id = str(uuid.uuid4())
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-user",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        params={"device_identifier": fake_device_id}
+    )
+    
+    # Check response
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Device not found with the provided device ID" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_invalid_device_identifier(client: TestClient, admin_token: str):
+    """Test downloading certificates with invalid device identifier"""
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-user",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        params={"device_identifier": "invalid-identifier"}
+    )
+    
+    # Check response
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Device not found with the provided device ID" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_no_certificate_path(client: TestClient, admin_token: str, db: AsyncSession):
+    """Test downloading certificates for device without certificate paths"""
+    
+    test_device = Device(
+        name="Test Device No Cert",
+        mac_address="AA:BB:CC:DD:EE:22",
+        device_type=DeviceType.NVIDIA_JETSON,
+        status=DeviceStatus.PROVISIONED,
+        customer_id=uuid.uuid4(),
+        thing_name="test-thing-no-cert",
+        certificate_path=None,  # No certificate path
+        private_key_path=None   # No private key path
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-user",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        params={"device_identifier": str(test_device.device_id)}
+    )
+    
+    # Check response
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Certificate files not found for this device" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_no_private_key_path(client: TestClient, admin_token: str, db: AsyncSession):
+    """Test downloading certificates for device without private key path"""
+    # Create a test device with only certificate path
+    from app.models.device import Device, DeviceStatus, DeviceType
+    
+    test_device = Device(
+        name="Test Device No Key",
+        mac_address="AA:BB:CC:DD:EE:33",
+        device_type=DeviceType.NVIDIA_JETSON,
+        status=DeviceStatus.PROVISIONED,
+        customer_id=uuid.uuid4(),
+        thing_name="test-thing-no-key",
+        certificate_path="certificates/test-cert.pem",
+        private_key_path=None   # No private key path
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-user",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        params={"device_identifier": str(test_device.device_id)}
+    )
+    
+    # Check response
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Certificate files not found for this device" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_s3_error(client: TestClient, admin_token: str, db: AsyncSession):
+    """Test downloading certificates when S3 generates an error"""
+    # Create a test device with certificate information
+    
+    test_device = Device(
+        name="Test Device S3 Error",
+        mac_address="AA:BB:CC:DD:EE:44",
+        device_type=DeviceType.NVIDIA_JETSON,
+        status=DeviceStatus.ACTIVE,
+        customer_id=uuid.uuid4(),
+        thing_name="test-thing-s3-error",
+        certificate_id="test-cert-id-error",
+        certificate_path="certificates/test-cert-error.pem",
+        private_key_path="private-keys/test-cert-error.key"
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    # Mock the S3 client to raise an exception
+    with patch('app.utils.aws_iot.iot_core.s3_client') as mock_s3_client:
+        mock_s3_client.generate_presigned_url.side_effect = Exception("S3 connection error")
+        
+        response = client.get(
+            f"{settings.API_V1_STR}/devices/certificates-for-user",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            params={"device_identifier": str(test_device.device_id)}
+        )
+    
+    # Check response
+    assert response.status_code == 500
+    data = response.json()
+    assert "detail" in data
+    assert "Error generating certificate download URLs" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_no_authentication(client: TestClient, db: AsyncSession):
+    """Test downloading certificates without authentication"""
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-user"
+    )
+    
+    # Check response
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_customer_admin_forbidden(client: TestClient, customer_admin_token: str, db: AsyncSession):
+    """Test customer admin trying to download certificates (should be forbidden)"""
+    
+    test_device = Device(
+        name="Test Device Customer",
+        mac_address="AA:BB:CC:DD:EE:55",
+        device_type=DeviceType.NVIDIA_JETSON,
+        status=DeviceStatus.ACTIVE,
+        customer_id=uuid.uuid4(),
+        thing_name="test-thing-customer",
+        certificate_path="certificates/test-cert-customer.pem",
+        private_key_path="private-keys/test-cert-customer.key"
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-user",
+        headers={"Authorization": f"Bearer {customer_admin_token}"},
+        params={"device_identifier": str(test_device.device_id)}
+    )
+    
+    # Check response - should be forbidden since customer admin doesn't have admin privileges
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+
+# Test cases for download_device_certificates_for_edge_use endpoint (GET /devices/certificates-for-devices)
+@pytest.mark.asyncio
+async def test_download_device_certificates_for_edge_use_success(client: TestClient, db: AsyncSession, customer: Customer):
+    """Test successful device certificate download for edge use by MAC address"""
+    # Create a test device with certificate information
+    test_device = Device(
+        name="Edge Test Device",
+        mac_address="A1:BB:CC:DD:EE:FF",
+        device_type=DeviceType.RASPBERRY_PI,
+        status=DeviceStatus.ACTIVE,
+        customer_id=customer.customer_id,
+        thing_name="edge-test-thing",
+        certificate_id="edge-test-cert-id",
+        certificate_arn="arn:aws:iot:region:account:cert/edge-test-cert-id",
+        certificate_path="certificates/edge-test-cert.pem",
+        private_key_path="private-keys/edge-test-cert.key"
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    # Mock the S3 client
+    with patch('app.utils.aws_iot.iot_core.s3_client') as mock_s3_client:
+        mock_s3_client.generate_presigned_url.return_value = "https://s3.amazonaws.com/test-bucket/test-path-2"
+        
+        response = client.get(
+            f"{settings.API_V1_STR}/devices/certificates-for-devices",
+            headers={"x-api-key": settings.INTERNAL_API_KEY},
+            params={"device_identifier": test_device.mac_address}
+        )
+        print(response.json())
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Verify response values
+    assert str(data["device_id"]) == str(test_device.device_id)
+    assert data["mac_address"] == test_device.mac_address
+    assert "certificate_url" in data
+    assert "private_key_url" in data
+    assert "expires_in" in data
+    assert "expires_at" in data
+    
+    # Verify S3 client was called correctly
+    assert mock_s3_client.generate_presigned_url.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_for_edge_use_device_not_found(client: TestClient):
+    """Test device certificate download when device is not found by MAC address"""
+    with patch('app.api.deps.verify_api_key') as mock_verify_api_key:
+        mock_verify_api_key.return_value = None
+        
+        response = client.get(
+            f"{settings.API_V1_STR}/devices/certificates-for-devices",
+            headers={"x-api-key": settings.INTERNAL_API_KEY},
+            params={"device_identifier": "FF:FF:FF:FF:FF:FF"}
+        )
+    
+    # Check response
+    assert response.status_code == 404
+    data = response.json()
+    assert "Device not found with the provided MAC address" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_for_edge_use_no_certificate_path(client: TestClient, db: AsyncSession, customer: Customer):
+    """Test device certificate download when device has no certificate path"""
+    # Create a test device without certificate information
+    test_device = Device(
+        name="Device No Cert Path",
+        mac_address="11:22:33:44:55:77",
+        device_type=DeviceType.NVIDIA_JETSON,
+        status=DeviceStatus.ACTIVE,
+        customer_id=customer.customer_id,
+        thing_name="no-cert-path-thing",
+        certificate_path=None,  # No certificate path
+        private_key_path="private-keys/test-key.key"
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    with patch('app.api.deps.verify_api_key') as mock_verify_api_key:
+        mock_verify_api_key.return_value = None
+        
+        response = client.get(
+            f"{settings.API_V1_STR}/devices/certificates-for-devices",
+            headers={"x-api-key": settings.INTERNAL_API_KEY},
+            params={"device_identifier": test_device.mac_address}
+        )
+    
+    # Check response
+    assert response.status_code == 404
+    data = response.json()
+    assert "Certificate files not found for this device" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_for_edge_use_no_private_key_path(client: TestClient, db: AsyncSession, customer: Customer):
+    """Test device certificate download when device has no private key path"""
+    # Create a test device without private key information
+    test_device = Device(
+        name="Device No Key Path",
+        mac_address="22:33:44:55:66:88",
+        device_type=DeviceType.RASPBERRY_PI,
+        status=DeviceStatus.ACTIVE,
+        customer_id=customer.customer_id,
+        thing_name="no-key-path-thing",
+        certificate_path="certificates/test-cert.pem",
+        private_key_path=None  # No private key path
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    with patch('app.api.deps.verify_api_key') as mock_verify_api_key:
+        mock_verify_api_key.return_value = None
+        
+        response = client.get(
+            f"{settings.API_V1_STR}/devices/certificates-for-devices",
+            headers={"x-api-key": settings.INTERNAL_API_KEY},
+            params={"device_identifier": test_device.mac_address}
+        )
+    
+    # Check response
+    assert response.status_code == 404
+    data = response.json()
+    assert "Certificate files not found for this device" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_for_edge_use_s3_error(client: TestClient, db: AsyncSession, customer: Customer):
+    """Test device certificate download when S3 operation fails"""
+    # Create a test device with certificate information
+    test_device = Device(
+        name="S3 Error Device",
+        mac_address="33:44:55:66:77:99",
+        device_type=DeviceType.RASPBERRY_PI,
+        status=DeviceStatus.ACTIVE,
+        customer_id=customer.customer_id,
+        thing_name="s3-error-thing",
+        certificate_path="certificates/s3-error-cert.pem",
+        private_key_path="private-keys/s3-error-key.key"
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    # Mock S3 client to raise an exception
+    with patch('app.utils.aws_iot.iot_core.s3_client') as mock_s3_client, \
+         patch('app.api.deps.verify_api_key') as mock_verify_api_key:
+        
+        mock_s3_client.generate_presigned_url.side_effect = Exception("S3 connection failed")
+        mock_verify_api_key.return_value = None
+        
+        response = client.get(
+            f"{settings.API_V1_STR}/devices/certificates-for-devices",
+            headers={"x-api-key": settings.INTERNAL_API_KEY},
+            params={"device_identifier": test_device.mac_address}
+        )
+    
+    # Check response
+    assert response.status_code == 500
+    data = response.json()
+    assert "Error generating certificate download URLs" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_for_edge_use_no_authentication(client: TestClient, db: AsyncSession, customer: Customer):
+    """Test device certificate download without authentication (API key)"""
+    # Create a test device
+    test_device = Device(
+        name="Auth Test Device",
+        mac_address="44:55:66:77:88:AA",
+        device_type=DeviceType.RASPBERRY_PI,
+        status=DeviceStatus.ACTIVE,
+        customer_id=customer.customer_id,
+        thing_name="auth-test-thing",
+        certificate_path="certificates/auth-test-cert.pem",
+        private_key_path="private-keys/auth-test-key.key"
+    )
+    db.add(test_device)
+    await db.commit()
+    await db.refresh(test_device)
+    
+    # Make request without mocking API key verification (should fail)
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-devices",
+        params={"device_identifier": test_device.mac_address}
+    )
+    
+    # Check response - should be unauthorized
+    assert response.status_code in  [401]  # Depending on how API key auth is implemented
+
+
+@pytest.mark.asyncio
+async def test_download_device_certificates_for_edge_use_missing_device_identifier(client: TestClient):
+    """Test device certificate download without providing device_identifier parameter"""
+        
+    response = client.get(
+        f"{settings.API_V1_STR}/devices/certificates-for-devices",
+        headers={"x-api-key": settings.INTERNAL_API_KEY}
+        # No params provided
+    )
+    
+    # Check response - should be a validation error
+    assert response.status_code == 422
+    data = response.json()
+    assert "detail" in data

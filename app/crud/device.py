@@ -163,10 +163,14 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
     
     async def activate(self, db: AsyncSession, *, device_id: uuid.UUID) -> Device:
         return await self.update_device_status(
+            db, device_id=device_id, status=DeviceStatus.ACTIVE
+        )
+
+    async def provision(self, db: AsyncSession, *, device_id: uuid.UUID) -> Device:
+        return await self.update_device_status(
             db, device_id=device_id, status=DeviceStatus.PROVISIONED
         )
 
-    
     async def update_cloud_info(
         self, 
         db: AsyncSession, 

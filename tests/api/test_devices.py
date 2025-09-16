@@ -487,14 +487,14 @@ async def test_decommission_device_no_permission(client: TestClient, customer_ad
 # Test cases for activating a device (POST /devices/{device_id}/activate)
 @pytest.mark.asyncio
 @patch('app.crud.device.device.activate')
-async def test_activate_device(mock_activate, client: TestClient, db: AsyncSession, admin_token: str, device: Device):
-    """Test activating a device"""
+async def test_activate_device(mock_activate, client: TestClient, db: AsyncSession, admin_token: str, provisioned_device: Device):
+    """Test activating a provisioned device"""
     # Mock the database operation for activation
     mock_activate.return_value = Device(
-        device_id=device.device_id,
-        name=device.name,
-        customer_id=device.customer_id,
-        device_type=device.device_type,
+        device_id=provisioned_device.device_id,
+        name=provisioned_device.name,
+        customer_id=provisioned_device.customer_id,
+        device_type=provisioned_device.device_type,
         status=DeviceStatus.ACTIVE,
         is_online=True,                         
         created_at=datetime.now(),      
@@ -502,7 +502,7 @@ async def test_activate_device(mock_activate, client: TestClient, db: AsyncSessi
     )
     
     response = client.post(
-        f"{settings.API_V1_STR}/devices/{device.device_id}/activate",
+        f"{settings.API_V1_STR}/devices/{provisioned_device.device_id}/activate",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     
@@ -515,10 +515,83 @@ async def test_activate_device(mock_activate, client: TestClient, db: AsyncSessi
     mock_activate.assert_called_once()
 
 @pytest.mark.asyncio
+async def test_activate_device_invalid_status(client: TestClient, admin_token: str, active_device: Device):
+    """Test activating a device that is not in PROVISIONED status"""
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/activate",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be bad request
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "Only devices with PROVISIONED status can be activated" in data["detail"]
+
+@pytest.mark.asyncio
 async def test_activate_device_no_permission(client: TestClient, customer_admin_token: str, device: Device):
     """Test customer user attempting to activate a device (no permission)"""
     response = client.post(
         f"{settings.API_V1_STR}/devices/{device.device_id}/activate",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "enough privileges" in data["detail"]
+
+
+# Test cases for provisioning a device (POST /devices/{device_id}/provision)
+@pytest.mark.asyncio
+@patch('app.crud.device.device.provision')
+async def test_provision_device(mock_provision, client: TestClient, db: AsyncSession, admin_token: str, active_device: Device):
+    """Test provisioning an active device back to provisioned state"""
+    # Mock the database operation for provisioning
+    mock_provision.return_value = Device(
+        device_id=active_device.device_id,
+        name=active_device.name,
+        customer_id=active_device.customer_id,
+        device_type=active_device.device_type,
+        status=DeviceStatus.PROVISIONED,
+        is_online=True,                         
+        created_at=datetime.now(),      
+        updated_at=datetime.now()
+    )
+    
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/provision",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "PROVISIONED"
+    
+    # Verify function was called
+    mock_provision.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_provision_device_invalid_status(client: TestClient, admin_token: str, provisioned_device: Device):
+    """Test provisioning a device that is not in ACTIVE status"""
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/{provisioned_device.device_id}/provision",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be bad request
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "Only devices with ACTIVE status can be sent back to provision state" in data["detail"]
+
+@pytest.mark.asyncio
+async def test_provision_device_no_permission(client: TestClient, customer_admin_token: str, active_device: Device):
+    """Test customer user attempting to provision a device (no permission)"""
+    response = client.post(
+        f"{settings.API_V1_STR}/devices/{active_device.device_id}/provision",
         headers={"Authorization": f"Bearer {customer_admin_token}"}
     )
     

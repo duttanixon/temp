@@ -570,8 +570,15 @@ async def activate_device(
     request: Request,
 ) -> Any:
     """
-    Activate a provisioned or inactive device (Admin or Engineer only).
+    Activate a provisioned device (Admin or Engineer only).
     """
+    # Check if device is in PROVISIONED status
+    if db_device.status != DeviceStatus.PROVISIONED:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Only devices with PROVISIONED status can be activated. Current status: {db_device.status}"
+        )
+    
     activated_device = await device.activate(db, device_id=db_device.device_id)
     
     await log_action(
@@ -582,6 +589,31 @@ async def activate_device(
     
     return activated_device
 
+@router.post("/{device_id}/provision", response_model=DeviceSchema)
+async def provision_device(
+    *,
+    db: AsyncSession = Depends(deps.get_async_db),
+    db_device: DeviceModel = Depends(get_device_and_check_access),
+    current_user: User = Depends(deps.get_current_admin_or_engineer_user),
+    request: Request,
+) -> Any:
+    """
+    get back to provision an activated device (Admin or Engineer only).
+    """
+    # Check if device is in ACTIVE status
+    if db_device.status != DeviceStatus.ACTIVE:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Only devices with ACTIVE status can be sent back to provision state. Current status: {db_device.status}"
+        )
+    
+    provisioned_device = await device.provision(db, device_id=db_device.device_id)
+    await log_action(
+        db=db, user_id=current_user.user_id, action_type=AuditLogActionType.DEVICE_PROVISION,
+        resource_type=AuditLogResourceType.DEVICE, resource_id=str(db_device.device_id),
+        ip_address=request.client.host, user_agent=request.headers.get("user-agent")
+    )
+    return provisioned_device
 
 @router.get("/compatible/solution/{solution_id}/customer/{customer_id}", response_model=List[DeviceSchema])
 async def get_compatible_devices_for_solution_by_customer(

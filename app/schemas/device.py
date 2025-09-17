@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel
 
-from app.models import DeviceStatus, DeviceType, DeviceSolutionStatus
+from app.models import DeviceStatus, DeviceType
 
 # Base Device Schema (shared properties)
 class DeviceBase(BaseModel):
@@ -79,7 +79,6 @@ class DeviceWithSolutionView(DeviceAdminView):
     """Extended device view with current solution information"""
     current_solution_id: Optional[UUID] = None
     current_solution_name: Optional[str] = None
-    current_solution_status: Optional[DeviceSolutionStatus] = None
     deployment_id: Optional[UUID] = None
     
     class Config:

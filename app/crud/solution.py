@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 from app.crud.base import CRUDBase
-from app.models import DeviceSolution, CustomerSolution, Solution, SolutionStatus
+from app.models import DeviceSolution, CustomerSolution, Solution
 from app.schemas.solution import SolutionCreate, SolutionUpdate
 import uuid
 
@@ -19,16 +19,6 @@ class CRUDSolution(CRUDBase[Solution, SolutionCreate, SolutionUpdate]):
         """Get multiple solutions by their IDs."""
         result = await db.execute(select(Solution).filter(Solution.solution_id.in_(ids)))
         return list(result.scalars().all())
-
-    async def get_active(self, db: AsyncSession, *, skip: int = 0, limit: int = 100) -> List[Solution]:
-        """Get all active solutions"""
-        result = await db.execute(
-            select(Solution)
-            .filter(Solution.status == SolutionStatus.ACTIVE)
-            .offset(skip).limit(limit)
-        )
-        return list(result.scalars().all())
-
     
     async def get_compatible_with_device_type(self, db: AsyncSession, *, device_type: str, skip: int = 0, limit: int = 100) -> List[Solution]:
         """Get solutions compatible with a specific device type"""
@@ -68,23 +58,5 @@ class CRUDSolution(CRUDBase[Solution, SolutionCreate, SolutionUpdate]):
         
         return result
 
-    
-    async def deprecate(self, db: AsyncSession, *, solution_id: uuid.UUID) -> Solution:
-        """Mark a solution as deprecated"""
-        solution_obj = await self.get_by_id(db, solution_id=solution_id)
-        if solution_obj:
-            solution_obj.status = SolutionStatus.DEPRECATED
-            await db.commit()
-            await db.refresh(solution_obj)
-        return solution_obj
-
-    async def activate(self, db: AsyncSession, *, solution_id: uuid.UUID) -> Solution:
-        """Mark a solution as active"""
-        solution_obj = await self.get_by_id(db, solution_id=solution_id)
-        if solution_obj:
-            solution_obj.status = SolutionStatus.ACTIVE
-            await db.commit()
-            await db.refresh(solution_obj)
-        return solution_obj
 
 solution = CRUDSolution(Solution)

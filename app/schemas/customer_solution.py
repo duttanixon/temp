@@ -10,7 +10,6 @@ class CustomerSolutionBase(BaseModel):
     customer_id: UUID
     solution_id: UUID
     license_status: Optional[LicenseStatus] = LicenseStatus.ACTIVE
-    max_devices: Optional[int] = 100
     expiration_date: Optional[date] = None
     configuration_template: Optional[Dict[str, Any]] = None
 # Properties to receive on customer solution creation
@@ -21,7 +20,6 @@ class CustomerSolutionCreate(CustomerSolutionBase):
 # Properties to receive on customer solution update
 class CustomerSolutionUpdate(BaseModel):
     license_status: Optional[LicenseStatus] = None
-    max_devices: Optional[int] = None
     expiration_date: Optional[date] = None
 
 # Properties to return to client

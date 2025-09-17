@@ -120,8 +120,7 @@ async def add_solution_to_customer(
             "customer_id": str(customer_obj.customer_id),
             "customer_name": customer_obj.name,
             "solution_id": str(solution_obj.solution_id),
-            "solution_name": solution_obj.name,
-            "max_devices": new_customer_solution.max_devices
+            "solution_name": solution_obj.name
         },
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")
@@ -298,7 +297,6 @@ async def remove_specific_customer_solution(
     request: Request,
 ) -> Any:
     """
-    バックエンド用のAPI
     Remove a solution from a customer.
     This will also check if the solution is deployed to any of the customer's devices.
     """
@@ -314,7 +312,15 @@ async def remove_specific_customer_solution(
         )
     
     # Check if solution is deployed to any devices
-    # (same code as before to check deployments)
+    deployed_devices_count = await customer_solution.count_deployed_devices(
+        db, customer_id=customer_id, solution_id=solution_id
+    )
+    
+    if deployed_devices_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot remove solution: it is currently deployed to {deployed_devices_count} device(s) belonging to this customer. Please remove the solution from all devices first."
+        )
     
     # Remove the customer solution
     removed_cs = await customer_solution.remove(db, id=cs.id)

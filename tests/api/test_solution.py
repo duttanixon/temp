@@ -79,24 +79,6 @@ async def test_get_solutions_filter_by_device_type(client: TestClient, admin_tok
     for solution in data:
         assert "NVIDIA_JETSON" in solution["compatibility"]
 
-
-@pytest.mark.asyncio
-async def test_get_solutions_filter_active_only(client: TestClient, admin_token: str):
-    """Test getting only active solutions"""
-    response = client.get(
-        f"{settings.API_V1_STR}/solutions?active_only=true",
-        headers={"Authorization": f"Bearer {admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    
-    # Verify all returned solutions have active status
-    for solution in data:
-        assert solution["status"] == "ACTIVE"
-
 @pytest.mark.asyncio
 async def test_get_solutions_invalid_device_type(client: TestClient, admin_token: str):
     """Test filtering with invalid device type"""
@@ -476,117 +458,6 @@ async def test_update_solution_non_admin(client: TestClient, customer_admin_toke
     assert "detail" in data
     assert "enough privileges" in data["detail"]
 
-
-# Test cases for deprecating solution (POST /solutions/{solution_id}/deprecate)
-@pytest.mark.asyncio
-async def test_deprecate_solution(client: TestClient, db: AsyncSession, admin_token: str):
-    """Test deprecating a solution"""
-    # Get an active solution
-    result = await db.execute(select(Solution).filter(Solution.status == SolutionStatus.ACTIVE))
-    solution = result.scalars().first()
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/solutions/{solution.solution_id}/deprecate",
-        headers={"Authorization": f"Bearer {admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "DEPRECATED"
-    
-    # Verify database update
-    await db.commit()
-    result = await db.execute(select(Solution).filter(Solution.solution_id == solution.solution_id))
-    deprecated_solution = result.scalars().first()
-    assert deprecated_solution.status == SolutionStatus.DEPRECATED
-    
-    # Verify audit log
-    result = await db.execute(select(AuditLog).filter(
-        AuditLog.action_type == "SOLUTION_DEPRECATE",
-        AuditLog.resource_id == str(solution.solution_id)
-    ))
-    audit_log = result.scalars().first()
-    assert audit_log is not None
-
-
-@pytest.mark.asyncio
-async def test_deprecate_solution_non_admin(client: TestClient, customer_admin_token: str, db: AsyncSession):
-    """Test non-admin attempting to deprecate a solution"""
-    # Get a solution ID from database
-    result = await db.execute(select(Solution).filter(Solution.name == "Test Solution"))
-    solution = result.scalars().first()
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/solutions/{solution.solution_id}/deprecate",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response - should be forbidden
-    assert response.status_code == 403
-    data = response.json()
-    assert "detail" in data
-    assert "enough privileges" in data["detail"]
-
-# Test cases for activating solution (POST /solutions/{solution_id}/activate)
-@pytest.mark.asyncio
-async def test_activate_solution(client: TestClient, db: AsyncSession, admin_token: str):
-    """Test activating a deprecated solution"""
-    # First deprecate a solution
-    result = await db.execute(select(Solution).filter(Solution.status == SolutionStatus.ACTIVE))
-    solution = result.scalars().first()
-    
-    # Use the API to deprecate it
-    response = client.post(
-        f"{settings.API_V1_STR}/solutions/{solution.solution_id}/deprecate",
-        headers={"Authorization": f"Bearer {admin_token}"}
-    )
-    assert response.status_code == 200
-    
-    # Now try to activate it
-    response = client.post(
-        f"{settings.API_V1_STR}/solutions/{solution.solution_id}/activate",
-        headers={"Authorization": f"Bearer {admin_token}"}
-    )
-    
-    # Check response
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "ACTIVE"
-    
-    # Verify database update
-    await db.commit()
-    result = await db.execute(select(Solution).filter(Solution.solution_id == solution.solution_id))
-    activated_solution = result.scalars().first()
-    assert activated_solution.status == SolutionStatus.ACTIVE
-    
-    # Verify audit log
-    result = await db.execute(select(AuditLog).filter(
-        AuditLog.action_type == "SOLUTION_ACTIVATE",
-        AuditLog.resource_id == str(solution.solution_id)
-    ))
-    audit_log = result.scalars().first()
-    assert audit_log is not None
-
-
-@pytest.mark.asyncio
-async def test_activate_solution_non_admin(client: TestClient, customer_admin_token: str, db: AsyncSession):
-    """Test non-admin attempting to activate a solution"""
-    # Get a solution ID from database
-    result = await db.execute(select(Solution).filter(Solution.name == "Beta Solution"))
-    solution = result.scalars().first()
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/solutions/{solution.solution_id}/activate",
-        headers={"Authorization": f"Bearer {customer_admin_token}"}
-    )
-    
-    # Check response - should be forbidden
-    assert response.status_code == 403
-    data = response.json()
-    assert "detail" in data
-    assert "enough privileges" in data["detail"]
-
 # Test cases for compatible solutions for device (GET /solutions/compatibility/device/{device_id})
 @pytest.mark.asyncio
 async def test_get_compatible_solutions_for_device_admin(client: TestClient, admin_token: str, device: Device):
@@ -625,7 +496,6 @@ async def test_get_compatible_solutions_for_device_customer_user(client: TestCli
     # Verify returned solutions are compatible with the device type and available to the customer
     for solution in data:
         assert device.device_type.value in solution["compatibility"]
-        assert solution["status"] == "ACTIVE"
 
 @pytest.mark.asyncio
 async def test_get_compatible_solutions_for_nonexistent_device(client: TestClient, admin_token: str):
@@ -856,3 +726,177 @@ async def test_get_invalid_solution_id(client: TestClient, admin_token: str):
     data = response.json()
     assert "detail" in data
     assert "not found" in data["detail"]
+
+# =============================================================================
+# Test cases for solution deletion (DELETE /solutions/{solution_id})
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_delete_solution_admin_success(client: TestClient, admin_token: str, db: AsyncSession):
+    """Test admin successfully deleting a solution with no customer assignments"""
+    # Create a solution with no customer assignments
+    solution_data = {
+        "name": "Test Solution To Delete",
+        "description": "A solution that can be safely deleted",
+        "version": "1.0.0",
+        "compatibility": ["NVIDIA_JETSON"],
+        "status": "ACTIVE"
+    }
+    
+    # Create the solution
+    create_response = client.post(
+        f"{settings.API_V1_STR}/solutions",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=solution_data
+    )
+    assert create_response.status_code == 200
+    created_solution = create_response.json()
+    solution_id = created_solution["solution_id"]
+    
+    # Delete the solution
+    delete_response = client.delete(
+        f"{settings.API_V1_STR}/solutions/{solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response
+    assert delete_response.status_code == 200
+    data = delete_response.json()
+    assert str(data["solution_id"]) == solution_id
+    assert data["name"] == "Test Solution To Delete"
+    
+    # Verify solution is actually deleted
+    get_response = client.get(
+        f"{settings.API_V1_STR}/solutions/{solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert get_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_solution_with_customer_assignments(client: TestClient, admin_token: str, 
+                                                       solution: Solution, test_customer_solution: CustomerSolution):
+    """Test deleting a solution that has customer assignments should fail"""
+    response = client.delete(
+        f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be bad request
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "Cannot delete solution" in data["detail"]
+    assert "assigned to" in data["detail"]
+    assert "customer(s)" in data["detail"]
+    assert "remove all customer assignments first" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_delete_nonexistent_solution(client: TestClient, admin_token: str):
+    """Test deleting a non-existent solution"""
+    nonexistent_id = uuid.uuid4()
+    response = client.delete(
+        f"{settings.API_V1_STR}/solutions/{nonexistent_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be not found
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "Solution not found" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_delete_solution_non_admin(client: TestClient, engineer_token: str, solution: Solution):
+    """Test non-admin attempting to delete a solution"""
+    response = client.delete(
+        f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
+        headers={"Authorization": f"Bearer {engineer_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "enough privileges" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_delete_solution_customer_admin(client: TestClient, customer_admin_token: str, solution: Solution):
+    """Test customer admin attempting to delete a solution"""
+    response = client.delete(
+        f"{settings.API_V1_STR}/solutions/{solution.solution_id}",
+        headers={"Authorization": f"Bearer {customer_admin_token}"}
+    )
+    
+    # Check response - should be forbidden
+    assert response.status_code == 403
+    data = response.json()
+    assert "detail" in data
+    assert "enough privileges" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_delete_solution_unauthenticated(client: TestClient, solution: Solution):
+    """Test unauthenticated user attempting to delete a solution"""
+    response = client.delete(
+        f"{settings.API_V1_STR}/solutions/{solution.solution_id}"
+    )
+    
+    # Check response - should be unauthorized
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_solution_audit_log(client: TestClient, admin_token: str, db: AsyncSession):
+    """Test that solution deletion creates an audit log entry"""
+    # Create a solution
+    solution_data = {
+        "name": "Audit Test Solution",
+        "description": "A solution for testing audit logging",
+        "compatibility": ["RASPBERRY_PI"],
+    }
+    
+    create_response = client.post(
+        f"{settings.API_V1_STR}/solutions",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json=solution_data
+    )
+    assert create_response.status_code == 200
+    created_solution = create_response.json()
+    solution_id = created_solution["solution_id"]
+    
+    # Delete the solution
+    delete_response = client.delete(
+        f"{settings.API_V1_STR}/solutions/{solution_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert delete_response.status_code == 200
+    
+    # Check audit log
+    result = await db.execute(
+        select(AuditLog).filter(
+            AuditLog.action_type == "SOLUTION_DELETE",
+            AuditLog.resource_id == solution_id
+        )
+    )
+    audit_entry = result.scalars().first()
+    assert audit_entry is not None
+    assert audit_entry.resource_type == "SOLUTION"
+    assert audit_entry.details is not None
+    assert "solution_name" in audit_entry.details
+    assert audit_entry.details["solution_name"] == "Audit Test Solution"
+
+
+@pytest.mark.asyncio
+async def test_delete_solution_invalid_uuid(client: TestClient, admin_token: str):
+    """Test deleting a solution with invalid UUID format"""
+    response = client.delete(
+        f"{settings.API_V1_STR}/solutions/invalid-uuid",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    
+    # Check response - should be validation error
+    assert response.status_code == 422

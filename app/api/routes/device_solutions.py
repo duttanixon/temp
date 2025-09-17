@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import device_solution, device, solution, customer_solution
-from app.models import User, UserRole, DeviceSolution, Device, Customer
+from app.models import User, UserRole
 from app.schemas.device_solution import (
     DeviceSolution as DeviceSolutionSchema,
     DeviceSolutionCreate,
@@ -94,22 +94,6 @@ async def deploy_solution_to_device(
         raise HTTPException(
             status_code=400,
             detail=f"Device already has solution(s) deployed: {', '.join(existing_solution_names)}. Please remove existing solutions before deploying a new one."
-        )
-
-
-    # Check if customer has reached their license limit
-    current_count = await customer_solution.count_deployed_devices(
-        db, customer_id=db_device.customer_id, solution_id=db_solution.solution_id
-    )
-
-    customer_solution_license = await customer_solution.get_by_customer_and_solution(
-        db, customer_id=db_device.customer_id, solution_id=db_solution.solution_id
-    )
-
-    if current_count >= customer_solution_license.max_devices:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Customer has reached maximum number of devices ({customer_solution_license.max_devices}) for this solution"
         )
     
     # Create the deployment

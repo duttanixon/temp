@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models import User, UserRole, UserStatus, Device, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus, Customer,SolutionPackage
+from app.models import User, UserRole, UserStatus, Device, Solution, CustomerSolution, DeviceSolution, Customer,SolutionPackage
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from datetime import timedelta
@@ -1322,9 +1322,7 @@ async def test_get_traffic_flow_analytics_multiple_devices(
         id=uuid.uuid4(),
         device_id=raspberry_device.device_id,
         solution_id=city_eye_solution.solution_id,
-        status=DeviceSolutionStatus.ACTIVE,
         package_id=solution_package.package_id,
-        version_deployed="1.0.0",
         configuration={"param1": "value1"}
     )
     db.add(raspberry_device_solution)

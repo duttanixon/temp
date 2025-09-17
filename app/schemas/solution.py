@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
 
-from app.models import SolutionStatus, DeviceType
+from app.models import DeviceType
 
 # Base Solution Schema (shared properties)
 class SolutionBase(BaseModel):
@@ -13,7 +13,6 @@ class SolutionBase(BaseModel):
     # version: Optional[str] = None
     compatibility: List[DeviceType]  # List of device types (e.g., ["NVIDIA_JETSON", "RASPBERRY_PI"])
     configuration_template: Optional[Dict[str, Any]] = None
-    status: Optional[SolutionStatus] = SolutionStatus.ACTIVE
 
 # Properties to receive on solution creation
 class SolutionCreate(SolutionBase):
@@ -23,10 +22,9 @@ class SolutionCreate(SolutionBase):
 class SolutionUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    version: Optional[str] = None
+    # version: Optional[str] = None
     compatibility: Optional[List[str]] = None
     configuration_template: Optional[Dict[str, Any]] = None
-    status: Optional[SolutionStatus] = None
 
 # Properties to return to client
 class Solution(SolutionBase):

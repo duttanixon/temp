@@ -271,7 +271,6 @@ class CRUDCustomerSolution(CRUDBase[CustomerSolution, CustomerSolutionCreate, Cu
                 "customer_id": cs.customer_id,
                 "solution_id": cs.solution_id,
                 "license_status": cs.license_status,
-                "max_devices": cs.max_devices,
                 "expiration_date": cs.expiration_date,
                 "configuration_template": cs.configuration_template,
                 "created_at": cs.created_at,

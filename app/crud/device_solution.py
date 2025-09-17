@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, Union, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, select
 from app.crud.base import CRUDBase
-from app.models import User, UserRole, DeviceSolutionStatus, DeviceSolution, Device, Customer
+from app.models import User, UserRole, DeviceSolution, Device, Customer
 from app.schemas.device_solution import DeviceSolutionCreate, DeviceSolutionUpdate
 import uuid
 from datetime import datetime
@@ -52,7 +52,6 @@ class CRUDDeviceSolution(CRUDBase[DeviceSolution, DeviceSolutionCreate, DeviceSo
         result = await db.execute(
             select(DeviceSolution).filter(
                 DeviceSolution.device_id == device_id,
-                DeviceSolution.status == DeviceSolutionStatus.ACTIVE
             )
         )
         return list(result.scalars().all())
@@ -96,9 +95,7 @@ class CRUDDeviceSolution(CRUDBase[DeviceSolution, DeviceSolutionCreate, DeviceSo
                 "customer_id": customer_id,
                 "customer_name": customer_name,
                 "solution_id": ds.solution_id,
-                "status": ds.status,
                 "configuration": ds.configuration,
-                "version_deployed": ds.version_deployed,
                 "last_update": ds.last_update,
                 "created_at": ds.created_at,
                 "updated_at": ds.updated_at,
@@ -110,19 +107,6 @@ class CRUDDeviceSolution(CRUDBase[DeviceSolution, DeviceSolutionCreate, DeviceSo
         
         return response_data
 
-    async def update_status(
-        self, db: AsyncSession, *, id: uuid.UUID, status: DeviceSolutionStatus
-    ) -> DeviceSolution:
-        device_solution = await self.get_by_id(db, id=id)
-        device_solution.status = status
-        if status == DeviceSolutionStatus.ACTIVE:
-            device_solution.last_update = datetime.now(ZoneInfo("Asia/Tokyo"))
-        db.add(device_solution)
-        await db.commit()
-        await db.refresh(device_solution)
-        return device_solution
-
-    
     async def update_metrics(
         self, db: AsyncSession, *, id: uuid.UUID, metrics: Dict[str, Any]
     ) -> DeviceSolution:
@@ -133,15 +117,5 @@ class CRUDDeviceSolution(CRUDBase[DeviceSolution, DeviceSolutionCreate, DeviceSo
         await db.commit()
         await db.refresh(device_solution)
         return device_solution
-
-    
-    async def is_solution_running_on_device(
-        self, db: AsyncSession, *, device_id: uuid.UUID, solution_id: uuid.UUID
-    ) -> bool:
-        """Check if a solution is actively running on a device"""
-        device_solution = await self.get_by_device_and_solution(
-            db, device_id=device_id, solution_id=solution_id
-        )
-        return device_solution is not None and device_solution.status == DeviceSolutionStatus.ACTIVE
 
 device_solution = CRUDDeviceSolution(DeviceSolution)

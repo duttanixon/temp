@@ -20,7 +20,7 @@ class Solution(Base):
     version = Column(String, nullable=True)
     compatibility = Column(JSON, nullable=False)  # Array of compatible device types
     configuration_template = Column(JSON, nullable=True) # Common configuration accoss all devies running the solution
-    status = Column(Enum(SolutionStatus), nullable=False, default=SolutionStatus.ACTIVE)
+    status = Column(Enum(SolutionStatus), nullable=True, default=SolutionStatus.ACTIVE)
     created_at = Column(DateTime(timezone=True), default=jst_now)
     updated_at = Column(DateTime(timezone=True), default=jst_now, onupdate=jst_now)
     

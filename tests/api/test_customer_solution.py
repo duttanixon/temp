@@ -33,7 +33,6 @@ async def test_get_customer_solutions_admin(client: TestClient, admin_token: str
     assert "customer_id" in customer_solution
     assert "solution_id" in customer_solution
     assert "license_status" in customer_solution
-    assert "max_devices" in customer_solution
 
 
 @pytest.mark.asyncio
@@ -276,7 +275,6 @@ async def test_update_customer_solution_admin(client: TestClient, db: AsyncSessi
     # Check response
     assert response.status_code == 200
     data = response.json()
-    assert data["max_devices"] == update_data["max_devices"]
     assert data["license_status"] == update_data["license_status"]
     
     # Verify database updates
@@ -284,7 +282,6 @@ async def test_update_customer_solution_admin(client: TestClient, db: AsyncSessi
     await db.refresh(cs)
     result = await db.execute(select(CustomerSolution).filter(CustomerSolution.id == cs.id))
     updated_cs = result.scalars().first()
-    assert updated_cs.max_devices == update_data["max_devices"]
     assert updated_cs.license_status == LicenseStatus.SUSPENDED
     
     # Verify audit log

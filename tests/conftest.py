@@ -24,7 +24,7 @@ from app.db.async_session import Base, get_async_db
 from app.main import app
 from app.models import (
     User, UserRole, UserStatus, Customer, CustomerStatus, Device, DeviceStatus,
-    DeviceType, Solution, CustomerSolution, DeviceSolution, DeviceSolutionStatus,
+    DeviceType, Solution, CustomerSolution, DeviceSolution,
     LicenseStatus, SolutionStatus, SolutionPackage, CityEyeHumanTable, CityEyeTrafficTable, Job, JobType, JobStatus
 )
 
@@ -353,8 +353,6 @@ async def city_eye_device_solution(db: AsyncSession, device: Device, city_eye_so
         device_id=device.device_id,
         solution_id=city_eye_solution.solution_id,
         package_id=solution_package.package_id,
-        status=DeviceSolutionStatus.ACTIVE,
-        version_deployed="1.0.0",
         configuration={"param1": "value1"}
     )
     db.add(device_solution)
@@ -746,9 +744,7 @@ async def seed_test_data(db: AsyncSession) -> None:
         id=uuid.uuid4(),
         device_id=active_device.device_id,
         solution_id=test_solution.solution_id,
-        status=DeviceSolutionStatus.ACTIVE,
         package_id=test_solution_package.package_id,  # FIX: Add the required package_id
-        version_deployed=test_solution.version,
         configuration={"param1": "value1", "param2": "value2"}
     )
 

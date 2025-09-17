@@ -8,11 +8,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.audit_log import AuditLog
-from app.models.device_solution import DeviceSolution, DeviceSolutionStatus
-from app.models.device import Device, DeviceStatus
+from app.models.device import Device
 from app.models.solution import Solution
-from app.models.customer_solution import CustomerSolution
 from app.models.user import User
 from app.core.config import settings
 from datetime import datetime
@@ -29,8 +26,6 @@ async def test_deploy_solution_to_nonexistent_device(
     solution_data = {
         "device_id": str(uuid.uuid4()),  # Random ID
         "solution_id": str(uuid.uuid4()),
-        "status": "PROVISIONING",
-        "version_deployed": "1.0.0"
     }
     
     response = client.post(
@@ -70,9 +65,7 @@ async def test_deploy_solution_to_device_no_access(
     
     solution_data = {
         "device_id": str(device.device_id),
-        "solution_id": str(mock_solution.solution_id),
-        "status": "PROVISIONING",
-        "version_deployed": "1.0.0"
+        "solution_id": str(mock_solution.solution_id)
     }
     
     response = client.post(
@@ -115,9 +108,7 @@ async def test_deploy_solution_customer_no_access(
     
     solution_data = {
         "device_id": str(device.device_id),
-        "solution_id": str(mock_solution.solution_id),
-        "status": "PROVISIONING",
-        "version_deployed": "1.0.0"
+        "solution_id": str(mock_solution.solution_id)
     }
     
     response = client.post(
@@ -161,9 +152,7 @@ async def test_deploy_incompatible_solution(
     
     solution_data = {
         "device_id": str(device.device_id),
-        "solution_id": str(mock_solution.solution_id),
-        "status": "PROVISIONING",
-        "version_deployed": "1.0.0"
+        "solution_id": str(mock_solution.solution_id)
     }
     
     response = client.post(
@@ -214,9 +203,7 @@ async def test_deploy_already_deployed_solution(
     
     solution_data = {
         "device_id": str(device.device_id),
-        "solution_id": str(mock_solution.solution_id),
-        "status": "PROVISIONING",
-        "version_deployed": "1.0.0"
+        "solution_id": str(mock_solution.solution_id)
     }
     
     response = client.post(
@@ -278,9 +265,7 @@ def test_deploy_another_solution_already_deployed(
         
         solution_data = {
             "device_id": str(device.device_id),
-            "solution_id": str(mock_solution.solution_id),
-            "status": "PROVISIONING",
-            "version_deployed": "1.0.0"
+            "solution_id": str(mock_solution.solution_id)
         }
         
         response = client.post(
@@ -294,70 +279,6 @@ def test_deploy_another_solution_already_deployed(
         data = response.json()
         assert "detail" in data
         assert "already has solution" in data["detail"]
-
-
-@pytest.mark.asyncio
-@patch('app.crud.device.device.get_by_id')
-@patch('app.crud.solution.solution.get_by_id')
-@patch('app.crud.customer_solution.customer_solution.check_customer_has_access')
-@patch('app.crud.device_solution.device_solution.get_by_device_and_solution')
-@patch('app.crud.device_solution.device_solution.get_by_device')
-@patch('app.crud.customer_solution.customer_solution.count_deployed_devices')
-@patch('app.crud.customer_solution.customer_solution.get_by_customer_and_solution')
-async def test_deploy_solution_license_limit_reached(
-    mock_get_customer_solution, mock_count_deployed_devices,
-    mock_get_by_device, mock_get_by_device_and_solution,
-    mock_check_access, mock_get_solution, mock_get_device,
-    client: TestClient, admin_token: str, device: Device
-):
-    """Test deploying a solution when license limit is reached"""
-    # Mock device
-    mock_device = MagicMock()
-    mock_device.device_id = device.device_id
-    mock_device.customer_id = device.customer_id
-    mock_device.device_type = device.device_type
-    mock_get_device.return_value = mock_device
-    
-    # Mock solution
-    mock_solution = MagicMock()
-    mock_solution.solution_id = uuid.uuid4()
-    mock_solution.name = "Test Solution"
-    mock_solution.compatibility = [device.device_type.value]
-    mock_get_solution.return_value = mock_solution
-    
-    # Mock access check
-    mock_check_access.return_value = True
-    
-    # Mock that solution is not already deployed
-    mock_get_by_device_and_solution.return_value = None
-    mock_get_by_device.return_value = []
-    
-    # Mock customer solution license
-    mock_customer_solution = MagicMock()
-    mock_customer_solution.max_devices = 5
-    mock_get_customer_solution.return_value = mock_customer_solution
-    
-    # Mock that license limit is reached (count = max)
-    mock_count_deployed_devices.return_value = 5
-    
-    solution_data = {
-        "device_id": str(device.device_id),
-        "solution_id": str(mock_solution.solution_id),
-        "status": "PROVISIONING",
-        "version_deployed": "1.0.0"
-    }
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/device-solutions",
-        headers={"Authorization": f"Bearer {admin_token}"},
-        json=solution_data
-    )
-    
-    # Check response - should be bad request
-    assert response.status_code == 400
-    data = response.json()
-    assert "detail" in data
-    assert "reached maximum" in data["detail"]
 
 # Test getting device solutions (GET /device-solutions/device/{device_id})
 @pytest.mark.asyncio
@@ -383,9 +304,7 @@ async def test_get_device_solutions(
     mock_deployment.id = deployment_id
     mock_deployment.device_id = device.device_id
     mock_deployment.solution_id = solution_id
-    mock_deployment.status = "ACTIVE"
     mock_deployment.configuration = {"param1": "value1"}
-    mock_deployment.version_deployed = "1.0.0"
     mock_deployment.metrics = None
     mock_deployment.last_update = datetime.now()
     mock_deployment.created_at = datetime.now()
@@ -398,9 +317,7 @@ async def test_get_device_solutions(
             "id": deployment_id,
             "device_id": device.device_id,
             "solution_id": solution_id,
-            "status": "ACTIVE",
             "configuration": {"param1": "value1"},
-            "version_deployed": "1.0.0",
             "metrics": None,
             "last_update": mock_deployment.last_update,
             "created_at": mock_deployment.created_at,
@@ -495,10 +412,7 @@ async def test_update_device_solution_nonexistent_device(
     mock_get_device.return_value = None
     
     nonexistent_id = uuid.uuid4()
-    update_data = {
-        "status": "ACTIVE",
-        "version_deployed": "1.1.0"
-    }
+    update_data = {}
     
     response = client.put(
         f"{settings.API_V1_STR}/device-solutions/device/{nonexistent_id}",
@@ -525,10 +439,7 @@ async def test_update_device_solution_no_authorization(
     mock_device.customer_id = uuid.uuid4()  # Different customer
     mock_get_device.return_value = mock_device
     
-    update_data = {
-        "status": "ACTIVE",
-        "version_deployed": "1.1.0"
-    }
+    update_data = {}
     
     response = client.put(
         f"{settings.API_V1_STR}/device-solutions/device/{device.device_id}",
@@ -560,10 +471,7 @@ async def test_update_device_solution_no_solution_deployed(
     # Mock that no solution is deployed
     mock_get_by_device.return_value = []
     
-    update_data = {
-        "status": "ACTIVE",
-        "version_deployed": "1.1.0"
-    }
+    update_data = {}
     
     response = client.put(
         f"{settings.API_V1_STR}/device-solutions/device/{device.device_id}",

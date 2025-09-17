@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.crud import solution, customer_solution, device, device_solution, customer
-from app.models import User, UserRole, DeviceType, Solution, SolutionStatus, CustomerSolution, Customer, LicenseStatus
+from app.models import User, UserRole, DeviceType
 from app.schemas.solution import (
     Solution as SolutionSchema,
     SolutionCreate,
@@ -25,7 +25,6 @@ async def get_solutions(
     skip: int = 0,
     limit: int = 100,
     device_type: Optional[str] = None,
-    active_only: bool = False,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -47,8 +46,6 @@ async def get_solutions(
                     status_code=400,
                     detail=f"Invalid device type: {device_type}"
                 )
-        elif active_only:
-            solutions_list = await solution.get_active(db, skip=skip, limit=limit)
         else:
             solutions_list = await solution.get_multi(db, skip=skip, limit=limit)
         
@@ -87,10 +84,6 @@ async def get_solutions(
                         status_code=400,
                         detail=f"Invalid device type: {device_type}"
                     )
-            
-            # Add active status filter if requested
-            if active_only and sol_item.status != SolutionStatus.ACTIVE:
-                continue
             
             solutions_list.append(sol_item)
             
@@ -364,74 +357,6 @@ async def update_solution(
     
     return updated_solution
 
-@router.post("/{solution_id}/deprecate", response_model=SolutionSchema)
-async def deprecate_solution(
-    *,
-    db: AsyncSession = Depends(deps.get_async_db),
-    solution_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_admin_user),
-    request: Request,
-) -> Any:
-    """
-    Deprecate a solution.
-    Admin only.
-    """
-    db_solution = await solution.get_by_id(db, solution_id=solution_id)
-    if not db_solution:
-        raise HTTPException(
-            status_code=404,
-            detail="Solution not found"
-        )
-    
-    deprecated_solution = await solution.deprecate(db, solution_id=solution_id)
-    
-    # Log action
-    await log_action(
-        db=db,
-        user_id=current_user.user_id,
-        action_type="SOLUTION_DEPRECATE",
-        resource_type="SOLUTION",
-        resource_id=str(solution_id),
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
-    )
-    
-    return deprecated_solution
-
-@router.post("/{solution_id}/activate", response_model=SolutionSchema)
-async def activate_solution(
-    *,
-    db: AsyncSession = Depends(deps.get_async_db),
-    solution_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_admin_user),
-    request: Request,
-) -> Any:
-    """
-    Activate a deprecated solution.
-    Admin only.
-    """
-    db_solution = await solution.get_by_id(db, solution_id=solution_id)
-    if not db_solution:
-        raise HTTPException(
-            status_code=404,
-            detail="Solution not found"
-        )
-    
-    activated_solution = await solution.activate(db, solution_id=solution_id)
-    
-    # Log action
-    await log_action(
-        db=db,
-        user_id=current_user.user_id,
-        action_type="SOLUTION_ACTIVATE",
-        resource_type="SOLUTION",
-        resource_id=str(solution_id),
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent")
-    )
-    
-    return activated_solution
-
 @router.get("/compatibility/device/{device_id}", response_model=List[SolutionSchema])
 async def get_compatible_solutions_for_device(
     *,
@@ -488,9 +413,64 @@ async def get_compatible_solutions_for_device(
     # Get compatible solutions
     compatible_solutions = await solution.get_by_ids(db, ids=solution_ids)
     
-    compatible_and_active = [
+    compatible = [
         sol for sol in compatible_solutions
-        if sol.status == SolutionStatus.ACTIVE and db_device.device_type.value in sol.compatibility
+        if db_device.device_type.value in sol.compatibility
     ]
+
+    return compatible
+
+
+@router.delete("/{solution_id}", response_model=SolutionSchema)
+async def delete_solution(
+    *,
+    db: AsyncSession = Depends(deps.get_async_db),
+    solution_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_admin_user),
+    request: Request,
+) -> Any:
+    """
+    Delete a solution (Admin only).
+    A solution cannot be deleted if it is assigned to any customer.
+    """
+    # Check if solution exists
+    db_solution = await solution.get_by_id(db, solution_id=solution_id)
+    if not db_solution:
+        raise HTTPException(
+            status_code=404,
+            detail="Solution not found"
+        )
     
-    return compatible_and_active
+    # Check if solution is assigned to any customers
+    assigned_customers = await customer_solution.get_by_solution(db, solution_id=solution_id)
+    if assigned_customers:
+        customer_names = []
+        for cs in assigned_customers:
+            customer_obj = await customer.get_by_id(db, customer_id=cs.customer_id)
+            if customer_obj:
+                customer_names.append(customer_obj.name)
+        
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete solution: it is currently assigned to {len(assigned_customers)} customer(s): {', '.join(customer_names)}. Please remove all customer assignments first."
+        )
+    
+    # Delete the solution
+    deleted_solution = await solution.remove(db, id=solution_id)
+    
+    # Log action
+    await log_action(
+        db=db,
+        user_id=current_user.user_id,
+        action_type="SOLUTION_DELETE",
+        resource_type="SOLUTION",
+        resource_id=str(solution_id),
+        details={
+            "solution_name": db_solution.name,
+            "solution_version": db_solution.version
+        },
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent")
+    )
+    
+    return deleted_solution

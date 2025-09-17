@@ -4,15 +4,11 @@ from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel
 
-from app.models.device_solution import DeviceSolutionStatus
-
 # Base Device Solution Schema (shared properties)
 class DeviceSolutionBase(BaseModel):
     device_id: UUID
     solution_id: UUID
-    status: Optional[DeviceSolutionStatus] = DeviceSolutionStatus.PROVISIONING
     configuration: Optional[Dict[str, Any]] = None
-    version_deployed: str
 
 
 # Properties to receive on device solution creation
@@ -21,10 +17,8 @@ class DeviceSolutionCreate(DeviceSolutionBase):
 
 # Properties to receive on device solution update
 class DeviceSolutionUpdate(BaseModel):
-    status: Optional[DeviceSolutionStatus] = None
     configuration: Optional[Dict[str, Any]] = None
     metrics: Optional[Dict[str, Any]] = None
-    version_deployed: Optional[str] = None
 
     class Config:
         extra = "forbid"

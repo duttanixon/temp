@@ -1,8 +1,8 @@
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, and_, select, delete, func
 from app.crud.base import CRUDBase
-from app.models import Device, DeviceStatus, Customer, DeviceSolution, Solution, Job, DeviceSolutionStatus, DeviceCommand, CityEyeHumanTable as HumanTable, CityEyeTrafficTable as TrafficTable
+from app.models import Device, DeviceStatus, Customer, DeviceSolution, Solution, Job, DeviceCommand, CityEyeHumanTable as HumanTable, CityEyeTrafficTable as TrafficTable
 from app.schemas.device import DeviceCreate, DeviceUpdate
 import uuid
 
@@ -48,7 +48,7 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
                 Job.status.label("latest_job_status"),
             )
             .join(Customer, Device.customer_id == Customer.customer_id)
-            .outerjoin(DeviceSolution, and_(Device.device_id == DeviceSolution.device_id, DeviceSolution.status == DeviceSolutionStatus.ACTIVE))
+            .outerjoin(DeviceSolution, and_(Device.device_id == DeviceSolution.device_id))
             .outerjoin(Solution, DeviceSolution.solution_id == Solution.solution_id)
             .outerjoin(Job, Device.latest_job_id == Job.id)
         )
@@ -88,7 +88,7 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
                 Job.status.label("latest_job_status"),
             )
             .join(Customer, Device.customer_id == Customer.customer_id)
-            .outerjoin(DeviceSolution, and_(Device.device_id == DeviceSolution.device_id, DeviceSolution.status == DeviceSolutionStatus.ACTIVE))
+            .outerjoin(DeviceSolution, and_(Device.device_id == DeviceSolution.device_id))
             .outerjoin(Solution, DeviceSolution.solution_id == Solution.solution_id)
             .outerjoin(Job, Device.latest_job_id == Job.id)
             .filter(Device.customer_id == customer_id)

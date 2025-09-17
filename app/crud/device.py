@@ -263,7 +263,6 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         solution_result = await db.execute(
             select(
                 DeviceSolution.solution_id,
-                DeviceSolution.status,
                 Solution.name.label("solution_name")
             )
             .join(Solution, Solution.solution_id == DeviceSolution.solution_id)

@@ -263,8 +263,7 @@ async def suspended_customer_solution(db: AsyncSession, suspended_customer: Cust
         id=uuid.uuid4(),
         customer_id=suspended_customer.customer_id,
         solution_id=solution_obj.solution_id,
-        license_status=LicenseStatus.ACTIVE,
-        max_devices=5
+        license_status=LicenseStatus.ACTIVE
     )
     db.add(new_cs)
     await db.commit()
@@ -283,9 +282,7 @@ async def city_eye_solution(db: AsyncSession) -> Solution:
             solution_id=uuid.uuid4(),
             name="City Eye",
             description="City Eye human flow analytics solution",
-            version="1.0.0",
             compatibility=["NVIDIA_JETSON", "RASPBERRY_PI"],
-            status=SolutionStatus.ACTIVE
         )
         db.add(city_eye)
         await db.commit()
@@ -308,8 +305,7 @@ async def city_eye_customer_solution(db: AsyncSession, customer: Customer, city_
         id=uuid.uuid4(),
         customer_id=customer.customer_id,
         solution_id=city_eye_solution.solution_id,
-        license_status=LicenseStatus.ACTIVE,
-        max_devices=10
+        license_status=LicenseStatus.ACTIVE
     )
     db.add(customer_solution)
     await db.commit()
@@ -691,18 +687,14 @@ async def seed_test_data(db: AsyncSession) -> None:
         solution_id=uuid.uuid4(),
         name="Test Solution",
         description="A test solution for device management",
-        version="1.0.0",
         compatibility=["NVIDIA_JETSON", "RASPBERRY_PI"],
-        status=SolutionStatus.ACTIVE
     )
 
     beta_solution = Solution(
         solution_id=uuid.uuid4(),
         name="Beta Solution",
         description="A beta solution for testing",
-        version="0.5.0",
-        compatibility=["NVIDIA_JETSON"],
-        status=SolutionStatus.BETA
+        compatibility=["NVIDIA_JETSON"]
     )
 
 
@@ -735,8 +727,7 @@ async def seed_test_data(db: AsyncSession) -> None:
         id=uuid.uuid4(),
         customer_id=active_customer.customer_id,
         solution_id=test_solution.solution_id,
-        license_status=LicenseStatus.ACTIVE,
-        max_devices=10
+        license_status=LicenseStatus.ACTIVE
     )
 
     # Create device-solution deployment

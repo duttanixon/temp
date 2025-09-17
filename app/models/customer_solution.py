@@ -17,7 +17,6 @@ class CustomerSolution(Base):
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.customer_id"), nullable=False)
     solution_id = Column(UUID(as_uuid=True), ForeignKey("solutions.solution_id"), nullable=False)
     license_status = Column(Enum(LicenseStatus), nullable=False, default=LicenseStatus.ACTIVE)
-    max_devices = Column(Integer, nullable=True, default=100)
     expiration_date = Column(Date, nullable=True)
     configuration_template = Column(JSON, nullable=True) # Common configuration accoss all devies running the solution for the customer
     created_at = Column(DateTime(timezone=True), default=jst_now)

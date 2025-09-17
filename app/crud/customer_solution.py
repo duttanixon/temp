@@ -41,7 +41,6 @@ class CRUDCustomerSolution(CRUDBase[CustomerSolution, CustomerSolutionCreate, Cu
         result = cs.__dict__.copy()
         if sol_obj:
             result["solution_name"] = sol_obj.name
-            result["solution_version"] = sol_obj.version
             
         devices_count_result = await db.execute(
             select(func.count(DeviceSolution.id))
@@ -229,8 +228,7 @@ class CRUDCustomerSolution(CRUDBase[CustomerSolution, CustomerSolutionCreate, Cu
             select(
                 CustomerSolution,
                 Customer.name.label("customer_name"),
-                Solution.name.label("solution_name"),
-                Solution.version.label("solution_version")
+                Solution.name.label("solution_name")
             )
             .join(Customer, CustomerSolution.customer_id == Customer.customer_id)
             .join(Solution, CustomerSolution.solution_id == Solution.solution_id)
@@ -256,8 +254,8 @@ class CRUDCustomerSolution(CRUDBase[CustomerSolution, CustomerSolutionCreate, Cu
         # Process results into the expected format
         processed_results = []
         for result in results:
-            cs, customer_name, solution_name, solution_version = result
-            
+            cs, customer_name, solution_name = result
+
             # Count devices for this customer-solution pair
             devices_count = await self.count_deployed_devices(
                 db, 
@@ -277,7 +275,6 @@ class CRUDCustomerSolution(CRUDBase[CustomerSolution, CustomerSolutionCreate, Cu
                 "updated_at": cs.updated_at,
                 "customer_name": customer_name,
                 "solution_name": solution_name,
-                "solution_version": solution_version,
                 "devices_count": devices_count
             }
             

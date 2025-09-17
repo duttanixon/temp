@@ -466,8 +466,7 @@ async def delete_solution(
         resource_type="SOLUTION",
         resource_id=str(solution_id),
         details={
-            "solution_name": db_solution.name,
-            "solution_version": db_solution.version
+            "solution_name": db_solution.name
         },
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent")

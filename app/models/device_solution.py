@@ -5,13 +5,6 @@ from sqlalchemy.orm import relationship
 import enum
 from app.db.async_session import Base, jst_now
 
-
-class DeviceSolutionStatus(str, enum.Enum):
-    PROVISIONING = "PROVISIONING"
-    ACTIVE = "ACTIVE"
-    ERROR = "ERROR"
-    STOPPED = "STOPPED"
-
 class DeviceSolution(Base):
     __tablename__ = "device_solutions"
     
@@ -19,10 +12,8 @@ class DeviceSolution(Base):
     device_id = Column(UUID(as_uuid=True), ForeignKey("devices.device_id"), nullable=False)
     solution_id = Column(UUID(as_uuid=True), ForeignKey("solutions.solution_id"), nullable=False)
     package_id = Column(UUID(as_uuid=True), ForeignKey("solution_package.package_id"), nullable=False)
-    status = Column(Enum(DeviceSolutionStatus), nullable=True, default=DeviceSolutionStatus.PROVISIONING)
     configuration = Column(JSON, nullable=True)  # Solution-specific configuration
     metrics = Column(JSON, nullable=True)  # Performance metrics
-    version_deployed = Column(String, nullable=True)
     last_update = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=jst_now)
     updated_at = Column(DateTime(timezone=True), default=jst_now, onupdate=jst_now)

@@ -155,6 +155,7 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         device.certificate_path = None
         device.private_key_path = None
         device.status = DeviceStatus.DECOMMISSIONED
+        device.is_online = False
         db.add(device)
         await db.commit()
         await db.refresh(device)

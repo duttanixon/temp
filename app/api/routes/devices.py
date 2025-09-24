@@ -866,6 +866,10 @@ async def get_batch_device_status(
                         error="Not authorized"
                     )
                     continue
+            
+            # check if device is active/provisioned
+            if db_device.status not in [DeviceStatus.ACTIVE, DeviceStatus.PROVISIONED]:
+                continue
 
             # Populate the response with the current, locally stored status
             result[device_id_str] = DeviceStatusInfo(

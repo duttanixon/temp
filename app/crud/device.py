@@ -285,6 +285,13 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
             raise ValueError(f"Device with ID {device_id} not found")
         
         try:
+            # 0. Clear latest_job_id FK first to avoid constraint issues when deleting jobs
+            if device_obj.latest_job_id is not None:
+                device_obj.latest_job_id = None
+                db.add(device_obj)
+                # Flush so the FK update is persisted before job deletions
+                await db.flush()
+
             # 1. Delete City Eye data (human and traffic tables)
             await db.execute(delete(HumanTable).where(HumanTable.device_id == device_id))
             await db.execute(delete(TrafficTable).where(TrafficTable.device_id == device_id))

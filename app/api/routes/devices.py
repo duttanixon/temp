@@ -491,6 +491,7 @@ async def delete_device(
     This will cascade delete all related records including jobs, commands, and analytics data.
     """
     try:
+        device_id = db_device.device_id
         # First, check what related data would be deleted (for logging purposes)
         related_counts = await device.safe_delete_check(db, device_id=db_device.device_id)
         
@@ -523,7 +524,7 @@ async def delete_device(
         return deleted_device
         
     except Exception as e:
-        logger.error(f"Error deleting device {db_device.device_id}: {str(e)}")
+        logger.error(f"Error deleting device {device_id}: {str(e)}")
         raise HTTPException(
             status_code=500, 
             detail=f"Failed to delete device. This may be due to related data constraints: {str(e)}"

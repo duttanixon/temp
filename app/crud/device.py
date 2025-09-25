@@ -206,7 +206,8 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
         obj_in: Dict[str, Any], 
         device_name: str
     ) -> Device:
-        """Create a device with cloud provisioning information in one operation"""
+        """Create a device with cloud provisioning information in one operation.
+        Now uses the real S3 object paths (certificate_path, private_key_path)."""
         db_obj = Device(
             name=device_name,
             description=obj_in.get('description'),
@@ -225,8 +226,8 @@ class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
             thing_arn=obj_in.get('thing_arn'),
             certificate_id=obj_in.get('certificate_id'),
             certificate_arn=obj_in.get('certificate_arn'),
-            certificate_path=obj_in.get('certificate_url'),  # Note: mapping certificate_url to certificate_path
-            private_key_path=obj_in.get('private_key_url'),  # Note: mapping private_key_url to private_key_path
+            certificate_path=obj_in.get('certificate_path'),  
+            private_key_path=obj_in.get('private_key_path'),
             status=obj_in.get('status', DeviceStatus.PROVISIONED)
         )
         db.add(db_obj)

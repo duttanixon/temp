@@ -151,8 +151,8 @@ async def create_and_provision_device(
             'thing_arn': provision_info['thing_arn'],
             'certificate_id': provision_info['certificate_id'],
             'certificate_arn': provision_info['certificate_arn'],
-            'certificate_url': provision_info['certificate_url'],
-            'private_key_url': provision_info['private_key_url'],
+            'certificate_path': provision_info['certificate_path'],
+            'private_key_path': provision_info['private_key_path'],
             'status': DeviceStatus.PROVISIONED
         })
         

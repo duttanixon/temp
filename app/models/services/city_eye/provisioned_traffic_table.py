@@ -4,9 +4,8 @@ from sqlalchemy import Column, String, DateTime, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-
-class CityEyeTrafficTable(Base):
-    __tablename__ = "city_eye_traffic_data"
+class CityEyeProvisionedTrafficTable(Base):
+    __tablename__ = "city_eye_provisioned_traffic_data"
 
     data_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     device_id = Column(UUID(as_uuid=True), ForeignKey("devices.device_id"), nullable=False)
@@ -25,6 +24,6 @@ class CityEyeTrafficTable(Base):
     updated_at = Column(DateTime(timezone=True), default=jst_now, onupdate=jst_now)
 
     # Relationships
-    device = relationship("Device", backref="city_eye_traffic_data")
-    solution = relationship("Solution", backref="city_eye_traffic_data")
-    device_solution = relationship("DeviceSolution", backref="city_eye_traffic_data")
+    device = relationship("Device", backref="city_eye_provisioned_traffic_data")
+    solution = relationship("Solution", backref="city_eye_provisioned_traffic_data")
+    device_solution = relationship("DeviceSolution", backref="city_eye_provisioned_traffic_data")

@@ -6,11 +6,11 @@ from app.db.async_session import AsyncSessionLocal
 import uuid
 import os
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from app.api import deps
-from app.crud import solution_package, solution, ai_model, device, job, device_solution
-from app.models.solution_package import SolutionPackage
-from app.models import User, JobType
+from app.crud import solution_package, solution, ai_model, device, job, device_solution, customer_solution
+from app.models import User, JobType, DeviceSolution, SolutionPackage
 from app.schemas.solution_package import (
     SolutionPackage as SolutionPackageSchema,
     SolutionPackageCreate,
@@ -802,6 +802,7 @@ async def deploy_solution_package(
 
     This endpoint:
     1. Validates the package and targets
+    2. Creates or updates device_solution records in the database
     2. Generate download URLs for package and associated models
     3. Creates an AWS IoT Core Job to deploy the package and models to target devices.
     """
@@ -815,7 +816,7 @@ async def deploy_solution_package(
             detail="Package not found"
         )
     
-    # Get associated solution name for logging/S3 key generation if needed
+    # Get associated solution for validation and record creation
     db_solution = await solution.get_by_id(db, solution_id=db_package.solution_id)
     if not db_solution:
         raise HTTPException(
@@ -823,7 +824,100 @@ async def deploy_solution_package(
             detail="Associated solution not found for this package"
         )
     
-    # 2. Generate Download Links
+    # 2. Validate devices and create/update device_solution records
+    validated_device_ids = []
+    for device_id in deploy_request.device_ids:
+        # Get the device
+        db_device = await device.get_by_id(db, device_id=device_id)
+        if not db_device:
+            logger.warning(f"Device {device_id} not found. Skipping.")
+            continue
+
+        # Check if customer has access to this solution
+        if not await customer_solution.check_customer_has_access(
+            db, customer_id=db_device.customer_id, solution_id=db_solution.solution_id
+        ):
+            logger.warning(f"Customer {db_device.customer_id} does not have access to solution {db_solution.name}. Skipping device {device_id}.")
+            continue
+        
+        # Check if solution is compatible with device
+        if db_device.device_type.value not in db_solution.compatibility:
+            logger.warning(f"Solution {db_solution.name} is not compatible with device type {db_device.device_type.value}. Skipping device {device_id}.")
+            continue
+
+        # Check if there's an existing device_solution record
+        existing_deployment = await device_solution.get_by_device_and_solution(
+            db, device_id=device_id, solution_id=db_solution.solution_id
+        )
+
+        if existing_deployment:
+            # Update the existing record with the new package_id
+            logger.info(f"Updating existing device_solution record for device {device_id} with package {package_id}")
+            existing_deployment.package_id = package_id
+            existing_deployment.last_update = datetime.now(ZoneInfo("Asia/Tokyo"))
+            await db.commit()
+
+        else:
+            # Check if ANY other solution is already deployed to this device
+            existing_solutions = await device_solution.get_by_device(db, device_id=device_id)
+            if existing_solutions and len(existing_solutions) > 0:
+                # For now, we'll skip this device as it has another solution deployed
+                # In the future, you might want to handle this differently
+                existing_solution_names = []
+                for existing_sol in existing_solutions:
+                    sol = await solution.get_by_id(db, solution_id=existing_sol.solution_id)
+                    if sol:
+                        existing_solution_names.append(sol.name)
+                
+                logger.warning(
+                    f"Device {device_id} already has solution(s) deployed: {', '.join(existing_solution_names)}. "
+                    f"Skipping deployment. Please remove existing solutions first."
+                )
+                continue
+
+            # Create new device_solution record
+            logger.info(f"Creating new device_solution record for device {device_id} with package {package_id}")
+            new_deployment = DeviceSolution(
+                device_id=device_id,
+                solution_id=db_solution.solution_id,
+                package_id=package_id,
+                configuration=deploy_request.configuration if hasattr(deploy_request, 'configuration') else None,
+                last_update=datetime.now(ZoneInfo("Asia/Tokyo"))
+            )
+            db.add(new_deployment)
+            await db.commit()
+
+            # Log the deployment action
+            await log_action(
+                db=db,
+                user_id=current_user.user_id,
+                action_type="SOLUTION_DEPLOYMENT",
+                resource_type="DEVICE_SOLUTION",
+                resource_id=str(new_deployment.id),
+                details={
+                    "device_id": str(device_id),
+                    "device_name": db_device.name,
+                    "solution_id": str(db_solution.solution_id),
+                    "solution_name": db_solution.name,
+                    "package_id": str(package_id),
+                    "package_name": db_package.name,
+                    "package_version": db_package.version
+                },
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent")
+            )
+
+        validated_device_ids.append(device_id)
+
+    # If no devices were validated, return an error
+    if not validated_device_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="No valid devices found for deployment. Please check device access, solution compatibility, and existing deployments."
+        )
+
+
+    # 3. Generate Download Links
     job_document_steps = []
     installation_script_args = [str(db_package.package_id)]  # Start with package ID as first arg
     # Add step for package file download
@@ -906,7 +1000,7 @@ async def deploy_solution_package(
     }
 
 
-    # 3. AWS IoT Core Job Creation (as a background task for multiple devices)
+    # 4. AWS IoT Core Job Creation (as a background task for multiple devices)
     
     # Inner function for the background task
     async def create_deployment_jobs_task(

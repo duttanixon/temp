@@ -143,3 +143,4 @@ class DeployPackageRequest(BaseModel):
     path_to_handler: str = Field(default="/home/cybercore/jobs", description="Path to job handler on device")
     run_as_user: str = Field(default="cybercore", description="User to run the job as on device")
     install_script_args: Optional[List[str]] = Field(default=[], description="Arguments for the install-application.sh script")
+    configuration: Optional[Dict[str, Any]] = Field(None, description="Optional solution-specific configuration to store with the deployment")
